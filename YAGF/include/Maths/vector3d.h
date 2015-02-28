@@ -1,4 +1,5 @@
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
+// Copyright (C) 2015 Vincent Lejeune
 // This file is part of the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in irrlicht.h
 
@@ -6,6 +7,9 @@
 #define __IRR_POINT_3D_H_INCLUDED__
 
 #include <math.h>
+
+#define DEGTORAD64 (3.14 / 180.)
+#define RADTODEG64 (180. / 3.14)
 
 namespace irr
 {
@@ -57,39 +61,39 @@ namespace core
 		vector3d<T> operator/(const T v) const { T i=(T)1.0/v; return vector3d<T>(X * i, Y * i, Z * i); }
 		vector3d<T>& operator/=(const T v) { T i=(T)1.0/v; X*=i; Y*=i; Z*=i; return *this; }
 
-		//! sort in order X, Y, Z. Equality with rounding tolerance.
+		//! sort in order X, Y, Z.
 		bool operator<=(const vector3d<T>&other) const
 		{
-			return 	(X<other.X || core::equals(X, other.X)) ||
-					(core::equals(X, other.X) && (Y<other.Y || core::equals(Y, other.Y))) ||
-					(core::equals(X, other.X) && core::equals(Y, other.Y) && (Z<other.Z || core::equals(Z, other.Z)));
+			return 	(X<other.X || X == other.X) ||
+					(X == other.X && (Y<other.Y || Y == other.Y)) ||
+					(X == other.X && Y == other.Y && (Z<other.Z || Z == other.Z));
 		}
 
-		//! sort in order X, Y, Z. Equality with rounding tolerance.
+		//! sort in order X, Y, Z.
 		bool operator>=(const vector3d<T>&other) const
 		{
-			return 	(X>other.X || core::equals(X, other.X)) ||
-					(core::equals(X, other.X) && (Y>other.Y || core::equals(Y, other.Y))) ||
-					(core::equals(X, other.X) && core::equals(Y, other.Y) && (Z>other.Z || core::equals(Z, other.Z)));
+			return 	(X>other.X || X == other.X) ||
+					(X == other.X && (Y>other.Y || Y == other.Y)) ||
+					(X == other.X && Y == other.Y && (Z>other.Z || Z == other.Z));
 		}
 
-		//! sort in order X, Y, Z. Difference must be above rounding tolerance.
+		//! sort in order X, Y, Z.
 		bool operator<(const vector3d<T>&other) const
 		{
-			return 	(X<other.X && !core::equals(X, other.X)) ||
-					(core::equals(X, other.X) && Y<other.Y && !core::equals(Y, other.Y)) ||
-					(core::equals(X, other.X) && core::equals(Y, other.Y) && Z<other.Z && !core::equals(Z, other.Z));
+			return 	(X<other.X && X != other.X) ||
+					(X == other.X && Y<other.Y && Y != other.Y) ||
+					(X == other.X && Y == other.Y && Z<other.Z && Z != other.Z);
 		}
 
 		//! sort in order X, Y, Z. Difference must be above rounding tolerance.
 		bool operator>(const vector3d<T>&other) const
 		{
-			return 	(X>other.X && !core::equals(X, other.X)) ||
-					(core::equals(X, other.X) && Y>other.Y && !core::equals(Y, other.Y)) ||
-					(core::equals(X, other.X) && core::equals(Y, other.Y) && Z>other.Z && !core::equals(Z, other.Z));
+			return 	(X>other.X && !X != other.X) ||
+					(X == other.X && Y>other.Y && Y != other.Y) ||
+					(X == other.X && Y == other.Y && Z>other.Z && Z != other.Z);
 		}
 
-		//! use weak float compare
+		//! use strict float compare
 		bool operator==(const vector3d<T>& other) const
 		{
 			return this->equals(other);
@@ -102,12 +106,13 @@ namespace core
 
 		// functions
 
-		//! returns if this vector equals the other one, taking floating point rounding errors into account
-		bool equals(const vector3d<T>& other, const T tolerance = (T)ROUNDING_ERROR_f32 ) const
+		//! returns if this vector strictly equals the other one.
+		//! Use vector distance if equality within tolerance is needed
+		bool equals(const vector3d<T>& other) const
 		{
-			return core::equals(X, other.X, tolerance) &&
-				core::equals(Y, other.Y, tolerance) &&
-				core::equals(Z, other.Z, tolerance);
+			return X == other.X &&
+				Y == other.Y &&
+				Z == other.Z;
 		}
 
 		vector3d<T>& set(const T nx, const T ny, const T nz) {X=nx; Y=ny; Z=nz; return *this;}
@@ -170,7 +175,7 @@ namespace core
 			double length = X*X + Y*Y + Z*Z;
 			if (length == 0 ) // this check isn't an optimization but prevents getting NAN in the sqrt.
 				return *this;
-			length = core::reciprocal_squareroot(length);
+			length = 1. / sqrt(length);
 
 			X = (T)(X * length);
 			Y = (T)(Y * length);
@@ -302,7 +307,7 @@ namespace core
 		{
 			vector3d<T> angle;
 
-			const double tmp = (atan2((double)X, (double)Z) * RADTODEG64);
+			double tmp = (atan2((double)X, (double)Z) * RADTODEG64);
 			angle.Y = (T)tmp;
 
 			if (angle.Y < 0)
@@ -310,7 +315,7 @@ namespace core
 			if (angle.Y >= 360)
 				angle.Y -= 360;
 
-			const double z1 = core::squareroot(X*X + Z*Z);
+			double z1 = sqrt(X*X + Z*Z);
 
 			angle.X = (T)(atan2((double)z1, (double)Y) * RADTODEG64 - 90.0);
 
@@ -341,7 +346,7 @@ namespace core
 				else if (Z<0)
 					angle.Y=180;
 
-				angle.X = (T)(acos(Y * core::reciprocal_squareroot(length)) * RADTODEG64);
+				angle.X = (T)(acos(Y / sqrt(length)) * RADTODEG64);
 			}
 			return angle;
 		}
@@ -356,12 +361,12 @@ namespace core
 		(in degrees) represented by this vector. */
 		vector3d<T> rotationToDirection(const vector3d<T> & forwards = vector3d<T>(0, 0, 1)) const
 		{
-			const double cr = cos( core::DEGTORAD64 * X );
-			const double sr = sin( core::DEGTORAD64 * X );
-			const double cp = cos( core::DEGTORAD64 * Y );
-			const double sp = sin( core::DEGTORAD64 * Y );
-			const double cy = cos( core::DEGTORAD64 * Z );
-			const double sy = sin( core::DEGTORAD64 * Z );
+			const double cr = cos( DEGTORAD64 * X );
+			const double sr = sin( DEGTORAD64 * X );
+			const double cp = cos( DEGTORAD64 * Y );
+			const double sp = sin( DEGTORAD64 * Y );
+			const double cy = cos( DEGTORAD64 * Z );
+			const double sy = sin( DEGTORAD64 * Z );
 
 			const double srsp = sr*sp;
 			const double crsp = cr*sp;
@@ -431,12 +436,12 @@ namespace core
 		{
 			if (X!=0)
 			{
-				angle.Y = round32((float)(atan2((double)Z,(double)X) * RADTODEG64));
+				angle.Y = roundf((float)(atan2((double)Z,(double)X) * RADTODEG64));
 			}
 			else if (Z<0)
 				angle.Y=180;
 
-			angle.X = round32((float)(acos(Y * core::reciprocal_squareroot(length)) * RADTODEG64));
+			angle.X = roundf((float)(acos(Y / sqrt(length)) * RADTODEG64));
 		}
 		return angle;
 	}
