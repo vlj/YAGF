@@ -1,12 +1,13 @@
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
+// Copyright (C) 2015 Vincent Lejeune
 // This file is part of the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in irrlicht.h
 
 #ifndef __IRR_POINT_2D_H_INCLUDED__
 #define __IRR_POINT_2D_H_INCLUDED__
 
-//#include "irrMath.h"
-//#include <Maths/dimension2d.h>
+#define DEGTORAD64 (3.14 / 180.)
+#define RADTODEG64 (180. / 3.14)
 
 namespace irr
 {
@@ -15,8 +16,6 @@ namespace core
 
 
 //! 2d vector template class with lots of operators and methods.
-/** As of Irrlicht 1.6, this class supercedes position2d, which should
-	be considered deprecated. */
 template <class T>
 class vector2d
 {
@@ -30,7 +29,7 @@ public:
 	//! Copy constructor
 	vector2d(const vector2d<T>& other) : X(other.X), Y(other.Y) {}
 
-	vector2d(const dimension2d<T>& other) : X(other.Width), Y(other.Height) {}
+//	vector2d(const dimension2d<T>& other) : X(other.Width), Y(other.Height) {}
 
 	// operators
 
@@ -38,21 +37,21 @@ public:
 
 	vector2d<T>& operator=(const vector2d<T>& other) { X = other.X; Y = other.Y; return *this; }
 
-	vector2d<T>& operator=(const dimension2d<T>& other) { X = other.Width; Y = other.Height; return *this; }
+//	vector2d<T>& operator=(const dimension2d<T>& other) { X = other.Width; Y = other.Height; return *this; }
 
 	vector2d<T> operator+(const vector2d<T>& other) const { return vector2d<T>(X + other.X, Y + other.Y); }
-	vector2d<T> operator+(const dimension2d<T>& other) const { return vector2d<T>(X + other.Width, Y + other.Height); }
+//	vector2d<T> operator+(const dimension2d<T>& other) const { return vector2d<T>(X + other.Width, Y + other.Height); }
 	vector2d<T>& operator+=(const vector2d<T>& other) { X+=other.X; Y+=other.Y; return *this; }
 	vector2d<T> operator+(const T v) const { return vector2d<T>(X + v, Y + v); }
 	vector2d<T>& operator+=(const T v) { X+=v; Y+=v; return *this; }
-	vector2d<T>& operator+=(const dimension2d<T>& other) { X += other.Width; Y += other.Height; return *this;  }
+//	vector2d<T>& operator+=(const dimension2d<T>& other) { X += other.Width; Y += other.Height; return *this;  }
 
 	vector2d<T> operator-(const vector2d<T>& other) const { return vector2d<T>(X - other.X, Y - other.Y); }
-	vector2d<T> operator-(const dimension2d<T>& other) const { return vector2d<T>(X - other.Width, Y - other.Height); }
+//	vector2d<T> operator-(const dimension2d<T>& other) const { return vector2d<T>(X - other.Width, Y - other.Height); }
 	vector2d<T>& operator-=(const vector2d<T>& other) { X-=other.X; Y-=other.Y; return *this; }
 	vector2d<T> operator-(const T v) const { return vector2d<T>(X - v, Y - v); }
 	vector2d<T>& operator-=(const T v) { X-=v; Y-=v; return *this; }
-	vector2d<T>& operator-=(const dimension2d<T>& other) { X -= other.Width; Y -= other.Height; return *this;  }
+//	vector2d<T>& operator-=(const dimension2d<T>& other) { X -= other.Width; Y -= other.Height; return *this;  }
 
 	vector2d<T> operator*(const vector2d<T>& other) const { return vector2d<T>(X * other.X, Y * other.Y); }
 	vector2d<T>& operator*=(const vector2d<T>& other) { X*=other.X; Y*=other.Y; return *this; }
@@ -64,32 +63,32 @@ public:
 	vector2d<T> operator/(const T v) const { return vector2d<T>(X / v, Y / v); }
 	vector2d<T>& operator/=(const T v) { X/=v; Y/=v; return *this; }
 
-	//! sort in order X, Y. Equality with rounding tolerance.
+	//! sort in order X, Y.
 	bool operator<=(const vector2d<T>&other) const
 	{
-		return 	(X<other.X || core::equals(X, other.X)) ||
-				(core::equals(X, other.X) && (Y<other.Y || core::equals(Y, other.Y)));
+		return 	(X<other.X || X == other.X) ||
+				(X == other.X && (Y<other.Y || Y == other.Y));
 	}
 
-	//! sort in order X, Y. Equality with rounding tolerance.
+	//! sort in order X, Y.
 	bool operator>=(const vector2d<T>&other) const
 	{
-		return 	(X>other.X || core::equals(X, other.X)) ||
-				(core::equals(X, other.X) && (Y>other.Y || core::equals(Y, other.Y)));
+		return 	(X>other.X || X == other.X) ||
+				(X == other.X && (Y>other.Y || Y == other.Y));
 	}
 
-	//! sort in order X, Y. Difference must be above rounding tolerance.
+	//! sort in order X, Y.
 	bool operator<(const vector2d<T>&other) const
 	{
-		return 	(X<other.X && !core::equals(X, other.X)) ||
-				(core::equals(X, other.X) && Y<other.Y && !core::equals(Y, other.Y));
+		return 	(X<other.X && X != other.X) ||
+				(X == other.X && Y<other.Y && Y != other.Y);
 	}
 
-	//! sort in order X, Y. Difference must be above rounding tolerance.
+	//! sort in order X, Y.
 	bool operator>(const vector2d<T>&other) const
 	{
-		return 	(X>other.X && !core::equals(X, other.X)) ||
-				(core::equals(X, other.X) && Y>other.Y && !core::equals(Y, other.Y));
+		return 	(X>other.X && X != other.X) ||
+				(X == other.X && Y>other.Y && Y != other.Y);
 	}
 
 	bool operator==(const vector2d<T>& other) const { return equals(other); }
@@ -100,10 +99,10 @@ public:
 	//! Checks if this vector equals the other one.
 	/** Takes floating point rounding errors into account.
 	\param other Vector to compare with.
-	\return True if the two vector are (almost) equal, else false. */
+	\return True if the two vector are strictly equal, else false. */
 	bool equals(const vector2d<T>& other) const
 	{
-		return core::equals(X, other.X) && core::equals(Y, other.Y);
+		return X == other.X && Y == other.Y;
 	}
 
 	vector2d<T>& set(T nx, T ny) {X=nx; Y=ny; return *this; }
@@ -111,7 +110,7 @@ public:
 
 	//! Gets the length of the vector.
 	/** \return The length of the vector. */
-	T getLength() const { return core::squareroot( X*X + Y*Y ); }
+	T getLength() const { return sqrtf( X*X + Y*Y ); }
 
 	//! Get the squared length of this vector
 	/** This is useful because it is much faster than getLength().
@@ -169,10 +168,10 @@ public:
 	\return Reference to this vector, after normalization. */
 	vector2d<T>& normalize()
 	{
-		f32 length = (f32)(X*X + Y*Y);
+		float length = (float)(X*X + Y*Y);
 		if ( length == 0 )
 			return *this;
-		length = core::reciprocal_squareroot ( length );
+		length = 1. / sqrtf(length);
 		X = (T)(X * length);
 		Y = (T)(Y * length);
 		return *this;
@@ -192,14 +191,14 @@ public:
 
 		if ( Y > 0)
 			if (X > 0)
-				return atan((irr::double)Y/(irr::double)X) * RADTODEG64;
+				return atan((double)Y/(double)X) * RADTODEG64;
 			else
-				return 180.0-atan((irr::double)Y/-(irr::double)X) * RADTODEG64;
+				return 180.0-atan((double)Y/-(double)X) * RADTODEG64;
 		else
 			if (X > 0)
-				return 360.0-atan(-(irr::double)Y/(irr::double)X) * RADTODEG64;
+				return 360.0-atan(-(double)Y/(double)X) * RADTODEG64;
 			else
-				return 180.0+atan(-(irr::double)Y/-(irr::double)X) * RADTODEG64;
+				return 180.0+atan(-(double)Y/-(double)X) * RADTODEG64;
 	}
 
 	//! Calculates the angle of this vector in degrees in the counter trigonometric sense.
@@ -214,8 +213,8 @@ public:
 
 		// don't use getLength here to avoid precision loss with s32 vectors
 		// avoid floating-point trouble as sqrt(y*y) is occasionally larger than y, so clamp
-		const double tmp = core::clamp(Y / sqrt((double)(X*X + Y*Y)), -1.0, 1.0);
-		const double angle = atan( core::squareroot(1 - tmp*tmp) / tmp) * RADTODEG64;
+		double tmp = clamp(Y / sqrt((double)(X*X + Y*Y)), -1.0, 1.0);
+		double angle = atan( sqrtf(1 - tmp*tmp) / tmp) * RADTODEG64;
 
 		if (X>0 && Y>0)
 			return angle + 270;
@@ -242,7 +241,7 @@ public:
 		if (tmp == 0.0)
 			return 90.0;
 
-		tmp = tmp / core::squareroot((double)((X*X + Y*Y) * (b.X*b.X + b.Y*b.Y)));
+		tmp = tmp / sqrt((double)((X*X + Y*Y) * (b.X*b.X + b.Y*b.Y)));
 		if (tmp < 0.0)
 			tmp = -tmp;
 		if ( tmp > 1.0 ) //   avoid floating-point trouble
@@ -319,21 +318,21 @@ public:
 	T Y;
 };
 
-	//! Typedef for f32 2d vector.
-	typedef vector2d<f32> vector2df;
+	//! Typedef for float 2d vector.
+	typedef vector2d<float> vector2df;
 
 	//! Typedef for integer 2d vector.
-	typedef vector2d<s32> vector2di;
+	typedef vector2d<int> vector2di;
 
 	template<class S, class T>
 	vector2d<T> operator*(const S scalar, const vector2d<T>& vector) { return vector*scalar; }
 
 	// These methods are declared in dimension2d, but need definitions of vector2d
-	template<class T>
-	dimension2d<T>::dimension2d(const vector2d<T>& other) : Width(other.X), Height(other.Y) { }
+//	template<class T>
+//	dimension2d<T>::dimension2d(const vector2d<T>& other) : Width(other.X), Height(other.Y) { }
 
-	template<class T>
-	bool dimension2d<T>::operator==(const vector2d<T>& other) const { return Width == other.X && Height == other.Y; }
+//	template<class T>
+//	bool dimension2d<T>::operator==(const vector2d<T>& other) const { return Width == other.X && Height == other.Y; }
 
 } // end namespace core
 } // end namespace irr
