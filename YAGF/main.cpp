@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <Core/S3DVertex.h>
 
 int main()
 {
