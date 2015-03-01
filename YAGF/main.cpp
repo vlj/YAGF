@@ -1,12 +1,18 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <Core/CMeshBuffer.h>
+#include <Util/GeometryCreator.h>
 
 irr::scene::IMeshBuffer *buffer;
 
 void init()
 {
-  buffer = new irr::scene::SMeshBuffer();
+  buffer = GeometryCreator::createCubeMeshBuffer(
+        irr::core::vector3df(1., 1., 1.));
+}
+
+void clean()
+{
+  delete buffer;
 }
 
 void draw()
@@ -34,6 +40,7 @@ int main()
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+  clean();
   glfwTerminate();
   return 0;
 }
