@@ -1,6 +1,18 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <Core/S3DVertex.h>
+#include <Core/CMeshBuffer.h>
+
+irr::scene::IMeshBuffer *buffer;
+
+void init()
+{
+  buffer = new irr::scene::SMeshBuffer();
+}
+
+void draw()
+{
+  
+}
 
 int main()
 {
@@ -12,11 +24,13 @@ int main()
   glfwMakeContextCurrent(window);
 
   glewInit();
+  init;
 
   while (!glfwWindowShouldClose(window))
   {
     glClearColor(1., 1., 0., 1.);
     glClear(GL_COLOR_BUFFER_BIT);
+    draw();
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
