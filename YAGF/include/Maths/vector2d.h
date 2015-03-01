@@ -6,6 +6,8 @@
 #ifndef __IRR_POINT_2D_H_INCLUDED__
 #define __IRR_POINT_2D_H_INCLUDED__
 
+#include <cmath>
+
 #define DEGTORAD64 (3.14 / 180.)
 #define RADTODEG64 (180. / 3.14)
 

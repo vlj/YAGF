@@ -7,7 +7,7 @@
 
 #include <Maths/vector3d.h>
 #include <Maths/vector2d.h>
-//#include "SColor.h"
+#include <Core/SColor.h>
 
 namespace irr
 {
@@ -92,7 +92,7 @@ struct S3DVertex
 
 	S3DVertex getInterpolated(const S3DVertex& other, float d)
 	{
-		d = core::clamp(d, 0.0f, 1.0f);
+//		d = core::clamp(d, 0.0f, 1.0f);
 		return S3DVertex(Pos.getInterpolated(other.Pos, d),
 				Normal.getInterpolated(other.Normal, d),
 				Color.getInterpolated(other.Color, d),
@@ -170,7 +170,7 @@ struct S3DVertex2TCoords : public S3DVertex
 
 	S3DVertex2TCoords getInterpolated(const S3DVertex2TCoords& other, float d)
 	{
-		d = clamp(d, 0.0f, 1.0f);
+//		d = clamp(d, 0.0f, 1.0f);
 		return S3DVertex2TCoords(Pos.getInterpolated(other.Pos, d),
 				Normal.getInterpolated(other.Normal, d),
 				Color.getInterpolated(other.Color, d),
@@ -241,7 +241,7 @@ struct S3DVertexTangents : public S3DVertex
 
 	S3DVertexTangents getInterpolated(const S3DVertexTangents& other, float d)
 	{
-		d = clamp(d, 0.0f, 1.0f);
+//		d = clamp(d, 0.0f, 1.0f);
 		return S3DVertexTangents(Pos.getInterpolated(other.Pos, d),
 				Normal.getInterpolated(other.Normal, d),
 				Color.getInterpolated(other.Color, d),
