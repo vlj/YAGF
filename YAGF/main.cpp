@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
+#include <Core/VAO.h>
 
 irr::scene::IMeshBuffer *buffer;
 
@@ -8,6 +9,9 @@ void init()
 {
   buffer = GeometryCreator::createCubeMeshBuffer(
         irr::core::vector3df(1., 1., 1.));
+  VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> > vaomanager;
+  auto tmp = vaomanager.getBase(buffer);
+  printf("%d %d\n", tmp.first, tmp.second);
 }
 
 void clean()
@@ -29,8 +33,9 @@ int main()
   GLFWwindow* window = glfwCreateWindow(640, 480, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
 
+  glewExperimental = GL_TRUE;
   glewInit();
-  init;
+  init();
 
   while (!glfwWindowShouldClose(window))
   {
