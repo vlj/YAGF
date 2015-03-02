@@ -69,7 +69,7 @@ namespace scene
 
 		//! Get type of vertex data stored in this buffer.
 		/** \return Type of vertex data. */
-		virtual video::E_VERTEX_TYPE getVertexType() const override
+/*		virtual video::E_VERTEX_TYPE getVertexType() const override
 		{
 			return T().getType();
 		}
@@ -108,7 +108,7 @@ namespace scene
 		virtual core::vector2df& getTCoords(size_t i) override
 		{
 			return Vertices[i].TCoords;
-		}
+		}*/
 
 		virtual GLenum getPrimitiveType() const override
 		{
@@ -182,12 +182,6 @@ namespace scene
 		GLenum Primitive;
 	};
 
-	//! Standard meshbuffer
-	typedef CMeshBuffer<video::S3DVertex> SMeshBuffer;
-	//! Meshbuffer with two texture coords per vertex, e.g. for lightmaps
-	typedef CMeshBuffer<video::S3DVertex2TCoords> SMeshBufferLightMap;
-	//! Meshbuffer with vertices having tangents stored, e.g. for normal mapping
-	typedef CMeshBuffer<video::S3DVertexTangents> SMeshBufferTangents;
 } // end namespace scene
 } // end namespace irr
 

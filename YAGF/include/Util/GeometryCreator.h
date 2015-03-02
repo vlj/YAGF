@@ -3,7 +3,8 @@
 // This file is part of the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in irrlicht.h
 
-#include <Core/CMeshBuffer.h>
+#include <Core/S3DVertex.h>
+#include <Maths/vector3d.h>
 
 
 class GeometryCreator

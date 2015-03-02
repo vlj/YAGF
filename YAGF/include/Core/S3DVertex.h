@@ -8,6 +8,7 @@
 #include <Maths/vector3d.h>
 #include <Maths/vector2d.h>
 #include <Core/SColor.h>
+#include <Core/CMeshBuffer.h>
 
 namespace irr
 {
@@ -418,6 +419,19 @@ public:
         glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertexTangents), (GLvoid*)48);
     }
 };
+
+namespace irr
+{
+namespace scene
+{
+//! Standard meshbuffer
+typedef CMeshBuffer<class irr::video::S3DVertex> SMeshBuffer;
+//! Meshbuffer with two texture coords per vertex, e.g. for lightmaps
+typedef CMeshBuffer<class irr::video::S3DVertex2TCoords> SMeshBufferLightMap;
+//! Meshbuffer with vertices having tangents stored, e.g. for normal mapping
+typedef CMeshBuffer<class irr::video::S3DVertexTangents> SMeshBufferTangents;
+}
+}
 
 #endif
 

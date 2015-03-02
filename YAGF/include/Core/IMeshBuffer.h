@@ -7,7 +7,7 @@
 #define __I_MESH_BUFFER_H_INCLUDED__
 
 #include <cstdint>
-#include <Core/S3DVertex.h>
+//#include <Core/S3DVertex.h>
 
 namespace irr
 {
@@ -37,7 +37,7 @@ namespace scene
 	public:
 		//! Get type of vertex data which is stored in this meshbuffer.
 		/** \return Vertex type of this buffer. */
-		virtual video::E_VERTEX_TYPE getVertexType() const = 0;
+//		virtual video::E_VERTEX_TYPE getVertexType() const = 0;
 
 		//! Get access to vertex data. The data is an array of vertices.
 		/** Which vertex type is used can be determined by getVertexType().
@@ -78,22 +78,22 @@ namespace scene
 //		virtual void recalculateBoundingBox() = 0;
 
 		//! returns position of vertex i
-		virtual const core::vector3df& getPosition(size_t i) const = 0;
+//		virtual const core::vector3df& getPosition(size_t i) const = 0;
 
 		//! returns position of vertex i
-		virtual core::vector3df& getPosition(size_t i) = 0;
+//		virtual core::vector3df& getPosition(size_t i) = 0;
 
 		//! returns normal of vertex i
-		virtual const core::vector3df& getNormal(size_t i) const = 0;
+//		virtual const core::vector3df& getNormal(size_t i) const = 0;
 
 		//! returns normal of vertex i
-		virtual core::vector3df& getNormal(size_t i) = 0;
+//		virtual core::vector3df& getNormal(size_t i) = 0;
 
 		//! returns texture coord of vertex i
-		virtual const core::vector2df& getTCoords(size_t i) const = 0;
+//		virtual const core::vector2df& getTCoords(size_t i) const = 0;
 
 		//! returns texture coord of vertex i
-		virtual core::vector2df& getTCoords(size_t i) = 0;
+//		virtual core::vector2df& getTCoords(size_t i) = 0;
 
 		//! Returns the primitive type of this buffer
 		virtual GLenum getPrimitiveType() const = 0;
