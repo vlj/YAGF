@@ -9,6 +9,7 @@
 #include <Maths/vector2d.h>
 #include <Core/SColor.h>
 #include <Core/CMeshBuffer.h>
+#include <Core/VAO.h>
 
 namespace irr
 {
@@ -331,13 +332,6 @@ namespace std {
 		}
 	};
 }*/
-
-template<typename VT>
-struct VertexAttribBinder
-{
-public:
-    static void bind();
-};
 
 
 template<>

@@ -9,8 +9,7 @@ void init()
 {
   buffer = GeometryCreator::createCubeMeshBuffer(
         irr::core::vector3df(1., 1., 1.));
-  VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> > vaomanager;
-  auto tmp = vaomanager.getBase(buffer);
+  auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
   printf("%d %d\n", tmp.first, tmp.second);
 }
 

@@ -3,10 +3,8 @@
 #ifndef VAOMANAGER_HPP
 #define VAOMANAGER_HPP
 
-//#include "gl_headers.hpp"
-//#include "utils/singleton.hpp"
-//#include "central_settings.hpp"
 #include <Core/IMeshBuffer.h>
+#include <Core/Singleton.h>
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -183,12 +181,12 @@ struct SkinnedVertexData
 #pragma pack(pop)
 #endif
 
-/*template<typename VT>
+template<typename VT>
 struct VertexAttribBinder
 {
 public:
     static void bind();
-};*/
+};
 
 /** Wrapper around opengl buffer. It strongly types underlying data
 *  and automatically makes the buffer persistent if buffer storage is available.
@@ -455,7 +453,7 @@ public:
 *  /tparam VBO is FormattedVertex type used for all mesh
 */
 template<typename VBO>
-class VertexArrayObject //: public Singleton<VertexArrayObject<VBO> >
+class VertexArrayObject : public Singleton<VertexArrayObject<VBO> >
 {
 private:
     GLuint vao;
