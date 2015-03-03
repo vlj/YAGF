@@ -28,8 +28,6 @@ public:
 		// Create vertices
 		irr::video::SColor clr(255,255,255,255);
 
-		buffer->Vertices.resize(12);
-
 		buffer->Vertices.push_back(irr::video::S3DVertex(0,0,0, -1,-1,-1, clr, 0, 1));
 		buffer->Vertices.push_back(irr::video::S3DVertex(1,0,0,  1,-1,-1, clr, 1, 1));
 		buffer->Vertices.push_back(irr::video::S3DVertex(1,1,0,  1, 1,-1, clr, 1, 0));
