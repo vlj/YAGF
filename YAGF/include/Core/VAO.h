@@ -467,8 +467,6 @@ private:
 
         vbo.append(mb->getVertexCount(), mb->getVertices(), SkinnedData...);
         ibo.append(mb->getIndexCount(), mb->getIndices());
-        
-        printf("vtx : %d\n", mb->getVertexCount());
 
         mappedBaseVertexBaseIndex[mb] = std::make_pair(old_vtx_cnt, old_idx_cnt * sizeof(uint16_t));
     }

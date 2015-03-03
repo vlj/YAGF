@@ -36,6 +36,26 @@ const char *fragshader =
     "  FragColor = vec4(color, 1.);\n"
     "}\n";
 
+const char *screenquadshader = "#version 330\n"
+    "layout(location = 0) in vec2 Position;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = vec4(Position, 0., 1.);\n"
+    "}\n";
+
+const char *lineardepthshader = "#version 330\n"
+    "uniform sampler2D tex;\n"
+    "uniform float zn;\n"
+    "uniform float zf;\n"
+    "out float Depth;\n"
+    "void main()\n"
+    "{\n"
+    "   vec2 uv = gl_FragCoord.xy / vec2(640, 480);\n"
+    "   float d = texture(tex, uv).x;\n"
+    "   float c0 = zn * zf, c1 = zn - zf, c2 = zf;\n"
+    "   Depth = c0 / (d * c1 + c2);\n"
+    "}\n";
+
 static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
     GLuint result;
@@ -48,7 +68,7 @@ static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLi
     return result;
 }
 
-class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
+class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<>
 {
 public:
     ObjectShader()
@@ -59,6 +79,21 @@ public:
       AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
     }
 };
+
+class LinearizeDepthShader : public ShaderHelperSingleton<LinearizeDepthShader, float, float>, public TextureRead<Texture2D>
+{
+public:
+    LinearizeDepthShader()
+    {
+      Program = ProgramShaderLoading::LoadProgram(
+          GL_VERTEX_SHADER, screenquadshader,
+          GL_FRAGMENT_SHADER, lineardepthshader);
+      AssignUniforms("zn", "zf");
+
+      AssignSamplerNames(Program, 0, "texture");
+    }
+};
+
 
 
 void init()
@@ -97,6 +132,8 @@ void draw()
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
   ObjectShader::getInstance()->setUniforms(Model, View);
   glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+
+  glUseProgram(LinearizeDepthShader::getInstance()->Program);
 }
 
 int main()
