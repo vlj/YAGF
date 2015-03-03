@@ -56,6 +56,62 @@ const char *lineardepthshader = "#version 330\n"
     "   float d = texture(tex, uv).x;\n"
     "   float c0 = zn * zf, c1 = zn - zf, c2 = zf;\n"
     "   Depth = c0 / (d * c1 + c2);\n"
+    "   if (Depth > 1.) discard;\n"
+    "}\n";
+
+const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/AlchemyHPG11/"
+    "// and improvements here http://graphics.cs.williams.edu/papers/SAOHPG12/ \n"
+    "#version 330\n"
+    "uniform sampler2D dtex;"
+    "uniform mat4 ProjectionMatrix;"
+    "uniform float radius;\n"
+    "uniform float k = 1.5;\n"
+    "uniform float sigma = 1.;\n"
+    "out float AO;\n"
+    "const float tau = 7.;\n"
+    "const float beta = 0.002;\n"
+    "const float epsilon = .00001;\n"
+    "#define SAMPLES 16\n"
+    "const float invSamples = 1. / SAMPLES;\n"
+    "vec2 screen = vec2(640, 480);\n"
+    "vec3 getXcYcZc(int x, int y, float zC)\n"
+    "{\n"
+        "// We use perspective symetric projection matrix hence P(0,2) = P(1, 2) = 0 \n"
+        "float xC= (2 * (float(x)) / screen.x - 1.) * zC / ProjectionMatrix[0][0];\n"
+        "float yC= (2 * (float(y)) / screen.y - 1.) * zC / ProjectionMatrix[1][1];\n"
+        "return vec3(xC, yC, zC);\n"
+    "}\n"
+    "void main(void)\n"
+    "{\n"
+        "vec2 uv = gl_FragCoord.xy / screen;\n"
+        "float lineardepth = textureLod(dtex, uv, 0.).x;\n"
+        "int x = int(gl_FragCoord.x), y = int(gl_FragCoord.y);\n"
+        "vec3 FragPos = getXcYcZc(x, y, lineardepth);\n"
+        "// get the normal of current fragment\n"
+        "vec3 ddx = dFdx(FragPos);\n"
+        "vec3 ddy = dFdy(FragPos);\n"
+        "vec3 norm = normalize(cross(ddy, ddx));\n"
+        "float r = radius / FragPos.z;\n"
+        "float phi = 3. * (x ^ y) + x * y;\n"
+        "float bl = 0.0;\n"
+        "float m = log2(r) + 6 + log2(invSamples);\n"
+        "float theta = 2. * 3.14 * tau * .5 * invSamples + phi;\n"
+        "vec2 rotations = vec2(cos(theta), sin(theta)) * screen;\n"
+        "vec2 offset = vec2(cos(invSamples), sin(invSamples));\n"
+        "for(int i = 0; i < SAMPLES; ++i) {\n"
+            "float alpha = (i + .5) * invSamples;\n"
+            "rotations = vec2(rotations.x * offset.x - rotations.y * offset.y, rotations.x * offset.y + rotations.y * offset.x);\n"
+            "float h = r * alpha;\n"
+            "vec2 localoffset = h * rotations;\n"
+            "m = m + .5;\n"
+            "ivec2 ioccluder_uv = ivec2(x, y) + ivec2(localoffset);\n"
+            "if (ioccluder_uv.x < 0 || ioccluder_uv.x > screen.x || ioccluder_uv.y < 0 || ioccluder_uv.y > screen.y) continue;\n"
+            "float LinearoccluderFragmentDepth = textureLod(dtex, vec2(ioccluder_uv) / screen, max(0, 0.)).x;\n"
+            "vec3 OccluderPos = getXcYcZc(ioccluder_uv.x, ioccluder_uv.y, LinearoccluderFragmentDepth);\n"
+            "vec3 vi = OccluderPos - FragPos;\n"
+            "bl += max(0, dot(vi, norm) - FragPos.z * beta) / (dot(vi, vi) + epsilon);\n"
+        "}\n"
+        "AO = max(pow(1.0 - min(2. * sigma * bl * invSamples, 0.99), k), 0.);\n"
     "}\n";
 
 static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
@@ -96,7 +152,19 @@ public:
     }
 };
 
+class SSAOShader : public ShaderHelperSingleton<SSAOShader, irr::core::matrix4>, public TextureRead<Texture2D>
+{
+public:
+    SSAOShader()
+    {
+      Program = ProgramShaderLoading::LoadProgram(
+          GL_VERTEX_SHADER, screenquadshader,
+          GL_FRAGMENT_SHADER, ssaoshader);
 
+      AssignSamplerNames(Program, 0, "dtex");
+      AssignUniforms("ProjectionMatrix");
+    }
+};
 
 void init()
 {
@@ -135,17 +203,25 @@ void draw()
 
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 640. / 480., 1., 100.);
-  Model.setTranslation(irr::core::vector3df(2., 2., 7.5));
+  Model.setTranslation(irr::core::vector3df(0., 0., 8.));
 
   glUseProgram(ObjectShader::getInstance()->Program);
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
   ObjectShader::getInstance()->setUniforms(Model, View);
   glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
+  Model.setTranslation(irr::core::vector3df(0., 0., 10.));
+  Model.setScale(2.);
+  ObjectShader::getInstance()->setUniforms(Model, View);
+  glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+
   LinearDepthFBO->Bind();
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
   DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  SSAOShader::getInstance()->SetTextureUnits(LinearTexture, NearestSampler);
+  DrawFullScreenEffect<SSAOShader>(View);
 }
 
 int main()
