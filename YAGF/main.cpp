@@ -5,6 +5,7 @@
 
 #include <Core/Shaders.h>
 #include <Core/FBO.h>
+#include <Util/Misc.h>
 
 irr::scene::IMeshBuffer *buffer;
 FrameBuffer *MainFBO;
@@ -16,6 +17,7 @@ GLuint MainTexture;
 GLuint LinearTexture;
 GLuint SSAOTexture;
 
+GLuint NearestSampler;
 
 const char *vtxshader =
     "#version 330\n"
@@ -90,7 +92,7 @@ public:
           GL_FRAGMENT_SHADER, lineardepthshader);
       AssignUniforms("zn", "zf");
 
-      AssignSamplerNames(Program, 0, "texture");
+      AssignSamplerNames(Program, 0, "tex");
     }
 };
 
@@ -111,6 +113,12 @@ void init()
   MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 640, 480);
   LinearDepthFBO = new FrameBuffer({ LinearTexture }, 640, 480);
 
+  glGenSamplers(1, &NearestSampler);
+  glSamplerParameteri(NearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glSamplerParameteri(NearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glSamplerParameteri(NearestSampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glSamplerParameteri(NearestSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+//  glSamplerParameterf(NearestSampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.);
 }
 
 void clean()
@@ -122,7 +130,8 @@ void draw()
 {
   MainFBO->Bind();
   glClearColor(0., 0., 0., 1.);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClearDepth(1.);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 640. / 480., 1., 100.);
@@ -133,7 +142,10 @@ void draw()
   ObjectShader::getInstance()->setUniforms(Model, View);
   glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
-  glUseProgram(LinearizeDepthShader::getInstance()->Program);
+  LinearDepthFBO->Bind();
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
+  DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
 }
 
 int main()

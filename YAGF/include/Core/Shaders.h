@@ -423,7 +423,7 @@ struct BindSamplerAndTexture<Texture2D, tp...>
     glActiveTexture(GL_TEXTURE0 + TUs[N]);
     glBindTexture(GL_TEXTURE_2D, texid);
     glBindSampler(TUs[N], samplerid);
-    BindSamplerAndTexture<N + 1, tp...>::template exec(TUs, args...);
+    BindSamplerAndTexture<tp...>::template exec<N+1>(TUs, args...);
   }
 };
 
@@ -436,7 +436,7 @@ struct BindSamplerAndTexture<Texture3D, tp...>
     glActiveTexture(GL_TEXTURE0 + TUs[N]);
     glBindTexture(GL_TEXTURE_3D, texid);
     glBindSampler(TUs[N], samplerid);
-    BindSamplerAndTexture<N + 1, tp...>::exec(TUs, args...);
+    BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
   }
 };
 
@@ -479,22 +479,6 @@ protected:
         AssignTextureNames_impl<N + 1>(Program, args...);
     }
 
-    
-    template<int N>
-    void SetTextureUnits_impl()
-    {
-        static_assert(N == 2 * sizeof...(tp), "Not enough texture set");
-    }
-
-    template<int N, typename... TexIds>
-    void SetTextureUnits_impl(GLuint texid, GLuint samplerid, TexIds... args)
-    {
-
-
-      SetTextureUnits_impl<N + 1>(args...);
-    }
-
-
     template<int N>
     void SetTextureHandles_impl()
     {
@@ -521,7 +505,7 @@ public:
     template<typename... TexIds>
     void SetTextureUnits(TexIds... args)
     {
-        SetTextureUnits_impl<0>(args...);
+      BindSamplerAndTexture<tp...>::template exec<0>(TextureUnits, args...);
     }
 
     template<typename... HandlesId>
