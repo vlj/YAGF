@@ -47,7 +47,6 @@ public:
 			buffer->Vertices[i].Pos *= size;
 		}
 
-		printf("size %d\n", buffer->Indices.size());
 		return buffer;
 	}
 };

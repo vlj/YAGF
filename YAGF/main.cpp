@@ -3,10 +3,18 @@
 #include <Util/GeometryCreator.h>
 #include <Core/VAO.h>
 
-#include <Maths/matrix4.h>
 #include <Core/Shaders.h>
+#include <Core/FBO.h>
 
 irr::scene::IMeshBuffer *buffer;
+FrameBuffer *MainFBO;
+FrameBuffer *LinearDepthFBO;
+FrameBuffer *SSAOFBO;
+
+GLuint DepthStencilTexture;
+GLuint MainTexture;
+GLuint LinearTexture;
+GLuint SSAOTexture;
 
 
 const char *vtxshader =
@@ -28,6 +36,18 @@ const char *fragshader =
     "  FragColor = vec4(color, 1.);\n"
     "}\n";
 
+static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+{
+    GLuint result;
+    glGenTextures(1, &result);
+    glBindTexture(GL_TEXTURE_2D, result);
+/*    if (CVS->isARBTextureStorageUsable())
+        glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, Width, Height);
+    else*/
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, 0);
+    return result;
+}
+
 class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
@@ -43,11 +63,19 @@ public:
 
 void init()
 {
-  glDisable(GL_DEPTH_TEST);
   buffer = GeometryCreator::createCubeMeshBuffer(
         irr::core::vector3df(1., 1., 1.));
   auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
-  printf("%d %d\n", tmp.first, tmp.second);
+  glViewport(0, 0, 640, 480);
+
+  DepthStencilTexture = generateRTT(640, 480, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+  MainTexture = generateRTT(640, 480, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
+  LinearTexture = generateRTT(640, 480, GL_R32F, GL_RED, GL_FLOAT);
+  SSAOTexture = generateRTT(640, 480, GL_R16F, GL_RED, GL_FLOAT);
+
+  MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 640, 480);
+  LinearDepthFBO = new FrameBuffer({ LinearTexture }, 640, 480);
+
 }
 
 void clean()
@@ -57,15 +85,17 @@ void clean()
 
 void draw()
 {
-  glViewport(0, 0, 640, 480);
-  glUseProgram(ObjectShader::getInstance()->Program);
-  glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
+  MainFBO->Bind();
+  glClearColor(0., 0., 0., 1.);
+  glClear(GL_COLOR_BUFFER_BIT);
+
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 640. / 480., 1., 100.);
   Model.setTranslation(irr::core::vector3df(2., 2., 7.5));
-//  tmp.print();
+
+  glUseProgram(ObjectShader::getInstance()->Program);
+  glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
   ObjectShader::getInstance()->setUniforms(Model, View);
-//  printf("index cnt %d\n", buffer->getIndexCount());
   glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 }
 
@@ -84,8 +114,6 @@ int main()
 
   while (!glfwWindowShouldClose(window))
   {
-    glClearColor(0., 0., 0., 1.);
-    glClear(GL_COLOR_BUFFER_BIT);
     draw();
     glfwSwapBuffers(window);
     glfwPollEvents();
