@@ -19,7 +19,7 @@ public:
 		const uint16_t u[36] = {   0,2,1,   0,3,2,   1,5,4,   1,2,5,   4,6,7,   4,5,6, 
             7,3,0,   7,6,3,   9,5,2,   9,8,5,   0,11,10,   0,10,7};
 
-  	buffer->Indices.reserve(36);
+  	buffer->Indices.resize(36);
 
 		for (size_t i=0; i<36; ++i)
 			buffer->Indices[i] = u[i];
@@ -28,7 +28,7 @@ public:
 		// Create vertices
 		irr::video::SColor clr(255,255,255,255);
 
-		buffer->Vertices.reserve(12);
+		buffer->Vertices.resize(12);
 
 		buffer->Vertices.push_back(irr::video::S3DVertex(0,0,0, -1,-1,-1, clr, 0, 1));
 		buffer->Vertices.push_back(irr::video::S3DVertex(1,0,0,  1,-1,-1, clr, 1, 1));
@@ -49,6 +49,7 @@ public:
 			buffer->Vertices[i].Pos *= size;
 		}
 
+		printf("size %d\n", buffer->Indices.size());
 		return buffer;
 	}
 };
