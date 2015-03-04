@@ -187,6 +187,8 @@ void init()
   glSamplerParameteri(NearestSampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glSamplerParameteri(NearestSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 //  glSamplerParameterf(NearestSampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.);
+
+  glDepthFunc(GL_LEQUAL);
 }
 
 void clean()
@@ -196,6 +198,8 @@ void clean()
 
 void draw()
 {
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
   MainFBO->Bind();
   glClearColor(0., 0., 0., 1.);
   glClearDepth(1.);
@@ -215,6 +219,8 @@ void draw()
   ObjectShader::getInstance()->setUniforms(Model, View);
   glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
   LinearDepthFBO->Bind();
   LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
   DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
