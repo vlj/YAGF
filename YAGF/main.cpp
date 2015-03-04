@@ -64,7 +64,7 @@ const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/A
     "#version 330\n"
     "uniform sampler2D dtex;"
     "uniform mat4 ProjectionMatrix;"
-    "uniform float radius;\n"
+    "uniform float radius = 1.;\n"
     "uniform float k = 1.5;\n"
     "uniform float sigma = 1.;\n"
     "out float AO;\n"
@@ -226,7 +226,7 @@ void draw()
   DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  SSAOShader::getInstance()->SetTextureUnits(LinearTexture, NearestSampler);
+  SSAOShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
   DrawFullScreenEffect<SSAOShader>(View);
 }
 
