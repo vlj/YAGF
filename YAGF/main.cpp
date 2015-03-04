@@ -56,7 +56,6 @@ const char *lineardepthshader = "#version 330\n"
     "   float d = texture(tex, uv).x;\n"
     "   float c0 = zn * zf, c1 = zn - zf, c2 = zf;\n"
     "   Depth = c0 / (d * c1 + c2);\n"
-    "   if (Depth > 1.) discard;\n"
     "}\n";
 
 const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/AlchemyHPG11/"
@@ -226,7 +225,7 @@ void draw()
   DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  SSAOShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
+  SSAOShader::getInstance()->SetTextureUnits(LinearTexture, NearestSampler);
   DrawFullScreenEffect<SSAOShader>(View);
 }
 
