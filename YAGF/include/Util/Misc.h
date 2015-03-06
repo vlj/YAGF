@@ -21,7 +21,7 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, tri_vbo);
       glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), tri_vertex, GL_STATIC_DRAW);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-  
+
       glGenVertexArrays(1, &FullScreenQuadVAO);
       glBindVertexArray(FullScreenQuadVAO);
       glBindBuffer(GL_ARRAY_BUFFER, tri_vbo);
@@ -35,6 +35,8 @@ public:
       glDeleteBuffers(1, &tri_vbo);
     }
 };
+
+extern const char *screenquadshader;
 
 template<typename T, typename... Args>
 static void DrawFullScreenEffect(const Args &...args)
