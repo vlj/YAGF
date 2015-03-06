@@ -9,6 +9,7 @@
 #include <Core/FBO.h>
 #include <Util/Misc.h>
 #include <Util/Samplers.h>
+#include <Util/GPUTimer.h>
 
 irr::scene::IMeshBuffer *buffer;
 FrameBuffer *MainFBO;
@@ -224,9 +225,22 @@ void draw()
   glGenerateMipmap(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, 0);
 
+  GLuint timer;
+  glGenQueries(1, &timer);
+
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  SSAOShader::getInstance()->SetTextureUnits(LinearTexture, TrilinearSampler);
-  DrawFullScreenEffect<SSAOShader>(View);
+  {
+      glBeginQuery(GL_TIME_ELAPSED, timer);
+      for (unsigned i = 0; i < 100; i++)
+      {
+          SSAOShader::getInstance()->SetTextureUnits(LinearTexture, TrilinearSampler);
+          DrawFullScreenEffect<SSAOShader>(View);
+      }
+      glEndQuery(GL_TIME_ELAPSED);
+  }
+  GLuint result;
+  glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
+  printf("time elapsed : %d ms\n", result / 1000);
 }
 
 int main()
