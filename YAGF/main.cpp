@@ -8,16 +8,15 @@
 #include <Core/Shaders.h>
 #include <Core/FBO.h>
 #include <Util/Misc.h>
+#include <Util/Samplers.h>
 
 irr::scene::IMeshBuffer *buffer;
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
-FrameBuffer *SSAOFBO;
 
 GLuint DepthStencilTexture;
 GLuint MainTexture;
 GLuint LinearTexture;
-GLuint SSAOTexture;
 
 GLuint NearestSampler;
 
@@ -170,17 +169,11 @@ void init()
   DepthStencilTexture = generateRTT(640, 480, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
   MainTexture = generateRTT(640, 480, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
   LinearTexture = generateRTT(640, 480, GL_R32F, GL_RED, GL_FLOAT);
-  SSAOTexture = generateRTT(640, 480, GL_R16F, GL_RED, GL_FLOAT);
 
   MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 640, 480);
   LinearDepthFBO = new FrameBuffer({ LinearTexture }, 640, 480);
 
-  glGenSamplers(1, &NearestSampler);
-  glSamplerParameteri(NearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glSamplerParameteri(NearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glSamplerParameteri(NearestSampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glSamplerParameteri(NearestSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//  glSamplerParameterf(NearestSampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.);
+  NearestSampler = SamplerHelper::createNearestSampler();
 
   glDepthFunc(GL_LEQUAL);
 }
@@ -188,6 +181,12 @@ void init()
 void clean()
 {
   delete buffer;
+  delete MainFBO;
+  delete LinearDepthFBO;
+  glDeleteSamplers(1, &NearestSampler);
+  glDeleteTextures(1, &DepthStencilTexture);
+  glDeleteTextures(1, &MainTexture);
+  glDeleteTextures(1, &LinearTexture);
 }
 
 void draw()
