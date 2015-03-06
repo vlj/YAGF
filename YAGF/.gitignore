@@ -1,0 +1,17 @@
+deps/*
+*CMakeCache.txt
+*.check_cache
+*.cmake
+*.vcxproj
+*.vcxproj.filters
+*.exe
+*.ilk
+*.pdb
+*.log
+*.tlog
+*.obj
+*.sln
+*.opensdf
+*.sdf
+*.suo
+*.vcxproj.user

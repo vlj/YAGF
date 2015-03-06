@@ -1,0 +1,28 @@
+# CMake generation dependency list for this directory.
+E:/VincentDocuments/GitHub/YAGF/YAGF/CMakeLists.txt
+E:/VincentDocuments/GitHub/YAGF/YAGF/bld/CMakeFiles/3.1.2/CMakeSystem.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeSystemSpecificInitialize.cmake
+E:/VincentDocuments/GitHub/YAGF/YAGF/bld/CMakeFiles/3.1.2/CMakeCCompiler.cmake
+E:/VincentDocuments/GitHub/YAGF/YAGF/bld/CMakeFiles/3.1.2/CMakeCXXCompiler.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeSystemSpecificInformation.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeGenericSystem.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/Platform/Windows.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/Platform/WindowsPaths.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeCInformation.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/Platform/Windows-MSVC-C.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/Platform/Windows-MSVC.cmake
+E:/VincentDocuments/GitHub/YAGF/YAGF/bld/CMakeFiles/3.1.2/CMakeRCCompiler.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeRCInformation.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeCommonLanguageInclude.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeCXXInformation.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/Platform/Windows-MSVC-CXX.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/Platform/Windows-MSVC.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeCommonLanguageInclude.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/FindGLEW.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/FindPackageHandleStandardArgs.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/FindPackageMessage.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeParseArguments.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/FindOpenGL.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/FindPackageHandleStandardArgs.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/FindPackageMessage.cmake
+E:/Program Files (x86)/CMake/share/cmake-3.1/Modules/CMakeParseArguments.cmake
