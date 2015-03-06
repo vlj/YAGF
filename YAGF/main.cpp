@@ -9,7 +9,6 @@
 #include <Core/FBO.h>
 #include <Util/Misc.h>
 #include <Util/Samplers.h>
-#include <Util/GPUTimer.h>
 
 irr::scene::IMeshBuffer *buffer;
 FrameBuffer *MainFBO;
