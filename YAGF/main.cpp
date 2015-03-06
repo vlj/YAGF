@@ -18,7 +18,7 @@ GLuint DepthStencilTexture;
 GLuint MainTexture;
 GLuint LinearTexture;
 
-GLuint NearestSampler;
+GLuint NearestSampler, TrilinearSampler;
 
 const char *vtxshader =
     "#version 330\n"
@@ -99,7 +99,7 @@ const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/A
             "m = m + .5;\n"
             "ivec2 ioccluder_uv = ivec2(x, y) + ivec2(localoffset);\n"
             "if (ioccluder_uv.x < 0 || ioccluder_uv.x > screen.x || ioccluder_uv.y < 0 || ioccluder_uv.y > screen.y) continue;\n"
-            "float LinearoccluderFragmentDepth = textureLod(dtex, vec2(ioccluder_uv) / screen, max(0, 0.)).x;\n"
+            "float LinearoccluderFragmentDepth = textureLod(dtex, vec2(ioccluder_uv) / screen, max(m, 0.)).x;\n"
             "vec3 OccluderPos = getXcYcZc(ioccluder_uv.x, ioccluder_uv.y, LinearoccluderFragmentDepth);\n"
             "vec3 vi = OccluderPos - FragPos;\n"
             "bl += max(0, dot(vi, norm) - FragPos.z * beta) / (dot(vi, vi) + epsilon);\n"
@@ -174,6 +174,7 @@ void init()
   LinearDepthFBO = new FrameBuffer({ LinearTexture }, 640, 480);
 
   NearestSampler = SamplerHelper::createNearestSampler();
+  TrilinearSampler = SamplerHelper::createBilinearSampler();
 
   glDepthFunc(GL_LEQUAL);
 }
@@ -218,8 +219,13 @@ void draw()
   LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
   DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
 
+  // Generate mipmap
+  glBindTexture(GL_TEXTURE_2D, LinearTexture);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  SSAOShader::getInstance()->SetTextureUnits(LinearTexture, NearestSampler);
+  SSAOShader::getInstance()->SetTextureUnits(LinearTexture, TrilinearSampler);
   DrawFullScreenEffect<SSAOShader>(View);
 }
 
