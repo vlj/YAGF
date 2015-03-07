@@ -23,8 +23,14 @@ include_directories(
 ADD_DEFINITIONS(-std=c++11)
 
 file(GLOB_RECURSE HEADERS_LIST include "*.h")
-aux_source_directory(. SRC_LIST)
-add_executable(${PROJECT_NAME} ${SRC_LIST} ${HEADERS_LIST})
-
+add_library(${PROJECT_NAME} runtime.cpp ${HEADERS_LIST})
 target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARY} ${GLFW_LIBRARY} ${OPENGL_LIBRARY})
+
+add_executable(ssao examples/ssao.cpp)
+target_link_libraries(ssao ${PROJECT_NAME})
+
+add_executable(gaussianblur examples/gaussianblur.cpp)
+target_link_libraries(gaussianblur ${PROJECT_NAME})
+
+
 
