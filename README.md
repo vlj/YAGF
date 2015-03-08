@@ -4,7 +4,7 @@ Yet Another GL Framework
 
 MIT License except if file header states otherwise.
 
-HOW TO build on VS 2013 x64
+HOW TO build on VS 2013 Win32
 - Download dependencies binaries :
 * GLFW http://www.glfw.org/
 * GLEW http://glew.sourceforge.net/

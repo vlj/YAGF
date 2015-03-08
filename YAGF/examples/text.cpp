@@ -11,13 +11,19 @@
 #include <Util/Samplers.h>
 #include <Util/Debug.h>
 
+extern "C" {
 #include <ft2build.h>
+#include FT_FREETYPE_H
+}
+
 
 GLuint InitialTexture;
 GLuint MainTexture;
 GLuint AuxTexture;
 
 GLuint BilinearSampler;
+
+FT_Library Ft;
 
 static const char *passthrougfs =
 "#version 330\n"
@@ -57,7 +63,7 @@ static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLi
 void init()
 {
     DebugUtil::enableDebugOutput();
-
+    FT_Init_FreeType(&Ft);
 }
 
 void clean()
