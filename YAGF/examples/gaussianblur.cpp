@@ -11,13 +11,20 @@
 #include <Util/Samplers.h>
 #include <Util/Debug.h>
 
-FrameBuffer *MainFBO;
-
 GLuint InitialTexture;
 GLuint MainTexture;
 GLuint AuxTexture;
 
 GLuint BilinearSampler;
+
+static const char *passthrougfs =
+"#version 330\n"
+"uniform sampler2D tex;\n"
+"out vec4 FragColor;\n"
+"void main() {\n"
+"vec2 uv = gl_FragCoord.xy / 1024.;\n"
+"FragColor = texture(tex,uv);\n"
+"}\n";
 
 static const char *bilateralH =
   "#version 430\n"
@@ -72,6 +79,20 @@ public:
     }
 };
 
+class FullScreenPassthrough : public ShaderHelperSingleton<FullScreenPassthrough>, public TextureRead<Texture2D>
+{
+public:
+    FullScreenPassthrough()
+    {
+        Program = ProgramShaderLoading::LoadProgram(
+            GL_VERTEX_SHADER, screenquadshader,
+            GL_FRAGMENT_SHADER, passthrougfs);
+        AssignUniforms();
+
+        AssignSamplerNames(Program, 0, "tex");
+    }
+};
+
 static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
     GLuint result;
@@ -105,8 +126,6 @@ void init()
     MainTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
     AuxTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
 
-    MainFBO = new FrameBuffer({ InitialTexture }, 1024, 1024);
-
     BilinearSampler = SamplerHelper::createBilinearSampler();
 }
 
@@ -122,50 +141,12 @@ void draw()
     glUseProgram(GaussianBlurH::getInstance()->Program);
     GaussianBlurH::getInstance()->setUniforms(irr::core::vector2df(1. / 1024., 1. / 1024.), 1.);
     GaussianBlurH::getInstance()->SetTextureUnits(InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
-    glDispatchCompute(1024 / 8, 1024 / 8, 0);
-
-
-    MainFBO->BlitToDefault(1024, 1024, 1024, 1024);
-    /*
-
-    glUseProgram(ObjectShader::getInstance()->Program);
-    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
-    ObjectShader::getInstance()->setUniforms(Model, View);
-    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
-
-    Model.setTranslation(irr::core::vector3df(0., 0., 10.));
-    Model.setScale(2.);
-    ObjectShader::getInstance()->setUniforms(Model, View);
-    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
-
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    LinearDepthFBO->Bind();
-    LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
-    DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
-
-    // Generate mipmap
-    glBindTexture(GL_TEXTURE_2D, LinearTexture);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    GLuint timer;
-    glGenQueries(1, &timer);
+    glDispatchCompute(1024 / 8, 1024 / 8, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    {
-        glBeginQuery(GL_TIME_ELAPSED, timer);
-        for (unsigned i = 0; i < 100; i++)
-        {
-            SSAOShader::getInstance()->SetTextureUnits(LinearTexture, TrilinearSampler);
-            DrawFullScreenEffect<SSAOShader>(View);
-        }
-        glEndQuery(GL_TIME_ELAPSED);
-    }
-    GLuint result;
-    glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
-    printf("time elapsed : %d ms\n", result / 1000);
-    */
+    FullScreenPassthrough::getInstance()->SetTextureUnits(MainTexture, BilinearSampler);
+    DrawFullScreenEffect<FullScreenPassthrough>();
 }
 
 int main()
