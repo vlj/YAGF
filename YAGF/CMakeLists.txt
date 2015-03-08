@@ -21,6 +21,8 @@ include_directories(
   ${GLEW_INCLUDE_DIRS}
   ${GLFW_INCLUDE_DIRS}
   ${OPENGL_INCLUDE_DIR}
+  ${FREETYPE_INCLUDE_DIRS}
+  "${FREETYPE_INCLUDE_DIRS}/freetype2"
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 ADD_DEFINITIONS(-std=c++11)
@@ -35,5 +37,7 @@ target_link_libraries(ssao ${PROJECT_NAME})
 add_executable(gaussianblur examples/gaussianblur.cpp)
 target_link_libraries(gaussianblur ${PROJECT_NAME})
 
+add_executable(text examples/text.cpp)
+target_link_libraries(text ${PROJECT_NAME} ${FREETYPE_LIBRARY})
 
 
