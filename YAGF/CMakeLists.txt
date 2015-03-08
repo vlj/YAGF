@@ -39,5 +39,16 @@ target_link_libraries(gaussianblur ${PROJECT_NAME})
 
 add_executable(text examples/text.cpp)
 target_link_libraries(text ${PROJECT_NAME} ${FREETYPE_LIBRARY})
+if (WIN32)
+add_custom_command(TARGET text POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/freetype6.dll"
+         $<TARGET_FILE_DIR:text>)
+ add_custom_command(TARGET text POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/zlib1.dll"
+         $<TARGET_FILE_DIR:text>)
+endif()
+
 
 
