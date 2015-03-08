@@ -402,6 +402,7 @@ enum TextureType {
   Texture2D,
   Texture3D,
   TextureCubemap,
+  Image2D,
 };
 
 template<TextureType...tp>
@@ -450,10 +451,98 @@ struct BindSamplerAndTexture<TextureCubemap, tp...>
     glActiveTexture(GL_TEXTURE0 + TUs[N]);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texid);
     glBindSampler(TUs[N], samplerid);
-    BindSamplerAndTexture<N + 1, tp...>::exec(TUs, args...);
+    BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
   }
 };
 
+template<TextureType...tp>
+struct BindSamplerAndTexture<Image2D, tp...>
+{
+    template <unsigned N, typename ...Args>
+    static void exec(const std::vector<GLuint>& TUs, GLuint texid, GLenum access, GLenum format, Args... args)
+    {
+        glActiveTexture(GL_TEXTURE0 + TUs[N]);
+        glBindImageTexture(TUs[N], texid, 0, GL_FALSE, 0, access, format);
+        glBindSampler(TUs[N], 0);
+        BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
+    }
+};
+
+
+
+template<TextureType...tp>
+struct TextureAssign;
+
+template<>
+struct TextureAssign < >
+{
+public:
+    template<unsigned N>
+    static void exec(GLuint, std::vector<GLuint> &, std::vector<GLuint> &)
+    {
+
+    }
+};
+
+template<TextureType...tp>
+struct TextureAssign<Texture2D, tp...>
+{
+public:
+    template<unsigned N, typename...Args>
+    static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
+    {
+        GLuint location = glGetUniformLocation(Program, name);
+        TextureLocation.push_back(location);
+        glUniform1i(location, TexUnit);
+        TextureUnits.push_back(TexUnit);
+        TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
+    }
+};
+
+template<TextureType...tp>
+struct TextureAssign<Texture3D, tp...>
+{
+public:
+    template<unsigned N, typename...Args>
+    static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
+    {
+        GLuint location = glGetUniformLocation(Program, name);
+        TextureLocation.push_back(location);
+        glUniform1i(location, TexUnit);
+        TextureUnits.push_back(TexUnit);
+        TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
+    }
+};
+
+template<TextureType...tp>
+struct TextureAssign<TextureCubemap, tp...>
+{
+public:
+    template<unsigned N, typename...Args>
+    static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
+    {
+        GLuint location = glGetUniformLocation(Program, name);
+        TextureLocation.push_back(location);
+        glUniform1i(location, TexUnit);
+        TextureUnits.push_back(TexUnit);
+        TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
+    }
+};
+
+template<TextureType...tp>
+struct TextureAssign<Image2D, tp...>
+{
+public:
+    template<unsigned N, typename...Args>
+    static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
+    {
+        GLuint location = glGetUniformLocation(Program, name);
+        TextureLocation.push_back(location);
+        glUniform1i(location, TexUnit);
+        TextureUnits.push_back(TexUnit);
+        TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
+    }
+};
 
 
 template<TextureType...tp>
@@ -462,23 +551,6 @@ class TextureRead
 protected:
   std::vector<GLuint> TextureUnits;
   std::vector<GLuint> TextureLocation;
-  std::vector<GLenum> TextureType;
-
-    template<unsigned N, typename...Args>
-    void AssignTextureNames_impl(GLuint)
-    {
-        static_assert(N == sizeof...(tp), "Wrong number of texture name");
-    }
-
-    template<unsigned N, typename...Args>
-    void AssignTextureNames_impl(GLuint Program, GLuint TexUnit, const char *name, Args...args)
-    {
-        GLuint location = glGetUniformLocation(Program, name);
-        TextureLocation.push_back(location);
-        glUniform1i(location, TexUnit);
-        TextureUnits.push_back(TexUnit);
-        AssignTextureNames_impl<N + 1>(Program, args...);
-    }
 
     template<int N>
     void SetTextureHandles_impl()
@@ -498,7 +570,7 @@ protected:
     void AssignSamplerNames(GLuint Program, Args...args)
     {
         glUseProgram(Program);
-        AssignTextureNames_impl<0>(Program, args...);
+        TextureAssign<tp...>::template exec<0>(Program, TextureUnits, TextureLocation, args...);
         glUseProgram(0);
     }
 

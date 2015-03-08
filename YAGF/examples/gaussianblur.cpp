@@ -9,6 +9,9 @@
 #include <Core/FBO.h>
 #include <Util/Misc.h>
 #include <Util/Samplers.h>
+#include <Util/Debug.h>
+
+FrameBuffer *MainFBO;
 
 GLuint InitialTexture;
 GLuint MainTexture;
@@ -20,13 +23,11 @@ static const char *bilateralH =
   "#version 430\n"
   "// From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch40.html \n"
   "uniform sampler2D source;\n"
-  "uniform sampler2D depth; \n"
   "uniform vec2 pixel; \n"
-  "uniform layout(r16f) volatile restrict writeonly image2D dest; \n"
+  "uniform layout(rgba16f) volatile restrict writeonly image2D dest; \n"
   "uniform float sigma = 5.; \n"
   "layout(local_size_x = 8, local_size_y = 8) in; \n"
-  "shared float local_src[8 + 2 * 8][8]; \n"
-  "shared float local_depth[8 + 2 * 8][8]; \n"
+  "shared vec4 local_src[8 + 2 * 8][8]; \n"
   "void main()\n"
 "  {\n"
 "  int x = int(gl_LocalInvocationID.x), y = int(gl_LocalInvocationID.y); \n"
@@ -35,34 +36,41 @@ static const char *bilateralH =
 "  vec2 uv_m = (guv - vec2(8, 0)) * pixel; \n"
 "  vec2 uv = guv * pixel; \n"
 "  vec2 uv_p = (guv + vec2(8, 0)) * pixel; \n"
-"  local_src[x][y] = texture(source, uv_m).x; \n"
-"  local_depth[x][y] = texture(depth, uv_m).x; \n"
-"  local_src[x + 8][y] = texture(source, uv).x; \n"
-"  local_depth[x + 8][y] = texture(depth, uv).x; \n"
-"  local_src[x + 16][y] = texture(source, uv_p).x; \n"
-"  local_depth[x + 16][y] = texture(depth, uv_p).x; \n"
+"  local_src[x][y] = texture(source, uv_m); \n"
+"  local_src[x + 8][y] = texture(source, uv); \n"
+"  local_src[x + 16][y] = texture(source, uv_p); \n"
 "  barrier(); \n"
 "  float g0, g1, g2; \n"
 "  g0 = 1.0 / (sqrt(2.0 * 3.14) * sigma); \n"
 "  g1 = exp(-0.5 / (sigma * sigma)); \n"
 "  g2 = g1 * g1; \n"
-"  float sum = local_src[x + 8][y] * g0; \n"
-"  float pixel_depth = local_depth[x + 8][y]; \n"
+"  vec4 sum = local_src[x + 8][y] * g0; \n"
 "  g0 *= g1; \n"
 "  g1 *= g2; \n"
-"  float tmp_weight, total_weight = g0; \n"
+"  float total_weight = g0; \n"
 "  for (int j = 1; j < 8; j++) { \n"
-"    tmp_weight = max(0.0, 1.0 - .001 * abs(local_depth[8 + x - j][y] - pixel_depth)); \n"
-"    total_weight += g0 * tmp_weight; \n"
-"    sum += local_src[8 + x - j][y] * g0 * tmp_weight; \n"
-"    tmp_weight = max(0.0, 1.0 - .001 * abs(local_depth[8 + x + j][y] - pixel_depth)); \n"
-"    total_weight += g0 * tmp_weight; \n"
-"    sum += local_src[8 + x + j][y] * g0 * tmp_weight; \n"
+"    total_weight += g0; \n"
+"    sum += local_src[8 + x - j][y] * g0; \n"
+"    total_weight += g0; \n"
+"    sum += local_src[8 + x + j][y] * g0; \n"
 "    g0 *= g1; \n"
 "    g1 *= g2; \n"
 "  }\n"
-"  imageStore(dest, iuv, vec4(sum / total_weight)); \n"
+"  imageStore(dest, iuv, sum / total_weight); \n"
 "}";
+
+class GaussianBlurH : public ShaderHelperSingleton<GaussianBlurH, irr::core::vector2df, float>, public TextureRead<Texture2D, Image2D>
+{
+public:
+    GaussianBlurH()
+    {
+        Program = ProgramShaderLoading::LoadProgram(
+            GL_COMPUTE_SHADER, bilateralH);
+        AssignUniforms("pixel", "sigma");
+
+        AssignSamplerNames(Program, 0, "source", 1, "dest");
+    }
+};
 
 static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
@@ -78,6 +86,8 @@ static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLi
 
 void init()
 {
+    DebugUtil::enableDebugOutput();
+    glViewport(0, 0, 1024, 1024);
     int *texture = new int[1024 * 1024];
     for (int i = 0; i < 1024 * 1024; i++)
     {
@@ -89,11 +99,13 @@ void init()
 
     glGenTextures(1, &InitialTexture);
     glBindTexture(GL_TEXTURE_2D, InitialTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
     delete texture;
 
-    MainTexture = generateRTT(1024, 1024, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-    AuxTexture = generateRTT(1024, 1024, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+    MainTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
+    AuxTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
+
+    MainFBO = new FrameBuffer({ InitialTexture }, 1024, 1024);
 
     BilinearSampler = SamplerHelper::createBilinearSampler();
 }
@@ -107,7 +119,15 @@ void clean()
 
 void draw()
 {
+    glUseProgram(GaussianBlurH::getInstance()->Program);
+    GaussianBlurH::getInstance()->setUniforms(irr::core::vector2df(1. / 1024., 1. / 1024.), 1.);
+    GaussianBlurH::getInstance()->SetTextureUnits(InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
+    glDispatchCompute(1024 / 8, 1024 / 8, 0);
+
+
+    MainFBO->BlitToDefault(1024, 1024, 1024, 1024);
     /*
+
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
     ObjectShader::getInstance()->setUniforms(Model, View);
@@ -153,6 +173,7 @@ int main()
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
     glfwMakeContextCurrent(window);
