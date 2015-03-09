@@ -76,10 +76,10 @@ void init()
     glGenBuffers(1, &GlyphVBO);
     glBindBuffer(GL_ARRAY_BUFFER, GlyphVBO);
     const float quad_vertex[] = {
-        -1., -1., 0., 0., // UpperLeft
-        -1., 1., 0., 1., // LowerLeft
-        1., -1., 1., 0., // UpperRight
-        1., 1., 1., 1., // LowerRight
+        -1., -1., 0., 1., // UpperLeft
+        -1., 1., 0., 0., // LowerLeft
+        1., -1., 1., 1., // UpperRight
+        1., 1., 1., 0., // LowerRight
     };
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -112,7 +112,7 @@ void clean()
 
 void draw()
 {
-    const char *string = "test";
+    const char *str = "test";
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, 1024, 1024);
@@ -125,9 +125,16 @@ void draw()
 
     glBindVertexArray(GlyphVAO);
     glUseProgram(GlyphRendering::getInstance()->Program);
-    GlyphRendering::getInstance()->SetTextureUnits(Texture['X'], BilinearSampler);
-    GlyphRendering::getInstance()->setUniforms(irr::core::vector2df(0., 0.), irr::core::vector2df(.5, .5));
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    irr::core::vector2df screenpos(0., 0.);
+
+    for (const char *p = str; *p != '\0'; p++)
+    {
+        GlyphRendering::getInstance()->SetTextureUnits(Texture[*p], BilinearSampler);
+        GlyphRendering::getInstance()->setUniforms(screenpos, irr::core::vector2df(.1, .1));
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        screenpos += irr::core::vector2df(.2, 0.);
+    }
 }
 
 int main()
