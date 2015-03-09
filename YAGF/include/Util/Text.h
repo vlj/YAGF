@@ -36,7 +36,7 @@ public:
             "in vec2 uv;"
             "out vec4 FragColor;\n"
             "void main() {\n"
-            "FragColor = vec4(1., 1., 1., texture(tex,uv).r);\n"
+            "FragColor = texture(tex,uv).rrrr;\n"
             "}\n";
 
         Program = ProgramShaderLoading::LoadProgram(
@@ -98,12 +98,18 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glGenTextures(128, GlyphTexture);
-        Sampler = SamplerHelper::createNearestSampler();
+        glGenSamplers(1, &Sampler);
+        glSamplerParameteri(Sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glSamplerParameteri(Sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         for (int i = 0; i < 128; i++)
         {
-            if (FT_Load_Char(Face, (char)i, FT_LOAD_RENDER))
+            if (FT_Load_Glyph(Face, FT_Get_Char_Index(Face, i), FT_LOAD_TARGET_LIGHT))
                 printf("Could not load character %c\n", i);
+            if (FT_Render_Glyph(Face->glyph, FT_RENDER_MODE_LIGHT))
+                printf("Could not render character %c\n", i);
 
             glBindTexture(GL_TEXTURE_2D, GlyphTexture[i]);
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

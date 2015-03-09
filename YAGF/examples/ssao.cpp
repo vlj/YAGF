@@ -245,7 +245,7 @@ void draw()
   sprintf(time, "SSAO: %f ms\0" , result / 100000000.);
 
   glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
 
   BasicTextRender<48>::getInstance()->drawText(time, 12, 100, 1024, 1024);
