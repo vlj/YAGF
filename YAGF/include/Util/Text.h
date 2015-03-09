@@ -98,7 +98,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glGenTextures(128, GlyphTexture);
-        Sampler = SamplerHelper::createBilinearSampler();
+        Sampler = SamplerHelper::createNearestSampler();
 
         for (int i = 0; i < 128; i++)
         {
