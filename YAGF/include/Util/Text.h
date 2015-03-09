@@ -117,6 +117,8 @@ public:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Face->glyph->bitmap.width, Face->glyph->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE, Face->glyph->bitmap.buffer);
             Glyph[i] = { Face->glyph->bitmap.width, Face->glyph->bitmap.rows, Face->glyph->bitmap_left, Face->glyph->bitmap_top, Face->glyph->advance.x, Face->glyph->advance.y };
         }
+        FT_Done_Face(Face);
+        FT_Done_FreeType(Ft);
     }
 
     ~BasicTextRender()
