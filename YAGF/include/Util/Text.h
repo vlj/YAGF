@@ -49,7 +49,7 @@ public:
 };
 
 template<int GlyphSize>
-class BasicTextRender : public Singleton <BasicTextRender<GlyphSize>>
+class BasicTextRender : public Singleton <BasicTextRender<GlyphSize> >
 {
     FT_Library Ft;
     FT_Face Face;
@@ -58,6 +58,17 @@ class BasicTextRender : public Singleton <BasicTextRender<GlyphSize>>
     GLuint GlyphVBO;
 
     GLuint GlyphTexture[256];
+    struct GlyphData
+    {
+        size_t width;
+        size_t height;
+        size_t bitmap_left;
+        size_t bitmap_top;
+        size_t advance_x;
+        size_t advance_y;
+    };
+
+    GlyphData Glyph[128];
     GLuint Sampler;
 
 public:
@@ -98,6 +109,7 @@ public:
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Face->glyph->bitmap.width, Face->glyph->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE, Face->glyph->bitmap.buffer);
+            Glyph[i] = { Face->glyph->bitmap.width, Face->glyph->bitmap.rows, Face->glyph->bitmap_left, Face->glyph->bitmap_top, Face->glyph->advance.x, Face->glyph->advance.y };
         }
     }
 
@@ -115,16 +127,20 @@ public:
         glBindVertexArray(GlyphVAO);
         glUseProgram(GlyphRendering::getInstance()->Program);
 
+        irr::core::vector2df pixelSize(1. / screenWidth, 1. / screenHeight);
         irr::core::vector2df screenpos(posX, posY);
-        screenpos /= irr::core::vector2df(screenWidth, screenHeight);
+        screenpos *= pixelSize;
         screenpos -= irr::core::vector2df(1., 1.);
 
         for (const char *p = text; *p != '\0'; p++)
         {
+            const GlyphData &g = Glyph[*p];
+            irr::core::vector2df truescreenpos(screenpos);
+            truescreenpos += irr::core::vector2df(g.bitmap_left, g.bitmap_top) * pixelSize;
             GlyphRendering::getInstance()->SetTextureUnits(GlyphTexture[*p], Sampler);
-            GlyphRendering::getInstance()->setUniforms(screenpos, irr::core::vector2df(GlyphSize, GlyphSize) / irr::core::vector2df(screenWidth, screenHeight));
+            GlyphRendering::getInstance()->setUniforms(truescreenpos, irr::core::vector2df(g.width, g.height) * pixelSize);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            screenpos += irr::core::vector2df(.2, 0.);
+            screenpos += irr::core::vector2df(g.advance_x >> 6, g.advance_y >> 6) * pixelSize;
         }
     }
 };
