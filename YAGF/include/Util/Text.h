@@ -27,7 +27,7 @@ public:
             "void main()\n"
             "{\n"
             "   uv = Texcoord;\n"
-            "   gl_Position = vec4(GlyphCenter + GlyphScaling * Position, 0., 1.);\n"
+            "   gl_Position = vec4(1., -1., 1., 1.) * vec4(GlyphCenter + GlyphScaling * Position, 0., 1.);\n"
             "}\n";
 
         const char *passthrougfs =
@@ -85,10 +85,10 @@ public:
         glGenBuffers(1, &GlyphVBO);
         glBindBuffer(GL_ARRAY_BUFFER, GlyphVBO);
         const float quad_vertex[] = {
-            -.5, -.5, 0., 1., // UpperLeft
-            -.5, .5, 0., 0., // LowerLeft
-            .5, -.5, 1., 1., // UpperRight
-            .5, .5, 1., 0., // LowerRight
+            0., 0., 0., 0., // UpperLeft
+            0., 1., 0., 1., // LowerLeft
+            1., 0., 1., 0., // UpperRight
+            1., 1., 1., 1., // LowerRight
         };
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
@@ -136,7 +136,7 @@ public:
         {
             const GlyphData &g = Glyph[*p];
             irr::core::vector2df truescreenpos(screenpos);
-            truescreenpos += irr::core::vector2df(g.bitmap_left, g.bitmap_top) * pixelSize;
+            truescreenpos += irr::core::vector2df(g.bitmap_left, g.bitmap_top * -1.) * pixelSize;
             GlyphRendering::getInstance()->SetTextureUnits(GlyphTexture[*p], Sampler);
             GlyphRendering::getInstance()->setUniforms(truescreenpos, irr::core::vector2df(g.width, g.height) * pixelSize);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
