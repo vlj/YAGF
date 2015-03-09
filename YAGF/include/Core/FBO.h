@@ -14,13 +14,13 @@ private:
 public:
     FrameBuffer() {}
     
-    FrameBuffer(const std::vector <GLuint> &RTTs, size_t w, size_t h, bool layered = false)
+    FrameBuffer(const std::vector <GLuint> &RTTs, size_t w, size_t h)
       : fbolayer(0), RenderTargets(RTTs), DepthTexture(0),
       width(w), height(h)
     {
       glGenFramebuffers(1, &fbo);
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-      if (layered)
+      if (false)
       {
           for (unsigned i = 0; i < RTTs.size(); i++)
               glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, RTTs[i], 0);
@@ -34,13 +34,13 @@ public:
       assert(result == GL_FRAMEBUFFER_COMPLETE_EXT);
     }
 
-    FrameBuffer(const std::vector <GLuint> &RTTs, GLuint DS, size_t w, size_t h, bool layered = false)
+    FrameBuffer(const std::vector <GLuint> &RTTs, GLuint DS, size_t w, size_t h)
       : fbolayer(0), RenderTargets(RTTs), DepthTexture(DS), width(w),
       height(h)
     {
       glGenFramebuffers(1, &fbo);
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-      if (layered)
+      if (false)
       {
           for (unsigned i = 0; i < RTTs.size(); i++)
               glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, RTTs[i], 0);
@@ -54,7 +54,7 @@ public:
       }
       GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
       assert(result == GL_FRAMEBUFFER_COMPLETE_EXT);
-      if (layered)
+      if (false)
           glGenFramebuffers(1, &fbolayer);
     }
 

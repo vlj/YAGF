@@ -9,6 +9,7 @@
 #include <Core/FBO.h>
 #include <Util/Misc.h>
 #include <Util/Samplers.h>
+#include <Util/Text.h>
 
 irr::scene::IMeshBuffer *buffer;
 FrameBuffer *MainFBO;
@@ -46,7 +47,7 @@ const char *lineardepthshader = "#version 330\n"
     "out float Depth;\n"
     "void main()\n"
     "{\n"
-    "   vec2 uv = gl_FragCoord.xy / vec2(640, 480);\n"
+    "   vec2 uv = gl_FragCoord.xy / vec2(1024, 1024);\n"
     "   float d = texture(tex, uv).x;\n"
     "   float c0 = zn * zf, c1 = zn - zf, c2 = zf;\n"
     "   Depth = c0 / (d * c1 + c2);\n"
@@ -66,7 +67,7 @@ const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/A
     "const float epsilon = .00001;\n"
     "#define SAMPLES 16\n"
     "const float invSamples = 1. / SAMPLES;\n"
-    "vec2 screen = vec2(640, 480);\n"
+    "vec2 screen = vec2(1024, 1024);\n"
     "vec3 getXcYcZc(int x, int y, float zC)\n"
     "{\n"
         "// We use perspective symetric projection matrix hence P(0,2) = P(1, 2) = 0 \n"
@@ -164,14 +165,14 @@ void init()
   buffer = GeometryCreator::createCubeMeshBuffer(
         irr::core::vector3df(1., 1., 1.));
   auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
-  glViewport(0, 0, 640, 480);
+  glViewport(0, 0, 1024, 1024);
 
-  DepthStencilTexture = generateRTT(640, 480, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
-  MainTexture = generateRTT(640, 480, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
-  LinearTexture = generateRTT(640, 480, GL_R32F, GL_RED, GL_FLOAT);
+  DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+  MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
+  LinearTexture = generateRTT(1024, 1024, GL_R32F, GL_RED, GL_FLOAT);
 
-  MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 640, 480);
-  LinearDepthFBO = new FrameBuffer({ LinearTexture }, 640, 480);
+  MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
+  LinearDepthFBO = new FrameBuffer({ LinearTexture }, 1024, 1024);
 
   NearestSampler = SamplerHelper::createNearestSampler();
   TrilinearSampler = SamplerHelper::createBilinearSampler();
@@ -200,7 +201,7 @@ void draw()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   irr::core::matrix4 Model, View;
-  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 640. / 480., 1., 100.);
+  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1. , 1., 100.);
   Model.setTranslation(irr::core::vector3df(0., 0., 8.));
 
   glUseProgram(ObjectShader::getInstance()->Program);
@@ -239,7 +240,15 @@ void draw()
   }
   GLuint result;
   glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
-  printf("time elapsed : %d ms\n", result / 1000);
+
+  char time[50];
+  sprintf(time, "SSAO: %f ms\0" , result / 100000000.);
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendEquation(GL_FUNC_ADD);
+
+  BasicTextRender<48>::getInstance()->drawText(time, 12, 100, 1024, 1024);
 }
 
 int main()
@@ -248,7 +257,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(640, 480, "GLtest", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
 
   glewExperimental = GL_TRUE;

@@ -32,10 +32,22 @@ add_library(${PROJECT_NAME} runtime.cpp ${HEADERS_LIST})
 target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARY} ${GLFW_LIBRARY} ${OPENGL_LIBRARY})
 
 add_executable(ssao examples/ssao.cpp)
-target_link_libraries(ssao ${PROJECT_NAME})
+target_link_libraries(ssao ${PROJECT_NAME} ${FREETYPE_LIBRARY})
 
 add_executable(gaussianblur examples/gaussianblur.cpp)
 target_link_libraries(gaussianblur ${PROJECT_NAME})
+if (WIN32)
+add_custom_command(TARGET gaussianblur POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/freetype6.dll"
+         $<TARGET_FILE_DIR:gaussianblur>)
+ add_custom_command(TARGET gaussianblur POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/zlib1.dll"
+         $<TARGET_FILE_DIR:gaussianblur>)
+endif()
+
+
 
 add_executable(text examples/text.cpp)
 target_link_libraries(text ${PROJECT_NAME} ${FREETYPE_LIBRARY})
