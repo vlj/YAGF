@@ -10,6 +10,7 @@
 #include <Util/Misc.h>
 #include <Util/Samplers.h>
 #include <Util/Debug.h>
+#include <Util/Text.h>
 
 GLuint InitialTexture;
 GLuint MainTexture;
@@ -140,13 +141,33 @@ void draw()
 {
     glUseProgram(GaussianBlurH::getInstance()->Program);
     GaussianBlurH::getInstance()->setUniforms(irr::core::vector2df(1. / 1024., 1. / 1024.), 1.);
-    GaussianBlurH::getInstance()->SetTextureUnits(InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
-    glDispatchCompute(1024 / 8, 1024 / 8, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    GLuint timer;
+    glGenQueries(1, &timer);
+    glBeginQuery(GL_TIME_ELAPSED, timer);
+    for (unsigned i = 0; i < 100; i++)
+    {
+        GaussianBlurH::getInstance()->SetTextureUnits(InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
+        glDispatchCompute(1024 / 8, 1024 / 8, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+    glEndQuery(GL_TIME_ELAPSED);
+    GLuint result;
+    glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
+
+    char time[50];
+    sprintf(time, "100 x SSAO: %f ms\0", result / 1000000.);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
     FullScreenPassthrough::getInstance()->SetTextureUnits(MainTexture, BilinearSampler);
     DrawFullScreenEffect<FullScreenPassthrough>();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    BasicTextRender<14>::getInstance()->drawText(time, 0, 20, 1024, 1024);
 }
 
 int main()
