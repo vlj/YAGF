@@ -99,8 +99,8 @@ public:
 
         glGenTextures(128, GlyphTexture);
         glGenSamplers(1, &Sampler);
-        glSamplerParameteri(Sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glSamplerParameteri(Sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glSamplerParameteri(Sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glSamplerParameteri(Sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glSamplerParameteri(Sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -133,7 +133,7 @@ public:
         glBindVertexArray(GlyphVAO);
         glUseProgram(GlyphRendering::getInstance()->Program);
 
-        irr::core::vector2df pixelSize(1. / screenWidth, 1. / screenHeight);
+        irr::core::vector2df pixelSize(2. / screenWidth, 2. / screenHeight);
         irr::core::vector2df screenpos(posX, posY);
         screenpos *= pixelSize;
         screenpos -= irr::core::vector2df(1., 1.);
