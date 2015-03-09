@@ -193,6 +193,7 @@ void clean()
 
 void draw()
 {
+  glDisable(GL_BLEND);
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
   MainFBO->Bind();

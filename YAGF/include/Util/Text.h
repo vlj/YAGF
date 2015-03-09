@@ -36,7 +36,7 @@ public:
             "in vec2 uv;"
             "out vec4 FragColor;\n"
             "void main() {\n"
-            "FragColor = texture(tex,uv).rrrr;\n"
+            "FragColor = vec4(texture(tex,uv).r, 0., 0., texture(tex,uv).r);\n"
             "}\n";
 
         Program = ProgramShaderLoading::LoadProgram(
@@ -76,8 +76,13 @@ public:
     {
         if (FT_Init_FreeType(&Ft))
             printf("Can't init freetype\n");
+#ifdef WIN32
         if (FT_New_Face(Ft, "C:\\Windows\\Fonts\\arial.ttf", 0, &Face))
             printf("Can't init Arial\n");
+#else
+        if (FT_New_Face(Ft, "/usr/share/fonts/dejavu/DejaVuSansMono.ttf", 0, &Face))
+            printf("Can't init DejaVuSansMono\n");
+#endif
         FT_Set_Pixel_Sizes(Face, GlyphSize, GlyphSize);
 
         glGenVertexArrays(1, &GlyphVAO);
