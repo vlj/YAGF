@@ -26,7 +26,7 @@ void clean()
 
 void draw()
 {
-    const char *str = "test";
+    const char *str = "Bonjour je suis du texte Arial en Opengl";
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, 1024, 1024);

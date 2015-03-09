@@ -60,12 +60,12 @@ class BasicTextRender : public Singleton <BasicTextRender<GlyphSize> >
     GLuint GlyphTexture[256];
     struct GlyphData
     {
-        size_t width;
-        size_t height;
-        size_t bitmap_left;
-        size_t bitmap_top;
-        size_t advance_x;
-        size_t advance_y;
+        int width;
+        int height;
+        int bitmap_left;
+        int bitmap_top;
+        int advance_x;
+        int advance_y;
     };
 
     GlyphData Glyph[128];
@@ -78,7 +78,7 @@ public:
             printf("Can't init freetype\n");
         if (FT_New_Face(Ft, "C:\\Windows\\Fonts\\arial.ttf", 0, &Face))
             printf("Can't init Arial\n");
-        FT_Set_Pixel_Sizes(Face, 0, GlyphSize);
+        FT_Set_Pixel_Sizes(Face, GlyphSize, GlyphSize);
 
         glGenVertexArrays(1, &GlyphVAO);
         glBindVertexArray(GlyphVAO);
@@ -136,7 +136,7 @@ public:
         {
             const GlyphData &g = Glyph[*p];
             irr::core::vector2df truescreenpos(screenpos);
-            truescreenpos += irr::core::vector2df(g.bitmap_left, g.bitmap_top * -1.) * pixelSize;
+            truescreenpos += irr::core::vector2df(g.bitmap_left, - g.bitmap_top) * pixelSize;
             GlyphRendering::getInstance()->SetTextureUnits(GlyphTexture[*p], Sampler);
             GlyphRendering::getInstance()->setUniforms(truescreenpos, irr::core::vector2df(g.width, g.height) * pixelSize);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
