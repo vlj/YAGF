@@ -46,16 +46,19 @@ const char *vtxshader =
 "}\n";
 
 const char *fragshader =
-"#version 430\n"
+"#version 430 core\n"
 "layout (binding = 0) uniform atomic_uint PixelCount;\n"
+"layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
 "in vec3 color;\n"
 "out vec4 FragColor;\n"
 "void main() {\n"
-"  atomicCounterIncrement(PixelCount);"
-"  FragColor = vec4(color, 1.);\n"
+"  uint pixel_id = atomicCounterIncrement(PixelCount);"
+"  ivec2 iuv = ivec2(gl_FragCoord.xy);"
+"  imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);"
+"  FragColor = vec4(vec3(pixel_id / 70000.), 1.);\n"
 "}\n";
 
-class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4>, public TextureRead<>
+class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4>, public TextureRead<Image2D>
 {
 public:
     Transparent()
@@ -64,6 +67,7 @@ public:
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
         AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
+        AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
     }
 };
 
@@ -94,9 +98,9 @@ void init()
 
     MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
 
-/*    glGenBuffers(1, &PerPixelLinkedListSSBO);
+    glGenBuffers(1, &PerPixelLinkedListSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 10000 * sizeof(PerPixelListBucked), 0, GL_STATIC_DRAW);*/
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 10000 * sizeof(PerPixelListBucked), 0, GL_STATIC_DRAW);
 
     glGenBuffers(1, &PixelCountAtomic);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
@@ -124,7 +128,8 @@ void draw()
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
-    MainFBO->Bind();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//    MainFBO->Bind();
     glClearColor(0., 0., 0., 1.);
     glClearDepth(1.);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -137,6 +142,7 @@ void draw()
 
     glUseProgram(Transparent::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
+    Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
     Transparent::getInstance()->setUniforms(Model, View);
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
