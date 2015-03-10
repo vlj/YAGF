@@ -41,11 +41,9 @@ const char *vtxshader =
 "uniform mat4 ModelMatrix;\n"
 "uniform mat4 ViewProjectionMatrix;\n"
 "layout(location = 0) in vec3 Position;\n"
-"out vec3 color;\n"
 "out float depth;"
 "void main(void) {\n"
 "  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
-"  color = vec3(1.);\n"
 "  depth = gl_Position.z;"
 "}\n";
 
@@ -53,7 +51,7 @@ const char *fragshader =
 "#version 430 core\n"
 "layout (binding = 0) uniform atomic_uint PixelCount;\n"
 "layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
-"in vec3 color;\n"
+"uniform vec4 color;\n"
 "in float depth;"
 "out vec4 FragColor;\n"
 "struct PerPixelListBucket\n"
@@ -75,10 +73,10 @@ const char *fragshader =
 "  ivec2 iuv = ivec2(gl_FragCoord.xy);"
 "  uint tmp = imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);"
 "  PPLL[pxid].depth = depth;\n"
-"  PPLL[pxid].red = 1.;\n"
-"  PPLL[pxid].blue = 1.;\n"
-"  PPLL[pxid].green = 1.;\n"
-"  PPLL[pxid].alpha = .5;\n"
+"  PPLL[pxid].red = color.r;\n"
+"  PPLL[pxid].blue = color.g;\n"
+"  PPLL[pxid].green = color.b;\n"
+"  PPLL[pxid].alpha = color.a;\n"
 "  PPLL[pxid].next = tmp;\n"
 "  FragColor = vec4(0.);\n"
 "}\n";
@@ -146,7 +144,7 @@ const char *fragmerge =
 "  FragColor = result;\n"
 "}\n";
 
-class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4>, public TextureRead<Image2D>
+class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4, irr::video::SColorf>, public TextureRead<Image2D>
 {
 public:
     Transparent()
@@ -154,7 +152,7 @@ public:
         Program = ProgramShaderLoading::LoadProgram(
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
-        AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
+        AssignUniforms("ModelMatrix", "ViewProjectionMatrix", "color");
         AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
     }
 };
@@ -246,12 +244,12 @@ void draw()
     glUseProgram(Transparent::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
     Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-    Transparent::getInstance()->setUniforms(Model, View);
+    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 1., .5));
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
     Model.setTranslation(irr::core::vector3df(0., 0., 10.));
     Model.setScale(2.);
-    Transparent::getInstance()->setUniforms(Model, View);
+    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 1., .5));
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 

@@ -275,7 +275,7 @@ struct UniformHelper
     template<unsigned N = 0, typename... Args>
     static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::video::SColorf &col, const Args &... arg)
     {
-        glUniform3f(uniforms[N], col.r, col.g, col.b);
+        glUniform4f(uniforms[N], col.r, col.g, col.b, col.a);
         setUniformsHelper<N + 1>(uniforms, arg...);
     }
 
