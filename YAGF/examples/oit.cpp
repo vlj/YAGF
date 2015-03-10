@@ -14,6 +14,8 @@
 
 irr::scene::IMeshBuffer *buffer;
 FrameBuffer *MainFBO;
+// For clearing
+FrameBuffer *PerPixelLinkedListHeadFBO;
 
 GLuint DepthStencilTexture;
 GLuint MainTexture;
@@ -75,7 +77,36 @@ const char *fragshader =
 "  PPLL[pxid].green = 1.;\n"
 "  PPLL[pxid].alpha = 1.;\n"
 "  PPLL[pxid].next = tmp;\n"
-"  FragColor = vec4(vec3(tmp / 70000.), 1.);\n"
+"  FragColor = vec4(0.);\n"
+"}\n";
+
+const char *fragmerge =
+"#version 430 core\n"
+"layout(r32ui) uniform restrict uimage2D PerPixelLinkedListHead;\n"
+"out vec4 FragColor;\n"
+"struct PerPixelListBucket\n"
+"{\n"
+"    float depth;\n"
+"    float red;\n"
+"    float blue;\n"
+"    float green;\n"
+"    float alpha;\n"
+"    uint next;\n"
+"};\n"
+"layout(std140, binding = 1) buffer PerPixelLinkedList\n"
+"{\n"
+"    PerPixelListBucket PPLL[1000000];"
+"};"
+"void main() {\n"
+"  ivec2 iuv = ivec2(gl_FragCoord.xy);"
+"  uint ListBucketId = imageLoad(PerPixelLinkedListHead, iuv).x;\n"
+"  if (ListBucketId == 0) discard;"
+"  int tmp = 1;"
+"  while (ListBucketId != 0) {\n"
+"    ListBucketId = PPLL[ListBucketId].next;\n"
+"    tmp += 1;\n"
+"  }\n"
+"  FragColor = vec4(.1 * tmp);\n"
 "}\n";
 
 class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4>, public TextureRead<Image2D>
@@ -87,6 +118,18 @@ public:
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
         AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
+        AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+    }
+};
+
+class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<Image2D>
+{
+public:
+    FragmentMerge()
+    {
+        Program = ProgramShaderLoading::LoadProgram(
+            GL_VERTEX_SHADER, screenquadshader,
+            GL_FRAGMENT_SHADER, fragmerge);
         AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
     }
 };
@@ -117,10 +160,12 @@ void init()
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, 1024, 1024);
 
     MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
+    PerPixelLinkedListHeadFBO = new FrameBuffer({ PerPixelLinkedListHeadTexture }, 1024, 1024);
 
     glGenBuffers(1, &PerPixelLinkedListSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 1000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, PerPixelLinkedListSSBO);
 
     glGenBuffers(1, &PixelCountAtomic);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
@@ -148,9 +193,10 @@ void draw()
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//    MainFBO->Bind();
+    PerPixelLinkedListHeadFBO->Bind();
     glClearColor(0., 0., 0., 1.);
+    glClear(GL_COLOR_BUFFER_BIT);
+    MainFBO->Bind();
     glClearDepth(1.);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -170,7 +216,11 @@ void draw()
     Model.setScale(2.);
     Transparent::getInstance()->setUniforms(Model, View);
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
-    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
+    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
+    DrawFullScreenEffect<FragmentMerge>();
 
 //    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
@@ -184,7 +234,7 @@ int main()
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+//    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
     glfwMakeContextCurrent(window);
