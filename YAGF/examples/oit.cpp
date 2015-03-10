@@ -12,85 +12,58 @@
 #include <Util/Debug.h>
 #include <Util/Text.h>
 
-GLuint InitialTexture;
+irr::scene::IMeshBuffer *buffer;
+FrameBuffer *MainFBO;
+
+GLuint DepthStencilTexture;
 GLuint MainTexture;
-GLuint AuxTexture;
+
+GLuint PerPixelLinkedListHeadTexture;
+GLuint PerPixelLinkedListSSBO;
+GLuint PixelCountAtomic;
 
 GLuint BilinearSampler;
 
-static const char *passthrougfs =
-"#version 330\n"
-"uniform sampler2D tex;\n"
-"out vec4 FragColor;\n"
-"void main() {\n"
-"vec2 uv = gl_FragCoord.xy / 1024.;\n"
-"FragColor = texture(tex,uv);\n"
-"}\n";
-
-static const char *bilateralH =
-"#version 430\n"
-"// From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch40.html \n"
-"uniform sampler2D source;\n"
-"uniform vec2 pixel; \n"
-"uniform layout(rgba16f) volatile restrict writeonly image2D dest; \n"
-"uniform float sigma = 5.; \n"
-"layout(local_size_x = 8, local_size_y = 4) in; \n"
-"shared vec4 local_src[8 + 2 * 8][4]; \n"
-"void main()\n"
-"  {\n"
-"  int x = int(gl_LocalInvocationID.x), y = int(gl_LocalInvocationID.y); \n"
-"  ivec2 iuv = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y); \n"
-"  vec2 guv = gl_GlobalInvocationID.xy + .5; \n"
-"  vec2 uv_m = (guv - vec2(8, 0)) * pixel; \n"
-"  vec2 uv = guv * pixel; \n"
-"  vec2 uv_p = (guv + vec2(8, 0)) * pixel; \n"
-"  local_src[x][y] = texture(source, uv_m); \n"
-"  local_src[x + 8][y] = texture(source, uv); \n"
-"  local_src[x + 16][y] = texture(source, uv_p); \n"
-"  barrier(); \n"
-"  float g0, g1, g2; \n"
-"  g0 = 1.0 / (sqrt(2.0 * 3.14) * sigma); \n"
-"  g1 = exp(-0.5 / (sigma * sigma)); \n"
-"  g2 = g1 * g1; \n"
-"  vec4 sum = local_src[x + 8][y] * g0; \n"
-"  g0 *= g1; \n"
-"  g1 *= g2; \n"
-"  float total_weight = g0; \n"
-"  for (int j = 1; j < 8; j++) { \n"
-"    total_weight += g0; \n"
-"    sum += local_src[8 + x - j][y] * g0; \n"
-"    total_weight += g0; \n"
-"    sum += local_src[8 + x + j][y] * g0; \n"
-"    g0 *= g1; \n"
-"    g1 *= g2; \n"
-"  }\n"
-"  imageStore(dest, iuv, sum / total_weight); \n"
-"}";
-
-class GaussianBlurH : public ShaderHelperSingleton<GaussianBlurH, irr::core::vector2df, float>, public TextureRead<Texture2D, Image2D>
+struct PerPixelListBucked
 {
-public:
-    GaussianBlurH()
-    {
-        Program = ProgramShaderLoading::LoadProgram(
-            GL_COMPUTE_SHADER, bilateralH);
-        AssignUniforms("pixel", "sigma");
-
-        AssignSamplerNames(Program, 0, "source", 1, "dest");
-    }
+    float depth;
+    float red;
+    float blue;
+    float green;
+    float alpha;
+    int next;
 };
 
-class FullScreenPassthrough : public ShaderHelperSingleton<FullScreenPassthrough>, public TextureRead<Texture2D>
+const char *vtxshader =
+"#version 430\n"
+"uniform mat4 ModelMatrix;\n"
+"uniform mat4 ViewProjectionMatrix;\n"
+"layout(location = 0) in vec3 Position;\n"
+"out vec3 color;\n"
+"void main(void) {\n"
+"  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
+"  color = vec3(1.);\n"
+"}\n";
+
+const char *fragshader =
+"#version 430\n"
+"layout (binding = 0) uniform atomic_uint PixelCount;\n"
+"in vec3 color;\n"
+"out vec4 FragColor;\n"
+"void main() {\n"
+"  atomicCounterIncrement(PixelCount);"
+"  FragColor = vec4(color, 1.);\n"
+"}\n";
+
+class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4>, public TextureRead<>
 {
 public:
-    FullScreenPassthrough()
+    Transparent()
     {
         Program = ProgramShaderLoading::LoadProgram(
-            GL_VERTEX_SHADER, screenquadshader,
-            GL_FRAGMENT_SHADER, passthrougfs);
-        AssignUniforms();
-
-        AssignSamplerNames(Program, 0, "tex");
+            GL_VERTEX_SHADER, vtxshader,
+            GL_FRAGMENT_SHADER, fragshader);
+        AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
     }
 };
 
@@ -109,65 +82,75 @@ static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLi
 void init()
 {
     DebugUtil::enableDebugOutput();
-    glViewport(0, 0, 1024, 1024);
-    int *texture = new int[1024 * 1024];
-    for (int i = 0; i < 1024 * 1024; i++)
-    {
-        if (i % 2)
-            texture[i] = 0;
-        else
-            texture[i] = -1;
-    }
+    buffer = GeometryCreator::createCubeMeshBuffer(
+        irr::core::vector3df(1., 1., 1.));
+    auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
 
-    glGenTextures(1, &InitialTexture);
-    glBindTexture(GL_TEXTURE_2D, InitialTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
-    delete texture;
+    DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+    MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
+    glGenTextures(1, &PerPixelLinkedListHeadTexture);
+    glBindTexture(GL_TEXTURE_2D, PerPixelLinkedListHeadTexture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, 1024, 1024);
 
-    MainTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
-    AuxTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
+    MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
+
+/*    glGenBuffers(1, &PerPixelLinkedListSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 10000 * sizeof(PerPixelListBucked), 0, GL_STATIC_DRAW);*/
+
+    glGenBuffers(1, &PixelCountAtomic);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
 
     BilinearSampler = SamplerHelper::createBilinearSampler();
+
+    glDepthFunc(GL_LEQUAL);
 }
 
 void clean()
 {
     glDeleteSamplers(1, &BilinearSampler);
     glDeleteTextures(1, &MainTexture);
-    glDeleteTextures(1, &AuxTexture);
 }
 
 void draw()
 {
-    glUseProgram(GaussianBlurH::getInstance()->Program);
-    GaussianBlurH::getInstance()->setUniforms(irr::core::vector2df(1. / 1024., 1. / 1024.), 1.);
+    // Reset PixelCount
+    int pxcnt = 1;
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
+    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(unsigned int), &pxcnt);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    MainFBO->Bind();
+    glClearColor(0., 0., 0., 1.);
+    glClearDepth(1.);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    GLuint timer;
-    glGenQueries(1, &timer);
-    glBeginQuery(GL_TIME_ELAPSED, timer);
-    for (unsigned i = 0; i < 100; i++)
-    {
-        GaussianBlurH::getInstance()->SetTextureUnits(InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
-        glDispatchCompute(1024 / 8, 1024 / 4, 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    }
-    glEndQuery(GL_TIME_ELAPSED);
-    GLuint result;
-    glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
+//    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-    char time[50];
-    sprintf(time, "100 x SSAO: %f ms\0", result / 1000000.);
+    irr::core::matrix4 Model, View;
+    View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 100.);
+    Model.setTranslation(irr::core::vector3df(0., 0., 8.));
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    FullScreenPassthrough::getInstance()->SetTextureUnits(MainTexture, BilinearSampler);
-    DrawFullScreenEffect<FullScreenPassthrough>();
+    glUseProgram(Transparent::getInstance()->Program);
+    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
+    Transparent::getInstance()->setUniforms(Model, View);
+    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
+    Model.setTranslation(irr::core::vector3df(0., 0., 10.));
+    Model.setScale(2.);
+    Transparent::getInstance()->setUniforms(Model, View);
+    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
 
-    BasicTextRender<14>::getInstance()->drawText(time, 0, 20, 1024, 1024);
+//    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
+    int *tmp = (int*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
+    printf("%d\n", *tmp);
+    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
 int main()
