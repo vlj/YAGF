@@ -42,9 +42,11 @@ const char *vtxshader =
 "uniform mat4 ViewProjectionMatrix;\n"
 "layout(location = 0) in vec3 Position;\n"
 "out vec3 color;\n"
+"out float depth;"
 "void main(void) {\n"
 "  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
 "  color = vec3(1.);\n"
+"  depth = gl_Position.z;"
 "}\n";
 
 const char *fragshader =
@@ -52,6 +54,7 @@ const char *fragshader =
 "layout (binding = 0) uniform atomic_uint PixelCount;\n"
 "layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
 "in vec3 color;\n"
+"in float depth;"
 "out vec4 FragColor;\n"
 "struct PerPixelListBucket\n"
 "{\n"
@@ -71,18 +74,18 @@ const char *fragshader =
 "  int pxid = int(pixel_id);"
 "  ivec2 iuv = ivec2(gl_FragCoord.xy);"
 "  uint tmp = imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);"
-"  PPLL[pxid].depth = gl_FragCoord.z;\n"
+"  PPLL[pxid].depth = depth;\n"
 "  PPLL[pxid].red = 1.;\n"
 "  PPLL[pxid].blue = 1.;\n"
 "  PPLL[pxid].green = 1.;\n"
-"  PPLL[pxid].alpha = 1.;\n"
+"  PPLL[pxid].alpha = .5;\n"
 "  PPLL[pxid].next = tmp;\n"
 "  FragColor = vec4(0.);\n"
 "}\n";
 
 const char *fragmerge =
 "#version 430 core\n"
-"layout(r32ui) uniform restrict uimage2D PerPixelLinkedListHead;\n"
+"layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
 "out vec4 FragColor;\n"
 "struct PerPixelListBucket\n"
 "{\n"
@@ -95,18 +98,52 @@ const char *fragmerge =
 "};\n"
 "layout(std140, binding = 1) buffer PerPixelLinkedList\n"
 "{\n"
-"    PerPixelListBucket PPLL[1000000];"
-"};"
+"    PerPixelListBucket PPLL[1000000];\n"
+"};\n"
+"void BubbleSort(uint ListBucketHead) {\n"
+"  bool isSorted = false;\n"
+"  while (!isSorted) {\n"
+"    isSorted = true;\n"
+"    uint ListBucketId = ListBucketHead;\n"
+"    uint NextListBucketId = PPLL[ListBucketId].next;\n"
+"    while (NextListBucketId != 0) {\n"
+"    if (PPLL[ListBucketId].depth < PPLL[NextListBucketId].depth) {\n"
+"        isSorted = false;\n"
+"        float tmp = PPLL[ListBucketId].depth;\n"
+"        PPLL[ListBucketId].depth = PPLL[NextListBucketId].depth;\n"
+"        PPLL[NextListBucketId].depth = tmp;\n"
+"        tmp = PPLL[ListBucketId].red;\n"
+"        PPLL[ListBucketId].red = PPLL[NextListBucketId].red;\n"
+"        PPLL[NextListBucketId].red = tmp;\n"
+"        tmp = PPLL[ListBucketId].green;\n"
+"        PPLL[ListBucketId].green = PPLL[NextListBucketId].green;\n"
+"        PPLL[NextListBucketId].green = tmp;\n"
+"        tmp = PPLL[ListBucketId].blue;\n"
+"        PPLL[ListBucketId].blue = PPLL[NextListBucketId].blue;\n"
+"        PPLL[NextListBucketId].blue = tmp;\n"
+"        tmp = PPLL[ListBucketId].alpha;\n"
+"        PPLL[ListBucketId].alpha = PPLL[NextListBucketId].alpha;\n"
+"        PPLL[NextListBucketId].alpha = tmp;\n"
+"      }\n"
+"      ListBucketId = NextListBucketId;\n"
+"      NextListBucketId = PPLL[NextListBucketId].next;\n"
+"    }\n"
+"  }\n"
+"}\n"
+"\n"
 "void main() {\n"
 "  ivec2 iuv = ivec2(gl_FragCoord.xy);"
-"  uint ListBucketId = imageLoad(PerPixelLinkedListHead, iuv).x;\n"
-"  if (ListBucketId == 0) discard;"
-"  int tmp = 1;"
+"  uint ListBucketHead = imageLoad(PerPixelLinkedListHead, iuv).x;\n"
+"  if (ListBucketHead == 0) discard;\n"
+"  BubbleSort(ListBucketHead);\n"
+"  uint ListBucketId = ListBucketHead;\n"
+"  vec4 result = vec4(0., 0., 0., 1.);"
 "  while (ListBucketId != 0) {\n"
+"    result.xyz += vec3(PPLL[ListBucketId].red, PPLL[ListBucketId].green, PPLL[ListBucketId].blue);\n"
+"    result *= PPLL[ListBucketId].alpha;\n"
 "    ListBucketId = PPLL[ListBucketId].next;\n"
-"    tmp += 1;\n"
 "  }\n"
-"  FragColor = vec4(.1 * tmp);\n"
+"  FragColor = result;\n"
 "}\n";
 
 class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4>, public TextureRead<Image2D>
@@ -225,7 +262,7 @@ void draw()
 //    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
     int *tmp = (int*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
-    printf("%d\n", *tmp);
+//    printf("%d\n", *tmp);
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
