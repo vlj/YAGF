@@ -53,6 +53,105 @@ namespace irr
         //! Internal function, please do not use.
         IReadFile* createMemoryReadFile(void* memory, long size, const io::path& fileName, bool deleteMemoryWhenDropped);
 
+
+
+        /*!
+        Class for reading a real file from disk.
+        */
+        class CReadFile : public IReadFile
+        {
+        public:
+
+            CReadFile(const io::path& fileName)
+                : File(0), FileSize(0), Filename(fileName)
+            {
+#ifdef _DEBUG
+//                setDebugName("CReadFile");
+#endif
+
+                openFile();
+            }
+
+
+            virtual ~CReadFile()
+            {
+                if (File)
+                    fclose(File);
+            }
+
+            //! returns how much was read
+            virtual int read(void* buffer, unsigned sizeToRead) override
+            {
+                if (!isOpen())
+                    return 0;
+
+                return (int)fread(buffer, 1, sizeToRead, File);
+            }
+
+            //! changes position in file, returns true if successful
+            virtual bool seek(long finalPos, bool relativeMovement = false) override
+            {
+                if (!isOpen())
+                    return false;
+
+                return fseek(File, finalPos, relativeMovement ? SEEK_CUR : SEEK_SET) == 0;
+            }
+
+            //! returns size of file
+            virtual long getSize() const override
+            {
+                return FileSize;
+            }
+
+            //! returns if file is open
+            virtual bool isOpen() const
+            {
+                return File != 0;
+            }
+
+            //! returns where in the file we are.
+            virtual long getPos() const override
+            {
+                return ftell(File);
+            }
+
+            //! returns name of file
+            virtual const io::path& getFileName() const override
+            {
+                return Filename;
+            }
+
+        private:
+
+            //! opens the file
+            void openFile()
+            {
+                if (Filename.size() == 0) // bugfix posted by rt
+                {
+                    File = 0;
+                    return;
+                }
+
+#if defined ( _IRR_WCHAR_FILESYSTEM )
+                File = _wfopen(Filename.c_str(), L"rb");
+#else
+                File = fopen(Filename.c_str(), "rb");
+#endif
+
+                if (File)
+                {
+                    // get FileSize
+
+                    fseek(File, 0, SEEK_END);
+                    FileSize = getPos();
+                    fseek(File, 0, SEEK_SET);
+                }
+            }
+
+            FILE* File;
+            long FileSize;
+            io::path Filename;
+        };
     } // end namespace io
 } // end namespace irr
 

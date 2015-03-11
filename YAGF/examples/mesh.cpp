@@ -13,15 +13,11 @@
 
 #include <Loaders/B3D.h>
 
-irr::scene::IMeshBuffer *buffer;
+std::vector<std::tuple<unsigned, unsigned, unsigned> > CountBaseIndexVTX;
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
 
-GLuint DepthStencilTexture;
-GLuint MainTexture;
-GLuint LinearTexture;
-
-GLuint NearestSampler, TrilinearSampler;
+GLuint TrilinearSampler;
 
 const char *vtxshader =
 "#version 330\n"
@@ -68,29 +64,25 @@ public:
 
 void init()
 {
-    buffer = GeometryCreator::createCubeMeshBuffer(
-        irr::core::vector3df(1., 1., 1.));
-    auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
+    irr::io::CReadFile *reader = new irr::io::CReadFile("");
+    irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
+    std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(reader);
 
-    DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
-    MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
-    LinearTexture = generateRTT(1024, 1024, GL_R32F, GL_RED, GL_FLOAT);
+    for (auto tmp : buffers)
+    {
+        std::pair<unsigned, unsigned> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
+        CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
+    }
 
-    NearestSampler = SamplerHelper::createNearestSampler();
     TrilinearSampler = SamplerHelper::createBilinearSampler();
 
     glDepthFunc(GL_LEQUAL);
+    delete loader;
 }
 
 void clean()
 {
-    delete buffer;
-    delete MainFBO;
-    delete LinearDepthFBO;
-    glDeleteSamplers(1, &NearestSampler);
-    glDeleteTextures(1, &DepthStencilTexture);
-    glDeleteTextures(1, &MainTexture);
-    glDeleteTextures(1, &LinearTexture);
+    glDeleteSamplers(1, &TrilinearSampler);
 }
 
 void draw()
@@ -110,14 +102,10 @@ void draw()
     Model.setTranslation(irr::core::vector3df(0., 0., 8.));
 
     glUseProgram(ObjectShader::getInstance()->Program);
-    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
+    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
     ObjectShader::getInstance()->setUniforms(Model, View);
-    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
-
-    Model.setTranslation(irr::core::vector3df(0., 0., 10.));
-    Model.setScale(2.);
-    ObjectShader::getInstance()->setUniforms(Model, View);
-    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+    for (auto tmp : CountBaseIndexVTX)
+        glDrawElementsBaseVertex(GL_TRIANGLES, std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), std::get<2>(tmp));
 }
 
 int main()
