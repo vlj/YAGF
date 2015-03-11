@@ -436,12 +436,12 @@ namespace core
 		{
 			if (X!=0)
 			{
-				angle.Y = roundf((float)(atan2((double)Z,(double)X) * RADTODEG64));
+				angle.Y = (int)roundf((float)(atan2((double)Z,(double)X) * RADTODEG64));
 			}
 			else if (Z<0)
 				angle.Y=180;
 
-			angle.X = roundf((float)(acos(Y / sqrt(length)) * RADTODEG64));
+            angle.X = (int)roundf((float)(acos(Y / sqrt(length)) * RADTODEG64));
 		}
 		return angle;
 	}

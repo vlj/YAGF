@@ -14,8 +14,8 @@
 #include <cstring> // For memset
 #include <cassert>
 
-#define DEGTORAD (3.14 / 180.)
-#define RADTODEG (180. / 3.14)
+#define DEGTORAD (3.14f / 180.f)
+#define RADTODEG (180.f / 3.14f)
 
 // For SSE
 #if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
@@ -1659,7 +1659,7 @@ namespace core
 	template <class T>
 	inline CMatrix4<T>& CMatrix4<T>::buildProjectionMatrixPerspectiveFovLH(float fieldOfViewRadians, float aspectRatio, float zNear, float zFar)
 	{
-		float h = 1.f / (tan(fieldOfViewRadians*0.5));
+		float h = 1.f / (tanf(fieldOfViewRadians*0.5f));
 		assert (aspectRatio != 0.f); //divide by zero
 		const T w = static_cast<T>(h / aspectRatio);
 

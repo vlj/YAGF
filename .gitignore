@@ -19,3 +19,7 @@ deps/*
 *.dll
 TargetDirectories.txt
 *.depend
+*.stamp*
+CMakeCCompilerId.c
+CMakeCXXCompilerId.cpp
+*.bin

@@ -419,11 +419,11 @@ namespace irr
 namespace scene
 {
 //! Standard meshbuffer
-typedef CMeshBuffer<class irr::video::S3DVertex> SMeshBuffer;
+typedef CMeshBuffer<struct irr::video::S3DVertex> SMeshBuffer;
 //! Meshbuffer with two texture coords per vertex, e.g. for lightmaps
-typedef CMeshBuffer<class irr::video::S3DVertex2TCoords> SMeshBufferLightMap;
+typedef CMeshBuffer<struct irr::video::S3DVertex2TCoords> SMeshBufferLightMap;
 //! Meshbuffer with vertices having tangents stored, e.g. for normal mapping
-typedef CMeshBuffer<class irr::video::S3DVertexTangents> SMeshBufferTangents;
+typedef CMeshBuffer<struct irr::video::S3DVertexTangents> SMeshBufferTangents;
 }
 }
 
