@@ -57,10 +57,7 @@ const char *fragshader =
 "struct PerPixelListBucket\n"
 "{\n"
 "    float depth;\n"
-"    float red;\n"
-"    float blue;\n"
-"    float green;\n"
-"    float alpha;\n"
+"    vec4 color;\n"
 "    uint next;\n"
 "};\n"
 "layout(std430, binding = 1) buffer PerPixelLinkedList\n"
@@ -73,10 +70,7 @@ const char *fragshader =
 "  ivec2 iuv = ivec2(gl_FragCoord.xy);\n"
 "  uint tmp = imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);\n"
 "  PPLL[pxid].depth = depth;\n"
-"  PPLL[pxid].red = color.r;\n"
-"  PPLL[pxid].blue = color.g;\n"
-"  PPLL[pxid].green = color.b;\n"
-"  PPLL[pxid].alpha = color.a;\n"
+"  PPLL[pxid].color = color;\n"
 "  PPLL[pxid].next = tmp;\n"
 "  FragColor = vec4(0.);\n"
 "}\n";
@@ -88,10 +82,7 @@ const char *fragmerge =
 "struct PerPixelListBucket\n"
 "{\n"
 "    float depth;\n"
-"    float red;\n"
-"    float blue;\n"
-"    float green;\n"
-"    float alpha;\n"
+"    vec4 color;\n"
 "    uint next;\n"
 "};\n"
 "layout(std430, binding = 1) buffer PerPixelLinkedList\n"
@@ -110,18 +101,9 @@ const char *fragmerge =
 "        float tmp = PPLL[ListBucketId].depth;\n"
 "        PPLL[ListBucketId].depth = PPLL[NextListBucketId].depth;\n"
 "        PPLL[NextListBucketId].depth = tmp;\n"
-"        tmp = PPLL[ListBucketId].red;\n"
-"        PPLL[ListBucketId].red = PPLL[NextListBucketId].red;\n"
-"        PPLL[NextListBucketId].red = tmp;\n"
-"        tmp = PPLL[ListBucketId].green;\n"
-"        PPLL[ListBucketId].green = PPLL[NextListBucketId].green;\n"
-"        PPLL[NextListBucketId].green = tmp;\n"
-"        tmp = PPLL[ListBucketId].blue;\n"
-"        PPLL[ListBucketId].blue = PPLL[NextListBucketId].blue;\n"
-"        PPLL[NextListBucketId].blue = tmp;\n"
-"        tmp = PPLL[ListBucketId].alpha;\n"
-"        PPLL[ListBucketId].alpha = PPLL[NextListBucketId].alpha;\n"
-"        PPLL[NextListBucketId].alpha = tmp;\n"
+"        vec4 ctmp = PPLL[ListBucketId].color;\n"
+"        PPLL[ListBucketId].color = PPLL[NextListBucketId].color;\n"
+"        PPLL[NextListBucketId].color = ctmp;\n"
 "      }\n"
 "      ListBucketId = NextListBucketId;\n"
 "      NextListBucketId = PPLL[NextListBucketId].next;\n"
@@ -137,8 +119,8 @@ const char *fragmerge =
 "  uint ListBucketId = ListBucketHead;\n"
 "  vec4 result = vec4(0., 0., 0., 1.);"
 "  while (ListBucketId != 0) {\n"
-"    result.xyz += vec3(PPLL[ListBucketId].red, PPLL[ListBucketId].green, PPLL[ListBucketId].blue);\n"
-"    result *= PPLL[ListBucketId].alpha;\n"
+"    result.xyz += PPLL[ListBucketId].color.xyz;\n"
+"    result *= PPLL[ListBucketId].color.a;\n"
 "    ListBucketId = PPLL[ListBucketId].next;\n"
 "  }\n"
 "  FragColor = result;\n"
@@ -244,12 +226,12 @@ void draw()
     glUseProgram(Transparent::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
     Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 1., .5));
+    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
     Model.setTranslation(irr::core::vector3df(0., 0., 10.));
     Model.setScale(2.);
-    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 1., .5));
+    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 0., .5));
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
