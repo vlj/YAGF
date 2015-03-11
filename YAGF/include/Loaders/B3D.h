@@ -945,7 +945,7 @@ namespace irr
 
         bool readChunkTEXS()
         {
-/*#ifdef _B3D_READER_DEBUG
+#ifdef _B3D_READER_DEBUG
             core::stringc logStr;
             for (unsigned i = 1; i < B3dStack.size(); ++i)
                 logStr += "-";
@@ -959,7 +959,7 @@ namespace irr
                 SB3dTexture& B3dTexture = Textures.back();
 
                 readString(B3dTexture.TextureName);
-                B3dTexture.TextureName.replace('\\', '/');
+//                B3dTexture.TextureName.replace('\\', '/');
 #ifdef _B3D_READER_DEBUG
                 os::Printer::log("read Texture", B3dTexture.TextureName.c_str());
 #endif
@@ -982,14 +982,14 @@ namespace irr
             }
 
 //            B3dStack.erase(B3dStack.size() - 1);
-            B3dStack.pop_back();*/
+            B3dStack.pop_back();
 
             return true;
         }
 
         bool readChunkBRUS()
         {
-/*#ifdef _B3D_READER_DEBUG
+#ifdef _B3D_READER_DEBUG
             core::stringc logStr;
         for (unsigned i = 1; i < B3dStack.size(); ++i)
             logStr += "-";
@@ -1002,9 +1002,9 @@ namespace irr
 #ifdef __BIG_ENDIAN__
         n_texs = os::Byteswap::byteswap(n_texs);
 #endif
-
+#define min(a,b) ((a) < (b) ? (a) : (b))
         // number of texture ids read for Irrlicht
-        const unsigned num_textures = core::min_(n_texs, MATERIAL_MAX_TEXTURES);
+        const unsigned num_textures = min(n_texs, MATERIAL_MAX_TEXTURES);
         // number of bytes to skip (for ignored texture ids)
         const unsigned n_texs_offset = (num_textures < n_texs) ? (n_texs - num_textures) : 0;
 
@@ -1099,7 +1099,7 @@ namespace irr
             //------ Convert blitz flags/blend to irrlicht -------
 
             //Two textures:
-            if (B3dMaterial.Textures[1])
+/*            if (B3dMaterial.Textures[1])
             {
                 if (B3dMaterial.alpha == 1.f)
                 {
@@ -1176,11 +1176,11 @@ namespace irr
                 B3dMaterial.Material.ZWriteEnable = false;
             }
 
-            B3dMaterial.Material.Shininess = B3dMaterial.shininess;
+            B3dMaterial.Material.Shininess = B3dMaterial.shininess;*/
         }
 
 //        B3dStack.erase(B3dStack.size() - 1);
-        B3dStack.pop_back();*/
+        B3dStack.pop_back();
 
         return true;
     }

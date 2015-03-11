@@ -64,9 +64,11 @@ public:
 
 void init()
 {
-    irr::io::CReadFile *reader = new irr::io::CReadFile("");
+    irr::io::CReadFile *reader = new irr::io::CReadFile("E:\\VincentDocuments\\GitHub\\stk-assets\\models\\anchor.b3d");
     irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
     std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(reader);
+
+    printf("size is %d\n", buffers.size());
 
     for (auto tmp : buffers)
     {
