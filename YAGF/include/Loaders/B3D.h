@@ -13,8 +13,9 @@
 #include <string>
 #include <Maths/matrix4.h>
 #include <vector>
-#include <Core/IMeshBuffer.h>
+#include <Core/CMeshBuffer.h>
 #include <Core/S3DVertex.h>
+#include <Loaders/IReadFile.h>
 
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
 // This file is part of the "Irrlicht Engine".
@@ -47,7 +48,7 @@ namespace irr
             only.
             \param filename Name of the file to test.
             \return True if the file might be loaded by this class. */
-            virtual bool isALoadableFileExtension(const io::path& filename) const = 0;
+//            virtual bool isALoadableFileExtension(const io::path& filename) const = 0;
 
             //! Creates/loads an animated mesh from the file.
             /** \param file File handler to load the file from.
@@ -76,7 +77,7 @@ namespace irr
         public:
 
             //! Constructor
-            CB3DMeshFileLoader(scene::ISceneManager* smgr)
+            CB3DMeshFileLoader()
                 : B3DFile(0), NormalsInFile(false), HasVertexColors(false), ShowWarning(true)
             {
 #ifdef _DEBUG
@@ -86,10 +87,10 @@ namespace irr
 
             //! returns true if the file maybe is able to be loaded by this class
             //! based on the file extension (e.g. ".bsp")
-            virtual bool isALoadableFileExtension(const io::path& filename) const override
+/*            virtual bool isALoadableFileExtension(const io::path& filename) const override
             {
-                return true;// core::hasFileExtension(filename, "b3d");
-            }
+                return core::hasFileExtension(filename, "b3d");
+            }*/
 
             //! creates/loads an animated mesh from the file.
             //! \return Pointer to the created mesh. Returns 0 if loading failed.
@@ -230,7 +231,7 @@ namespace irr
                     else
                     {
                         printf("Unknown chunk found in mesh base - skipping");
-                        B3DFile->seek(B3dStack.getLast().startposition + B3dStack.getLast().length);
+                        B3DFile->seek(B3dStack.back().startposition + B3dStack.back().length);
 //                        B3dStack.erase(B3dStack.size() - 1);
                         B3dStack.pop_back();
                     }
@@ -326,13 +327,14 @@ namespace irr
                     else
                     {
                         printf("Unknown chunk found in node chunk - skipping");
-                        B3DFile->seek(B3dStack.getLast().startposition + B3dStack.getLast().length);
+                        B3DFile->seek(B3dStack.back().startposition + B3dStack.back().length);
 //                        B3dStack.erase(B3dStack.size() - 1);
                         B3dStack.pop_back();
                     }
                 }
 
-                B3dStack.erase(B3dStack.size() - 1);
+//                B3dStack.erase(B3dStack.size() - 1);
+                B3dStack.pop_back();
 
                 return true;
             }
@@ -374,7 +376,7 @@ namespace irr
                     else if (strncmp(B3dStack.back().name, "TRIS", 4) == 0)
                     {
 //                        scene::SSkinMeshBuffer *meshBuffer = AnimatedMesh->addMeshBuffer();
-                        scene::IMeshBuffer *meshBuffer = new scene::IMeshBuffer();
+                        scene::SMeshBufferLightMap *meshBuffer = new scene::SMeshBufferLightMap();
 
                         if (brushID != -1)
                         {
@@ -539,7 +541,7 @@ namespace irr
                 return true;
             }
 
-            bool readChunkTRIS(scene::IMeshBuffer *meshBuffer, unsigned meshBufferID, int vertices_Start)
+            bool readChunkTRIS(scene::SMeshBufferLightMap *meshBuffer, unsigned meshBufferID, int vertices_Start)
             {
 #ifdef _B3D_READER_DEBUG
                 core::stringc logStr;
@@ -607,14 +609,14 @@ namespace irr
                         if (AnimatedVertices_VertexID[vertex_id[i]] == -1) //If this vertex is not in the meshbuffer
                         {
                             //Check for lightmapping:
-                            if (BaseVertices[vertex_id[i]].TCoords2 != core::vector2df(0.f, 0.f))
-                                meshBuffer->convertTo2TCoords(); //Will only affect the meshbuffer the first time this is called
+//                            if (BaseVertices[vertex_id[i]].TCoords2 != core::vector2df(0.f, 0.f))
+//                                meshBuffer->convertTo2TCoords(); //Will only affect the meshbuffer the first time this is called
 
                             //Add the vertex to the meshbuffer:
-                            if (meshBuffer->VertexType == video::EVT_STANDARD)
-                                meshBuffer->Vertices_Standard.push_back(BaseVertices[vertex_id[i]]);
-                            else
-                                meshBuffer->Vertices_2TCoords.push_back(BaseVertices[vertex_id[i]]);
+//                            if (meshBuffer->VertexType == video::EVT_STANDARD)
+//                                meshBuffer->Vertices_Standard.push_back(BaseVertices[vertex_id[i]]);
+//                            else
+                                meshBuffer->Vertices.push_back(BaseVertices[vertex_id[i]]);
 
                             //create vertex id to meshbuffer index link:
                             AnimatedVertices_VertexID[vertex_id[i]] = meshBuffer->getVertexCount() - 1;
@@ -623,7 +625,7 @@ namespace irr
                             if (B3dMaterial)
                             {
                                 // Apply Material/Color/etc...
-                                video::S3DVertex *Vertex = meshBuffer->getVertex(meshBuffer->getVertexCount() - 1);
+                                /*video::S3DVertex *Vertex = meshBuffer->getVertex(meshBuffer->getVertexCount() - 1);
 
                                 if (!HasVertexColors)
                                     Vertex->Color = B3dMaterial->Material.DiffuseColor;
@@ -635,7 +637,7 @@ namespace irr
                                 {
                                     Vertex->TCoords.X *= B3dMaterial->Textures[0]->Xscale;
                                     Vertex->TCoords.Y *= B3dMaterial->Textures[0]->Yscale;
-                                }
+                                }*/
                                 /*
                                 if (B3dMaterial->Textures[1])
                                 {
@@ -663,7 +665,7 @@ namespace irr
 
             bool readChunkBONE(CSkinnedMesh::SJoint* InJoint)
             {
-#ifdef _B3D_READER_DEBUG
+/*#ifdef _B3D_READER_DEBUG
                 core::stringc logStr;
                 for (unsigned i = 1; i < B3dStack.size(); ++i)
                     logStr += "-";
@@ -700,13 +702,13 @@ namespace irr
                     }
                 }
 
-                B3dStack.erase(B3dStack.size() - 1);
+                B3dStack.erase(B3dStack.size() - 1);*/
                 return true;
             }
 
             bool readChunkKEYS(CSkinnedMesh::SJoint* InJoint)
             {
-#ifdef _B3D_READER_DEBUG
+/*#ifdef _B3D_READER_DEBUG
                 // Only print first, that's just too much output otherwise
                 if (!inJoint || (inJoint->PositionKeys.empty() && inJoint->ScaleKeys.empty() && inJoint->RotationKeys.empty()))
                 {
@@ -846,13 +848,13 @@ namespace irr
                 }
             }
 
-            B3dStack.erase(B3dStack.size() - 1);
+            B3dStack.erase(B3dStack.size() - 1);*/
             return true;
         }
 
         bool readChunkANIM()
         {
-#ifdef _B3D_READER_DEBUG
+/*#ifdef _B3D_READER_DEBUG
             core::stringc logStr;
             for (unsigned i = 1; i < B3dStack.size(); ++i)
                 logStr += "-";
@@ -877,13 +879,13 @@ namespace irr
 #endif
 
 //            B3dStack.erase(B3dStack.size() - 1);
-            B3dStack.pop_back();
+            B3dStack.pop_back();*/
             return true;
         }
 
         bool readChunkTEXS()
         {
-#ifdef _B3D_READER_DEBUG
+/*#ifdef _B3D_READER_DEBUG
             core::stringc logStr;
             for (unsigned i = 1; i < B3dStack.size(); ++i)
                 logStr += "-";
@@ -920,14 +922,14 @@ namespace irr
             }
 
 //            B3dStack.erase(B3dStack.size() - 1);
-            B3dStack.pop_back();
+            B3dStack.pop_back();*/
 
             return true;
         }
 
         bool readChunkBRUS()
         {
-#ifdef _B3D_READER_DEBUG
+/*#ifdef _B3D_READER_DEBUG
             core::stringc logStr;
         for (unsigned i = 1; i < B3dStack.size(); ++i)
             logStr += "-";
@@ -1118,14 +1120,15 @@ namespace irr
         }
 
 //        B3dStack.erase(B3dStack.size() - 1);
-        B3dStack.pop_back();
+        B3dStack.pop_back();*/
 
         return true;
     }
 
     void loadTextures(SB3dMaterial& material) const
     {
-        const bool previous32BitTextureFlag = SceneManager->getVideoDriver()->getTextureCreationFlag(video::ETCF_ALWAYS_32_BIT);
+        return;
+/*        const bool previous32BitTextureFlag = SceneManager->getVideoDriver()->getTextureCreationFlag(video::ETCF_ALWAYS_32_BIT);
         SceneManager->getVideoDriver()->setTextureCreationFlag(video::ETCF_ALWAYS_32_BIT, true);
 
         // read texture from disk
@@ -1168,6 +1171,7 @@ namespace irr
 
         SceneManager->getVideoDriver()->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, doMipMaps);
         SceneManager->getVideoDriver()->setTextureCreationFlag(video::ETCF_ALWAYS_32_BIT, previous32BitTextureFlag);
+        */
     }
 
     void readString(std::string& newstring)
