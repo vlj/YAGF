@@ -301,6 +301,9 @@ namespace irr
                 AnimatedVertices_VertexID.clear();
                 AnimatedVertices_BufferID.clear();
 
+                for (auto tmp : Textures)
+                  printf("Need %s\n", tmp.TextureName.c_str());
+
                 Materials.clear();
                 Textures.clear();
 
@@ -386,12 +389,10 @@ namespace irr
                     {
                         printf("Unknown chunk found in node chunk - skipping");
                         B3DFile->seek(B3dStack.back().startposition + B3dStack.back().length);
-//                        B3dStack.erase(B3dStack.size() - 1);
                         B3dStack.pop_back();
                     }
                 }
 
-//                B3dStack.erase(B3dStack.size() - 1);
                 B3dStack.pop_back();
 
                 return true;
@@ -470,12 +471,10 @@ namespace irr
                     {
                         printf("Unknown chunk found in mesh - skipping");
                         B3DFile->seek(B3dStack.back().startposition + B3dStack.back().length);
-//                        B3dStack.erase(B3dStack.size() - 1);
                         B3dStack.pop_back();
                     }
                 }
 
-//                B3dStack.erase(B3dStack.size() - 1);
                 B3dStack.pop_back();
 
                 return true;
@@ -594,7 +593,6 @@ namespace irr
                     AnimatedVertices_BufferID.push_back(-1);
                 }
 
-//                B3dStack.erase(B3dStack.size() - 1);
                 B3dStack.pop_back();
 
                 return true;
@@ -713,7 +711,6 @@ namespace irr
                     meshBuffer->Indices.push_back(AnimatedVertices_VertexID[vertex_id[2]]);
                 }
 
-//                B3dStack.erase(B3dStack.size() - 1);
                 B3dStack.pop_back();
 
                 if (showVertexWarning)
@@ -980,7 +977,6 @@ namespace irr
                 readFloats(&B3dTexture.Angle, 1);
             }
 
-//            B3dStack.erase(B3dStack.size() - 1);
             B3dStack.pop_back();
 
             return true;
@@ -1178,7 +1174,6 @@ namespace irr
             B3dMaterial.Material.Shininess = B3dMaterial.shininess;*/
         }
 
-//        B3dStack.erase(B3dStack.size() - 1);
         B3dStack.pop_back();
 
         return true;
