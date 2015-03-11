@@ -15,3 +15,7 @@ deps/*
 *.sdf
 *.suo
 *.vcxproj.user
+*.lib
+*.dll
+TargetDirectories.txt
+*.depend
