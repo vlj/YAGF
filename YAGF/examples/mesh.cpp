@@ -92,7 +92,7 @@ void draw()
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
-    glBindBuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, 1024, 1024);
 
     glClearColor(0., 0., 0., 1.);
