@@ -384,7 +384,7 @@ public:
 
     ShaderHelperSingleton()
     {
-//        CleanTable.push_back(this->kill);
+        CleanTable.push_back(this->kill);
     }
 
     ~ShaderHelperSingleton()
