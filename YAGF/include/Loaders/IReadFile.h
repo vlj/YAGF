@@ -5,11 +5,15 @@
 #ifndef __I_READ_FILE_H_INCLUDED__
 #define __I_READ_FILE_H_INCLUDED__
 
+#include <string>
 
 namespace irr
 {
     namespace io
     {
+        //! Type used for all file system related strings.
+        /** This type will transparently handle different file system encodings. */
+        typedef std::string path;
 
         //! Interface providing read acess to a file.
         class IReadFile
