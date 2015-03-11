@@ -68,8 +68,6 @@ void init()
     irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
     std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(reader);
 
-    printf("size is %d\n", buffers.size());
-
     for (auto tmp : buffers)
     {
         std::pair<unsigned, unsigned> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
@@ -102,6 +100,7 @@ void draw()
     irr::core::matrix4 Model, View;
     View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 100.);
     Model.setTranslation(irr::core::vector3df(0., 0., 8.));
+    Model.setRotationDegrees(irr::core::vector3df(270., 0., 0.));
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
