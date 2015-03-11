@@ -7,20 +7,18 @@
 // File format designed by Mark Sibly for the Blitz3D engine and has been
 // declared public domain
 
-#ifndef __C_B3D_MESH_LOADER_H_INCLUDED__
-#define __C_B3D_MESH_LOADER_H_INCLUDED__
+#ifndef __I_MESH_LOADER_H_INCLUDED__
+#define __I_MESH_LOADER_H_INCLUDED__
 
 #include <string>
 #include <Maths/matrix4.h>
 #include <vector>
+#include <Core/IMeshBuffer.h>
+#include <Core/S3DVertex.h>
 
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
 // This file is part of the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in irrlicht.h
-
-#ifndef __I_MESH_LOADER_H_INCLUDED__
-#define __I_MESH_LOADER_H_INCLUDED__
-
 
 namespace irr
 {
@@ -63,8 +61,6 @@ namespace irr
     } // end namespace scene
 } // end namespace irr
 
-#endif
-
 
 
 
@@ -81,8 +77,7 @@ namespace irr
 
             //! Constructor
             CB3DMeshFileLoader(scene::ISceneManager* smgr)
-                : SceneManager(smgr), AnimatedMesh(0), B3DFile(0), NormalsInFile(false),
-                HasVertexColors(false), ShowWarning(true)
+                : B3DFile(0), NormalsInFile(false), HasVertexColors(false), ShowWarning(true)
             {
 #ifdef _DEBUG
 //                setDebugName("CB3DMeshFileLoader");
@@ -106,7 +101,7 @@ namespace irr
                     return 0;
 
                 B3DFile = file;
-                AnimatedMesh = new scene::CSkinnedMesh();
+//                AnimatedMesh = new scene::CSkinnedMesh();
                 ShowWarning = true; // If true a warning is issued if too many textures are used
                 VerticesStart = 0;
 
@@ -209,7 +204,7 @@ namespace irr
 
                 //------ Read main chunk ------
 
-                while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos())
+                while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos())
                 {
                     B3DFile->read(&header, sizeof(header));
 #ifdef __BIG_ENDIAN__
@@ -217,17 +212,17 @@ namespace irr
 #endif
                     B3dStack.push_back(SB3dChunk(header, B3DFile->getPos() - 8));
 
-                    if (strncmp(B3dStack.getLast().name, "TEXS", 4) == 0)
+                    if (strncmp(B3dStack.back().name, "TEXS", 4) == 0)
                     {
                         if (!readChunkTEXS())
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "BRUS", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "BRUS", 4) == 0)
                     {
                         if (!readChunkBRUS())
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "NODE", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "NODE", 4) == 0)
                     {
                         if (!readChunkNODE((CSkinnedMesh::SJoint*)0))
                             return false;
@@ -236,7 +231,8 @@ namespace irr
                     {
                         printf("Unknown chunk found in mesh base - skipping");
                         B3DFile->seek(B3dStack.getLast().startposition + B3dStack.getLast().length);
-                        B3dStack.erase(B3dStack.size() - 1);
+//                        B3dStack.erase(B3dStack.size() - 1);
+                        B3dStack.pop_back();
                     }
                 }
 
@@ -291,7 +287,7 @@ namespace irr
                 else
                     joint->GlobalMatrix = joint->LocalMatrix;
 
-                while (B3dStack.getLast().startposition + B3dStack.getLast().length > B3DFile->getPos()) // this chunk repeats
+                while (B3dStack.back().startposition + B3dStack.back().length > B3DFile->getPos()) // this chunk repeats
                 {
                     SB3dChunkHeader header;
                     B3DFile->read(&header, sizeof(header));
@@ -301,28 +297,28 @@ namespace irr
 
                     B3dStack.push_back(SB3dChunk(header, B3DFile->getPos() - 8));
 
-                    if (strncmp(B3dStack.getLast().name, "NODE", 4) == 0)
+                    if (strncmp(B3dStack.back().name, "NODE", 4) == 0)
                     {
                         if (!readChunkNODE(joint))
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "MESH", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "MESH", 4) == 0)
                     {
                         VerticesStart = BaseVertices.size();
                         if (!readChunkMESH(joint))
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "BONE", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "BONE", 4) == 0)
                     {
                         if (!readChunkBONE(joint))
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "KEYS", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "KEYS", 4) == 0)
                     {
                         if (!readChunkKEYS(joint))
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "ANIM", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "ANIM", 4) == 0)
                     {
                         if (!readChunkANIM())
                             return false;
@@ -331,7 +327,8 @@ namespace irr
                     {
                         printf("Unknown chunk found in node chunk - skipping");
                         B3DFile->seek(B3dStack.getLast().startposition + B3dStack.getLast().length);
-                        B3dStack.erase(B3dStack.size() - 1);
+//                        B3dStack.erase(B3dStack.size() - 1);
+                        B3dStack.pop_back();
                     }
                 }
 
@@ -359,7 +356,7 @@ namespace irr
                 NormalsInFile = false;
                 HasVertexColors = false;
 
-                while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) //this chunk repeats
+                while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) //this chunk repeats
                 {
                     SB3dChunkHeader header;
                     B3DFile->read(&header, sizeof(header));
@@ -369,19 +366,20 @@ namespace irr
 
                     B3dStack.push_back(SB3dChunk(header, B3DFile->getPos() - 8));
 
-                    if (strncmp(B3dStack.getLast().name, "VRTS", 4) == 0)
+                    if (strncmp(B3dStack.back().name, "VRTS", 4) == 0)
                     {
                         if (!readChunkVRTS(inJoint))
                             return false;
                     }
-                    else if (strncmp(B3dStack.getLast().name, "TRIS", 4) == 0)
+                    else if (strncmp(B3dStack.back().name, "TRIS", 4) == 0)
                     {
-                        scene::SSkinMeshBuffer *meshBuffer = AnimatedMesh->addMeshBuffer();
+//                        scene::SSkinMeshBuffer *meshBuffer = AnimatedMesh->addMeshBuffer();
+                        scene::IMeshBuffer *meshBuffer = new scene::IMeshBuffer();
 
                         if (brushID != -1)
                         {
-                            loadTextures(Materials[brushID]);
-                            meshBuffer->Material = Materials[brushID].Material;
+//                            loadTextures(Materials[brushID]);
+//                            meshBuffer->Material = Materials[brushID].Material;
                         }
 
                         if (readChunkTRIS(meshBuffer, AnimatedMesh->getMeshBuffers().size() - 1, VerticesStart) == false)
@@ -389,9 +387,7 @@ namespace irr
 
                         if (!NormalsInFile)
                         {
-                            int i;
-
-                            for (i = 0; i < (int)meshBuffer->Indices.size(); i += 3)
+/*                            for (int i = 0; i < (int)meshBuffer->Indices.size(); i += 3)
                             {
                                 core::plane3df p(meshBuffer->getVertex(meshBuffer->Indices[i + 0])->Pos,
                                     meshBuffer->getVertex(meshBuffer->Indices[i + 1])->Pos,
@@ -406,18 +402,20 @@ namespace irr
                             {
                                 meshBuffer->getVertex(i)->Normal.normalize();
                                 BaseVertices[VerticesStart + i].Normal = meshBuffer->getVertex(i)->Normal;
-                            }
+                            }*/
                         }
                     }
                     else
                     {
                         printf("Unknown chunk found in mesh - skipping");
-                        B3DFile->seek(B3dStack.getLast().startposition + B3dStack.getLast().length);
-                        B3dStack.erase(B3dStack.size() - 1);
+                        B3DFile->seek(B3dStack.back().startposition + B3dStack.back().length);
+//                        B3dStack.erase(B3dStack.size() - 1);
+                        B3dStack.pop_back();
                     }
                 }
 
-                B3dStack.erase(B3dStack.size() - 1);
+//                B3dStack.erase(B3dStack.size() - 1);
+                B3dStack.pop_back();
 
                 return true;
             }
@@ -459,7 +457,7 @@ namespace irr
 
                 if (tex_coord_sets >= max_tex_coords || tex_coord_set_size >= 4) // Something is wrong
                 {
-                    printf("tex_coord_sets or tex_coord_set_size too big", B3DFile->getFileName(), ELL_ERROR);
+                    printf("tex_coord_sets or tex_coord_set_size too big", B3DFile->getFileName());
                     return false;
                 }
 
@@ -480,14 +478,14 @@ namespace irr
 
                 numberOfReads += tex_coord_sets*tex_coord_set_size;
 
-                const int memoryNeeded = (B3dStack.getLast().length / sizeof(float)) / numberOfReads;
+                const int memoryNeeded = (B3dStack.back().length / sizeof(float)) / numberOfReads;
 
-                BaseVertices.reallocate(memoryNeeded + BaseVertices.size() + 1);
-                AnimatedVertices_VertexID.reallocate(memoryNeeded + AnimatedVertices_VertexID.size() + 1);
+                BaseVertices.reserve(memoryNeeded + BaseVertices.size() + 1);
+                AnimatedVertices_VertexID.reserve(memoryNeeded + AnimatedVertices_VertexID.size() + 1);
 
                 //--------------------------------------------//
 
-                while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) // this chunk repeats
+                while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) // this chunk repeats
                 {
                     float position[3];
                     float normal[3] = { 0.f, 0.f, 0.f };
@@ -535,13 +533,13 @@ namespace irr
                     AnimatedVertices_BufferID.push_back(-1);
                 }
 
-                B3dStack.erase(B3dStack.size() - 1);
+//                B3dStack.erase(B3dStack.size() - 1);
+                B3dStack.pop_back();
 
                 return true;
             }
 
-            bool readChunkTRIS(scene::SSkinMeshBuffer *MeshBuffer, unsigned MeshBufferID, int Vertices_Start)
-
+            bool readChunkTRIS(scene::IMeshBuffer *meshBuffer, unsigned meshBufferID, int vertices_Start)
             {
 #ifdef _B3D_READER_DEBUG
                 core::stringc logStr;
@@ -563,17 +561,17 @@ namespace irr
 
                 if (triangle_brush_id != -1)
                 {
-                    loadTextures(Materials[triangle_brush_id]);
-                    B3dMaterial = &Materials[triangle_brush_id];
-                    meshBuffer->Material = B3dMaterial->Material;
+//                    loadTextures(Materials[triangle_brush_id]);
+//                    B3dMaterial = &Materials[triangle_brush_id];
+//                    meshBuffer->Material = B3dMaterial->Material;
                 }
                 else
                     B3dMaterial = 0;
 
-                const int memoryNeeded = B3dStack.getLast().length / sizeof(int);
-                meshBuffer->Indices.reallocate(memoryNeeded + meshBuffer->Indices.size() + 1);
+                const int memoryNeeded = B3dStack.back().length / sizeof(int);
+                meshBuffer->Indices.reserve(memoryNeeded + meshBuffer->Indices.size() + 1);
 
-                while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) // this chunk repeats
+                while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) // this chunk repeats
                 {
                     int vertex_id[3];
 
@@ -593,7 +591,7 @@ namespace irr
                     {
                         if ((unsigned)vertex_id[i] >= AnimatedVertices_VertexID.size())
                         {
-                            printf("Illegal vertex index found", B3DFile->getFileName(), ELL_ERROR);
+                            printf("Illegal vertex index found", B3DFile->getFileName());
                             return false;
                         }
 
@@ -654,7 +652,8 @@ namespace irr
                     meshBuffer->Indices.push_back(AnimatedVertices_VertexID[vertex_id[2]]);
                 }
 
-                B3dStack.erase(B3dStack.size() - 1);
+//                B3dStack.erase(B3dStack.size() - 1);
+                B3dStack.pop_back();
 
                 if (showVertexWarning)
                     printf("B3dMeshLoader: Warning, different meshbuffers linking to the same vertex, this will cause problems with animated meshes");
@@ -672,9 +671,9 @@ namespace irr
                 os::Printer::log(logStr.c_str());
 #endif
 
-                if (B3dStack.getLast().length > 8)
+                if (B3dStack.back().length > 8)
                 {
-                    while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) // this chunk repeats
+                    while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) // this chunk repeats
                     {
                         unsigned globalVertexID;
                         float strength;
@@ -706,7 +705,7 @@ namespace irr
             }
 
             bool readChunkKEYS(CSkinnedMesh::SJoint* InJoint)
-
+            {
 #ifdef _B3D_READER_DEBUG
                 // Only print first, that's just too much output otherwise
                 if (!inJoint || (inJoint->PositionKeys.empty() && inJoint->ScaleKeys.empty() && inJoint->RotationKeys.empty()))
@@ -732,7 +731,7 @@ namespace irr
             CSkinnedMesh::SRotationKey *oldRotKey = 0;
             core::quaternion oldRot[2];
             bool isFirst[3] = { true, true, true };
-            while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) //this chunk repeats
+            while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) //this chunk repeats
             {
                 int frame;
 
@@ -877,7 +876,8 @@ namespace irr
             animFrames = os::Byteswap::byteswap(animFrames);
 #endif
 
-            B3dStack.erase(B3dStack.size() - 1);
+//            B3dStack.erase(B3dStack.size() - 1);
+            B3dStack.pop_back();
             return true;
         }
 
@@ -891,10 +891,10 @@ namespace irr
             os::Printer::log(logStr.c_str());
 #endif
 
-            while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) //this chunk repeats
+            while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) //this chunk repeats
             {
                 Textures.push_back(SB3dTexture());
-                SB3dTexture& B3dTexture = Textures.getLast();
+                SB3dTexture& B3dTexture = Textures.back();
 
                 readString(B3dTexture.TextureName);
                 B3dTexture.TextureName.replace('\\', '/');
@@ -919,13 +919,14 @@ namespace irr
                 readFloats(&B3dTexture.Angle, 1);
             }
 
-            B3dStack.erase(B3dStack.size() - 1);
+//            B3dStack.erase(B3dStack.size() - 1);
+            B3dStack.pop_back();
 
             return true;
         }
 
         bool readChunkBRUS()
-
+        {
 #ifdef _B3D_READER_DEBUG
             core::stringc logStr;
         for (unsigned i = 1; i < B3dStack.size(); ++i)
@@ -945,17 +946,17 @@ namespace irr
         // number of bytes to skip (for ignored texture ids)
         const unsigned n_texs_offset = (num_textures < n_texs) ? (n_texs - num_textures) : 0;
 
-        while ((B3dStack.getLast().startposition + B3dStack.getLast().length) > B3DFile->getPos()) //this chunk repeats
+        while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) //this chunk repeats
         {
             // This is what blitz basic calls a brush, like a Irrlicht Material
 
-            core::stringc name;
+            std::string name;
             readString(name);
 #ifdef _B3D_READER_DEBUG
             os::Printer::log("read Material", name);
 #endif
             Materials.push_back(SB3dMaterial());
-            SB3dMaterial& B3dMaterial = Materials.getLast();
+            SB3dMaterial& B3dMaterial = Materials.back();
 
             readFloats(&B3dMaterial.red, 1);
             readFloats(&B3dMaterial.green, 1);
@@ -994,14 +995,14 @@ namespace irr
                     B3dMaterial.Textures[i] = 0;
             }
             // skip other texture ids
-            for (i = 0; i < n_texs_offset; ++i)
+            for (unsigned i = 0; i < n_texs_offset; ++i)
             {
                 int texture_id = -1;
                 B3DFile->read(&texture_id, sizeof(int));
 #ifdef __BIG_ENDIAN__
                 texture_id = os::Byteswap::byteswap(texture_id);
 #endif
-                if (ShowWarning && (texture_id != -1) && (n_texs > video::MATERIAL_MAX_TEXTURES))
+                if (ShowWarning && (texture_id != -1) && (n_texs > MATERIAL_MAX_TEXTURES))
                 {
                     printf("Too many textures used in one material", B3DFile->getFileName());
                     ShowWarning = false;
@@ -1021,7 +1022,7 @@ namespace irr
             }
 
             //If a preceeding texture slot is empty move the others down:
-            for (i = num_textures; i > 0; --i)
+            for (unsigned i = num_textures; i > 0; --i)
             {
                 for (unsigned j = i - 1; j < num_textures - 1; ++j)
                 {
@@ -1116,13 +1117,13 @@ namespace irr
             B3dMaterial.Material.Shininess = B3dMaterial.shininess;
         }
 
-        B3dStack.erase(B3dStack.size() - 1);
+//        B3dStack.erase(B3dStack.size() - 1);
+        B3dStack.pop_back();
 
         return true;
     }
 
     void loadTextures(SB3dMaterial& material) const
-
     {
         const bool previous32BitTextureFlag = SceneManager->getVideoDriver()->getTextureCreationFlag(video::ETCF_ALWAYS_32_BIT);
         SceneManager->getVideoDriver()->setTextureCreationFlag(video::ETCF_ALWAYS_32_BIT, true);
@@ -1169,12 +1170,12 @@ namespace irr
         SceneManager->getVideoDriver()->setTextureCreationFlag(video::ETCF_ALWAYS_32_BIT, previous32BitTextureFlag);
     }
 
-    void readString(core::stringc& newstring)
+    void readString(std::string& newstring)
     {
         newstring = "";
         while (B3DFile->getPos() <= B3DFile->getSize())
         {
-            c8 character;
+            char character;
             B3DFile->read(&character, sizeof(character));
             if (character == 0)
                 return;
@@ -1203,7 +1204,7 @@ namespace irr
     std::vector<video::S3DVertex2TCoords> BaseVertices;
 
 //    ISceneManager*	SceneManager;
-    CSkinnedMesh*	AnimatedMesh;
+//    CSkinnedMesh*	AnimatedMesh;
     io::IReadFile*	B3DFile;
 
     //B3Ds have Vertex ID's local within the mesh I don't want this
