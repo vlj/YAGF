@@ -10,7 +10,7 @@
 class GeometryCreator
 {
 public:
-	static irr::scene::IMeshBuffer*
+    static irr::scene::SMeshBuffer*
 	createCubeMeshBuffer(const irr::core::vector3df& size)
 	{
 		irr::scene::SMeshBuffer* buffer = new irr::scene::SMeshBuffer();

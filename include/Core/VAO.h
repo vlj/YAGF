@@ -203,8 +203,6 @@ private:
 
     Data *Pointer;
 public:
-    void append(irr::scene::IMeshBuffer *);
-
     ArrayBuffer() : buffer(0), realSize(0), advertisedSize(0), Pointer(0) { }
 
     ~ArrayBuffer()
@@ -340,6 +338,8 @@ private:
         append_impl<N + 1>(count, additionalData...);
     }
 public:
+    typedef typename S3DVertexFormat VertexFormat;
+
     size_t getSize() const
     {
         return std::get<0>(*this).getSize();
@@ -457,10 +457,10 @@ class VertexArrayObject : public Singleton<VertexArrayObject<VBO> >
 {
 private:
     GLuint vao;
-    std::unordered_map<irr::scene::IMeshBuffer*, std::pair<GLuint, GLuint> > mappedBaseVertexBaseIndex;
+    std::unordered_map<irr::scene::IMeshBuffer<typename VBO::VertexFormat>*, std::pair<GLuint, GLuint> > mappedBaseVertexBaseIndex;
 
     template<typename... VertexAnnotation>
-    void append(irr::scene::IMeshBuffer *mb, VertexAnnotation *...SkinnedData)
+    void append(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...SkinnedData)
     {
         size_t old_vtx_cnt = vbo.getSize();
         size_t old_idx_cnt = ibo.getSize();
@@ -544,7 +544,7 @@ public:
     }
 
     template<typename... VertexAnnotation>
-    std::pair<unsigned, unsigned> getBase(irr::scene::IMeshBuffer *mb, VertexAnnotation *...ptr)
+    std::pair<unsigned, unsigned> getBase(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...ptr)
     {
         if (mappedBaseVertexBaseIndex.find(mb) == mappedBaseVertexBaseIndex.end())
         {

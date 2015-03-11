@@ -11,7 +11,7 @@
 #include <Util/Samplers.h>
 #include <Util/Text.h>
 
-irr::scene::IMeshBuffer *buffer;
+irr::scene::IMeshBuffer<irr::video::S3DVertex> *buffer;
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
 

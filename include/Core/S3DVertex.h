@@ -8,7 +8,6 @@
 #include <Maths/vector3d.h>
 #include <Maths/vector2d.h>
 #include <Core/SColor.h>
-#include <Core/CMeshBuffer.h>
 #include <Core/VAO.h>
 
 namespace irr
@@ -419,11 +418,11 @@ namespace irr
 namespace scene
 {
 //! Standard meshbuffer
-typedef CMeshBuffer<struct irr::video::S3DVertex> SMeshBuffer;
+typedef IMeshBuffer<struct irr::video::S3DVertex> SMeshBuffer;
 //! Meshbuffer with two texture coords per vertex, e.g. for lightmaps
-typedef CMeshBuffer<struct irr::video::S3DVertex2TCoords> SMeshBufferLightMap;
+typedef IMeshBuffer<struct irr::video::S3DVertex2TCoords> SMeshBufferLightMap;
 //! Meshbuffer with vertices having tangents stored, e.g. for normal mapping
-typedef CMeshBuffer<struct irr::video::S3DVertexTangents> SMeshBufferTangents;
+typedef IMeshBuffer<struct irr::video::S3DVertexTangents> SMeshBufferTangents;
 }
 }
 

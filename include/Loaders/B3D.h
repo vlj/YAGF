@@ -13,7 +13,6 @@
 #include <string>
 #include <Maths/matrix4.h>
 #include <vector>
-#include <Core/CMeshBuffer.h>
 #include <Core/S3DVertex.h>
 #include <Loaders/IReadFile.h>
 

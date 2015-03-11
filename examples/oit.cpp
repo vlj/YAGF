@@ -12,7 +12,7 @@
 #include <Util/Debug.h>
 #include <Util/Text.h>
 
-irr::scene::IMeshBuffer *buffer;
+irr::scene::IMeshBuffer<irr::video::S3DVertex> *buffer;
 FrameBuffer *MainFBO;
 // For clearing
 FrameBuffer *PerPixelLinkedListHeadFBO;
