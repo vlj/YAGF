@@ -55,7 +55,7 @@ namespace irr
             \return Pointer to the created mesh. Returns 0 if loading failed.
             If you no longer need the mesh, you should call IAnimatedMesh::drop().
             See IReferenceCounted::drop() for more information. */
-            virtual IAnimatedMesh* createMesh(io::IReadFile* file) = 0;
+            virtual std::vector<SMeshBufferLightMap> createMesh(io::IReadFile* file) = 0;
         };
 
 
@@ -96,10 +96,10 @@ namespace irr
             //! \return Pointer to the created mesh. Returns 0 if loading failed.
             //! If you no longer need the mesh, you should call IAnimatedMesh::drop().
             //! See IReferenceCounted::drop() for more information.
-            virtual IAnimatedMesh* createMesh(io::IReadFile* file) override
+            virtual std::vector<SMeshBufferLightMap> createMesh(io::IReadFile* file) override
             {
                 if (!file)
-                    return 0;
+                    return AnimatedMesh;
 
                 B3DFile = file;
 //                AnimatedMesh = new scene::CSkinnedMesh();
@@ -108,12 +108,13 @@ namespace irr
 
                 if (load())
                 {
-                    AnimatedMesh->finalize();
+//                    AnimatedMesh->finalize();
                 }
                 else
                 {
-                    AnimatedMesh->drop();
-                    AnimatedMesh = 0;
+//                    AnimatedMesh->drop();
+//                    AnimatedMesh = 0;
+                    AnimatedMesh.clear();
                 }
 
                 return AnimatedMesh;
@@ -309,7 +310,7 @@ namespace irr
                         if (!readChunkMESH(joint))
                             return false;
                     }
-                    else if (strncmp(B3dStack.back().name, "BONE", 4) == 0)
+/*                    else if (strncmp(B3dStack.back().name, "BONE", 4) == 0)
                     {
                         if (!readChunkBONE(joint))
                             return false;
@@ -323,7 +324,7 @@ namespace irr
                     {
                         if (!readChunkANIM())
                             return false;
-                    }
+                    }*/
                     else
                     {
                         printf("Unknown chunk found in node chunk - skipping");
@@ -376,7 +377,8 @@ namespace irr
                     else if (strncmp(B3dStack.back().name, "TRIS", 4) == 0)
                     {
 //                        scene::SSkinMeshBuffer *meshBuffer = AnimatedMesh->addMeshBuffer();
-                        scene::SMeshBufferLightMap *meshBuffer = new scene::SMeshBufferLightMap();
+                        AnimatedMesh.push_back(scene::SMeshBufferLightMap());
+                        scene::SMeshBufferLightMap *meshBuffer = &(AnimatedMesh.back());
 
                         if (brushID != -1)
                         {
@@ -384,7 +386,7 @@ namespace irr
 //                            meshBuffer->Material = Materials[brushID].Material;
                         }
 
-                        if (readChunkTRIS(meshBuffer, AnimatedMesh->getMeshBuffers().size() - 1, VerticesStart) == false)
+                        if (readChunkTRIS(meshBuffer, AnimatedMesh.size() - 1, VerticesStart) == false)
                             return false;
 
                         if (!NormalsInFile)
@@ -1183,7 +1185,7 @@ namespace irr
             B3DFile->read(&character, sizeof(character));
             if (character == 0)
                 return;
-            newstring.append(character);
+            newstring.push_back(character);
         }
     }
 
@@ -1209,6 +1211,7 @@ namespace irr
 
 //    ISceneManager*	SceneManager;
 //    CSkinnedMesh*	AnimatedMesh;
+    std::vector<SMeshBufferLightMap> AnimatedMesh;
     io::IReadFile*	B3DFile;
 
     //B3Ds have Vertex ID's local within the mesh I don't want this
