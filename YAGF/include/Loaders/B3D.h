@@ -71,6 +71,64 @@ namespace irr
     namespace scene
     {
 
+        class CSkinnedMesh{
+        public:
+            //! Joints
+            struct SJoint
+            {
+                SJoint() : UseAnimationFrom(0), GlobalSkinningSpace(false),
+                    positionHint(-1), scaleHint(-1), rotationHint(-1)
+                {
+                }
+
+                //! The name of this joint
+                std::string Name;
+
+                //! Local matrix of this joint
+                core::matrix4 LocalMatrix;
+
+                //! List of child joints
+                std::vector<SJoint*> Children;
+
+                //! List of attached meshes
+                std::vector<unsigned> AttachedMeshes;
+
+                //! Animation keys causing translation change
+                //std::vector<SPositionKey> PositionKeys;
+
+                //! Animation keys causing scale change
+                //std::vector<SScaleKey> ScaleKeys;
+
+                //! Animation keys causing rotation change
+                //std::vector<SRotationKey> RotationKeys;
+
+                //! Skin weights
+                //std::vector<SWeight> Weights;
+
+                //! Unnecessary for loaders, will be overwritten on finalize
+                core::matrix4 GlobalMatrix;
+                core::matrix4 GlobalAnimatedMatrix;
+                core::matrix4 LocalAnimatedMatrix;
+                core::vector3df Animatedposition;
+                core::vector3df Animatedscale;
+                //core::quaternion Animatedrotation;
+
+                core::matrix4 GlobalInversedMatrix; //the x format pre-calculates this
+
+            private:
+                //! Internal members used by CSkinnedMesh
+                friend class CSkinnedMesh;
+
+                SJoint *UseAnimationFrom;
+                bool GlobalSkinningSpace;
+
+                int positionHint;
+                int scaleHint;
+                int rotationHint;
+            };
+
+        };
+
         //! Meshloader for B3D format
         class CB3DMeshFileLoader : public IMeshLoader
         {
@@ -250,9 +308,9 @@ namespace irr
                 return true;
             }
 
-            bool readChunkNODE(CSkinnedMesh::SJoint* InJoint)
+            bool readChunkNODE(CSkinnedMesh::SJoint* inJoint)
             {
-                CSkinnedMesh::SJoint *joint = AnimatedMesh->addJoint(inJoint);
+                CSkinnedMesh::SJoint *joint = new CSkinnedMesh::SJoint();// AnimatedMesh->addJoint(inJoint);
                 readString(joint->Name);
 
 #ifdef _B3D_READER_DEBUG
@@ -271,7 +329,7 @@ namespace irr
 
                 joint->Animatedposition = core::vector3df(position[0], position[1], position[2]);
                 joint->Animatedscale = core::vector3df(scale[0], scale[1], scale[2]);
-                joint->Animatedrotation;// = core::quaternion(rotation[1], rotation[2], rotation[3], rotation[0]);
+                //joint->Animatedrotation = core::quaternion(rotation[1], rotation[2], rotation[3], rotation[0]);
 
                 //Build LocalMatrix:
 
@@ -280,7 +338,7 @@ namespace irr
                 core::matrix4 scaleMatrix;
                 scaleMatrix.setScale(joint->Animatedscale);
                 core::matrix4 rotationMatrix;
-                joint->Animatedrotation.getMatrix_transposed(rotationMatrix);
+                //joint->Animatedrotation.getMatrix_transposed(rotationMatrix);
 
                 joint->LocalMatrix = positionMatrix * rotationMatrix * scaleMatrix;
 
@@ -340,7 +398,7 @@ namespace irr
                 return true;
             }
 
-            bool readChunkMESH(CSkinnedMesh::SJoint* InJoint)
+            bool readChunkMESH(CSkinnedMesh::SJoint* inJoint)
             {
 #ifdef _B3D_READER_DEBUG
                 core::stringc logStr;

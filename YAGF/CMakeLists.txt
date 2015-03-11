@@ -85,3 +85,7 @@ add_custom_command(TARGET oit POST_BUILD
          "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/zlib1.dll"
          $<TARGET_FILE_DIR:oit>)
 endif()
+
+
+add_executable(mesh examples/mesh.cpp)
+target_link_libraries(mesh ${PROJECT_NAME})
