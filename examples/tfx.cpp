@@ -14,7 +14,6 @@
 
 #include <fstream>
 
-irr::scene::IMeshBuffer<irr::video::S3DVertex> *buffer;
 FrameBuffer *MainFBO;
 // For clearing
 FrameBuffer *PerPixelLinkedListHeadFBO;
@@ -27,6 +26,11 @@ GLuint PerPixelLinkedListSSBO;
 GLuint PixelCountAtomic;
 
 GLuint BilinearSampler;
+
+
+GLuint TFXVao;
+GLuint TFXVbo;
+GLuint TFXTriangleIdx;
 
 struct PerPixelListBucket
 {
@@ -74,7 +78,7 @@ const char *fragshader =
 "  PPLL[pxid].depth = depth;\n"
 "  PPLL[pxid].color = color;\n"
 "  PPLL[pxid].next = tmp;\n"
-"  FragColor = vec4(0.);\n"
+"  FragColor = vec4(1.);\n"
 "}\n";
 
 const char *fragmerge =
@@ -219,14 +223,17 @@ struct TressFXAsset
 
 
 
-void loadTress(const char* filename)
+TressFXAsset loadTress(const char* filename)
 {
     std::ifstream inFile(filename, std::ios::binary);
 
-    if (!inFile.is_open())
-      return;
-
     TressFXAsset m_HairAsset;
+
+    if (!inFile.is_open())
+    {
+      printf("Coulndt load %s\n", filename);
+      return m_HairAsset;
+    }
 
     inFile.read((char *)&m_HairAsset.m_NumTotalHairVertices, sizeof(int));
     inFile.read((char *)&m_HairAsset.m_NumTotalHairStrands, sizeof(int));
@@ -285,17 +292,34 @@ void loadTress(const char* filename)
     delete pIndices;
 
     inFile.close();
-    return;
+    return m_HairAsset;
 }
+
+TressFXAsset tfxassets;
 
 void init()
 {
   DebugUtil::enableDebugOutput();
-  buffer = GeometryCreator::createCubeMeshBuffer(
-    irr::core::vector3df(1., 1., 1.));
-  auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
 
-  loadTress("..\\examples\\ruby.tfxb");
+  tfxassets = loadTress("..\\examples\\ruby.tfxb");
+
+  // Need to create manually buffer size indexes are 32 bits and not 16bits
+  glGenVertexArrays(1, &TFXVao);
+  glBindVertexArray(TFXVao);
+  glGenBuffers(1, &TFXVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, TFXVbo);
+  glBufferData(GL_ARRAY_BUFFER, tfxassets.m_NumTotalHairVertices * sizeof(StrandVertex), tfxassets.m_pTriangleVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), 0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), (GLvoid *) (3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), (GLvoid *)(6 * sizeof(float)));
+
+  glGenBuffers(1, &TFXTriangleIdx);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, tfxassets.m_Triangleindices.size() * sizeof(int), tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
+  glBindVertexArray(0);
 
   DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
   MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -347,30 +371,21 @@ void draw()
   //    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
   irr::core::matrix4 Model, View;
-  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 100.);
-  Model.setTranslation(irr::core::vector3df(0., 0., 8.));
-
-  glUseProgram(Transparent::getInstance()->Program);
-  glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
-  Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-  Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
-  glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
-
-  Model.setTranslation(irr::core::vector3df(0., 0., 10.));
-  Model.setScale(2.);
-  Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 0., .5));
-  glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
-  glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
+  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
-  DrawFullScreenEffect<FragmentMerge>();
+  glViewport(0, 0, 1024, 1024);
 
-  //    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
-  int *tmp = (int*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
-  //    printf("%d\n", *tmp);
-  glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+  glUseProgram(Transparent::getInstance()->Program);
+  glBindVertexArray(TFXVao);
+  Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
+  Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
+  glDrawElementsBaseVertex(GL_TRIANGLES, tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+
+
+//  FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
+//  DrawFullScreenEffect<FragmentMerge>();
 }
 
 int main()
@@ -378,7 +393,7 @@ int main()
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  //    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
