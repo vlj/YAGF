@@ -5,7 +5,7 @@ out vec4 FragColor;
 struct PerPixelListBucket
 {
      float depth;
-      vec3 tangent;
+     vec3 tangent;
      uint next;
 };
 
@@ -45,10 +45,10 @@ void main() {
   vec4 result = vec4(0., 0., 0., 1.);
   int tmp = 1;
   while (ListBucketId != 0) {
-    float NdotL = max(0., dot(vec3(1., 1., 0.), PPLL[ListBucketId].tangent));
-    result.xyz += sqrt(1. - (pow(NdotL, 2.)));
-    result *= .1;
+    float NdotL = dot(vec3(0., -1., 0.), PPLL[ListBucketId].tangent);
+    result.xyz += NdotL;
+    result *= .5;
     ListBucketId = PPLL[ListBucketId].next;
   }
-  FragColor = vec4(1.) / tmp;
+  FragColor = result;
 };
