@@ -35,115 +35,28 @@ GLuint TFXTriangleIdx;
 struct PerPixelListBucket
 {
   float depth;
-  float red;
-  float blue;
-  float green;
-  float alpha;
+  float TGX;
+  float TGY;
+  float TGZ;
   unsigned int next;
 };
-
-const char *vtxshader =
-"#version 430\n"
-"uniform mat4 ModelMatrix;\n"
-"uniform mat4 ViewProjectionMatrix;\n"
-"layout(location = 0) in vec3 Position;\n"
-"layout(location = 1) in vec3 Tangent;\n"
-"out float depth;\n"
-"out vec3 tangent;\n"
-"void main(void) {\n"
-"  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
-"  depth = gl_Position.z;\n"
-"  tangent = Tangent;\n"
-"}\n";
-
-const char *fragshader =
-"#version 430 core\n"
-"layout (binding = 0) uniform atomic_uint PixelCount;\n"
-"layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
-"uniform vec4 color;\n"
-"in float depth;\n"
-"in vec3 tangent;\n"
-"out vec4 FragColor;\n"
-"struct PerPixelListBucket\n"
-"{\n"
-"    float depth;\n"
-"    vec4 color;\n"
-"    uint next;\n"
-"};\n"
-"layout(std430, binding = 1) buffer PerPixelLinkedList\n"
-"{\n"
-"    PerPixelListBucket PPLL[1000000];"
-"};"
-"void main() {\n"
-"  uint pixel_id = atomicCounterIncrement(PixelCount);\n"
-"  int pxid = int(pixel_id);\n"
-"  ivec2 iuv = ivec2(gl_FragCoord.xy);\n"
-"  uint tmp = imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);\n"
-"  PPLL[pxid].depth = depth;\n"
-"  PPLL[pxid].color = color;\n"
-"  PPLL[pxid].next = tmp;\n"
-"  FragColor = vec4(1.) * sqrt(1. - pow(dot(vec3(0., 0., -1), tangent), 2.));\n"
-"}\n";
-
-const char *fragmerge =
-"#version 430 core\n"
-"layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
-"out vec4 FragColor;\n"
-"struct PerPixelListBucket\n"
-"{\n"
-"    float depth;\n"
-"    vec4 color;\n"
-"    uint next;\n"
-"};\n"
-"layout(std430, binding = 1) buffer PerPixelLinkedList\n"
-"{\n"
-"    PerPixelListBucket PPLL[1000000];\n"
-"};\n"
-"void BubbleSort(uint ListBucketHead) {\n"
-"  bool isSorted = false;\n"
-"  while (!isSorted) {\n"
-"    isSorted = true;\n"
-"    uint ListBucketId = ListBucketHead;\n"
-"    uint NextListBucketId = PPLL[ListBucketId].next;\n"
-"    while (NextListBucketId != 0) {\n"
-"    if (PPLL[ListBucketId].depth < PPLL[NextListBucketId].depth) {\n"
-"        isSorted = false;\n"
-"        float tmp = PPLL[ListBucketId].depth;\n"
-"        PPLL[ListBucketId].depth = PPLL[NextListBucketId].depth;\n"
-"        PPLL[NextListBucketId].depth = tmp;\n"
-"        vec4 ctmp = PPLL[ListBucketId].color;\n"
-"        PPLL[ListBucketId].color = PPLL[NextListBucketId].color;\n"
-"        PPLL[NextListBucketId].color = ctmp;\n"
-"      }\n"
-"      ListBucketId = NextListBucketId;\n"
-"      NextListBucketId = PPLL[NextListBucketId].next;\n"
-"    }\n"
-"  }\n"
-"}\n"
-"\n"
-"void main() {\n"
-"  ivec2 iuv = ivec2(gl_FragCoord.xy);"
-"  uint ListBucketHead = imageLoad(PerPixelLinkedListHead, iuv).x;\n"
-"  if (ListBucketHead == 0) discard;\n"
-"  BubbleSort(ListBucketHead);\n"
-"  uint ListBucketId = ListBucketHead;\n"
-"  vec4 result = vec4(0., 0., 0., 1.);"
-"  while (ListBucketId != 0) {\n"
-"    result.xyz += PPLL[ListBucketId].color.xyz;\n"
-"    result *= PPLL[ListBucketId].color.a;\n"
-"    ListBucketId = PPLL[ListBucketId].next;\n"
-"  }\n"
-"  FragColor = result;\n"
-"}\n";
 
 class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4, irr::video::SColorf>, public TextureRead<Image2D>
 {
 public:
   Transparent()
   {
+    std::ifstream invtx("..\\examples\\shaders\\Hair.vert", std::ios::in);
+
+    const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
+
+    std::ifstream infrag("..\\examples\\shaders\\Hair.frag", std::ios::in);
+
+    const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
+
     Program = ProgramShaderLoading::LoadProgram(
-      GL_VERTEX_SHADER, vtxshader,
-      GL_FRAGMENT_SHADER, fragshader);
+      GL_VERTEX_SHADER, vtxshader.c_str(),
+      GL_FRAGMENT_SHADER, fragshader.c_str());
     AssignUniforms("ModelMatrix", "ViewProjectionMatrix", "color");
     AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
   }
@@ -154,9 +67,13 @@ class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public Textur
 public:
   FragmentMerge()
   {
+    std::ifstream in("..\\examples\\shaders\\FSShading.frag", std::ios::in);
+
+    const std::string &fragmerge = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, screenquadshader,
-      GL_FRAGMENT_SHADER, fragmerge);
+      GL_FRAGMENT_SHADER, fragmerge.c_str());
     AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
   }
 };
@@ -360,7 +277,7 @@ void draw(float time)
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(unsigned int), &pxcnt);
   glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
-  glDisable(GL_CULL_FACE);
+//  glDisable(GL_CULL_FACE);
   glDisable(GL_BLEND);
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
@@ -379,17 +296,22 @@ void draw(float time)
   Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendEquation(GL_FUNC_ADD);
   glViewport(0, 0, 1024, 1024);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
   glDrawElementsBaseVertex(GL_TRIANGLES, tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
-//  FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
-//  DrawFullScreenEffect<FragmentMerge>();
+  FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
+  DrawFullScreenEffect<FragmentMerge>();
 }
 
 int main()
@@ -411,7 +333,7 @@ int main()
     draw(tmp);
     glfwSwapBuffers(window);
     glfwPollEvents();
-    tmp += 30.;
+    tmp += 300.;
   }
   clean();
   glfwTerminate();
