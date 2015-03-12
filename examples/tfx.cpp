@@ -47,10 +47,13 @@ const char *vtxshader =
 "uniform mat4 ModelMatrix;\n"
 "uniform mat4 ViewProjectionMatrix;\n"
 "layout(location = 0) in vec3 Position;\n"
-"out float depth;"
+"layout(location = 1) in vec3 Tangent;\n"
+"out float depth;\n"
+"out vec3 tangent;\n"
 "void main(void) {\n"
 "  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
-"  depth = gl_Position.z;"
+"  depth = gl_Position.z;\n"
+"  tangent = Tangent;\n"
 "}\n";
 
 const char *fragshader =
@@ -58,7 +61,8 @@ const char *fragshader =
 "layout (binding = 0) uniform atomic_uint PixelCount;\n"
 "layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
 "uniform vec4 color;\n"
-"in float depth;"
+"in float depth;\n"
+"in vec3 tangent;\n"
 "out vec4 FragColor;\n"
 "struct PerPixelListBucket\n"
 "{\n"
@@ -78,7 +82,7 @@ const char *fragshader =
 "  PPLL[pxid].depth = depth;\n"
 "  PPLL[pxid].color = color;\n"
 "  PPLL[pxid].next = tmp;\n"
-"  FragColor = vec4(1.);\n"
+"  FragColor = vec4(1.) * sqrt(1. - pow(dot(vec3(0., 0., -1), tangent), 2.));\n"
 "}\n";
 
 const char *fragmerge =
@@ -302,7 +306,6 @@ void init()
   DebugUtil::enableDebugOutput();
 
   tfxassets = loadTress("..\\examples\\ruby.tfxb");
-
   // Need to create manually buffer size indexes are 32 bits and not 16bits
   glGenVertexArrays(1, &TFXVao);
   glBindVertexArray(TFXVao);
@@ -318,7 +321,7 @@ void init()
 
   glGenBuffers(1, &TFXTriangleIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, tfxassets.m_Triangleindices.size() * sizeof(int), tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, tfxassets.m_Triangleindices.size() * sizeof(unsigned), tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
   glBindVertexArray(0);
 
   DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
@@ -350,7 +353,7 @@ void clean()
   glDeleteTextures(1, &MainTexture);
 }
 
-void draw()
+void draw(float time)
 {
   // Reset PixelCount
   int pxcnt = 1;
@@ -373,6 +376,7 @@ void draw()
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
   Model.setTranslation(irr::core::vector3df(0., 0., 200.));
+  Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0, 0, 1024, 1024);
@@ -393,7 +397,7 @@ int main()
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+//      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
@@ -401,12 +405,13 @@ int main()
   glewExperimental = GL_TRUE;
   glewInit();
   init();
-
+  float tmp = 0.;
   while (!glfwWindowShouldClose(window))
   {
-    draw();
+    draw(tmp);
     glfwSwapBuffers(window);
     glfwPollEvents();
+    tmp += 30.;
   }
   clean();
   glfwTerminate();
