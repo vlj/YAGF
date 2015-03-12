@@ -55,6 +55,24 @@ layout(std430, binding = 1) buffer PerPixelLinkedList
     PerPixelListBucket PPLL[1000000];
 };
 
+//--------------------------------------------------------------------------------------
+// Helper functions for packing and unpacking the stored tangent and coverage
+//--------------------------------------------------------------------------------------
+vec4 UnpackUintIntoFloat4(uint uValue)
+{
+    return vec4( ( (uValue & 0xFF000000)>>24 ) / 255.0, ( (uValue & 0x00FF0000)>>16 ) / 255.0, ( (uValue & 0x0000FF00)>>8 ) / 255.0, ( (uValue & 0x000000FF) ) / 255.0);
+}
+
+vec3 GetTangent(uint packedTangent)
+{
+    return 2.0 * UnpackUintIntoFloat4(packedTangent).xyz - 1.0;
+}
+
+float GetCoverage(uint packedCoverage)
+{
+    return UnpackUintIntoFloat4(packedCoverage).w;
+}
+
 void BubbleSort(uint ListBucketHead) {
   bool isSorted = false;
   while (!isSorted) {
@@ -166,18 +184,18 @@ void main() {
   BubbleSort(ListBucketHead);
   uint ListBucketId = ListBucketHead;
   vec4 result = vec4(0., 0., 0., 1.);
-  int tmp = 0;
   while (ListBucketId != 0) {
-/*    float NdotL = dot(vec3(0., -1., 0.), PPLL[ListBucketId].TangentAndCoverage);
+    vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
+    float NdotL = dot(vec3(0., -1., 0.), Tangent);
     result.xyz += NdotL;
-    result *= .5;*/
+    result *= .5;
     ListBucketId = PPLL[ListBucketId].next;
-	tmp++;
   }
-  if (tmp > 2)
+  FragColor = result;
+/*  if (tmp > 2)
     FragColor = vec4(0., 0., 1., 1.);
   else if (tmp > 1)
     FragColor = vec4(1., 0., 0., 1.);
   else
-    FragColor = vec4(0., 1., 0., 1.);
+    FragColor = vec4(0., 1., 0., 1.);*/
 };

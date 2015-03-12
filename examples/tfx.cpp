@@ -290,14 +290,14 @@ void draw(float time)
 
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
-  Model.setTranslation(irr::core::vector3df(0., 0., 500.));
+  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
   Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
-  glDrawElementsBaseVertex(GL_TRIANGLES, .01 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .05 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
