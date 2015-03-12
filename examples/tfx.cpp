@@ -90,6 +90,48 @@ static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLi
 }
 
 // From TressFx SDK
+
+
+struct Constants
+{
+  float g_mWorld[16];
+  float g_mViewProj[16];
+  float g_mInvViewProj[16];
+  float g_mViewProjLight[16];
+
+  float g_vEye[3];
+  float g_fvFov;
+
+  float g_AmbientLightColor[4];
+  float g_PointLightColor[4];
+  float g_PointLightPos[4];
+  float g_MatBaseColor[4];
+  float g_MatKValue[4]; // Ka, Kd, Ks, Ex
+
+  float g_FiberAlpha;
+  float g_HairShadowAlpha;
+  float g_bExpandPixels;
+  float g_FiberRadius;
+
+  float g_WinSize[4]; // screen size
+
+  float g_FiberSpacing; // average spacing between fibers
+  float g_bThinTip;
+  float g_fNearLight;
+  float g_fFarLight;
+
+  int g_iTechSM;
+  int g_bUseCoverage;
+  int g_iStrandCopies; // strand copies that the transparency shader will produce
+  int g_iMaxFragments;
+
+  float g_alphaThreshold;
+  float g_fHairKs2; // for second highlight
+  float g_fHairEx2; // for second highlight
+
+  float g_mInvViewProjViewport[16];
+};
+
 struct Float4
 {
   float X;
@@ -254,6 +296,58 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
+  /*
+  // From Ruby tfx demo
+  static COLORREF g_vCustHairColors[16] =
+  {
+  RGB( 112,  84,  48 ),	//0 brown
+  RGB( 98,  14,  4 ),		//1 natural red
+  RGB(  59,  48,  36 ),	//2 darkest brown
+  RGB(  78,  67,  63 ),	//3 Med dark brown
+  RGB(  80,  68,  68 ),	//4 chestnut brown
+  RGB( 106,  78,  66 ),	//5 lt chestnut brown
+  RGB(  85,  72,  56 ),	//6 dark golden brown
+  RGB( 167, 133, 106 ),	//7 light golden brown
+  RGB( 184, 151, 120 ),	//8 dark honey blonde
+  RGB( 220, 208, 186 ),	//9 bleached blonde
+  RGB( 222, 188, 153 ),	//10 light ash blonde
+  RGB( 151, 121,  97 ),	//11 med ash brown
+  RGB( 230, 206, 168 ),	//12 lightest blonde
+  RGB( 229, 200, 168 ),	//13 pale golden blonde
+  RGB( 165, 107,  70 ),	//14 strawberry blonde
+  RGB( 41, 28, 22 ),		//15 Brownish fur color
+  };
+
+	pHairParams->color.x = ((g_vCustHairColors[RUBY_COLOR]>> 0) & 0xFF)/255.f;
+	pHairParams->color.y = ((g_vCustHairColors[RUBY_COLOR]>> 8) & 0xFF)/255.f;
+	pHairParams->color.z = ((g_vCustHairColors[RUBY_COLOR]>>16) & 0xFF)/255.f;
+	pHairParams->Ka = 0.0f;
+	pHairParams->Kd = 0.4f;
+	pHairParams->Ks1 = 0.04f;
+	pHairParams->Ex1 = 80.0f;
+	pHairParams->Ks2 = 0.5f;
+	pHairParams->Ex2 = 8.0f;
+	pHairParams->alpha = 0.5f;
+	pHairParams->alpha_sm = 0.004f;
+	pHairParams->radius = 0.15f;
+	pHairParams->density = 1.0f;
+	pHairParams->iStrandCopies = 1;
+	pHairParams->fiber_spacing = 0.3f;
+	pHairParams->bUseCoverage = true;
+	pHairParams->bThinTip = true;
+	pHairParams->bTransparency = true;
+	pHairParams->tech_shadow = SDSM_SHADOW_INDEX;
+	pHairParams->bSimulation = true;
+	pHairParams->iMaxFragments = MAX_FRAGMENTS;
+	pHairParams->ambientLightColor = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
+	pHairParams->pointLightColor = XMFLOAT4(1.f, 1.f, 1.f, 1.0f);
+  */
+
+  struct Constants cbuf;
+  cbuf.g_MatBaseColor[0] = 98. / 255.;
+  cbuf.g_MatBaseColor[1] = 14. / 255.;
+  cbuf.g_MatBaseColor[2] = 4. / 255.;
+
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
@@ -261,7 +355,7 @@ void init()
 
   glGenBuffers(1, &ConstantBuffer);
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, 0, 0, GL_STATIC_DRAW);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
 
   BilinearSampler = SamplerHelper::createBilinearSampler();

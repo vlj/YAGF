@@ -1,7 +1,7 @@
 #version 430 core
 layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
 
-layout(std140) uniform Constants
+layout(std140, binding = 0) uniform Constants
 {
   mat4 g_mWorld;
   mat4 g_mViewProj;
@@ -186,16 +186,10 @@ void main() {
   vec4 result = vec4(0., 0., 0., 1.);
   while (ListBucketId != 0) {
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
-    float NdotL = dot(vec3(0., -1., 0.), Tangent);
-    result.xyz += NdotL;
+    float cos = dot(vec3(0., -1., 0.), Tangent);
+    result.xyz += sqrt(1. - cos * cos) * g_MatBaseColor.xyz;
     result *= .5;
     ListBucketId = PPLL[ListBucketId].next;
   }
   FragColor = result;
-/*  if (tmp > 2)
-    FragColor = vec4(0., 0., 1., 1.);
-  else if (tmp > 1)
-    FragColor = vec4(1., 0., 0., 1.);
-  else
-    FragColor = vec4(0., 1., 0., 1.);*/
 };
