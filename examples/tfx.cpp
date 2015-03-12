@@ -35,9 +35,7 @@ GLuint TFXTriangleIdx;
 struct PerPixelListBucket
 {
   float depth;
-  float TGX;
-  float TGY;
-  float TGZ;
+  unsigned int TangentAndCoverage;
   unsigned int next;
 };
 
@@ -252,7 +250,7 @@ void init()
 
   glGenBuffers(1, &PerPixelLinkedListSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, 1000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, PerPixelLinkedListSSBO);
 
   glGenBuffers(1, &PixelCountAtomic);
@@ -292,8 +290,15 @@ void draw(float time)
 
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
-  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
+  Model.setTranslation(irr::core::vector3df(0., 0., 500.));
   Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+
+  glUseProgram(Transparent::getInstance()->Program);
+  glBindVertexArray(TFXVao);
+  Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
+  Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
+  glDrawElementsBaseVertex(GL_TRIANGLES, .01 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_BLEND);
@@ -302,16 +307,14 @@ void draw(float time)
   glViewport(0, 0, 1024, 1024);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glUseProgram(Transparent::getInstance()->Program);
-  glBindVertexArray(TFXVao);
-  Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-  Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
-  glDrawElementsBaseVertex(GL_TRIANGLES, tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
-  glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
+
+  //    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
+  int *tmp = (int*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
+//      printf("%d\n", *tmp);
+  glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
 int main()

@@ -46,7 +46,7 @@ out vec4 FragColor;
 struct PerPixelListBucket
 {
      float depth;
-     vec3 tangent;
+     uint TangentAndCoverage;
      uint next;
 };
 
@@ -67,9 +67,9 @@ void BubbleSort(uint ListBucketHead) {
         float tmp = PPLL[ListBucketId].depth;
         PPLL[ListBucketId].depth = PPLL[NextListBucketId].depth;
         PPLL[NextListBucketId].depth = tmp;
-        vec3 ttmp = PPLL[ListBucketId].tangent;
-        PPLL[ListBucketId].tangent = PPLL[NextListBucketId].tangent;
-        PPLL[NextListBucketId].tangent = ttmp;
+        uint ttmp = PPLL[ListBucketId].TangentAndCoverage;
+        PPLL[ListBucketId].TangentAndCoverage = PPLL[NextListBucketId].TangentAndCoverage;
+        PPLL[NextListBucketId].TangentAndCoverage = ttmp;
       }
       ListBucketId = NextListBucketId;
       NextListBucketId = PPLL[NextListBucketId].next;
@@ -166,12 +166,18 @@ void main() {
   BubbleSort(ListBucketHead);
   uint ListBucketId = ListBucketHead;
   vec4 result = vec4(0., 0., 0., 1.);
-  int tmp = 1;
+  int tmp = 0;
   while (ListBucketId != 0) {
-    float NdotL = dot(vec3(0., -1., 0.), PPLL[ListBucketId].tangent);
+/*    float NdotL = dot(vec3(0., -1., 0.), PPLL[ListBucketId].TangentAndCoverage);
     result.xyz += NdotL;
-    result *= .5;
+    result *= .5;*/
     ListBucketId = PPLL[ListBucketId].next;
+	tmp++;
   }
-  FragColor = result;
+  if (tmp > 2)
+    FragColor = vec4(0., 0., 1., 1.);
+  else if (tmp > 1)
+    FragColor = vec4(1., 0., 0., 1.);
+  else
+    FragColor = vec4(0., 1., 0., 1.);
 };
