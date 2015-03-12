@@ -31,6 +31,7 @@ GLuint BilinearSampler;
 GLuint TFXVao;
 GLuint TFXVbo;
 GLuint TFXTriangleIdx;
+GLuint ConstantBuffer;
 
 struct PerPixelListBucket
 {
@@ -251,11 +252,17 @@ void init()
   glGenBuffers(1, &PerPixelLinkedListSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
   glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, PerPixelLinkedListSSBO);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
+  glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
+
+  glGenBuffers(1, &ConstantBuffer);
+  glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
+  glBufferData(GL_UNIFORM_BUFFER, 0, 0, GL_STATIC_DRAW);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
 
   BilinearSampler = SamplerHelper::createBilinearSampler();
 
@@ -274,7 +281,6 @@ void draw(float time)
   int pxcnt = 1;
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(unsigned int), &pxcnt);
-  glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
 //  glDisable(GL_CULL_FACE);
   glDisable(GL_BLEND);
   glDisable(GL_DEPTH_TEST);
@@ -309,12 +315,6 @@ void draw(float time)
 
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
-
-  //    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
-  int *tmp = (int*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
-//      printf("%d\n", *tmp);
-  glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
 int main()
