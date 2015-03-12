@@ -89,3 +89,6 @@ endif()
 
 add_executable(mesh examples/mesh.cpp)
 target_link_libraries(mesh ${PROJECT_NAME})
+
+add_executable(tfx examples/tfx.cpp)
+target_link_libraries(tfx ${PROJECT_NAME})
