@@ -271,7 +271,7 @@ void init()
   for (unsigned i = 0; i < tfxassets.m_NumTotalHairVertices; i++)
   {
     duplicatedStrands.push_back(tfxassets.m_pTriangleVertices[i]);
-//    duplicatedStrands.push_back(tfxassets.m_pTriangleVertices[i]);
+    duplicatedStrands.push_back(tfxassets.m_pTriangleVertices[i]);
   }
 
   glGenVertexArrays(1, &TFXVao);
@@ -384,7 +384,7 @@ void draw(float time)
   int pxcnt = 1;
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(unsigned int), &pxcnt);
-//  glDisable(GL_CULL_FACE);
+  glDisable(GL_CULL_FACE);
   glDisable(GL_BLEND);
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);

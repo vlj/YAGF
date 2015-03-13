@@ -59,5 +59,5 @@ void main() {
   PPLL[pxid].depth = depth;
   PPLL[pxid].TangentAndCoverage = PackTangentAndCoverage(tangent.xyz, 0.);
   PPLL[pxid].next = tmp;
-  FragColor = vec4(0.);
+  FragColor = vec4(1.);
 }

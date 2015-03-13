@@ -52,7 +52,7 @@ void main(void) {
   mat4 g_mViewProj = ViewProjectionMatrix;
   // Calculate right and projected right vectors
   vec3 v = (ModelMatrix * vec4(Position, 1.)).xyz;
-  vec3 right      = normalize( cross( Tangent, normalize(v - g_vEye)));
+  vec3 right      = vec3(1., 0., 0.);//normalize( cross( Tangent, normalize(v - g_vEye)));
   vec2 proj_right = normalize( (g_mViewProj * vec4(right, 0)).xy );
 
   vec4 hairEdgePositions0, hairEdgePositions1; // 0 is negative, 1 is positive
@@ -63,7 +63,7 @@ void main(void) {
   hairEdgePositions0 = hairEdgePositions0 / hairEdgePositions0.w;
   hairEdgePositions1 = hairEdgePositions1 / hairEdgePositions1.w;
 
-  float fDirIndex = (gl_VertexID & 0x01) ? -1.0 : 1.0;
+  float fDirIndex = (gl_VertexID % 2 == 1) ? -1.0 : 1.0;
 
   gl_Position = (fDirIndex==-1.0 ? hairEdgePositions0 : hairEdgePositions1);
   depth = gl_Position.z;
