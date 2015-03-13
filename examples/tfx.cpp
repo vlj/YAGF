@@ -444,25 +444,28 @@ void draw(float time)
   glClearDepth(1.);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  //    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
+  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .1 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .2 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_ONE, GL_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
   glViewport(0, 0, 1024, 1024);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearColor(.1, .1, .1, 1.);
+  glClear(GL_COLOR_BUFFER_BIT);
 
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
+
 }
 
 int main()
