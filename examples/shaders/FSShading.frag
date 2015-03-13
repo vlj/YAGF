@@ -188,7 +188,7 @@ void main() {
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float cos = dot(vec3(0., -1., 0.), Tangent);
     result.xyz += sqrt(1. - cos * cos) * g_MatBaseColor.xyz;
-    result *= .5;
+    result *= .75;
     ListBucketId = PPLL[ListBucketId].next;
   }
   FragColor = result;

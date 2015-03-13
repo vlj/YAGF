@@ -2,6 +2,45 @@
 layout (binding = 0) uniform atomic_uint PixelCount;
 layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
 
+layout(std140, binding = 0) uniform Constants
+{
+  mat4 g_mWorld;
+  mat4 g_mViewProj;
+  mat4 g_mInvViewProj;
+  mat4 g_mViewProjLight;
+
+  vec3 g_vEye;
+  float g_fvFov;
+
+  vec4 g_AmbientLightColor;
+  vec4 g_PointLightColor;
+  vec4 g_PointLightPos;
+  vec4 g_MatBaseColor;
+  vec4 g_MatKValue; // Ka, Kd, Ks, Ex
+
+  float g_FiberAlpha;
+  float g_HairShadowAlpha;
+  float g_bExpandPixels;
+  float g_FiberRadius;
+
+  vec4 g_WinSize; // screen size
+
+  float g_FiberSpacing; // average spacing between fibers
+  float g_bThinTip;
+  float g_fNearLight;
+  float g_fFarLight;
+
+  int g_iTechSM;
+  int g_bUseCoverage;
+  int g_iStrandCopies; // strand copies that the transparency shader will produce
+  int g_iMaxFragments;
+
+  float g_alphaThreshold;
+  float g_fHairKs2; // for second highlight
+  float g_fHairEx2; // for second highlight
+
+  mat4 g_mInvViewProjViewport;
+};
 
 
 //--------------------------------------------------------------------------------------
@@ -36,9 +75,6 @@ float GetCoverage(uint packedCoverage)
     return UnpackUintIntoFloat4(packedCoverage).w;
 }
 
-in float depth;
-in vec4 tangent;
-out vec4 FragColor;
 
 struct PerPixelListBucket
 {
@@ -51,13 +87,74 @@ layout(std430, binding = 0) buffer PerPixelLinkedList
 {
     PerPixelListBucket PPLL[10000000];
 };
-void main() {
+
+//--------------------------------------------------------------------------------------
+// ComputeCoverage
+//
+// Calculate the pixel coverage of a hair strand by computing the hair width
+//--------------------------------------------------------------------------------------
+float ComputeCoverage(vec2 p0, vec2 p1, vec2 pixelLoc)
+{
+  // p0, p1, pixelLoc are in d3d clip space (-1 to 1)x(-1 to 1)
+
+  // Scale positions so 1.f = half pixel width
+  p0 *= g_WinSize.xy;
+  p1 *= g_WinSize.xy;
+  pixelLoc *= g_WinSize.xy;
+
+  float p0dist = length(p0 - pixelLoc);
+  float p1dist = length(p1 - pixelLoc);
+  float hairWidth = length(p0 - p1);
+
+  // will be 1.f if pixel outside hair, 0.f if pixel inside hair
+  bool outside = any( bvec2(step(hairWidth, p0dist) > 0., step(hairWidth, p1dist) > 0.));
+
+  // if outside, set sign to -1, else set sign to 1
+  float sign = outside ? -1.f : 1.f;
+
+  // signed distance (positive if inside hair, negative if outside hair)
+  float relDist = sign * clamp(min(p0dist, p1dist), 0., 1.);
+
+  // returns coverage based on the relative distance
+  // 0, if completely outside hair edge
+  // 1, if completely inside hair edge
+  return (relDist + 1.f) * 0.5f;
+}
+
+void StoreFragments_Hair(vec2 FragCoordXY, vec3 Tangent, float Coverage, float depth)
+{
   uint pixel_id = atomicCounterIncrement(PixelCount);
   int pxid = int(pixel_id);
-  ivec2 iuv = ivec2(gl_FragCoord.xy);
+  ivec2 iuv = ivec2(FragCoordXY);
   uint tmp = imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);
   PPLL[pxid].depth = depth;
-  PPLL[pxid].TangentAndCoverage = PackTangentAndCoverage(tangent.xyz, 0.);
+  PPLL[pxid].TangentAndCoverage = PackTangentAndCoverage(Tangent.xyz, Coverage);
   PPLL[pxid].next = tmp;
+}
+
+in float depth;
+in vec4 tangent;
+in vec4 p0p1;
+out vec4 FragColor;
+
+void main() {
+    // Render AA Line, calculate pixel coverage
+  vec4 proj_pos = vec4(2 * gl_FragCoord.xy * g_WinSize.zw - 1., 1., 1.);
+  vec4 original_pos = g_mInvViewProj * proj_pos; // Not used ??
+
+  float curve_scale = 1;
+  if (g_bThinTip > 0 )
+      curve_scale = tangent.w;
+
+  float fiber_radius = curve_scale * g_FiberRadius; // Not used ???
+
+  float coverage = 1.f;
+//  if(g_bUseCoverage)
+  {
+    coverage = ComputeCoverage(p0p1.xy, p0p1.zw, proj_pos.xy);
+  }
+
+  coverage *= g_FiberAlpha;
+  StoreFragments_Hair(gl_FragCoord.xy, tangent.xyz, depth, coverage);
   FragColor = vec4(1.);
 }
