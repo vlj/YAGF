@@ -374,7 +374,7 @@ void init()
 
   glGenBuffers(1, &PosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PosSSBO);
 
   glGenBuffers(1, &PrevPosSSBO);
@@ -412,6 +412,14 @@ void clean()
 {
   glDeleteSamplers(1, &BilinearSampler);
   glDeleteTextures(1, &MainTexture);
+  glDeleteBuffers(1, &ConstantBuffer);
+  glDeleteBuffers(1, &ConstantSimBuffer);
+  glDeleteBuffers(1, &PixelCountAtomic);
+  glDeleteBuffers(1, &StrandTypeSSBO);
+  glDeleteBuffers(1, &PrevPosSSBO);
+  glDeleteBuffers(1, &PosSSBO);
+  glDeleteBuffers(1, &InitialPosSSBO);
+  glDeleteBuffers(1, &PerPixelLinkedListSSBO);
 }
 
 void fillConstantBuffer(float time)
@@ -524,12 +532,31 @@ void simulate(float time)
   Model.setTranslation(irr::core::vector3df(0., 0., 200.));
   Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
+  cbuf.timeStep = .016;
+
+  cbuf.Damping0 = 0.125;
+  cbuf.StiffnessForGlobalShapeMatching0 = 0.2;
+  cbuf.GlobalShapeMatchingEffectiveRange0 = 0.3;
+  cbuf.Damping1 = 0.125;
+  cbuf.StiffnessForGlobalShapeMatching1 = 0.25;
+  cbuf.GlobalShapeMatchingEffectiveRange1 = 0.4;
+  cbuf.Damping2 = 0.0199;
+  cbuf.StiffnessForGlobalShapeMatching2 = 0.;
+  cbuf.GlobalShapeMatchingEffectiveRange2 = 0.;
+  cbuf.Damping3 = 0.1;
+  cbuf.StiffnessForGlobalShapeMatching3 = 0.2;
+  cbuf.GlobalShapeMatchingEffectiveRange3 = 0.3;
+
+  cbuf.NumOfStrandsPerThreadGroup = 4;
+  cbuf.bWarp = 1;
+  cbuf.GravityMagnitude = -10;
+
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
-  int numOfGroupsForCS_VertexLevel = (int)(.2 * tfxassets.m_Triangleindices.size() / 64.);
+  int numOfGroupsForCS_VertexLevel = (int) (0.1 * (tfxassets.m_Triangleindices.size() / 64));
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
@@ -589,7 +616,7 @@ int main()
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+//      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);

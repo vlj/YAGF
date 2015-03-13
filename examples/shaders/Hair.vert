@@ -49,7 +49,6 @@ layout(std430, binding = 2) buffer HairPos
   vec4 g_HairVertexPositions[1000000];
 };
 
-//layout(location = 0) in vec3 Position;
 layout(location = 1) in vec3 Tangent;
 
 // Need Depth, gl_FragCoord.z returns meaningless values...
@@ -62,10 +61,9 @@ out vec4 p0p1;
 void main(void) {
 // Hardcoded values, need to go in cb
   float expandPixels = 0.71;
-  vec3 Position = g_HairVertexPositions[gl_VertexID / 2].xyz;
+  vec3 v = g_HairVertexPositions[gl_VertexID / 2].xyz;
 
   // Calculate right and projected right vectors
-  vec3 v = (g_mWorld * vec4(Position, 1.)).xyz;
   vec3 right = normalize( cross( Tangent, normalize(v - g_vEye)));
   vec2 proj_right = normalize( (g_mViewProj * vec4(right, 0)).xy );
 

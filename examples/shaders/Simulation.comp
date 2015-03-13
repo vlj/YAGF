@@ -275,6 +275,10 @@ void main()
   vec4 currentPos = vec4(0, 0, 0, 0); // position when this step starts. In other words, a position from the last step.
   vec4 initialPos = vec4(0, 0, 0, 0); // rest position
 
+  initialPos = g_InitialHairPositions[gl_LocalInvocationIndex];
+  g_HairVertexPositions[gl_LocalInvocationIndex] = (g_ModelTransformForHead * vec4(initialPos.xyz, 1));
+  return;
+
   // Copy data into shared memory
   initialPos = g_InitialHairPositions[globalVertexIndex];
   initialPos.xyz = (g_ModelTransformForHead * vec4(initialPos.xyz, 1)).xyz;
