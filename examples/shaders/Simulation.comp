@@ -1,0 +1,352 @@
+#version 430
+
+layout(std140, binding = 2) uniform Constants
+{
+  mat4 g_ModelTransformForHead;
+
+  vec4 g_ModelRotateForHead; // quaternion
+
+  vec4 g_Wind;
+  vec4 g_Wind1;
+  vec4 g_Wind2;
+  vec4 g_Wind3;
+
+  int g_NumLengthConstraintIterations;
+  int g_bCollision;
+
+  float g_GravityMagnitude;
+  float g_TimeStep;
+
+  float g_Damping0;
+  float g_StiffnessForLocalShapeMatching0;
+  float g_StiffnessForGlobalShapeMatching0;
+  float g_GlobalShapeMatchingEffectiveRange0;
+
+  float g_Damping1;
+  float g_StiffnessForLocalShapeMatching1;
+  float g_StiffnessForGlobalShapeMatching1;
+  float g_GlobalShapeMatchingEffectiveRange1;
+
+  float g_Damping2;
+  float g_StiffnessForLocalShapeMatching2;
+  float g_StiffnessForGlobalShapeMatching2;
+  float g_GlobalShapeMatchingEffectiveRange2;
+
+  float g_Damping3;
+  float g_StiffnessForLocalShapeMatching3;
+  float g_StiffnessForGlobalShapeMatching3;	
+  float g_GlobalShapeMatchingEffectiveRange3;
+
+  uint g_NumOfStrandsPerThreadGroup;
+  uint g_NumFollowHairsPerOneGuideHair;
+
+  int g_bWarp;
+  int g_NumLocalShapeMatchingIterations;
+};
+
+// If you change the value below, you must change it in TressFXAsset.h as well.
+#define THREAD_GROUP_SIZE 64
+
+layout (local_size_x = THREAD_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+/*
+RWStructuredBuffer<float4> g_HairVertexTangents			: register(u2); 
+RWStructuredBuffer<float4> g_InitialHairPositions		: register(u3);
+RWStructuredBuffer<float4> g_GlobalRotations			: register(u4); 
+RWStructuredBuffer<float4> g_LocalRotations				: register(u5); 
+
+Buffer<float>	g_HairRestLengthSRV			: register(t0);
+Buffer<int>		g_HairStrandType			: register(t1); 
+Buffer<float4>	g_HairRefVecsInLocalFrame	: register(t2); 
+Buffer<float4>	g_FollowHairRootOffset   	: register(t3); 
+*/
+
+layout(std430, binding = 1) buffer InitialHairPos
+{
+  vec4 g_InitialHairPositions[1000000];
+};
+
+layout(std430, binding = 2) buffer HairPos
+{
+  vec4 g_HairVertexPositions[1000000];
+};
+
+layout(std430, binding = 3) buffer PreviousHairPos
+{
+  vec4 g_HairVertexPositionsPrev[1000000];
+};
+
+layout(std430, binding = 4) buffer StrandType
+{
+  int g_HairStrandType[1000000];
+};
+
+
+
+
+shared vec4 sharedPos[THREAD_GROUP_SIZE];
+shared vec4 sharedTangent[THREAD_GROUP_SIZE];
+shared float sharedLength[THREAD_GROUP_SIZE];
+
+#define MAX_VERTS_PER_STRAND 16
+
+
+//--------------------------------------------------------------------------------------
+//
+//  Helper Functions for the main simulation shaders
+//
+//--------------------------------------------------------------------------------------
+bool IsMovable(vec4 particle)
+{
+  return particle.w > 0;
+}
+
+vec2 ConstraintMultiplier(vec4 particle0, vec4 particle1)
+{
+  if (IsMovable(particle0))
+  {
+    if (IsMovable(particle1))
+      return vec2(0.5, 0.5);
+    else
+      return vec2(1, 0);
+  }
+  else
+  {
+    if (IsMovable(particle1))
+      return vec2(0, 1);
+    else
+      return vec2(0, 0);
+  }
+}
+
+vec4 MakeQuaternion(float angle_radian, vec3 axis)
+{
+  // create quaternion using angle and rotation axis
+  vec4 quaternion;
+  float halfAngle = 0.5f * angle_radian;
+  float sinHalf = sin(halfAngle);
+
+  quaternion.w = cos(halfAngle);
+  quaternion.xyz = sinHalf * axis.xyz;
+
+  return quaternion;
+}
+
+vec4 InverseQuaternion(vec4 q)
+{
+  float lengthSqr = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
+
+  if ( lengthSqr < 0.001 )
+    return vec4(0, 0, 0, 1.0f);
+
+  q.x = -q.x / lengthSqr;
+  q.y = -q.y / lengthSqr;
+  q.z = -q.z / lengthSqr;
+  q.w = q.w / lengthSqr;
+
+  return q;
+}
+
+vec3 MultQuaternionAndVector(vec4 q, vec3 v)
+{
+  vec3 uv, uuv;
+  vec3 qvec = vec3(q.x, q.y, q.z);
+  uv = cross(qvec, v);
+  uuv = cross(qvec, uv);
+  uv *= (2.0f * q.w);
+  uuv *= 2.0f;
+
+  return v + uv + uuv;
+}
+
+vec4 MultQuaternionAndQuaternion(vec4 qA, vec4 qB)
+{
+  vec4 q;
+
+  q.w = qA.w * qB.w - qA.x * qB.x - qA.y * qB.y - qA.z * qB.z;
+  q.x = qA.w * qB.x + qA.x * qB.w + qA.y * qB.z - qA.z * qB.y;
+  q.y = qA.w * qB.y + qA.y * qB.w + qA.z * qB.x - qA.x * qB.z;
+  q.z = qA.w * qB.z + qA.z * qB.w + qA.x * qB.y - qA.y * qB.x;
+
+  return q;
+}
+
+void ApplyDistanceConstraint(inout vec4 pos0, inout vec4 pos1, float targetDistance, float stiffness)
+{
+  vec3 delta = pos1.xyz - pos0.xyz;
+  float distance = max(length(delta), 1e-7);
+  float stretching = 1 - targetDistance / distance;
+  delta = stretching * delta;
+  vec2 multiplier = ConstraintMultiplier(pos0, pos1);
+
+  pos0.xyz += multiplier[0] * delta * stiffness;
+  pos1.xyz -= multiplier[1] * delta * stiffness;
+}
+
+void CalcIndicesInVertexLevelTotal(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)
+{
+  indexForSharedMem = local_id;
+  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
+
+  localStrandIndex = local_id % g_NumOfStrandsPerThreadGroup;
+  globalStrandIndex = group_id * g_NumOfStrandsPerThreadGroup + localStrandIndex;
+  localVertexIndex = (local_id - localStrandIndex) / g_NumOfStrandsPerThreadGroup;
+
+  strandType = g_HairStrandType[globalStrandIndex];
+  globalVertexIndex = globalStrandIndex * numVerticesInTheStrand + localVertexIndex;
+}
+
+void CalcIndicesInVertexLevelMaster(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)
+{
+  indexForSharedMem = local_id;
+  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
+
+  localStrandIndex = local_id % g_NumOfStrandsPerThreadGroup;
+  globalStrandIndex = group_id * g_NumOfStrandsPerThreadGroup + localStrandIndex;
+  globalStrandIndex *= (g_NumFollowHairsPerOneGuideHair+1);
+  localVertexIndex = (local_id - localStrandIndex) / g_NumOfStrandsPerThreadGroup;
+
+  strandType = g_HairStrandType[globalStrandIndex];
+  globalVertexIndex = globalStrandIndex * numVerticesInTheStrand + localVertexIndex;
+}
+
+void CalcIndicesInStrandLevelTotal(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint numVerticesInTheStrand, inout uint globalRootVertexIndex, inout uint strandType)
+{
+  globalStrandIndex = THREAD_GROUP_SIZE*group_id + local_id;
+  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
+  strandType = g_HairStrandType[globalStrandIndex];
+  globalRootVertexIndex = globalStrandIndex * numVerticesInTheStrand;
+}
+
+void CalcIndicesInStrandLevelMaster(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint numVerticesInTheStrand, inout uint globalRootVertexIndex, inout uint strandType)
+{
+  globalStrandIndex = THREAD_GROUP_SIZE*group_id + local_id;
+  globalStrandIndex *= (g_NumFollowHairsPerOneGuideHair+1);
+  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
+  strandType = g_HairStrandType[globalStrandIndex];
+  globalRootVertexIndex = globalStrandIndex * numVerticesInTheStrand;
+}
+
+//--------------------------------------------------------------------------------------
+//
+//  Integrate
+//
+//  Uses Verlet integration to calculate the new position for the current time step
+//
+//--------------------------------------------------------------------------------------
+vec4 Integrate(vec4 curPosition, vec4 oldPosition, vec4 initialPos, vec4 force, uint globalVertexIndex, uint localVertexIndex, uint numVerticesInTheStrand, float dampingCoeff)
+{
+  vec4 outputPos = curPosition;
+
+  force.xyz += g_GravityMagnitude * vec3(0, -1.0f, 0);
+  outputPos.xyz = curPosition.xyz + (1.0 - dampingCoeff)*(curPosition.xyz - oldPosition.xyz) + force.xyz*g_TimeStep*g_TimeStep;
+
+  return outputPos;
+}
+
+//--------------------------------------------------------------------------------------
+//
+//  UpdateFinalVertexPositions
+//
+//  Updates the  hair vertex positions based on the physics simulation
+//
+//--------------------------------------------------------------------------------------
+void UpdateFinalVertexPositions(vec4 oldPosition, vec4 newPosition, uint globalVertexIndex, uint localVertexIndex, uint numVerticesInTheStrand)
+{
+  g_HairVertexPositionsPrev[globalVertexIndex] = oldPosition;
+  g_HairVertexPositions[globalVertexIndex] = newPosition;
+}
+
+//--------------------------------------------------------------------------------------
+//
+//  IntegrationAndGlobalShapeConstraints
+//
+//  Compute shader to simulate the gravitational force with integration and to maintain the
+//  global shape constraints.
+//
+// One thread computes one vertex.
+//
+//--------------------------------------------------------------------------------------
+void main()
+{
+  uint globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
+  CalcIndicesInVertexLevelMaster(gl_LocalInvocationID.x, gl_WorkGroupID.x, globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType);
+
+  vec4 currentPos = vec4(0, 0, 0, 0); // position when this step starts. In other words, a position from the last step.
+  vec4 initialPos = vec4(0, 0, 0, 0); // rest position
+
+  // Copy data into shared memory
+  initialPos = g_InitialHairPositions[globalVertexIndex];
+  initialPos.xyz = (g_ModelTransformForHead * vec4(initialPos.xyz, 1)).xyz;
+  if (g_bWarp)
+    currentPos = initialPos;
+  else
+    currentPos = sharedPos[indexForSharedMem] = g_HairVertexPositions[globalVertexIndex];
+
+  barrier();
+
+  // Integrate
+  float dampingCoeff = 0.03f;
+
+  if ( strandType == 0 )
+    dampingCoeff = g_Damping0;
+  else if ( strandType == 1 )
+    dampingCoeff = g_Damping1;
+  else if ( strandType == 2 )
+    dampingCoeff = g_Damping2;
+  else if ( strandType == 3 )
+    dampingCoeff = g_Damping3;
+
+  vec4 oldPos;
+  if (g_bWarp)
+    oldPos = currentPos;
+  else
+    oldPos = g_HairVertexPositionsPrev[globalVertexIndex];
+  vec4 force = vec4(0, 0, 0, 0);
+
+  if ( IsMovable(currentPos) )
+    sharedPos[indexForSharedMem] = Integrate(currentPos, oldPos, initialPos, force, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, dampingCoeff);
+  else
+    sharedPos[indexForSharedMem] = initialPos;
+
+  // Global Shape Constraints
+  float stiffnessForGlobalShapeMatching = 0;
+  float globalShapeMatchingEffectiveRange = 0;
+
+  if ( strandType == 0 )
+  {
+    stiffnessForGlobalShapeMatching = g_StiffnessForGlobalShapeMatching0;
+    globalShapeMatchingEffectiveRange = g_GlobalShapeMatchingEffectiveRange0;
+  }
+  else if ( strandType == 1 )
+  {
+    stiffnessForGlobalShapeMatching = g_StiffnessForGlobalShapeMatching1;
+    globalShapeMatchingEffectiveRange = g_GlobalShapeMatchingEffectiveRange1;
+  }
+  else if ( strandType == 2 )
+  {
+    stiffnessForGlobalShapeMatching = g_StiffnessForGlobalShapeMatching2;
+    globalShapeMatchingEffectiveRange = g_GlobalShapeMatchingEffectiveRange2;
+  }
+  else if ( strandType == 3 )
+  {
+    stiffnessForGlobalShapeMatching = g_StiffnessForGlobalShapeMatching3;
+    globalShapeMatchingEffectiveRange = g_GlobalShapeMatchingEffectiveRange3;
+  }
+
+  if ( stiffnessForGlobalShapeMatching > 0 && globalShapeMatchingEffectiveRange != 0.)
+  {
+    if ( IsMovable(sharedPos[indexForSharedMem]) )
+    {
+      if (float(localVertexIndex) < globalShapeMatchingEffectiveRange * float(numVerticesInTheStrand))
+      {
+        float factor = stiffnessForGlobalShapeMatching;
+        vec3 del = factor * (initialPos - sharedPos[indexForSharedMem]).xyz;
+        sharedPos[indexForSharedMem].xyz += del;
+      }
+    }
+  }
+
+  // update global position buffers
+  UpdateFinalVertexPositions(currentPos, sharedPos[indexForSharedMem], globalVertexIndex, localVertexIndex, numVerticesInTheStrand);
+}

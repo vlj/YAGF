@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
 #include <Core/VAO.h>
+#include <Windows.h>
 
 #include <Core/Shaders.h>
 #include <Core/FBO.h>
@@ -74,6 +75,21 @@ public:
       GL_VERTEX_SHADER, screenquadshader,
       GL_FRAGMENT_SHADER, fragmerge.c_str());
     AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+  }
+};
+
+class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraintSimulation>
+{
+public:
+  GlobalConstraintSimulation()
+  {
+    std::ifstream in("..\\examples\\shaders\\Simulation.comp", std::ios::in);
+
+    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_COMPUTE_SHADER, shader.c_str());
+//    AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
   }
 };
 
@@ -426,8 +442,20 @@ void fillConstantBuffer(float time)
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct Constants), &cbuf);
 }
 
+GLsync syncobj;
+
+void simulate(float time)
+{
+  glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
+}
+
 void draw(float time)
 {
+  if (syncobj)
+  {
+    auto status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 10000000);
+    glDeleteSync(syncobj);
+  }
   fillConstantBuffer(time);
   // Reset PixelCount
   int pxcnt = 1;
@@ -450,22 +478,25 @@ void draw(float time)
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .2 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .5 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_SRC_ALPHA);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
   glViewport(0, 0, 1024, 1024);
-  glClearColor(.1, .1, .1, 1.);
+//  glClearColor(.1, .1, .1, 1.);
   glClear(GL_COLOR_BUFFER_BIT);
 
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
 
+
+  syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
 int main()
@@ -484,10 +515,11 @@ int main()
   float tmp = 0.;
   while (!glfwWindowShouldClose(window))
   {
+    simulate(tmp);
     draw(tmp);
     glfwSwapBuffers(window);
     glfwPollEvents();
-    tmp += 30.;
+    tmp += 300.;
   }
   clean();
   glfwTerminate();
