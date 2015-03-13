@@ -55,7 +55,6 @@ out vec4 p0p1;
 
 void main(void) {
 // Hardcoded values, need to go in cb
-  float g_FiberRadius = 1.;
   float expandPixels = 0.71;
 
   // Calculate right and projected right vectors

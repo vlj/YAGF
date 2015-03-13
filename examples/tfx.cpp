@@ -389,14 +389,16 @@ void fillConstantBuffer(float time)
   cbuf.g_fHairKs2 = .5; // Ks2
   cbuf.g_fHairEx2 = 8.0; // Ex2
 
+  cbuf.g_FiberRadius = 0.15;
+
   cbuf.g_AmbientLightColor[0] = 1.;
   cbuf.g_AmbientLightColor[1] = 1.;
   cbuf.g_AmbientLightColor[2] = 1.;
   cbuf.g_AmbientLightColor[3] = 1.;
 
   cbuf.g_PointLightPos[0] = 0.;
-  cbuf.g_PointLightPos[1] = 0.;
-  cbuf.g_PointLightPos[2] = -1000.;
+  cbuf.g_PointLightPos[1] = 200.;
+  cbuf.g_PointLightPos[2] = 0.;
   cbuf.g_PointLightPos[3] = 0.;
 
   cbuf.g_PointLightColor[0] = 1.;
@@ -480,7 +482,7 @@ int main()
     draw(tmp);
     glfwSwapBuffers(window);
     glfwPollEvents();
-    tmp += 300.;
+    tmp += 30.;
   }
   clean();
   glfwTerminate();
