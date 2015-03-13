@@ -38,6 +38,7 @@ GLuint TFXVao;
 GLuint TFXVbo;
 GLuint TFXTriangleIdx;
 GLuint ConstantBuffer;
+GLuint ConstantSimBuffer;
 
 struct PerPixelListBucket
 {
@@ -151,6 +152,50 @@ struct Constants
   float g_fHairEx2; // for second highlight
 
   float g_mInvViewProjViewport[16];
+};
+
+
+struct SimulationConstants
+{
+  float ModelTransformForHead[16];
+  float ModelRotateForHead[4];
+
+  float Wind;
+  float Wind1[4];
+  float Wind2[4];
+  float Wind3[4];
+
+  int NumLengthConstraintIterations;
+  int bCollision;
+
+  float GravityMagnitude;
+  float timeStep;
+
+  float Damping0;
+  float StiffnessForLocalShapeMatching0;
+  float StiffnessForGlobalShapeMatching0;
+  float GlobalShapeMatchingEffectiveRange0;
+
+  float Damping1;
+  float StiffnessForLocalShapeMatching1;
+  float StiffnessForGlobalShapeMatching1;
+  float GlobalShapeMatchingEffectiveRange1;
+
+  float Damping2;
+  float StiffnessForLocalShapeMatching2;
+  float StiffnessForGlobalShapeMatching2;
+  float GlobalShapeMatchingEffectiveRange2;
+
+  float Damping3;
+  float StiffnessForLocalShapeMatching3;
+  float StiffnessForGlobalShapeMatching3;
+  float GlobalShapeMatchingEffectiveRange3;
+
+  unsigned int NumOfStrandsPerThreadGroup;
+  unsigned int NumFollowHairsPerOneGuideHair;
+
+  int bWarp;
+  int NumLocalShapeMatchingIterations;
 };
 
 struct Float4
@@ -352,6 +397,12 @@ void init()
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
 
+  glGenBuffers(1, &ConstantSimBuffer);
+  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), 0, GL_STATIC_DRAW);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 1, ConstantSimBuffer);
+  
+
   BilinearSampler = SamplerHelper::createBilinearSampler();
 
   glDepthFunc(GL_LEQUAL);
@@ -444,11 +495,12 @@ void fillConstantBuffer(float time)
   cbuf.g_PointLightColor[2] = 1.;
   cbuf.g_PointLightColor[3] = 1.;
 
-  irr::core::matrix4 Model, View, InvView;
+  irr::core::matrix4 View, InvView, tmp;
+  tmp.setTranslation(irr::core::vector3df(0., 0., 200.));
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
+  View *= tmp;
   View.getInverse(InvView);
-  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
-  Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+  irr::core::matrix4 Model;
 
   memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
@@ -466,6 +518,15 @@ GLsync syncobj;
 
 void simulate(float time)
 {
+  struct SimulationConstants cbuf;
+
+  irr::core::matrix4 Model;
+  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
+  Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+  memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
+
+  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
   int numOfGroupsForCS_VertexLevel = (int)(.2 * tfxassets.m_Triangleindices.size() / 64.);
@@ -502,7 +563,7 @@ void draw(float time)
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .2 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .1 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);

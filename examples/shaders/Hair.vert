@@ -49,6 +49,7 @@ layout(std430, binding = 2) buffer HairPos
   vec4 g_HairVertexPositions[1000000];
 };
 
+//layout(location = 0) in vec3 Position;
 layout(location = 1) in vec3 Tangent;
 
 // Need Depth, gl_FragCoord.z returns meaningless values...
