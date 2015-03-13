@@ -26,6 +26,11 @@ GLuint PerPixelLinkedListHeadTexture;
 GLuint PerPixelLinkedListSSBO;
 GLuint PixelCountAtomic;
 
+GLuint InitialPosSSBO;
+GLuint PosSSBO;
+GLuint PrevPosSSBO;
+GLuint StrandTypeSSBO;
+
 GLuint BilinearSampler;
 
 
@@ -295,12 +300,8 @@ void init()
   glGenBuffers(1, &TFXVbo);
   glBindBuffer(GL_ARRAY_BUFFER, TFXVbo);
   glBufferData(GL_ARRAY_BUFFER, duplicatedStrands.size() * sizeof(StrandVertex), duplicatedStrands.data(), GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), 0);
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), (GLvoid *) (3 * sizeof(float)));
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), (GLvoid *)(6 * sizeof(float)));
 
   glGenBuffers(1, &TFXTriangleIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
@@ -321,6 +322,25 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, 100000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
+  glGenBuffers(1, &InitialPosSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, InitialPosSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, InitialPosSSBO);
+
+  glGenBuffers(1, &PosSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PosSSBO);
+
+  glGenBuffers(1, &PrevPosSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, PrevPosSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), 0, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, PrevPosSSBO);
+
+  glGenBuffers(1, &StrandTypeSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, StrandTypeSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, StrandTypeSSBO);
 
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
@@ -446,7 +466,11 @@ GLsync syncobj;
 
 void simulate(float time)
 {
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
+  int numOfGroupsForCS_VertexLevel = (int)(.2 * tfxassets.m_Triangleindices.size() / 64.);
+  glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void draw(float time)
@@ -478,7 +502,7 @@ void draw(float time)
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .5 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .2 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -504,7 +528,7 @@ int main()
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-//      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
