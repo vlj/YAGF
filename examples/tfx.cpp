@@ -302,7 +302,7 @@ void init()
 
   glGenBuffers(1, &PerPixelLinkedListSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, 100000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
 
@@ -391,14 +391,14 @@ void fillConstantBuffer(float time)
 
   cbuf.g_FiberRadius = 0.15;
 
-  cbuf.g_AmbientLightColor[0] = 1.;
-  cbuf.g_AmbientLightColor[1] = 1.;
-  cbuf.g_AmbientLightColor[2] = 1.;
-  cbuf.g_AmbientLightColor[3] = 1.;
+  cbuf.g_AmbientLightColor[0] = .15;
+  cbuf.g_AmbientLightColor[1] = .15;
+  cbuf.g_AmbientLightColor[2] = .15;
+  cbuf.g_AmbientLightColor[3] = .15;
 
-  cbuf.g_PointLightPos[0] = 0.;
-  cbuf.g_PointLightPos[1] = 200.;
-  cbuf.g_PointLightPos[2] = 0.;
+  cbuf.g_PointLightPos[0] = 421.25;
+  cbuf.g_PointLightPos[1] = 306.79;
+  cbuf.g_PointLightPos[2] = 343.;
   cbuf.g_PointLightPos[3] = 0.;
 
   cbuf.g_PointLightColor[0] = 1.;
@@ -449,7 +449,7 @@ void draw(float time)
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .05 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .1 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
