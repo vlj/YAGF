@@ -1,5 +1,10 @@
 #version 430
 
+// If you change the value below, you must change it in TressFXAsset.h as well.
+#define THREAD_GROUP_SIZE 64
+
+layout (local_size_x = THREAD_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
 layout(std140, binding = 1) uniform Constants
 {
   mat4 g_ModelTransformForHead;
@@ -44,10 +49,7 @@ layout(std140, binding = 1) uniform Constants
   int g_NumLocalShapeMatchingIterations;
 };
 
-// If you change the value below, you must change it in TressFXAsset.h as well.
-#define THREAD_GROUP_SIZE 64
 
-layout (local_size_x = THREAD_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 /*
 RWStructuredBuffer<float4> g_HairVertexTangents			: register(u2); 
@@ -275,9 +277,6 @@ void main()
   vec4 currentPos = vec4(0, 0, 0, 0); // position when this step starts. In other words, a position from the last step.
   vec4 initialPos = vec4(0, 0, 0, 0); // rest position
 
-  initialPos = g_InitialHairPositions[gl_LocalInvocationIndex];
-  g_HairVertexPositions[gl_LocalInvocationIndex] = (g_ModelTransformForHead * vec4(initialPos.xyz, 1));
-  return;
 
   // Copy data into shared memory
   initialPos = g_InitialHairPositions[globalVertexIndex];

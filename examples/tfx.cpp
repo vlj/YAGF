@@ -160,7 +160,7 @@ struct SimulationConstants
   float ModelTransformForHead[16];
   float ModelRotateForHead[4];
 
-  float Wind;
+  float Wind[4];
   float Wind1[4];
   float Wind2[4];
   float Wind3[4];
@@ -374,7 +374,7 @@ void init()
 
   glGenBuffers(1, &PosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), 0, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PosSSBO);
 
   glGenBuffers(1, &PrevPosSSBO);
@@ -401,7 +401,6 @@ void init()
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, ConstantSimBuffer);
-  
 
   BilinearSampler = SamplerHelper::createBilinearSampler();
 
@@ -529,8 +528,7 @@ void simulate(float time)
   struct SimulationConstants cbuf;
 
   irr::core::matrix4 Model;
-  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
-  Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+  Model.setRotationDegrees(irr::core::vector3df(time / 360, 90., 0.));
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
   cbuf.timeStep = .016;
 
@@ -556,7 +554,7 @@ void simulate(float time)
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
-  int numOfGroupsForCS_VertexLevel = (int) (0.1 * (tfxassets.m_Triangleindices.size() / 64));
+  int numOfGroupsForCS_VertexLevel = (int) (0.5 * (tfxassets.m_Triangleindices.size() / 64));
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
@@ -631,7 +629,7 @@ int main()
     draw(tmp);
     glfwSwapBuffers(window);
     glfwPollEvents();
-    tmp += 300.;
+    tmp += 30.;
   }
   clean();
   glfwTerminate();
