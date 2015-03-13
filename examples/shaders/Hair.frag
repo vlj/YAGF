@@ -37,7 +37,7 @@ float GetCoverage(uint packedCoverage)
 }
 
 in float depth;
-in vec3 tangent;
+in vec4 tangent;
 out vec4 FragColor;
 
 struct PerPixelListBucket
@@ -57,7 +57,7 @@ void main() {
   ivec2 iuv = ivec2(gl_FragCoord.xy);
   uint tmp = imageAtomicExchange(PerPixelLinkedListHead, iuv, pixel_id);
   PPLL[pxid].depth = depth;
-  PPLL[pxid].TangentAndCoverage = PackTangentAndCoverage(tangent, 0.);
+  PPLL[pxid].TangentAndCoverage = PackTangentAndCoverage(tangent.xyz, 0.);
   PPLL[pxid].next = tmp;
   FragColor = vec4(0.);
 }
