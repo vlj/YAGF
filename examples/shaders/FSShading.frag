@@ -185,10 +185,14 @@ void main() {
   uint ListBucketId = ListBucketHead;
   vec4 result = vec4(0., 0., 0., 1.);
   while (ListBucketId != 0) {
+    float d = PPLL[ListBucketId].depth;
+    vec4 Pos = g_mInvViewProj * (2. * vec4( gl_FragCoord.xy, d, 1.) - 1.);
+    Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
-    float cos = dot(vec3(0., -1., 0.), Tangent);
-    result.xyz += sqrt(1. - cos * cos) * g_MatBaseColor.xyz;
-    result *= .75;
+    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
+    float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
+    result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
+    result.w *= result.w * (1. - FragmentAlpha);
     ListBucketId = PPLL[ListBucketId].next;
   }
   FragColor = result;

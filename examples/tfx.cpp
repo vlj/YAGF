@@ -40,7 +40,7 @@ struct PerPixelListBucket
   unsigned int next;
 };
 
-class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4, irr::video::SColorf>, public TextureRead<Image2D>
+class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<Image2D>
 {
 public:
   Transparent()
@@ -56,7 +56,7 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, vtxshader.c_str(),
       GL_FRAGMENT_SHADER, fragshader.c_str());
-    AssignUniforms("ModelMatrix", "ViewProjectionMatrix", "color");
+    AssignUniforms();
     AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
   }
 };
@@ -305,6 +305,31 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
+
+  glGenBuffers(1, &PixelCountAtomic);
+  glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
+  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
+  glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
+
+  glGenBuffers(1, &ConstantBuffer);
+  glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), 0, GL_STATIC_DRAW);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
+
+  BilinearSampler = SamplerHelper::createBilinearSampler();
+
+  glDepthFunc(GL_LEQUAL);
+}
+
+void clean()
+{
+  glDeleteSamplers(1, &BilinearSampler);
+  glDeleteTextures(1, &MainTexture);
+}
+
+void fillConstantBuffer(float time)
+{
+
   /*
   // From Ruby tfx demo
   static COLORREF g_vCustHairColors[16] =
@@ -327,29 +352,29 @@ void init()
   RGB( 41, 28, 22 ),		//15 Brownish fur color
   };
 
-	pHairParams->color.x = ((g_vCustHairColors[RUBY_COLOR]>> 0) & 0xFF)/255.f;
-	pHairParams->color.y = ((g_vCustHairColors[RUBY_COLOR]>> 8) & 0xFF)/255.f;
-	pHairParams->color.z = ((g_vCustHairColors[RUBY_COLOR]>>16) & 0xFF)/255.f;
-	pHairParams->Ka = 0.0f;
-	pHairParams->Kd = 0.4f;
-	pHairParams->Ks1 = 0.04f;
-	pHairParams->Ex1 = 80.0f;
-	pHairParams->Ks2 = 0.5f;
-	pHairParams->Ex2 = 8.0f;
-	pHairParams->alpha = 0.5f;
-	pHairParams->alpha_sm = 0.004f;
-	pHairParams->radius = 0.15f;
-	pHairParams->density = 1.0f;
-	pHairParams->iStrandCopies = 1;
-	pHairParams->fiber_spacing = 0.3f;
-	pHairParams->bUseCoverage = true;
-	pHairParams->bThinTip = true;
-	pHairParams->bTransparency = true;
-	pHairParams->tech_shadow = SDSM_SHADOW_INDEX;
-	pHairParams->bSimulation = true;
-	pHairParams->iMaxFragments = MAX_FRAGMENTS;
-	pHairParams->ambientLightColor = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
-	pHairParams->pointLightColor = XMFLOAT4(1.f, 1.f, 1.f, 1.0f);
+  pHairParams->color.x = ((g_vCustHairColors[RUBY_COLOR]>> 0) & 0xFF)/255.f;
+  pHairParams->color.y = ((g_vCustHairColors[RUBY_COLOR]>> 8) & 0xFF)/255.f;
+  pHairParams->color.z = ((g_vCustHairColors[RUBY_COLOR]>>16) & 0xFF)/255.f;
+  pHairParams->Ka = 0.0f;
+  pHairParams->Kd = 0.4f;
+  pHairParams->Ks1 = 0.04f;
+  pHairParams->Ex1 = 80.0f;
+  pHairParams->Ks2 = 0.5f;
+  pHairParams->Ex2 = 8.0f;
+  pHairParams->alpha = 0.5f;
+  pHairParams->alpha_sm = 0.004f;
+  pHairParams->radius = 0.15f;
+  pHairParams->density = 1.0f;
+  pHairParams->iStrandCopies = 1;
+  pHairParams->fiber_spacing = 0.3f;
+  pHairParams->bUseCoverage = true;
+  pHairParams->bThinTip = true;
+  pHairParams->bTransparency = true;
+  pHairParams->tech_shadow = SDSM_SHADOW_INDEX;
+  pHairParams->bSimulation = true;
+  pHairParams->iMaxFragments = MAX_FRAGMENTS;
+  pHairParams->ambientLightColor = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
+  pHairParams->pointLightColor = XMFLOAT4(1.f, 1.f, 1.f, 1.0f);
   */
 
   struct Constants cbuf;
@@ -357,29 +382,49 @@ void init()
   cbuf.g_MatBaseColor[1] = 14. / 255.;
   cbuf.g_MatBaseColor[2] = 4. / 255.;
 
-  glGenBuffers(1, &PixelCountAtomic);
-  glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
-  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
-  glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
+  cbuf.g_MatKValue[0] = 0.; // Ka
+  cbuf.g_MatKValue[1] = 0.4; // Kd
+  cbuf.g_MatKValue[2] = 0.04; // Ks1
+  cbuf.g_MatKValue[3] = 80.; // Ex1
+  cbuf.g_fHairKs2 = .5; // Ks2
+  cbuf.g_fHairEx2 = 8.0; // Ex2
 
-  glGenBuffers(1, &ConstantBuffer);
+  cbuf.g_AmbientLightColor[0] = 1.;
+  cbuf.g_AmbientLightColor[1] = 1.;
+  cbuf.g_AmbientLightColor[2] = 1.;
+  cbuf.g_AmbientLightColor[3] = 1.;
+
+  cbuf.g_PointLightPos[0] = 0.;
+  cbuf.g_PointLightPos[1] = 0.;
+  cbuf.g_PointLightPos[2] = -1000.;
+  cbuf.g_PointLightPos[3] = 0.;
+
+  cbuf.g_PointLightColor[0] = 1.;
+  cbuf.g_PointLightColor[1] = 1.;
+  cbuf.g_PointLightColor[2] = 1.;
+  cbuf.g_PointLightColor[3] = 1.;
+
+  irr::core::matrix4 Model, View, InvView;
+  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
+  View.getInverse(InvView);
+  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
+  Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+
+  memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
+  memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
+  memcpy(cbuf.g_mInvViewProj, InvView.pointer(), 16 * sizeof(float));
+  cbuf.g_WinSize[0] = 1024.;
+  cbuf.g_WinSize[1] = 1024.;
+  cbuf.g_WinSize[2] = 1. / 1024.;
+  cbuf.g_WinSize[3] = 1. / 1024.;
+
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
-
-  BilinearSampler = SamplerHelper::createBilinearSampler();
-
-  glDepthFunc(GL_LEQUAL);
-}
-
-void clean()
-{
-  glDeleteSamplers(1, &BilinearSampler);
-  glDeleteTextures(1, &MainTexture);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct Constants), &cbuf);
 }
 
 void draw(float time)
 {
+  fillConstantBuffer(time);
   // Reset PixelCount
   int pxcnt = 1;
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
@@ -397,15 +442,11 @@ void draw(float time)
 
   //    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-  irr::core::matrix4 Model, View;
-  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
-  Model.setTranslation(irr::core::vector3df(0., 0., 200.));
-  Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-  Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
+  Transparent::getInstance()->setUniforms();
   glDrawElementsBaseVertex(GL_TRIANGLES, .05 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 

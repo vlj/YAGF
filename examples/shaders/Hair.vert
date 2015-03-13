@@ -57,11 +57,9 @@ void main(void) {
 // Hardcoded values, need to go in cb
   float g_FiberRadius = 1.;
   float expandPixels = 0.71;
-  mat4 g_mViewProj = ViewProjectionMatrix;
-
 
   // Calculate right and projected right vectors
-  vec3 v = (ModelMatrix * vec4(Position, 1.)).xyz;
+  vec3 v = (g_mWorld * vec4(Position, 1.)).xyz;
   vec3 right = normalize( cross( Tangent, normalize(v - g_vEye)));
   vec2 proj_right = normalize( (g_mViewProj * vec4(right, 0)).xy );
 
@@ -77,6 +75,7 @@ void main(void) {
 
   gl_Position = (fDirIndex==-1.0 ? hairEdgePositions0 : hairEdgePositions1) + fDirIndex * vec4(proj_right * expandPixels / g_WinSize.y, 0.0, 0.0);
   depth = gl_Position.z;
-  tangent = vec4(Tangent, 1.);
+  // Wrong if g_mWorld rescale
+  tangent = g_mWorld * vec4(Tangent, 0.);
   p0p1 = vec4( hairEdgePositions0.xy, hairEdgePositions1.xy );
 }
