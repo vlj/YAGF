@@ -390,11 +390,13 @@ void fillConstantBuffer(float time)
   cbuf.g_fHairEx2 = 8.0; // Ex2
 
   cbuf.g_FiberRadius = 0.15;
+  cbuf.g_FiberAlpha = .5;
+  cbuf.g_alphaThreshold = .00388;
 
   cbuf.g_AmbientLightColor[0] = .15;
   cbuf.g_AmbientLightColor[1] = .15;
   cbuf.g_AmbientLightColor[2] = .15;
-  cbuf.g_AmbientLightColor[3] = .15;
+  cbuf.g_AmbientLightColor[3] = 1.;
 
   cbuf.g_PointLightPos[0] = 421.25;
   cbuf.g_PointLightPos[1] = 306.79;
@@ -410,7 +412,7 @@ void fillConstantBuffer(float time)
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
   View.getInverse(InvView);
   Model.setTranslation(irr::core::vector3df(0., 0., 200.));
-  Model.setInverseRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+  Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));

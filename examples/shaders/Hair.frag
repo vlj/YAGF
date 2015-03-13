@@ -155,6 +155,6 @@ void main() {
   }
 
   coverage *= g_FiberAlpha;
-  StoreFragments_Hair(gl_FragCoord.xy, tangent.xyz, depth, coverage);
+  StoreFragments_Hair(gl_FragCoord.xy, tangent.xyz, coverage, depth);
   FragColor = vec4(1.);
 }
