@@ -45,14 +45,24 @@ layout(std140, binding = 0) uniform Constants
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec3 Tangent;
+
+// Need Depth, gl_FragCoord.z returns meaningless values...
 out float depth;
 out vec4 tangent;
+out vec4 p0p1;
+
+// From VS_RenderHair_AA
+
 void main(void) {
+// Hardcoded values, need to go in cb
   float g_FiberRadius = 1.;
+  float expandPixels = 0.71;
   mat4 g_mViewProj = ViewProjectionMatrix;
+
+
   // Calculate right and projected right vectors
   vec3 v = (ModelMatrix * vec4(Position, 1.)).xyz;
-  vec3 right      = vec3(1., 0., 0.);//normalize( cross( Tangent, normalize(v - g_vEye)));
+  vec3 right = normalize( cross( Tangent, normalize(v - g_vEye)));
   vec2 proj_right = normalize( (g_mViewProj * vec4(right, 0)).xy );
 
   vec4 hairEdgePositions0, hairEdgePositions1; // 0 is negative, 1 is positive
@@ -65,7 +75,8 @@ void main(void) {
 
   float fDirIndex = (gl_VertexID % 2 == 1) ? -1.0 : 1.0;
 
-  gl_Position = (fDirIndex==-1.0 ? hairEdgePositions0 : hairEdgePositions1);
+  gl_Position = (fDirIndex==-1.0 ? hairEdgePositions0 : hairEdgePositions1) + fDirIndex * vec4(proj_right * expandPixels / g_WinSize.y, 0.0, 0.0);
   depth = gl_Position.z;
   tangent = vec4(Tangent, 1.);
+  p0p1 = vec4( hairEdgePositions0.xy, hairEdgePositions1.xy );
 }
