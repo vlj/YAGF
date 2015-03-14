@@ -710,7 +710,7 @@ int main()
     draw(tmp);
     glfwSwapBuffers(window);
     glfwPollEvents();
-    tmp += 30.;
+    tmp += 300.;
   }
   clean();
   glfwTerminate();

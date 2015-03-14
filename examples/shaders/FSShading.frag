@@ -73,28 +73,6 @@ float GetCoverage(uint packedCoverage)
     return UnpackUintIntoFloat4(packedCoverage).w;
 }
 
-void BubbleSort(uint ListBucketHead) {
-  bool isSorted = false;
-  while (!isSorted) {
-    isSorted = true;
-    uint ListBucketId = ListBucketHead;
-    uint NextListBucketId = PPLL[ListBucketId].next;
-    while (NextListBucketId != 0) {
-    if (PPLL[ListBucketId].depth < PPLL[NextListBucketId].depth) {
-        isSorted = false;
-        float tmp = PPLL[ListBucketId].depth;
-        PPLL[ListBucketId].depth = PPLL[NextListBucketId].depth;
-        PPLL[NextListBucketId].depth = tmp;
-        uint ttmp = PPLL[ListBucketId].TangentAndCoverage;
-        PPLL[ListBucketId].TangentAndCoverage = PPLL[NextListBucketId].TangentAndCoverage;
-        PPLL[NextListBucketId].TangentAndCoverage = ttmp;
-      }
-      ListBucketId = NextListBucketId;
-      NextListBucketId = PPLL[NextListBucketId].next;
-    }
-  }
-}
-
 #define PI 3.14
 
 vec3 ComputeHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
@@ -177,23 +155,92 @@ vec3 SimpleHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
     return vColor;
 }
 
+#define K_BUFFER 8
+
+struct FragmentElement {
+  float depth;
+  uint TangentAndCoverage;
+};
+
 void main() {
   ivec2 iuv = ivec2(gl_FragCoord.xy);
   uint ListBucketHead = imageLoad(PerPixelLinkedListHead, iuv).x;
   if (ListBucketHead == 0) discard;
-  BubbleSort(ListBucketHead);
+
+  FragmentElement kbuf[K_BUFFER];
+  // Load first K_BUFFER element in temp array
+  int kbuf_size;
+  for (kbuf_size = 0; kbuf_size < K_BUFFER; kbuf_size++)
+  {
+    kbuf[kbuf_size].depth = PPLL[ListBucketHead].depth;
+    kbuf[kbuf_size].TangentAndCoverage = PPLL[ListBucketHead].TangentAndCoverage;
+    ListBucketHead = PPLL[ListBucketHead].next;
+    if (ListBucketHead == 0)
+      break;
+  }
+
   uint ListBucketId = ListBucketHead;
   vec4 result = vec4(0., 0., 0., 1.);
+
   while (ListBucketId != 0) {
+    float max_depth = 0.;
+    uint max_idx = 0;
+    for (int i = 0; i < kbuf_size; i++)
+    {
+      float d = kbuf[kbuf_size].depth;
+      max_depth = max(max_depth, d);
+      max_idx = (max_depth == d) ? i : max_idx;
+    }
+
+    if (PPLL[ListBucketId].depth < max_depth)
+    {
+      float tmp = PPLL[ListBucketId].depth;
+      PPLL[ListBucketId].depth = kbuf[max_idx].depth;
+      kbuf[max_idx].depth = tmp;
+      uint tmpu = PPLL[ListBucketId].TangentAndCoverage;
+      PPLL[ListBucketId].TangentAndCoverage = kbuf[max_idx].TangentAndCoverage;
+      kbuf[max_idx].TangentAndCoverage = tmpu;
+    }
+
     float d = PPLL[ListBucketId].depth;
     vec4 Pos = g_mInvViewProj * (2. * vec4( gl_FragCoord.xy, d, 1.) - 1.);
     Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
-    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
+    vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= result.w * (1. - FragmentAlpha);
+
     ListBucketId = PPLL[ListBucketId].next;
+  }
+
+  bool isSorted = false;
+  while (!isSorted) {
+    isSorted = true;
+    for (int i = 0; i < kbuf_size - 1; i++)
+    {
+      if (kbuf[i].depth < kbuf[i + 1].depth) {
+        isSorted = false;
+        float tmp = kbuf[i].depth;
+        kbuf[i].depth = kbuf[i + 1].depth;
+        kbuf[i + 1].depth = tmp;
+        uint ttmp = kbuf[i].TangentAndCoverage;
+        kbuf[i].TangentAndCoverage = kbuf[i + 1].TangentAndCoverage;
+        kbuf[i + 1].TangentAndCoverage = ttmp;
+      }
+    }
+  }
+
+  for (int i = 0; i < kbuf_size; i++)
+  {
+    float d = kbuf[i].depth;
+    vec4 Pos = g_mInvViewProj * (2. * vec4( gl_FragCoord.xy, d, 1.) - 1.);
+    Pos /= Pos.w;
+    vec3 Tangent = GetTangent(kbuf[i].TangentAndCoverage);
+    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
+    float FragmentAlpha = GetCoverage(kbuf[i].TangentAndCoverage);
+    result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
+    result.w *= result.w * (1. - FragmentAlpha);
   }
   FragColor = result;
 };
