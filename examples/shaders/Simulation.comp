@@ -84,13 +84,7 @@ layout(std430, binding = 4) buffer StrandType
 };
 
 
-
-
 shared vec4 sharedPos[THREAD_GROUP_SIZE];
-shared vec4 sharedTangent[THREAD_GROUP_SIZE];
-shared float sharedLength[THREAD_GROUP_SIZE];
-
-#define MAX_VERTS_PER_STRAND 16
 
 
 //--------------------------------------------------------------------------------------
@@ -127,30 +121,6 @@ vec4 InverseQuaternion(vec4 q)
   q.y = -q.y / lengthSqr;
   q.z = -q.z / lengthSqr;
   q.w = q.w / lengthSqr;
-
-  return q;
-}
-
-vec3 MultQuaternionAndVector(vec4 q, vec3 v)
-{
-  vec3 uv, uuv;
-  vec3 qvec = vec3(q.x, q.y, q.z);
-  uv = cross(qvec, v);
-  uuv = cross(qvec, uv);
-  uv *= (2.0f * q.w);
-  uuv *= 2.0f;
-
-  return v + uv + uuv;
-}
-
-vec4 MultQuaternionAndQuaternion(vec4 qA, vec4 qB)
-{
-  vec4 q;
-
-  q.w = qA.w * qB.w - qA.x * qB.x - qA.y * qB.y - qA.z * qB.z;
-  q.x = qA.w * qB.x + qA.x * qB.w + qA.y * qB.z - qA.z * qB.y;
-  q.y = qA.w * qB.y + qA.y * qB.w + qA.z * qB.x - qA.x * qB.z;
-  q.z = qA.w * qB.z + qA.z * qB.w + qA.x * qB.y - qA.y * qB.x;
 
   return q;
 }
