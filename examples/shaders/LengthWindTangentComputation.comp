@@ -149,7 +149,7 @@ void main()
   barrier();
 
 
-/*  //------------
+  //------------
   // Wind
   //------------
   if (g_Wind.x != 0 || g_Wind.y != 0 || g_Wind.z != 0)
@@ -173,7 +173,7 @@ void main()
   }
 
   barrier();
-  */
+
 
   //----------------------------
   // Enforce length constraints

@@ -554,17 +554,15 @@ void simulate(float time)
   struct SimulationConstants cbuf;
 
   irr::core::matrix4 Model;
-  if (time < 3000.) {
+  if (time < 300.)
     cbuf.bWarp = 1;
-    Model.setRotationDegrees(irr::core::vector3df(90. * time / 3000., 90., 0.));
-  }
-  else {
+  else
     cbuf.bWarp = 0;
-    Model.setRotationDegrees(irr::core::vector3df(90., 90., 0.));
-  }
+
+  Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
-  cbuf.timeStep = .16;
+  cbuf.timeStep = .016;
 
   cbuf.Damping0 = 0.125;
   cbuf.StiffnessForGlobalShapeMatching0 = 0.2;
@@ -583,6 +581,11 @@ void simulate(float time)
 
   cbuf.GravityMagnitude = 1.;
   cbuf.NumLengthConstraintIterations = 2;
+
+  memset(cbuf.Wind, 0, 4 * sizeof(float));
+  memset(cbuf.Wind1, 0, 4 * sizeof(float));
+  memset(cbuf.Wind2, 0, 4 * sizeof(float));
+  memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
