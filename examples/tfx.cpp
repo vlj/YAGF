@@ -36,8 +36,6 @@ GLuint RotationSSBO;
 GLuint LocalRefSSBO;
 GLuint ThicknessSSBO;
 
-GLuint BilinearSampler;
-
 
 GLuint TFXVao;
 GLuint TFXVbo;
@@ -449,23 +447,47 @@ void init()
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, ConstantSimBuffer);
 
-  BilinearSampler = SamplerHelper::createBilinearSampler();
-
   glDepthFunc(GL_LEQUAL);
 }
 
 void clean()
 {
-  glDeleteSamplers(1, &BilinearSampler);
   glDeleteTextures(1, &MainTexture);
+  glDeleteTextures(1, &DepthStencilTexture);
   glDeleteBuffers(1, &ConstantBuffer);
   glDeleteBuffers(1, &ConstantSimBuffer);
   glDeleteBuffers(1, &PixelCountAtomic);
+
+
   glDeleteBuffers(1, &StrandTypeSSBO);
   glDeleteBuffers(1, &PrevPosSSBO);
   glDeleteBuffers(1, &PosSSBO);
   glDeleteBuffers(1, &InitialPosSSBO);
   glDeleteBuffers(1, &PerPixelLinkedListSSBO);
+  glDeleteBuffers(1, &LengthSSBO);
+  glDeleteBuffers(1, &TangentSSBO);
+  glDeleteBuffers(1, &RotationSSBO);
+  glDeleteBuffers(1, &LocalRefSSBO);
+  glDeleteBuffers(1, &ThicknessSSBO);
+
+  glDeleteVertexArrays(1, &TFXVao);
+  glDeleteBuffers(1, &TFXVbo);
+  glDeleteBuffers(1, &TFXTriangleIdx);
+  glDeleteTextures(1, &PerPixelLinkedListHeadTexture);
+
+  delete PerPixelLinkedListHeadFBO;
+  delete MainFBO;
+
+  delete[] tfxassets.m_pHairStrandType;
+  delete[] tfxassets.m_pRefVectors;
+  delete[] tfxassets.m_pGlobalRotations;
+  delete[] tfxassets.m_pLocalRotations;
+  delete[] tfxassets.m_pVertices;
+  delete[] tfxassets.m_pTangents;
+  delete[] tfxassets.m_pTriangleVertices;
+  delete[] tfxassets.m_pThicknessCoeffs;
+  delete[] tfxassets.m_pFollowRootOffset;
+  delete[] tfxassets.m_pRestLengths;
 }
 
 void fillConstantBuffer(float time)
@@ -621,9 +643,6 @@ void simulate(float time)
   memset(cbuf.Wind2, 0, 4 * sizeof(float));
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
-  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
-
   if (syncobj)
   {
     GLenum status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
@@ -633,6 +652,11 @@ void simulate(float time)
     }
     glDeleteSync(syncobj);
   }
+
+  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
+
+
   int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_Triangleindices.size() / 64));
 
   // Global Constraints
