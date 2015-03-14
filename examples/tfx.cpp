@@ -363,22 +363,11 @@ void init()
 
   tfxassets = loadTress("..\\examples\\ruby.tfxb");
   // Need to create manually buffer size indexes are 32 bits and not 16bits
-  // We also need to duplicate strands to match SDK inputs
-
-  std::vector<StrandVertex> duplicatedStrands;
-  for (unsigned i = 0; i < tfxassets.m_NumTotalHairVertices; i++)
-  {
-    duplicatedStrands.push_back(tfxassets.m_pTriangleVertices[i]);
-    duplicatedStrands.push_back(tfxassets.m_pTriangleVertices[i]);
-  }
-
   glGenVertexArrays(1, &TFXVao);
   glBindVertexArray(TFXVao);
   glGenBuffers(1, &TFXVbo);
   glBindBuffer(GL_ARRAY_BUFFER, TFXVbo);
-  glBufferData(GL_ARRAY_BUFFER, duplicatedStrands.size() * sizeof(StrandVertex), duplicatedStrands.data(), GL_STATIC_DRAW);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(StrandVertex), (GLvoid *) (3 * sizeof(float)));
+  glBufferData(GL_ARRAY_BUFFER, sizeof(StrandVertex), 0, GL_STATIC_DRAW);
 
   glGenBuffers(1, &TFXTriangleIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
