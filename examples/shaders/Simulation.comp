@@ -103,24 +103,6 @@ bool IsMovable(vec4 particle)
   return particle.w > 0;
 }
 
-vec2 ConstraintMultiplier(vec4 particle0, vec4 particle1)
-{
-  if (IsMovable(particle0))
-  {
-    if (IsMovable(particle1))
-      return vec2(0.5, 0.5);
-    else
-      return vec2(1, 0);
-  }
-  else
-  {
-    if (IsMovable(particle1))
-      return vec2(0, 1);
-    else
-      return vec2(0, 0);
-  }
-}
-
 vec4 MakeQuaternion(float angle_radian, vec3 axis)
 {
   // create quaternion using angle and rotation axis
@@ -171,18 +153,6 @@ vec4 MultQuaternionAndQuaternion(vec4 qA, vec4 qB)
   q.z = qA.w * qB.z + qA.z * qB.w + qA.x * qB.y - qA.y * qB.x;
 
   return q;
-}
-
-void ApplyDistanceConstraint(inout vec4 pos0, inout vec4 pos1, float targetDistance, float stiffness)
-{
-  vec3 delta = pos1.xyz - pos0.xyz;
-  float distance = max(length(delta), 1e-7);
-  float stretching = 1 - targetDistance / distance;
-  delta = stretching * delta;
-  vec2 multiplier = ConstraintMultiplier(pos0, pos1);
-
-  pos0.xyz += multiplier[0] * delta * stiffness;
-  pos1.xyz -= multiplier[1] * delta * stiffness;
 }
 
 void CalcIndicesInVertexLevelTotal(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)

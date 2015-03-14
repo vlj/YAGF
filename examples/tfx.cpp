@@ -95,7 +95,21 @@ public:
 
     Program = ProgramShaderLoading::LoadProgram(
       GL_COMPUTE_SHADER, shader.c_str());
-//    AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+  }
+};
+
+class WindLengthTangentConstraint : public ShaderHelperSingleton<WindLengthTangentConstraint>
+{
+public:
+
+  WindLengthTangentConstraint()
+  {
+    std::ifstream in("..\\examples\\shaders\\LengthWindTangentComputation.comp", std::ios::in);
+
+    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_COMPUTE_SHADER, shader.c_str());
   }
 };
 
@@ -561,8 +575,17 @@ void simulate(float time)
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+  // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
   int numOfGroupsForCS_VertexLevel = (int) (0.1 * (tfxassets.m_Triangleindices.size() / 64));
+  glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+  // Wind Lenght Tangent
+  glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
