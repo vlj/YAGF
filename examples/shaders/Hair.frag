@@ -1,6 +1,6 @@
 #version 430 core
 layout (binding = 0) uniform atomic_uint PixelCount;
-layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
+layout(r32ui) uniform restrict uimage2D PerPixelLinkedListHead;
 
 layout(std140, binding = 0) uniform Constants
 {
@@ -83,7 +83,7 @@ struct PerPixelListBucket
     uint next;
 };
 
-layout(std430, binding = 0) buffer PerPixelLinkedList
+layout(std430, binding = 0) restrict writeonly buffer PerPixelLinkedList
 {
     PerPixelListBucket PPLL[10000000];
 };
