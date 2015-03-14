@@ -39,7 +39,7 @@ layout(std140, binding = 1) uniform Constants
 
   float g_Damping3;
   float g_StiffnessForLocalShapeMatching3;
-  float g_StiffnessForGlobalShapeMatching3;	
+  float g_StiffnessForGlobalShapeMatching3;
   float g_GlobalShapeMatchingEffectiveRange3;
 
   uint g_NumOfStrandsPerThreadGroup;
