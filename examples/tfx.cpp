@@ -34,6 +34,7 @@ GLuint LengthSSBO;
 GLuint TangentSSBO;
 GLuint RotationSSBO;
 GLuint LocalRefSSBO;
+GLuint ThicknessSSBO;
 
 GLuint BilinearSampler;
 
@@ -427,6 +428,11 @@ void init()
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, LocalRefSSBO);
   glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pRefVectors, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, LocalRefSSBO);
+
+  glGenBuffers(1, &ThicknessSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, ThicknessSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pThicknessCoeffs, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, ThicknessSSBO);
 
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);

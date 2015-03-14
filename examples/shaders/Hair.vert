@@ -54,6 +54,11 @@ layout(std430, binding = 6) restrict readonly buffer HairTangent
   vec4 g_HairVertexTangents[1000000];
 };
 
+layout(std430, binding = 9) restrict readonly buffer HairThickness
+{
+  float g_HairThicknessCoeffs[1000000];
+};
+
 // Need Depth, gl_FragCoord.z returns meaningless values...
 out float depth;
 out vec4 tangent;
@@ -66,14 +71,15 @@ void main(void) {
   float expandPixels = 0.71;
   vec3 v = g_HairVertexPositions[gl_VertexID / 2].xyz;
   vec3 Tangent = g_HairVertexTangents[gl_VertexID / 2].xyz;
+  float ratio = g_HairThicknessCoeffs[gl_VertexID / 2];
 
   // Calculate right and projected right vectors
   vec3 right = normalize( cross( Tangent, normalize(v - g_vEye)));
   vec2 proj_right = normalize( (g_mViewProj * vec4(right, 0)).xy );
 
   vec4 hairEdgePositions0, hairEdgePositions1; // 0 is negative, 1 is positive
-  hairEdgePositions0 = vec4(v +  -1.0 * right * g_FiberRadius, 1.0);
-  hairEdgePositions1 = vec4(v +   1.0 * right * g_FiberRadius, 1.0);
+  hairEdgePositions0 = vec4(v +  -1.0 * right * ratio * g_FiberRadius, 1.0);
+  hairEdgePositions1 = vec4(v +   1.0 * right * ratio * g_FiberRadius, 1.0);
   hairEdgePositions0 = g_mViewProj * hairEdgePositions0;
   hairEdgePositions1 = g_mViewProj * hairEdgePositions1;
   hairEdgePositions0 = hairEdgePositions0 / hairEdgePositions0.w;
@@ -83,7 +89,6 @@ void main(void) {
 
   gl_Position = (fDirIndex==-1.0 ? hairEdgePositions0 : hairEdgePositions1) + fDirIndex * vec4(proj_right * expandPixels / g_WinSize.y, 0.0, 0.0);
   depth = gl_Position.z;
-  // Wrong if g_mWorld rescale
-  tangent = g_mWorld * vec4(Tangent, 0.);
+  tangent = vec4(Tangent, ratio);
   p0p1 = vec4( hairEdgePositions0.xy, hairEdgePositions1.xy );
 }

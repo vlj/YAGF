@@ -142,19 +142,11 @@ void main() {
   vec4 proj_pos = vec4(2 * gl_FragCoord.xy * g_WinSize.zw - 1., 1., 1.);
   vec4 original_pos = g_mInvViewProj * proj_pos; // Not used ??
 
-  float curve_scale = 1;
-  if (g_bThinTip > 0 )
-      curve_scale = tangent.w;
-
-  float fiber_radius = curve_scale * g_FiberRadius; // Not used ???
-
   float coverage = 1.f;
-//  if(g_bUseCoverage)
-  {
-    coverage = ComputeCoverage(p0p1.xy, p0p1.zw, proj_pos.xy);
-  }
+  coverage = ComputeCoverage(p0p1.xy, p0p1.zw, proj_pos.xy);
 
-  coverage *= g_FiberAlpha;
-  StoreFragments_Hair(gl_FragCoord.xy, tangent.xyz, coverage, depth);
+  coverage *= g_FiberAlpha * tangent.w * g_FiberRadius;
+  if (coverage > g_alphaThreshold)
+    StoreFragments_Hair(gl_FragCoord.xy, tangent.xyz, coverage, depth);
   FragColor = vec4(1.);
 }
