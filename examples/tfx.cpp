@@ -569,7 +569,6 @@ void simulate(float time)
   struct SimulationConstants cbuf;
 
   irr::core::matrix4 Model;
-  time = 0;
   if (time < 30.)
     cbuf.bWarp = 1;
   else
@@ -595,7 +594,7 @@ void simulate(float time)
   cbuf.Damping1 = 0.125;
   cbuf.StiffnessForGlobalShapeMatching1 = 0.25;
   cbuf.GlobalShapeMatchingEffectiveRange1 = 0.4;
-  cbuf.StiffnessForGlobalShapeMatching1 = 0.75;
+  cbuf.StiffnessForLocalShapeMatching1 = 0.75;
   cbuf.Damping2 = 0.0199;
   cbuf.StiffnessForGlobalShapeMatching2 = 0.;
   cbuf.GlobalShapeMatchingEffectiveRange2 = 0.;
