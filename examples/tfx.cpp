@@ -580,14 +580,23 @@ void simulate(float time)
   struct SimulationConstants cbuf;
 
   irr::core::matrix4 Model;
-  if (time < 300.)
+  time = 0;
+  if (time < 30.)
     cbuf.bWarp = 1;
   else
     cbuf.bWarp = 0;
 
+  if (time > 180 * 360)
+    time = 180 * 360;
+
   Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
+  cbuf.ModelRotateForHead[0] = 0.;
+  cbuf.ModelRotateForHead[1] = sin((time / 720) * (3.14 / 180.));
+  cbuf.ModelRotateForHead[2] = 0.;
+  cbuf.ModelRotateForHead[3] = cos((3.14 / 180.) * time / 720);
+
   cbuf.timeStep = .016;
 
   cbuf.Damping0 = 0.125;
@@ -609,7 +618,7 @@ void simulate(float time)
 
   cbuf.NumOfStrandsPerThreadGroup = 4;
 
-  cbuf.GravityMagnitude = 1.;
+  cbuf.GravityMagnitude = 10.;
   cbuf.NumLengthConstraintIterations = 2;
   cbuf.NumLocalShapeMatchingIterations = 1;
 
@@ -618,12 +627,11 @@ void simulate(float time)
   memset(cbuf.Wind2, 0, 4 * sizeof(float));
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
-
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-  int numOfGroupsForCS_VertexLevel = (int)(0.1 * (tfxassets.m_Triangleindices.size() / 64));
+  int numOfGroupsForCS_VertexLevel = (int)(0.5 * (tfxassets.m_Triangleindices.size() / 64));
 
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
