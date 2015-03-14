@@ -30,6 +30,8 @@ GLuint InitialPosSSBO;
 GLuint PosSSBO;
 GLuint PrevPosSSBO;
 GLuint StrandTypeSSBO;
+GLuint LengthSSBO;
+GLuint TangentSSBO;
 
 GLuint BilinearSampler;
 
@@ -401,6 +403,16 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, StrandTypeSSBO);
 
+  glGenBuffers(1, &LengthSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, LengthSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pRestLengths, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, LengthSSBO);
+
+  glGenBuffers(1, &TangentSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, TangentSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pTangents, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, TangentSSBO);
+
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
@@ -552,7 +564,7 @@ void simulate(float time)
   }
 
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
-  cbuf.timeStep = .016;
+  cbuf.timeStep = .16;
 
   cbuf.Damping0 = 0.125;
   cbuf.StiffnessForGlobalShapeMatching0 = 0.2;
@@ -570,6 +582,7 @@ void simulate(float time)
   cbuf.NumOfStrandsPerThreadGroup = 4;
 
   cbuf.GravityMagnitude = 1.;
+  cbuf.NumLengthConstraintIterations = 2;
 
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);

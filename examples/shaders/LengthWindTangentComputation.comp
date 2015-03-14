@@ -135,6 +135,7 @@ void CalcIndicesInVertexLevelMaster(uint local_id, uint group_id, inout uint glo
 
 void main()
 {
+
   uint globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
   CalcIndicesInVertexLevelMaster(gl_LocalInvocationID.x, gl_WorkGroupID.x, globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType);
 
@@ -147,7 +148,8 @@ void main()
   sharedLength[indexForSharedMem] = g_HairRestLengthSRV[globalVertexIndex];
   barrier();
 
-  //------------
+
+/*  //------------
   // Wind
   //------------
   if (g_Wind.x != 0 || g_Wind.y != 0 || g_Wind.z != 0)
@@ -171,6 +173,7 @@ void main()
   }
 
   barrier();
+  */
 
   //----------------------------
   // Enforce length constraints

@@ -49,7 +49,10 @@ layout(std430, binding = 2) buffer HairPos
   vec4 g_HairVertexPositions[1000000];
 };
 
-layout(location = 1) in vec3 Tangent;
+layout(std430, binding = 6) buffer HairTangent
+{
+  vec4 g_HairVertexTangents[1000000];
+};
 
 // Need Depth, gl_FragCoord.z returns meaningless values...
 out float depth;
@@ -62,6 +65,7 @@ void main(void) {
 // Hardcoded values, need to go in cb
   float expandPixels = 0.71;
   vec3 v = g_HairVertexPositions[gl_VertexID / 2].xyz;
+  vec3 Tangent = g_HairVertexTangents[gl_VertexID / 2].xyz;
 
   // Calculate right and projected right vectors
   vec3 right = normalize( cross( Tangent, normalize(v - g_vEye)));
