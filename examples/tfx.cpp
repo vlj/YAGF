@@ -646,11 +646,7 @@ void simulate(float time)
 
 void draw(float time)
 {
-  if (syncobj)
-  {
-    auto status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 10000000);
-    glDeleteSync(syncobj);
-  }
+
   fillConstantBuffer(time);
   // Reset PixelCount
   int pxcnt = 1;
@@ -684,7 +680,7 @@ void draw(float time)
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_ONE, GL_ZERO);
   glBlendEquation(GL_FUNC_ADD);
   glViewport(0, 0, 1024, 1024);
 //  glClearColor(.1, .1, .1, 1.);
@@ -692,9 +688,6 @@ void draw(float time)
 
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
-
-
-  syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
 int main()
@@ -713,8 +706,14 @@ int main()
   float tmp = 0.;
   while (!glfwWindowShouldClose(window))
   {
+    if (syncobj)
+    {
+      auto status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 10000000);
+      glDeleteSync(syncobj);
+    }
     simulate(tmp);
     draw(tmp);
+    syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glfwSwapBuffers(window);
     glfwPollEvents();
     tmp += 300.;
