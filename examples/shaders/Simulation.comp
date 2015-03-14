@@ -97,34 +97,6 @@ bool IsMovable(vec4 particle)
   return particle.w > 0;
 }
 
-vec4 MakeQuaternion(float angle_radian, vec3 axis)
-{
-  // create quaternion using angle and rotation axis
-  vec4 quaternion;
-  float halfAngle = 0.5f * angle_radian;
-  float sinHalf = sin(halfAngle);
-
-  quaternion.w = cos(halfAngle);
-  quaternion.xyz = sinHalf * axis.xyz;
-
-  return quaternion;
-}
-
-vec4 InverseQuaternion(vec4 q)
-{
-  float lengthSqr = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
-
-  if ( lengthSqr < 0.001 )
-    return vec4(0, 0, 0, 1.0f);
-
-  q.x = -q.x / lengthSqr;
-  q.y = -q.y / lengthSqr;
-  q.z = -q.z / lengthSqr;
-  q.w = q.w / lengthSqr;
-
-  return q;
-}
-
 void CalcIndicesInVertexLevelTotal(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)
 {
   indexForSharedMem = local_id;
@@ -155,15 +127,6 @@ void CalcIndicesInVertexLevelMaster(uint local_id, uint group_id, inout uint glo
 void CalcIndicesInStrandLevelTotal(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint numVerticesInTheStrand, inout uint globalRootVertexIndex, inout uint strandType)
 {
   globalStrandIndex = THREAD_GROUP_SIZE*group_id + local_id;
-  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
-  strandType = g_HairStrandType[globalStrandIndex];
-  globalRootVertexIndex = globalStrandIndex * numVerticesInTheStrand;
-}
-
-void CalcIndicesInStrandLevelMaster(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint numVerticesInTheStrand, inout uint globalRootVertexIndex, inout uint strandType)
-{
-  globalStrandIndex = THREAD_GROUP_SIZE*group_id + local_id;
-  globalStrandIndex *= (g_NumFollowHairsPerOneGuideHair+1);
   numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
   strandType = g_HairStrandType[globalStrandIndex];
   globalRootVertexIndex = globalStrandIndex * numVerticesInTheStrand;

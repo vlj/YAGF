@@ -32,6 +32,8 @@ GLuint PrevPosSSBO;
 GLuint StrandTypeSSBO;
 GLuint LengthSSBO;
 GLuint TangentSSBO;
+GLuint RotationSSBO;
+GLuint LocalRefSSBO;
 
 GLuint BilinearSampler;
 
@@ -92,6 +94,20 @@ public:
   GlobalConstraintSimulation()
   {
     std::ifstream in("..\\examples\\shaders\\Simulation.comp", std::ios::in);
+
+    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_COMPUTE_SHADER, shader.c_str());
+  }
+};
+
+class LocalConstraintSimulation : public ShaderHelperSingleton<LocalConstraintSimulation>
+{
+public:
+  LocalConstraintSimulation()
+  {
+    std::ifstream in("..\\examples\\shaders\\LocalConstraints.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -413,6 +429,16 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pTangents, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, TangentSSBO);
 
+  glGenBuffers(1, &RotationSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, RotationSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pGlobalRotations, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, RotationSSBO);
+
+  glGenBuffers(1, &LocalRefSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, LocalRefSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pRefVectors, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, LocalRefSSBO);
+
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
@@ -565,22 +591,27 @@ void simulate(float time)
   cbuf.timeStep = .016;
 
   cbuf.Damping0 = 0.125;
-  cbuf.StiffnessForGlobalShapeMatching0 = 0.2;
+  cbuf.StiffnessForGlobalShapeMatching0 = 0.8;
   cbuf.GlobalShapeMatchingEffectiveRange0 = 0.3;
+  cbuf.StiffnessForLocalShapeMatching0 = 0.2;
   cbuf.Damping1 = 0.125;
   cbuf.StiffnessForGlobalShapeMatching1 = 0.25;
   cbuf.GlobalShapeMatchingEffectiveRange1 = 0.4;
+  cbuf.StiffnessForGlobalShapeMatching1 = 0.75;
   cbuf.Damping2 = 0.0199;
   cbuf.StiffnessForGlobalShapeMatching2 = 0.;
   cbuf.GlobalShapeMatchingEffectiveRange2 = 0.;
+  cbuf.StiffnessForLocalShapeMatching2 = 0.699;
   cbuf.Damping3 = 0.1;
   cbuf.StiffnessForGlobalShapeMatching3 = 0.2;
   cbuf.GlobalShapeMatchingEffectiveRange3 = 0.3;
+  cbuf.StiffnessForLocalShapeMatching3 = 1.;
 
   cbuf.NumOfStrandsPerThreadGroup = 4;
 
   cbuf.GravityMagnitude = 1.;
   cbuf.NumLengthConstraintIterations = 2;
+  cbuf.NumLocalShapeMatchingIterations = 1;
 
   memset(cbuf.Wind, 0, 4 * sizeof(float));
   memset(cbuf.Wind1, 0, 4 * sizeof(float));
@@ -592,17 +623,24 @@ void simulate(float time)
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
+  int numOfGroupsForCS_VertexLevel = (int)(0.1 * (tfxassets.m_Triangleindices.size() / 64));
+
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
-  int numOfGroupsForCS_VertexLevel = (int) (0.1 * (tfxassets.m_Triangleindices.size() / 64));
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
+
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+  // Local Constraints
+  glUseProgram(LocalConstraintSimulation::getInstance()->Program);
+  glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // Wind Lenght Tangent
   glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
+
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 

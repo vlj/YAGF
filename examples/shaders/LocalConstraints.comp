@@ -49,6 +49,25 @@ layout(std140, binding = 1) uniform Constants
   int g_NumLocalShapeMatchingIterations;
 };
 
+layout(std430, binding = 2) buffer HairPos
+{
+  vec4 g_HairVertexPositions[1000000];
+};
+
+layout(std430, binding = 4) buffer StrandType
+{
+  int g_HairStrandType[1000000];
+};
+
+layout(std430, binding = 7) buffer GlobalRotation
+{
+  vec4 g_GlobalRotations[1000000];
+};
+
+layout(std430, binding = 8) buffer LocalRef
+{
+  vec4 g_HairRefVecsInLocalFrame[1000000];
+};
 
 #define MAX_VERTS_PER_STRAND 16
 
@@ -66,7 +85,14 @@ void CalcIndicesInVertexLevelMaster(uint local_id, uint group_id, inout uint glo
   globalVertexIndex = globalStrandIndex * numVerticesInTheStrand + localVertexIndex;
 }
 
-
+void CalcIndicesInStrandLevelMaster(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint numVerticesInTheStrand, inout uint globalRootVertexIndex, inout uint strandType)
+{
+  globalStrandIndex = THREAD_GROUP_SIZE*group_id + local_id;
+  globalStrandIndex *= (g_NumFollowHairsPerOneGuideHair+1);
+  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
+  strandType = g_HairStrandType[globalStrandIndex];
+  globalRootVertexIndex = globalStrandIndex * numVerticesInTheStrand;
+}
 
 bool IsMovable(vec4 particle)
 {
@@ -97,6 +123,33 @@ vec3 MultQuaternionAndVector(vec4 q, vec3 v)
   return v + uv + uuv;
 }
 
+vec4 MakeQuaternion(float angle_radian, vec3 axis)
+{
+  // create quaternion using angle and rotation axis
+  vec4 quaternion;
+  float halfAngle = 0.5f * angle_radian;
+  float sinHalf = sin(halfAngle);
+
+  quaternion.w = cos(halfAngle);
+  quaternion.xyz = sinHalf * axis.xyz;
+
+  return quaternion;
+}
+
+vec4 InverseQuaternion(vec4 q)
+{
+  float lengthSqr = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
+
+  if ( lengthSqr < 0.001 )
+    return vec4(0, 0, 0, 1.0f);
+
+  q.x = -q.x / lengthSqr;
+  q.y = -q.y / lengthSqr;
+  q.z = -q.z / lengthSqr;
+  q.w = q.w / lengthSqr;
+
+  return q;
+}
 
 
 //--------------------------------------------------------------------------------------
@@ -141,8 +194,8 @@ void main()
   }
 
   //--------------------------------------------
-  // Local shape constraint for bending/twisting 
-  //--------------------------------------------    
+  // Local shape constraint for bending/twisting
+  //--------------------------------------------
   for (uint iterations = 0; iterations < g_NumLocalShapeMatchingIterations; iterations++)
   {
     vec4 pos = sharedStrandPos[1];
