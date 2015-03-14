@@ -44,12 +44,12 @@ layout(std140, binding = 0) uniform Constants
 };
 
 
-layout(std430, binding = 2) buffer HairPos
+layout(std430, binding = 2) restrict readonly buffer HairPos
 {
   vec4 g_HairVertexPositions[1000000];
 };
 
-layout(std430, binding = 6) buffer HairTangent
+layout(std430, binding = 6) restrict readonly buffer HairTangent
 {
   vec4 g_HairVertexTangents[1000000];
 };

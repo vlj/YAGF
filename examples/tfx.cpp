@@ -636,8 +636,6 @@ void simulate(float time)
   // Wind Lenght Tangent
   glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
-
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void draw(float time)
@@ -665,11 +663,14 @@ void draw(float time)
 
   glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
+
+  glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .1 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .5 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
