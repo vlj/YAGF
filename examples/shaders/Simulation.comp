@@ -84,9 +84,6 @@ layout(std430, binding = 4) buffer StrandType
 };
 
 
-shared vec4 sharedPos[THREAD_GROUP_SIZE];
-
-
 //--------------------------------------------------------------------------------------
 //
 //  Helper Functions for the main simulation shaders
@@ -180,6 +177,7 @@ void main()
   vec4 currentPos = vec4(0, 0, 0, 0); // position when this step starts. In other words, a position from the last step.
   vec4 initialPos = vec4(0, 0, 0, 0); // rest position
 
+  vec4 tmpPos;
 
   // Copy data into shared memory
   initialPos = g_InitialHairPositions[globalVertexIndex];
@@ -187,7 +185,7 @@ void main()
   if (g_bWarp)
     currentPos = initialPos;
   else
-    currentPos = sharedPos[indexForSharedMem] = g_HairVertexPositions[globalVertexIndex];
+    currentPos = tmpPos = g_HairVertexPositions[globalVertexIndex];
 
   barrier();
 
@@ -211,9 +209,9 @@ void main()
   vec4 force = vec4(0, 0, 0, 0);
 
   if ( IsMovable(currentPos) )
-    sharedPos[indexForSharedMem] = Integrate(currentPos, oldPos, initialPos, force, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, dampingCoeff);
+    tmpPos = Integrate(currentPos, oldPos, initialPos, force, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, dampingCoeff);
   else
-    sharedPos[indexForSharedMem] = initialPos;
+    tmpPos = initialPos;
 
   // Global Shape Constraints
   float stiffnessForGlobalShapeMatching = 0;
@@ -242,17 +240,17 @@ void main()
 
   if ( stiffnessForGlobalShapeMatching > 0 && globalShapeMatchingEffectiveRange != 0.)
   {
-    if ( IsMovable(sharedPos[indexForSharedMem]) )
+    if (IsMovable(tmpPos))
     {
       if (float(localVertexIndex) < globalShapeMatchingEffectiveRange * float(numVerticesInTheStrand))
       {
         float factor = stiffnessForGlobalShapeMatching;
-        vec3 del = factor * (initialPos - sharedPos[indexForSharedMem]).xyz;
-        sharedPos[indexForSharedMem].xyz += del;
+        vec3 del = factor * (initialPos - tmpPos).xyz;
+        tmpPos.xyz += del;
       }
     }
   }
 
   // update global position buffers
-  UpdateFinalVertexPositions(currentPos, sharedPos[indexForSharedMem], globalVertexIndex, localVertexIndex, numVerticesInTheStrand);
+  UpdateFinalVertexPositions(currentPos, tmpPos, globalVertexIndex, localVertexIndex, numVerticesInTheStrand);
 }
