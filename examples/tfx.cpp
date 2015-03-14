@@ -565,7 +565,7 @@ void fillConstantBuffer(float time)
   cbuf.g_WinSize[3] = 1. / 1024.;
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct Constants), &cbuf);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
 }
 
 GLsync syncobj;
@@ -622,10 +622,18 @@ void simulate(float time)
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(struct SimulationConstants), &cbuf);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
 
-  int numOfGroupsForCS_VertexLevel = (int)(0.5 * (tfxassets.m_Triangleindices.size() / 64));
+  if (syncobj)
+  {
+    GLenum status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+    while (status == GL_TIMEOUT_EXPIRED)
+    {
+      status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+    }
+    glDeleteSync(syncobj);
+  }
+  int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_Triangleindices.size() / 64));
 
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
@@ -672,7 +680,7 @@ void draw(float time)
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .5 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, .4 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -688,6 +696,7 @@ void draw(float time)
 
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 int main()
@@ -706,11 +715,6 @@ int main()
   float tmp = 0.;
   while (!glfwWindowShouldClose(window))
   {
-    if (syncobj)
-    {
-      auto status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 10000000);
-      glDeleteSync(syncobj);
-    }
     simulate(tmp);
     draw(tmp);
     syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
