@@ -43,6 +43,8 @@ GLuint TFXTriangleIdx;
 GLuint ConstantBuffer;
 GLuint ConstantSimBuffer;
 
+GLuint Sampler;
+
 struct PerPixelListBucket
 {
   float depth;
@@ -84,6 +86,28 @@ public:
       GL_VERTEX_SHADER, screenquadshader,
       GL_FRAGMENT_SHADER, fragmerge.c_str());
     AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+  }
+};
+
+#define TO_STRING(x) #x
+class Passthrough : public ShaderHelperSingleton<Passthrough>, public TextureRead<Texture2D>
+{
+public:
+  Passthrough()
+  {
+    const char *shader = TO_STRING(
+      #version 430\n
+
+    uniform sampler2D tex;
+    out vec4 FragColor;
+    void main() {
+      FragColor = texture(tex, gl_FragCoord.xy / 1024.);
+    }
+      );
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_VERTEX_SHADER, screenquadshader,
+      GL_FRAGMENT_SHADER, shader);
+    AssignSamplerNames(Program, 0, "tex");
   }
 };
 
@@ -447,6 +471,9 @@ void init()
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, ConstantSimBuffer);
 
+
+  Sampler = SamplerHelper::createNearestSampler();
+
   glDepthFunc(GL_LEQUAL);
 }
 
@@ -656,7 +683,6 @@ void simulate(float time)
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
 
-
   int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_Triangleindices.size() / 64));
 
   // Global Constraints
@@ -693,10 +719,13 @@ void draw(float time)
   glClear(GL_COLOR_BUFFER_BIT);
   MainFBO->Bind();
   glClearDepth(1.);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClearStencil(0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
+  glEnable(GL_STENCIL_TEST);
+  glStencilFunc(GL_ALWAYS, 1, 0xFF);
+  glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -708,19 +737,24 @@ void draw(float time)
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glStencilFunc(GL_EQUAL, 1, 0xFF);
+  glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE, GL_ZERO);
   glBlendEquation(GL_FUNC_ADD);
-  glViewport(0, 0, 1024, 1024);
-//  glClearColor(.1, .1, .1, 1.);
-  glClear(GL_COLOR_BUFFER_BIT);
 
   FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+  glDisable(GL_STENCIL_TEST);
+  glDisable(GL_BLEND);
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0, 0, 1024, 1024);
+  Passthrough::getInstance()->SetTextureUnits(MainTexture, Sampler);
+  DrawFullScreenEffect<Passthrough>();
 }
 
 int main()
