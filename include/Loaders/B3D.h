@@ -208,7 +208,7 @@ namespace irr
 
         if (strncmp(header.name, "BB3D", 4) != 0)
         {
-          printf("File is not a b3d file. Loading failed (No header found)", B3DFile->getFileName());
+          printf("File is not a b3d file. Loading failed (No header found)", B3DFile->getFileName().c_str());
           return false;
         }
 
@@ -478,7 +478,7 @@ namespace irr
 
         if (tex_coord_sets >= max_tex_coords || tex_coord_set_size >= 4) // Something is wrong
         {
-          printf("tex_coord_sets or tex_coord_set_size too big", B3DFile->getFileName());
+          printf("tex_coord_sets or tex_coord_set_size too big", B3DFile->getFileName().c_str());
           return false;
         }
 
@@ -611,7 +611,7 @@ namespace irr
           {
             if ((unsigned)vertex_id[i] >= AnimatedVertices_VertexID.size())
             {
-              printf("Illegal vertex index found", B3DFile->getFileName());
+              printf("Illegal vertex index found", B3DFile->getFileName().c_str());
               return false;
             }
 
@@ -1022,7 +1022,7 @@ namespace irr
 #endif
             if (ShowWarning && (texture_id != -1) && (n_texs > MATERIAL_MAX_TEXTURES))
             {
-              printf("Too many textures used in one material", B3DFile->getFileName());
+              printf("Too many textures used in one material", B3DFile->getFileName().c_str());
               ShowWarning = false;
             }
           }

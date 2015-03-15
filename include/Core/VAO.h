@@ -339,7 +339,7 @@ private:
     append_impl<N + 1>(count, additionalData...);
   }
 public:
-  typedef typename S3DVertexFormat VertexFormat;
+  typedef S3DVertexFormat VertexFormat;
 
   size_t getSize() const
   {

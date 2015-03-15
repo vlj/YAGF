@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
 #include <Core/VAO.h>
-#include <Windows.h>
+
 
 #include <Core/Shaders.h>
 #include <Core/FBO.h>
