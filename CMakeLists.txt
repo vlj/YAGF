@@ -92,3 +92,9 @@ target_link_libraries(mesh ${PROJECT_NAME})
 
 add_executable(tfx examples/tfx.cpp)
 target_link_libraries(tfx ${PROJECT_NAME})
+
+include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
+
+
+add_executable(tfx-ocl examples/tfx-ocl.cpp)
+target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib")
