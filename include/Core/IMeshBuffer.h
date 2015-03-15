@@ -1,7 +1,7 @@
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
 // Copyright (C) 2015 Vincent Lejeune
-// This file is part of the "Irrlicht Engine".
-// For conditions of distribution and use, see copyright notice in irrlicht.h
+// Contains code from the "Irrlicht Engine".
+// For conditions of distribution and use, see copyright notice in License.txt
 
 #ifndef __I_MESH_BUFFER_H_INCLUDED__
 #define __I_MESH_BUFFER_H_INCLUDED__

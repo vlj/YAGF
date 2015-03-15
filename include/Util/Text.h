@@ -1,4 +1,7 @@
 // Copyright (C) 2015 Vincent Lejeune
+// For conditions of distribution and use, see copyright notice in License.txt
+
+
 // Basic text rendering
 // Require Freetype
 // Doesn't hand complex typographic layout (eg arabic, chinese)

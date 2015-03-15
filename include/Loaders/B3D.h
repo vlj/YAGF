@@ -1,7 +1,7 @@
 // Copyright (C) 2006-2012 Luke Hoschke
 // Copyright (C) 2015 Vincent Lejeune
-// This file is part of the "Irrlicht Engine".
-// For conditions of distribution and use, see copyright notice in irrlicht.h
+// Contains code from the "Irrlicht Engine".
+// For conditions of distribution and use, see copyright notice in License.txt
 
 // B3D Mesh loader
 // File format designed by Mark Sibly for the Blitz3D engine and has been

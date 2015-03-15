@@ -1,4 +1,5 @@
 // Copyright (C) 2015 Vincent Lejeune
+// For conditions of distribution and use, see copyright notice in License.txt
 
 #ifndef SHADERS_UTIL_HPP
 #define SHADERS_UTIL_HPP
