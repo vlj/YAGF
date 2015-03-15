@@ -501,6 +501,7 @@ void clean()
   glDeleteBuffers(1, &TFXVbo);
   glDeleteBuffers(1, &TFXTriangleIdx);
   glDeleteTextures(1, &PerPixelLinkedListHeadTexture);
+  glDeleteSamplers(1, &Sampler);
 
   delete PerPixelLinkedListHeadFBO;
   delete MainFBO;
