@@ -13,9 +13,10 @@
 #include <Util/Debug.h>
 #include <Util/Text.h>
 
-#include <CL/cl.hpp>
+#include <CL/cl.h>
 
 #include <fstream>
+#include <iostream>
 
 FrameBuffer *MainFBO;
 // For clearing
@@ -384,15 +385,59 @@ TressFXAsset tfxassets;
 
 void init()
 {
-  std::vector<cl::Platform> Platforms;
-  cl::Platform::get(&Platforms);
+  int err;
+  cl_platform_id platform;
+  clGetPlatformIDs(1, &platform, NULL);
+  cl_device_id device;
+  clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, 0);
 
-  for (const cl::Platform &p : Platforms)
-  {
-    cl::STRING_CLASS str;
-    p.getInfo(CL_PLATFORM_NAME, &str);
-    printf("%s\n", str.c_str());
+  size_t sz;
+  clGetDeviceInfo(device, CL_DEVICE_NAME, 0, 0, &sz);
+  char *name = new char[sz];
+  clGetDeviceInfo(device, CL_DEVICE_NAME, sz, name, 0);
+  printf("%s\n", name);
+  delete[] name;
+
+  cl_context_properties prop[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platform, 0 };
+
+  cl_context context = clCreateContext(prop, 1, &device, NULL, NULL, NULL);
+
+  const char *src = TO_STRING(
+    __kernel void main(__global float* val) {
+    int idx = get_global_id(0);
+    val[idx] = 1;
   }
+    );
+  size_t src_sz = strlen(src);
+
+  cl_program prog = clCreateProgramWithSource(context, 1, &src, &src_sz, &err);
+  err = clBuildProgram(prog, 1, &device, 0, 0, 0);
+
+  size_t log_sz;
+  clGetProgramBuildInfo(prog, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_sz);
+
+  char *log = new char[log_sz];
+  clGetProgramBuildInfo(prog, device, CL_PROGRAM_BUILD_LOG, log_sz, log, 0);
+
+  printf("%s\n", log);
+
+  cl_mem testbuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, 16 * sizeof(float), 0, &err);
+  cl_command_queue queue = clCreateCommandQueue(context, device, 0, &err);
+  float mat[16];
+  clEnqueueWriteBuffer(queue, testbuffer, CL_TRUE, 0, 16 * sizeof(float), mat, 0, 0, 0);
+
+  cl_kernel kernel = clCreateKernel(prog, "main", &err);
+  clSetKernelArg(kernel, 0, sizeof(cl_mem), &testbuffer);
+  size_t local_wg = 16;
+  size_t global_wg = 1;
+  clEnqueueNDRangeKernel(queue, kernel, 1, 0, &local_wg, &global_wg, 0, 0, 0);
+
+  float tmp[16];
+
+  clEnqueueReadBuffer(queue, testbuffer, CL_TRUE, 0, 16 * sizeof(float), tmp, 0, 0, 0);
+  for (int i = 0; i < 16; i++)
+    printf("%f ", tmp[i]);
+  printf("\n");
 
   DebugUtil::enableDebugOutput();
 
