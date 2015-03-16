@@ -391,6 +391,11 @@ cl_kernel kernel;
 cl_program prog;
 cl_mem PosBuffer;
 
+typedef cl_event(CALLBACK *PFNCreateEventFromGLsyncKHRCustom)(cl_context, cl_GLsync, cl_int *);
+
+PFNCreateEventFromGLsyncKHRCustom clCreateEventFromGLsyncKHRCustom;
+PFNGLCREATESYNCFROMCLEVENTARBPROC glCreateSyncFromCLeventARBCustom;
+
 void init()
 {
   int err;
@@ -398,6 +403,9 @@ void init()
   clGetPlatformIDs(1, &platform, NULL);
   cl_device_id device;
   clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, 0);
+
+  clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom) clGetExtensionFunctionAddressForPlatform(platform, "clCreateEventFromGLsyncKHR");
+  glCreateSyncFromCLeventARBCustom = (PFNGLCREATESYNCFROMCLEVENTARBPROC) wglGetProcAddress("glCreateSyncFromCLeventARB");
 
   size_t sz;
   clGetDeviceInfo(device, CL_DEVICE_NAME, 0, 0, &sz);
@@ -417,7 +425,7 @@ void init()
   const char *src = TO_STRING(
     __kernel void main(__global float4* val, float add) {
     int idx = get_global_id(0);
-    val[idx].y += 1.;
+    val[idx].y += .1;
   }
     );
   size_t src_sz = strlen(src);
@@ -679,13 +687,12 @@ GLsync syncSimComplete;
 
 void simulate(float time)
 {
-  glFinish();
   if (syncFirstPassRenderComplete);
     glDeleteSync(syncFirstPassRenderComplete);
   int err = CL_SUCCESS;
-  cl_event ev;// = clCreateEventFromGLsyncKHR(context, syncobj, &err);
+  cl_event ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
 
-  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 1, 0, 0);
+  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 1, &ev, 0);
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
   float tmp = time ;
   err = clSetKernelArg(kernel, 1, sizeof(float), &tmp);
@@ -693,8 +700,8 @@ void simulate(float time)
   size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
   err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
 
-  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, &ev);
-  syncSimComplete = glCreateSyncFromCLeventARB(context, ev, 0);
+  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
+//  syncSimComplete = glCreateSyncFromCLeventARB(context, ev, 0);
 //  err = clFinish(queue);
 
 
@@ -798,8 +805,8 @@ void draw(float time)
   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-  glWaitSync(syncSimComplete, 0, GL_TIMEOUT_IGNORED);
-  glDeleteSync(syncSimComplete);
+//  glWaitSync(syncSimComplete, 0, GL_TIMEOUT_IGNORED);
+//  glDeleteSync(syncSimComplete);
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
