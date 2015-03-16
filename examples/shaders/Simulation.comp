@@ -94,19 +94,6 @@ bool IsMovable(vec4 particle)
   return particle.w > 0;
 }
 
-void CalcIndicesInVertexLevelTotal(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)
-{
-  indexForSharedMem = local_id;
-  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
-
-  localStrandIndex = local_id % g_NumOfStrandsPerThreadGroup;
-  globalStrandIndex = group_id * g_NumOfStrandsPerThreadGroup + localStrandIndex;
-  localVertexIndex = (local_id - localStrandIndex) / g_NumOfStrandsPerThreadGroup;
-
-  strandType = g_HairStrandType[globalStrandIndex];
-  globalVertexIndex = globalStrandIndex * numVerticesInTheStrand + localVertexIndex;
-}
-
 void CalcIndicesInVertexLevelMaster(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)
 {
   indexForSharedMem = local_id;

@@ -313,25 +313,25 @@ public:
 
 struct TressFXAsset
 {
-  int*						m_pHairStrandType;
-  Float4*			m_pRefVectors;
-  Float4*			m_pGlobalRotations;
-  Float4*			m_pLocalRotations;
-  Float4*			m_pVertices;
-  Float4*			m_pTangents;
-  Float4*			m_pFollowRootOffset;
-  StrandVertex*				m_pTriangleVertices;
-  float*						m_pThicknessCoeffs;
-  std::vector<int>			m_LineIndices;
-  std::vector<int>			m_Triangleindices;
-  float*						m_pRestLengths;
-  BSphere						m_bSphere;
-  int							m_NumTotalHairStrands;
-  int                         m_NumTotalHairVertices;
-  int							m_MaxNumOfVerticesInStrand;
-  int                         m_NumGuideHairStrands;
-  int                         m_NumGuideHairVertices;
-  int                         m_NumFollowHairsPerOneGuideHair;
+  int* m_pHairStrandType;
+  Float4* m_pRefVectors;
+  Float4* m_pGlobalRotations;
+  Float4* m_pLocalRotations;
+  Float4* m_pVertices;
+  Float4* m_pTangents;
+  Float4* m_pFollowRootOffset;
+  StrandVertex* m_pTriangleVertices;
+  float* m_pThicknessCoeffs;
+  std::vector<int> m_LineIndices;
+  std::vector<int> m_Triangleindices;
+  float* m_pRestLengths;
+  BSphere m_bSphere;
+  int m_NumTotalHairStrands;
+  int m_NumTotalHairVertices;
+  int m_MaxNumOfVerticesInStrand;
+  int m_NumGuideHairStrands;
+  int m_NumGuideHairVertices;
+  int m_NumFollowHairsPerOneGuideHair;
 };
 
 
@@ -697,7 +697,7 @@ void simulate(float time)
   cbuf.StiffnessForLocalShapeMatching3 = 1.;
 
   cbuf.NumOfStrandsPerThreadGroup = 4;
-  cbuf.NumFollowHairsPerOneGuideHair = 4;
+  cbuf.NumFollowHairsPerOneGuideHair = tfxassets.m_NumFollowHairsPerOneGuideHair;
 
   cbuf.GravityMagnitude = 10.;
   cbuf.NumLengthConstraintIterations = 2;
@@ -721,7 +721,7 @@ void simulate(float time)
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
 
-  int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_NumTotalHairVertices / 64));
+  int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_NumGuideHairVertices / 64));
 
   // Prepare follow hair guide
   glUseProgram(PrepareFollowHairGuide::getInstance()->Program);
