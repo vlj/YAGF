@@ -719,10 +719,14 @@ void simulate(float time)
   memset(cbuf.Wind2, 0, 4 * sizeof(float));
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
-  if (syncFirstPassRenderComplete);
-    glDeleteSync(syncFirstPassRenderComplete);
   int err = CL_SUCCESS;
-  cl_event ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
+  cl_event ev = 0;
+  if (syncFirstPassRenderComplete);
+  {
+     ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
+    glDeleteSync(syncFirstPassRenderComplete);
+  }
+
   // First pass is done so sim is done too, can safely upload
   err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 1, &ev, 0);
 
