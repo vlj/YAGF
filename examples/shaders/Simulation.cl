@@ -62,7 +62,7 @@ void CalcIndicesInVertexLevelMaster(
   unsigned int local_id, unsigned int group_id,
   int g_NumOfStrandsPerThreadGroup,
   int g_NumFollowHairsPerOneGuideHair,
-  __global int* g_HairStrandType,
+  __global const int* g_HairStrandType,
   uint* globalStrandIndex,
   uint* localStrandIndex,
   uint* globalVertexIndex,
@@ -228,5 +228,5 @@ void IntegrationAndGlobalShapeConstraints(
 
   // update global position buffers
   g_HairVertexPositionsPrev[globalVertexIndex] = currentPos;
-  g_HairVertexPositions[globalVertexIndex] = tmpPos;
+  g_HairVertexPositions[globalVertexIndex] = (float4) (0.f, 0.f, 0.f, 0.f);
 }
