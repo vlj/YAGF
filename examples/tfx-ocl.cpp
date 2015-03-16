@@ -46,7 +46,6 @@ GLuint TFXVao;
 GLuint TFXVbo;
 GLuint TFXTriangleIdx;
 GLuint ConstantBuffer;
-GLuint ConstantSimBuffer;
 
 GLuint Sampler;
 
@@ -390,11 +389,11 @@ cl_command_queue queue;
 cl_kernel kernel;
 cl_program prog;
 cl_mem PosBuffer;
+cl_mem ConstantSimBuffer;
 
 typedef cl_event(CALLBACK *PFNCreateEventFromGLsyncKHRCustom)(cl_context, cl_GLsync, cl_int *);
 
 PFNCreateEventFromGLsyncKHRCustom clCreateEventFromGLsyncKHRCustom;
-PFNGLCREATESYNCFROMCLEVENTARBPROC glCreateSyncFromCLeventARBCustom;
 
 void init()
 {
@@ -405,7 +404,6 @@ void init()
   clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, 0);
 
   clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom) clGetExtensionFunctionAddressForPlatform(platform, "clCreateEventFromGLsyncKHR");
-  glCreateSyncFromCLeventARBCustom = (PFNGLCREATESYNCFROMCLEVENTARBPROC) wglGetProcAddress("glCreateSyncFromCLeventARB");
 
   size_t sz;
   clGetDeviceInfo(device, CL_DEVICE_NAME, 0, 0, &sz);
@@ -443,6 +441,8 @@ void init()
 
   queue = clCreateCommandQueue(context, device, 0, &err);
   kernel = clCreateKernel(prog, "main", &err);
+  ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
+
 
   DebugUtil::enableDebugOutput();
 
@@ -470,7 +470,7 @@ void init()
 
   glGenBuffers(1, &PerPixelLinkedListSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, 100000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
   glGenBuffers(1, &InitialPosSSBO);
@@ -530,12 +530,6 @@ void init()
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
 
-  glGenBuffers(1, &ConstantSimBuffer);
-  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), 0, GL_STATIC_DRAW);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 1, ConstantSimBuffer);
-
-
   Sampler = SamplerHelper::createNearestSampler();
 
   glDepthFunc(GL_LEQUAL);
@@ -546,7 +540,6 @@ void clean()
   glDeleteTextures(1, &MainTexture);
   glDeleteTextures(1, &DepthStencilTexture);
   glDeleteBuffers(1, &ConstantBuffer);
-  glDeleteBuffers(1, &ConstantSimBuffer);
   glDeleteBuffers(1, &PixelCountAtomic);
 
 
@@ -632,7 +625,7 @@ void fillConstantBuffer(float time)
   pHairParams->pointLightColor = XMFLOAT4(1.f, 1.f, 1.f, 1.0f);
   */
 
-  struct Constants cbuf;
+  struct Constants cbuf = {};
   cbuf.g_MatBaseColor[0] = 98. / 255.;
   cbuf.g_MatBaseColor[1] = 14. / 255.;
   cbuf.g_MatBaseColor[2] = 4. / 255.;
@@ -683,29 +676,9 @@ void fillConstantBuffer(float time)
 }
 
 GLsync syncFirstPassRenderComplete;
-GLsync syncSimComplete;
 
 void simulate(float time)
 {
-  if (syncFirstPassRenderComplete);
-    glDeleteSync(syncFirstPassRenderComplete);
-  int err = CL_SUCCESS;
-  cl_event ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
-
-  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 1, &ev, 0);
-  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
-  float tmp = time ;
-  err = clSetKernelArg(kernel, 1, sizeof(float), &tmp);
-  size_t local_wg = 64;
-  size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
-  err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
-
-  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
-//  syncSimComplete = glCreateSyncFromCLeventARB(context, ev, 0);
-//  err = clFinish(queue);
-
-
-  return;
   struct SimulationConstants cbuf;
 
   irr::core::matrix4 Model;
@@ -755,10 +728,25 @@ void simulate(float time)
   memset(cbuf.Wind2, 0, 4 * sizeof(float));
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
+  if (syncFirstPassRenderComplete);
+    glDeleteSync(syncFirstPassRenderComplete);
+  int err = CL_SUCCESS;
+  cl_event ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
+  // First pass is done so sim is done too, can safely upload
+  clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, &ev, 0);
 
+  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
+  float tmp = time;
+  err = clSetKernelArg(kernel, 1, sizeof(float), &tmp);
+  size_t local_wg = 64;
+  size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
+  err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
 
-  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
+  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
+  clFinish(queue);
+
+  return;
 
   int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_Triangleindices.size() / 64));
 
@@ -805,8 +793,6 @@ void draw(float time)
   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-//  glWaitSync(syncSimComplete, 0, GL_TIMEOUT_IGNORED);
-//  glDeleteSync(syncSimComplete);
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
