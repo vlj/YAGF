@@ -62,7 +62,7 @@ void CalcIndicesInVertexLevelMaster(
   unsigned int local_id, unsigned int group_id,
   int g_NumOfStrandsPerThreadGroup,
   int g_NumFollowHairsPerOneGuideHair,
-  __constant int* g_HairStrandType,
+  __global int* g_HairStrandType,
   uint* globalStrandIndex,
   uint* localStrandIndex,
   uint* globalVertexIndex,
@@ -135,8 +135,8 @@ __kernel
 void IntegrationAndGlobalShapeConstraints(
   __global float4 *g_HairVertexPositions,
   __global float4 *g_HairVertexPositionsPrev,
-  __constant int *g_HairStrandType,
-  __constant float4 *g_InitialHairPositions,
+  __global const int *g_HairStrandType,
+  __global const float4 *g_InitialHairPositions,
   __constant struct SimulationConstants* params)
 {
   unsigned int globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
