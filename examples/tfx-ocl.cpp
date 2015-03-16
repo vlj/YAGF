@@ -388,6 +388,9 @@ cl_context context;
 cl_command_queue queue;
 cl_kernel kernel;
 cl_program prog;
+cl_mem InitialPos;
+cl_mem StrandType;
+cl_mem PreviousPos;
 cl_mem PosBuffer;
 cl_mem ConstantSimBuffer;
 
@@ -438,7 +441,7 @@ void init()
 
 
   queue = clCreateCommandQueue(context, device, 0, &err);
-  kernel = clCreateKernel(prog, "main", &err);
+  kernel = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
   ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
 
 
@@ -471,10 +474,7 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, 10000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
-  glGenBuffers(1, &InitialPosSSBO);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, InitialPosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, InitialPosSSBO);
+  InitialPos = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
 
   glGenBuffers(1, &PosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
@@ -483,15 +483,8 @@ void init()
 
   PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
 
-  glGenBuffers(1, &PrevPosSSBO);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, PrevPosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, PrevPosSSBO);
-
-  glGenBuffers(1, &StrandTypeSSBO);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, StrandTypeSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, GL_STATIC_DRAW);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, StrandTypeSSBO);
+  PreviousPos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
+  StrandType = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, &err);
 
   glGenBuffers(1, &LengthSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, LengthSSBO);
@@ -677,7 +670,7 @@ GLsync syncFirstPassRenderComplete;
 
 void simulate(float time)
 {
-  struct SimulationConstants cbuf;
+  struct SimulationConstants cbuf = {};
 
   irr::core::matrix4 Model;
   if (time < 30.)
@@ -731,12 +724,14 @@ void simulate(float time)
   int err = CL_SUCCESS;
   cl_event ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
   // First pass is done so sim is done too, can safely upload
-  clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, &ev, 0);
+  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 1, &ev, 0);
 
   err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
-  float tmp = time;
-  err = clSetKernelArg(kernel, 1, sizeof(float), &tmp);
+  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &PreviousPos);
+  err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &StrandType);
+  err = clSetKernelArg(kernel, 3, sizeof(cl_mem), &InitialPos);
+  err = clSetKernelArg(kernel, 4, sizeof(cl_mem), &ConstantSimBuffer);
   size_t local_wg = 64;
   size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
   err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
