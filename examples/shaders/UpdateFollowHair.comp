@@ -1,0 +1,107 @@
+#version 430
+
+// If you change the value below, you must change it in TressFXAsset.h as well.
+#define THREAD_GROUP_SIZE 64
+
+layout (local_size_x = THREAD_GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(std140, binding = 1) uniform Constants
+{
+  mat4 g_ModelTransformForHead;
+
+  vec4 g_ModelRotateForHead; // quaternion
+
+  vec4 g_Wind;
+  vec4 g_Wind1;
+  vec4 g_Wind2;
+  vec4 g_Wind3;
+
+  int g_NumLengthConstraintIterations;
+  int g_bCollision;
+
+  float g_GravityMagnitude;
+  float g_TimeStep;
+
+  float g_Damping0;
+  float g_StiffnessForLocalShapeMatching0;
+  float g_StiffnessForGlobalShapeMatching0;
+  float g_GlobalShapeMatchingEffectiveRange0;
+
+  float g_Damping1;
+  float g_StiffnessForLocalShapeMatching1;
+  float g_StiffnessForGlobalShapeMatching1;
+  float g_GlobalShapeMatchingEffectiveRange1;
+
+  float g_Damping2;
+  float g_StiffnessForLocalShapeMatching2;
+  float g_StiffnessForGlobalShapeMatching2;
+  float g_GlobalShapeMatchingEffectiveRange2;
+
+  float g_Damping3;
+  float g_StiffnessForLocalShapeMatching3;
+  float g_StiffnessForGlobalShapeMatching3;
+  float g_GlobalShapeMatchingEffectiveRange3;
+
+  uint g_NumOfStrandsPerThreadGroup;
+  uint g_NumFollowHairsPerOneGuideHair;
+
+  int g_bWarp;
+  int g_NumLocalShapeMatchingIterations;
+};
+
+layout(std430, binding = 2) buffer HairPos
+{
+  vec4 g_HairVertexPositions[1000000];
+};
+
+layout(std430, binding = 4) buffer StrandType
+{
+  int g_HairStrandType[1000000];
+};
+
+layout(std430, binding = 6) buffer HairTangent
+{
+  vec4 g_HairVertexTangents[1000000];
+};
+
+layout(std430, binding = 10) buffer HairTangent
+{
+  vec4 g_FollowHairRootOffset[1000000];
+};
+
+void CalcIndicesInVertexLevelMaster(uint local_id, uint group_id, inout uint globalStrandIndex, inout uint localStrandIndex, inout uint globalVertexIndex, inout uint localVertexIndex, inout uint numVerticesInTheStrand, inout uint indexForSharedMem, inout uint strandType)
+{
+  indexForSharedMem = local_id;
+  numVerticesInTheStrand = (THREAD_GROUP_SIZE / g_NumOfStrandsPerThreadGroup);
+
+  localStrandIndex = local_id % g_NumOfStrandsPerThreadGroup;
+  globalStrandIndex = group_id * g_NumOfStrandsPerThreadGroup + localStrandIndex;
+  globalStrandIndex *= (g_NumFollowHairsPerOneGuideHair+1);
+  localVertexIndex = (local_id - localStrandIndex) / g_NumOfStrandsPerThreadGroup;
+
+  strandType = g_HairStrandType[globalStrandIndex];
+  globalVertexIndex = globalStrandIndex * numVerticesInTheStrand + localVertexIndex;
+}
+
+
+// One thread computes one vertex.
+void main()
+{
+  uint globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
+  CalcIndicesInVertexLevelMaster(gl_LocalInvocationID.x, gl_WorkGroupID.x, globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType);
+
+  vec4 Pos = g_HairVertexPositions[globalVertexIndex];
+  vec4 Tangent = g_HairVertexTangents[globalVertexIndex];
+
+  for ( int i = 0; i < g_NumFollowHairsPerOneGuideHair; i++ )
+  {
+    uint globalFollowVertexIndex = globalVertexIndex + numVerticesInTheStrand * (i + 1);
+    float factor = 5.0f * float(localVertexIndex) / float(numVerticesInTheStrand) + 1.0f; // 5.0 and 1.0 should match the in CTressFXAssetLoader::GenerateFollowHairs() in TressFXAssetLoader.cpp
+    vec3 followPos = Pos.xyz + factor * g_FollowHairRootOffset[globalStrandIndex + i + 1].xyz;
+
+    g_HairVertexPositions[globalFollowVertexIndex].xyz = followPos.xyz;
+    g_HairVertexTangents[globalFollowVertexIndex] = Tangent;
+  }
+
+  return;
+}

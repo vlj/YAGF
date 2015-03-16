@@ -154,6 +154,36 @@ public:
   }
 };
 
+class PrepareFollowHairGuide : public ShaderHelperSingleton<PrepareFollowHairGuide>
+{
+public:
+
+  PrepareFollowHairGuide()
+  {
+    std::ifstream in("..\\examples\\shaders\\PrepareFollowHair.comp", std::ios::in);
+
+    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_COMPUTE_SHADER, shader.c_str());
+  }
+};
+
+class UpdateFollowHairGuide : public ShaderHelperSingleton<UpdateFollowHairGuide>
+{
+public:
+
+  UpdateFollowHairGuide()
+  {
+    std::ifstream in("..\\examples\\shaders\\UpdateFollowHair.comp", std::ios::in);
+
+    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_COMPUTE_SHADER, shader.c_str());
+  }
+};
+
 static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
   GLuint result;
@@ -686,6 +716,9 @@ void simulate(float time)
 
   int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_NumTotalHairVertices / 64));
 
+  // Prepare follow hair guide
+  glUseProgram(PrepareFollowHairGuide::getInstance()->Program);
+
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
@@ -701,6 +734,8 @@ void simulate(float time)
   // Wind Lenght Tangent
   glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
+
+  glUseProgram(UpdateFollowHairGuide::getInstance()->Program);
 }
 
 void draw(float time)
