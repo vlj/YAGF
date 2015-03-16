@@ -420,13 +420,11 @@ void init()
 
   context = clCreateContext(prop, 1, &device, NULL, NULL, NULL);
 
-  const char *src = TO_STRING(
-    __kernel void main(__global float4* val, float add) {
-    int idx = get_global_id(0);
-    val[idx].y += .1;
-  }
-    );
-  size_t src_sz = strlen(src);
+  std::ifstream file("..\\examples\\shaders\\Simulation.cl", std::ios::in);
+
+  const std::string &progstr = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  size_t src_sz = progstr.size();
+  const char *src = progstr.c_str();
 
   prog = clCreateProgramWithSource(context, 1, &src, &src_sz, &err);
   err = clBuildProgram(prog, 1, &device, 0, 0, 0);
