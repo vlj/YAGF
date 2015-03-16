@@ -15,6 +15,7 @@
 
 #include <CL/cl.h>
 #include <CL/cl_gl.h>
+#include <CL/cl_gl_ext.h>
 
 #include <fstream>
 #include <iostream>
@@ -673,13 +674,18 @@ void fillConstantBuffer(float time)
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
 }
 
-GLsync syncobj;
+GLsync syncFirstPassRenderComplete;
+GLsync syncSimComplete;
 
 void simulate(float time)
 {
   glFinish();
+  if (syncFirstPassRenderComplete);
+    glDeleteSync(syncFirstPassRenderComplete);
   int err = CL_SUCCESS;
-  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
+  cl_event ev;// = clCreateEventFromGLsyncKHR(context, syncobj, &err);
+
+  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 1, 0, 0);
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
   float tmp = time ;
   err = clSetKernelArg(kernel, 1, sizeof(float), &tmp);
@@ -687,8 +693,10 @@ void simulate(float time)
   size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
   err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
 
-  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
-  err = clFinish(queue);
+  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, &ev);
+  syncSimComplete = glCreateSyncFromCLeventARB(context, ev, 0);
+//  err = clFinish(queue);
+
 
   return;
   struct SimulationConstants cbuf;
@@ -790,12 +798,16 @@ void draw(float time)
   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
+  glWaitSync(syncSimComplete, 0, GL_TIMEOUT_IGNORED);
+  glDeleteSync(syncSimComplete);
   glUseProgram(Transparent::getInstance()->Program);
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
   glDrawElementsBaseVertex(GL_TRIANGLES, .4 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+
+  syncFirstPassRenderComplete = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -837,7 +849,6 @@ int main()
   {
     simulate(tmp);
     draw(tmp);
-    syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glfwSwapBuffers(window);
     glfwPollEvents();
     tmp += 300.;
