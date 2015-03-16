@@ -568,7 +568,7 @@ void fillConstantBuffer(float time)
   pHairParams->pointLightColor = XMFLOAT4(1.f, 1.f, 1.f, 1.0f);
   */
 
-  struct Constants cbuf;
+  struct Constants cbuf = {};
   cbuf.g_MatBaseColor[0] = 98. / 255.;
   cbuf.g_MatBaseColor[1] = 14. / 255.;
   cbuf.g_MatBaseColor[2] = 4. / 255.;
@@ -622,7 +622,7 @@ GLsync syncobj;
 
 void simulate(float time)
 {
-  struct SimulationConstants cbuf;
+  struct SimulationConstants cbuf = {};
 
   irr::core::matrix4 Model;
   if (time < 30.)
