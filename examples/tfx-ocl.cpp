@@ -14,6 +14,7 @@
 #include <Util/Text.h>
 
 #include <CL/cl.h>
+#include <CL/cl_gl.h>
 
 #include <fstream>
 #include <iostream>
@@ -383,6 +384,12 @@ TressFXAsset loadTress(const char* filename)
 
 TressFXAsset tfxassets;
 
+cl_context context;
+cl_command_queue queue;
+cl_kernel kernel;
+cl_program prog;
+cl_mem PosBuffer;
+
 void init()
 {
   int err;
@@ -398,46 +405,35 @@ void init()
   printf("%s\n", name);
   delete[] name;
 
-  cl_context_properties prop[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platform, 0 };
+  cl_context_properties prop[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platform,
+    CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+    CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+    0
+  };
 
-  cl_context context = clCreateContext(prop, 1, &device, NULL, NULL, NULL);
+  context = clCreateContext(prop, 1, &device, NULL, NULL, NULL);
 
   const char *src = TO_STRING(
-    __kernel void main(__global float* val) {
+    __kernel void main(__global float4* val, float add) {
     int idx = get_global_id(0);
-    val[idx] = 1;
+    val[idx].y += 1.;
   }
     );
   size_t src_sz = strlen(src);
 
-  cl_program prog = clCreateProgramWithSource(context, 1, &src, &src_sz, &err);
+  prog = clCreateProgramWithSource(context, 1, &src, &src_sz, &err);
   err = clBuildProgram(prog, 1, &device, 0, 0, 0);
 
   size_t log_sz;
   clGetProgramBuildInfo(prog, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_sz);
-
   char *log = new char[log_sz];
   clGetProgramBuildInfo(prog, device, CL_PROGRAM_BUILD_LOG, log_sz, log, 0);
-
   printf("%s\n", log);
+  delete log;
 
-  cl_mem testbuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, 16 * sizeof(float), 0, &err);
-  cl_command_queue queue = clCreateCommandQueue(context, device, 0, &err);
-  float mat[16];
-  clEnqueueWriteBuffer(queue, testbuffer, CL_TRUE, 0, 16 * sizeof(float), mat, 0, 0, 0);
 
-  cl_kernel kernel = clCreateKernel(prog, "main", &err);
-  clSetKernelArg(kernel, 0, sizeof(cl_mem), &testbuffer);
-  size_t local_wg = 16;
-  size_t global_wg = 1;
-  clEnqueueNDRangeKernel(queue, kernel, 1, 0, &local_wg, &global_wg, 0, 0, 0);
-
-  float tmp[16];
-
-  clEnqueueReadBuffer(queue, testbuffer, CL_TRUE, 0, 16 * sizeof(float), tmp, 0, 0, 0);
-  for (int i = 0; i < 16; i++)
-    printf("%f ", tmp[i]);
-  printf("\n");
+  queue = clCreateCommandQueue(context, device, 0, &err);
+  kernel = clCreateKernel(prog, "main", &err);
 
   DebugUtil::enableDebugOutput();
 
@@ -477,6 +473,8 @@ void init()
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
   glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PosSSBO);
+
+  PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
 
   glGenBuffers(1, &PrevPosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PrevPosSSBO);
@@ -679,6 +677,20 @@ GLsync syncobj;
 
 void simulate(float time)
 {
+  glFinish();
+  int err = CL_SUCCESS;
+  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
+  float tmp = time ;
+  err = clSetKernelArg(kernel, 1, sizeof(float), &tmp);
+  size_t local_wg = 64;
+  size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
+  err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
+
+  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
+  err = clFinish(queue);
+
+  return;
   struct SimulationConstants cbuf;
 
   irr::core::matrix4 Model;
@@ -728,15 +740,7 @@ void simulate(float time)
   memset(cbuf.Wind2, 0, 4 * sizeof(float));
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
-  if (syncobj)
-  {
-    GLenum status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-    while (status == GL_TIMEOUT_EXPIRED)
-    {
-      status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-    }
-    glDeleteSync(syncobj);
-  }
+
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
@@ -820,7 +824,7 @@ int main()
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  //      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
