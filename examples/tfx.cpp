@@ -35,7 +35,7 @@ GLuint TangentSSBO;
 GLuint RotationSSBO;
 GLuint LocalRefSSBO;
 GLuint ThicknessSSBO;
-
+GLuint FollowRootSSBO;
 
 GLuint TFXVao;
 GLuint TFXVbo;
@@ -486,6 +486,11 @@ void init()
   glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pThicknessCoeffs, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, ThicknessSSBO);
 
+  glGenBuffers(1, &FollowRootSSBO);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, FollowRootSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairStrands * sizeof(float), tfxassets.m_pFollowRootOffset, GL_STATIC_DRAW);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, FollowRootSSBO);
+
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
@@ -526,6 +531,7 @@ void clean()
   glDeleteBuffers(1, &RotationSSBO);
   glDeleteBuffers(1, &LocalRefSSBO);
   glDeleteBuffers(1, &ThicknessSSBO);
+  glDeleteBuffers(1, &FollowRootSSBO);
 
   glDeleteVertexArrays(1, &TFXVao);
   glDeleteBuffers(1, &TFXVbo);
@@ -691,6 +697,7 @@ void simulate(float time)
   cbuf.StiffnessForLocalShapeMatching3 = 1.;
 
   cbuf.NumOfStrandsPerThreadGroup = 4;
+  cbuf.NumFollowHairsPerOneGuideHair = 4;
 
   cbuf.GravityMagnitude = 10.;
   cbuf.NumLengthConstraintIterations = 2;
@@ -718,6 +725,8 @@ void simulate(float time)
 
   // Prepare follow hair guide
   glUseProgram(PrepareFollowHairGuide::getInstance()->Program);
+  glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
@@ -735,7 +744,10 @@ void simulate(float time)
   glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
   glUseProgram(UpdateFollowHairGuide::getInstance()->Program);
+  glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 }
 
 void draw(float time)
