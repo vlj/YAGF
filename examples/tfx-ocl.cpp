@@ -719,6 +719,7 @@ void simulate(float time)
   memset(cbuf.Wind2, 0, 4 * sizeof(float));
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
+  glFinish();
   int err = CL_SUCCESS;
   cl_event ev = 0;
   if (syncFirstPassRenderComplete);
@@ -728,7 +729,7 @@ void simulate(float time)
   }
 
   // First pass is done so sim is done too, can safely upload
-  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 1, &ev, 0);
+  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_TRUE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
 
   err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
@@ -737,7 +738,7 @@ void simulate(float time)
   err = clSetKernelArg(kernel, 3, sizeof(cl_mem), &InitialPos);
   err = clSetKernelArg(kernel, 4, sizeof(cl_mem), &ConstantSimBuffer);
   size_t local_wg = 64;
-  size_t global_wg = .5 * tfxassets.m_Triangleindices.size();
+  size_t global_wg = .5 * tfxassets.m_NumTotalHairVertices;
   err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
 
   err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);

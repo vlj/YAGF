@@ -131,7 +131,7 @@ float4 mulMatrixVector(__constant float *Mat, float4 vector)
 // One thread computes one vertex.
 //
 //--------------------------------------------------------------------------------------
-__kernel 
+__kernel
 void IntegrationAndGlobalShapeConstraints(
   __global float4 *g_HairVertexPositions,
   __global float4 *g_HairVertexPositionsPrev,

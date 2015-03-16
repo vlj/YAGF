@@ -684,7 +684,7 @@ void simulate(float time)
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
 
-  int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_Triangleindices.size() / 64));
+  int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_NumTotalHairVertices / 64));
 
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
