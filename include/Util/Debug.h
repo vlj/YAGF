@@ -2,13 +2,16 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include <GL/glew.h>
 #include <cstdio>
+#ifdef WIN32
+#include <minwindef.h>
+#endif
 
 class DebugUtil
 {
 public:
   static void
 #ifdef WIN32
-
+    CALLBACK
 #endif
     debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
     const GLchar* msg, const void *userparam)
