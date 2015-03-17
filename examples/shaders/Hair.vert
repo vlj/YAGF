@@ -1,7 +1,5 @@
 
 #version 430
-uniform mat4 ModelMatrix;
-uniform mat4 ViewProjectionMatrix;
 
 layout(std140, binding = 0) uniform Constants
 {

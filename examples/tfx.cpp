@@ -15,12 +15,18 @@
 
 #include <fstream>
 
+float density = 0.4;
+
 FrameBuffer *MainFBO;
 // For clearing
 FrameBuffer *PerPixelLinkedListHeadFBO;
 
 GLuint DepthStencilTexture;
 GLuint MainTexture;
+
+GLuint HairShadowMapTexture;
+GLuint HairShadowMapDepth;
+FrameBuffer *HairSMFBO;
 
 GLuint PerPixelLinkedListHeadTexture;
 GLuint PerPixelLinkedListSSBO;
@@ -50,6 +56,26 @@ struct PerPixelListBucket
   float depth;
   unsigned int TangentAndCoverage;
   unsigned int next;
+};
+
+class HairShadow : public ShaderHelperSingleton<HairShadow>
+{
+public:
+  HairShadow()
+  {
+    std::ifstream invtx("..\\examples\\shaders\\HairSM.vert", std::ios::in);
+
+    const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
+
+    std::ifstream infrag("..\\examples\\shaders\\HairSM.frag", std::ios::in);
+
+    const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
+
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_VERTEX_SHADER, vtxshader.c_str(),
+      GL_FRAGMENT_SHADER, fragshader.c_str());
+    AssignUniforms();
+  }
 };
 
 class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<Image2D>
@@ -433,6 +459,15 @@ void init()
   glBindTexture(GL_TEXTURE_2D, PerPixelLinkedListHeadTexture);
   glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, 1024, 1024);
 
+  glGenTextures(1, &HairShadowMapTexture);
+  glBindTexture(GL_TEXTURE_2D, HairShadowMapTexture);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 640, 640);
+  glGenTextures(1, &HairShadowMapDepth);
+  glBindTexture(GL_TEXTURE_2D, HairShadowMapDepth);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, 640, 640);
+
+  HairSMFBO = new FrameBuffer({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
+
   MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
   PerPixelLinkedListHeadFBO = new FrameBuffer({ PerPixelLinkedListHeadTexture }, 1024, 1024);
 
@@ -519,6 +554,8 @@ void clean()
   glDeleteBuffers(1, &ConstantBuffer);
   glDeleteBuffers(1, &ConstantSimBuffer);
   glDeleteBuffers(1, &PixelCountAtomic);
+  glDeleteTextures(1, &HairShadowMapDepth);
+  glDeleteTextures(1, &HairShadowMapTexture);
 
 
   glDeleteBuffers(1, &StrandTypeSSBO);
@@ -541,6 +578,7 @@ void clean()
 
   delete PerPixelLinkedListHeadFBO;
   delete MainFBO;
+  delete HairSMFBO;
 
   delete[] tfxassets.m_pHairStrandType;
   delete[] tfxassets.m_pRefVectors;
@@ -635,12 +673,17 @@ void fillConstantBuffer(float time)
   cbuf.g_PointLightColor[2] = 1.;
   cbuf.g_PointLightColor[3] = 1.;
 
-  irr::core::matrix4 View, InvView, tmp;
+  irr::core::matrix4 View, InvView, tmp, LightMatrix;
   tmp.setTranslation(irr::core::vector3df(0., 0., 200.));
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
   View *= tmp;
   View.getInverse(InvView);
   irr::core::matrix4 Model;
+
+  LightMatrix.buildProjectionMatrixOrthoRH(320, 320, 1., 1000.);
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(421., 306., 343.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
+  LightMatrix *= tmp;
+  memcpy(cbuf.g_mViewProjLight, LightMatrix.pointer(), 16 * sizeof(float));
 
   memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
@@ -721,7 +764,7 @@ void simulate(float time)
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
 
-  int numOfGroupsForCS_VertexLevel = (int)(.5* (tfxassets.m_NumGuideHairVertices / 64));
+  int numOfGroupsForCS_VertexLevel = (int)((density + .05) * (tfxassets.m_NumGuideHairVertices / 64));
 
   // Prepare follow hair guide
   glUseProgram(PrepareFollowHairGuide::getInstance()->Program);
@@ -752,22 +795,34 @@ void simulate(float time)
 
 void draw(float time)
 {
-
   fillConstantBuffer(time);
   // Reset PixelCount
   int pxcnt = 1;
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
   glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(unsigned int), &pxcnt);
+
   glDisable(GL_CULL_FACE);
   glDisable(GL_BLEND);
+  glClearColor(0., 0., 0., 1.);
+  glClearDepth(1.);
+  glClearStencil(0);
+
+  // Draw shadow map
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
+  HairSMFBO->Bind();
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glUseProgram(HairShadow::getInstance()->Program);
+  HairShadow::getInstance()->setUniforms();
+  glDrawArrays(GL_LINES, 0, density * tfxassets.m_NumTotalHairVertices);
+
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
   PerPixelLinkedListHeadFBO->Bind();
-  glClearColor(0., 0., 0., 1.);
+
   glClear(GL_COLOR_BUFFER_BIT);
   MainFBO->Bind();
-  glClearDepth(1.);
-  glClearStencil(0);
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -781,7 +836,7 @@ void draw(float time)
   glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, .4 * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, density * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
