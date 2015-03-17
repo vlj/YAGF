@@ -682,7 +682,7 @@ void fillConstantBuffer(float time)
   irr::core::matrix4 Model;
 
   LightMatrix.buildProjectionMatrixOrthoRH(320, 320, 1., 1000.);
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(421., 306., 343.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(421.25, 306.79, 343.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
   LightMatrix *= tmp;
   memcpy(cbuf.g_mViewProjLight, LightMatrix.pointer(), 16 * sizeof(float));
 
@@ -694,8 +694,8 @@ void fillConstantBuffer(float time)
   cbuf.g_WinSize[2] = 1. / 1024.;
   cbuf.g_WinSize[3] = 1. / 1024.;
 
-  cbuf.g_fNearLight = 532.;
-  cbuf.g_fFarLight = 728.;
+  cbuf.g_fNearLight = 1;
+  cbuf.g_fFarLight = 1000;
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
