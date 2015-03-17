@@ -681,7 +681,7 @@ void fillConstantBuffer(float time)
   View.getInverse(InvView);
   irr::core::matrix4 Model;
 
-  LightMatrix.buildProjectionMatrixOrthoRH(320, 320, 500., 800.);
+  LightMatrix.buildProjectionMatrixPerspectiveFovRH(.3, 1., 500., 800.);
   tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(421.25, 306.79, 343.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
   LightMatrix *= tmp;
   memcpy(cbuf.g_mViewProjLight, LightMatrix.pointer(), 16 * sizeof(float));
