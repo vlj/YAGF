@@ -241,7 +241,7 @@ vec3 SimpleHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
   vec3 vColor = Ka * g_AmbientLightColor.xyz * baseColor +                          // ambient
                   amountLight * g_PointLightColor.xyz * (Kd * diffuse * baseColor); // diffuse
 #endif
-    return vColor;
+    return vColor * amountLight;
 }
 
 #define K_BUFFER 8
