@@ -37,7 +37,7 @@ void draw()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
-    BasicTextRender<72>::getInstance()->drawText(str, 12, 100, 1024, 1024);
+    BasicTextRender<14>::getInstance()->drawText(str, 12, 100, 1024, 1024);
 }
 
 int main()

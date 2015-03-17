@@ -13,6 +13,7 @@
 extern "C" {
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_LCD_FILTER_H
 }
 
 class GlyphRendering : public ShaderHelperSingleton<GlyphRendering, irr::core::vector2df, irr::core::vector2df>, public TextureRead < Texture2D >
@@ -79,6 +80,7 @@ public:
   {
     if (FT_Init_FreeType(&Ft))
       printf("Can't init freetype\n");
+    FT_Library_SetLcdFilter(Ft, FT_LCD_FILTER_LIGHT);
 #ifdef WIN32
     if (FT_New_Face(Ft, "C:\\Windows\\Fonts\\arial.ttf", 0, &Face))
       printf("Can't init Arial\n");
@@ -114,7 +116,7 @@ public:
 
     for (int i = 0; i < 128; i++)
     {
-      if (FT_Load_Glyph(Face, FT_Get_Char_Index(Face, i), FT_LOAD_TARGET_LIGHT))
+      if (FT_Load_Glyph(Face, FT_Get_Char_Index(Face, i), FT_LOAD_TARGET_LCD))
         printf("Could not load character %c\n", i);
       if (FT_Render_Glyph(Face->glyph, FT_RENDER_MODE_LIGHT))
         printf("Could not render character %c\n", i);
