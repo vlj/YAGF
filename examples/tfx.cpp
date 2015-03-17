@@ -810,7 +810,7 @@ void draw(float time)
   glClearColor(0., 0., 0., 1.);
   glClearDepth(1.);
   glClearStencil(0);
-
+  glBindVertexArray(TFXVao);
   // Draw shadow map
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
@@ -837,7 +837,6 @@ void draw(float time)
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glUseProgram(Transparent::getInstance()->Program);
-  glBindVertexArray(TFXVao);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
   glDrawElementsBaseVertex(GL_TRIANGLES, density * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
