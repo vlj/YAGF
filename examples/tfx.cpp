@@ -15,7 +15,7 @@
 
 #include <fstream>
 
-float density = 0.4;
+float density = 1.;
 
 FrameBuffer *MainFBO;
 // For clearing
@@ -99,7 +99,7 @@ public:
   }
 };
 
-class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<Image2D>
+class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<Texture2D, Image2D>
 {
 public:
   FragmentMerge()
@@ -111,7 +111,7 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, screenquadshader,
       GL_FRAGMENT_SHADER, fragmerge.c_str());
-    AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+    AssignSamplerNames(Program, 0, "HairShadowMap", 1, "PerPixelLinkedListHead");
   }
 };
 
@@ -656,6 +656,7 @@ void fillConstantBuffer(float time)
 
   cbuf.g_FiberRadius = 0.15;
   cbuf.g_FiberAlpha = .5;
+  cbuf.g_FiberSpacing = .5;
   cbuf.g_alphaThreshold = .00388;
 
   cbuf.g_AmbientLightColor[0] = .15;
@@ -692,6 +693,9 @@ void fillConstantBuffer(float time)
   cbuf.g_WinSize[1] = 1024.;
   cbuf.g_WinSize[2] = 1. / 1024.;
   cbuf.g_WinSize[3] = 1. / 1024.;
+
+  cbuf.g_fNearLight = 532.;
+  cbuf.g_fFarLight = 728.;
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
@@ -847,7 +851,7 @@ void draw(float time)
   glBlendFunc(GL_ONE, GL_ZERO);
   glBlendEquation(GL_FUNC_ADD);
 
-  FragmentMerge::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
+  FragmentMerge::getInstance()->SetTextureUnits(HairShadowMapDepth, Sampler, PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
 
   glDisable(GL_STENCIL_TEST);

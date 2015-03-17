@@ -1,4 +1,5 @@
 #version 430 core
+uniform sampler2D HairShadowMap;
 layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
 
 layout(std140, binding = 0) uniform Constants
@@ -71,6 +72,43 @@ vec3 GetTangent(uint packedTangent)
 float GetCoverage(uint packedCoverage)
 {
     return UnpackUintIntoFloat4(packedCoverage).w;
+}
+
+#define SM_EPSILON 0.01
+
+//--------------------------------------------------------------------------------------
+// ComputeSimpleShadow
+//
+// Computes the shadow using a simplified deep shadow map technique for the hair and
+// PCF for scene objects. This function only uses one sample, so it is faster but
+// not as good quality as ComputeShadow
+//--------------------------------------------------------------------------------------
+float ComputeSimpleShadow(vec3 worldPos, float alpha)
+{
+  vec4 projPosLight = g_mViewProjLight * vec4(worldPos, 1);
+  projPosLight.xy /= projPosLight.w;
+
+  vec2 texSM = projPosLight.xy;
+  float depth = .5 * projPosLight.z + .5;
+  float epsilon = depth * SM_EPSILON;
+  float depth_fragment = projPosLight.w;
+
+  // shadow casted by scene
+  float amountLight_scene = 1.;//g_txSMScene.SampleCmpLevelZero(g_samShadow, texSM, depth-epsilon); // TODO
+
+  // shadow casted by hair: simplified deep shadow map
+  float depthSMHair = texture(HairShadowMap, texSM).x + .5; //z/w
+
+  float depth_smPoint = g_fNearLight / (1 - depthSMHair * (g_fFarLight - g_fNearLight) / g_fFarLight);
+
+  float depth_range = max(0, depth_fragment - depth_smPoint);
+  float numFibers =  depth_range / (g_FiberSpacing * g_FiberRadius);
+
+  // if occluded by hair, there is at least one fiber
+  numFibers += (depth_range > 1e-5) ? 1. : 0.;
+  float amountLight_hair = pow(abs(1 - alpha), numFibers);
+
+  return amountLight_scene * amountLight_hair;
 }
 
 #define PI 3.14
@@ -234,11 +272,13 @@ void main() {
   for (int i = 0; i < kbuf_size; i++)
   {
     float d = kbuf[i].depth;
-    vec4 Pos = g_mInvViewProj * (2. * vec4( gl_FragCoord.xy, d, 1.) - 1.);
+    vec4 Pos = g_mInvViewProj * (2. * vec4( gl_FragCoord.xy * g_WinSize.zw, d, 1.) - 1.);
     Pos /= Pos.w;
     vec3 Tangent = GetTangent(kbuf[i].TangentAndCoverage);
-    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
     float FragmentAlpha = GetCoverage(kbuf[i].TangentAndCoverage);
+    float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
+    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
+
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= result.w * (1. - FragmentAlpha);
   }
