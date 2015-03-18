@@ -76,8 +76,8 @@ void main(void) {
   vec2 proj_right = normalize( (g_mViewProj * vec4(right, 0)).xy );
 
   vec4 hairEdgePositions0, hairEdgePositions1; // 0 is negative, 1 is positive
-  hairEdgePositions0 = vec4(v +  -1.0 * right * ratio * g_FiberRadius, 1.0);
-  hairEdgePositions1 = vec4(v +   1.0 * right * ratio * g_FiberRadius, 1.0);
+  hairEdgePositions0 = vec4(v - 1.0 * right * ratio * g_FiberRadius, 1.0);
+  hairEdgePositions1 = vec4(v + 1.0 * right * ratio * g_FiberRadius, 1.0);
   hairEdgePositions0 = g_mViewProj * hairEdgePositions0;
   hairEdgePositions1 = g_mViewProj * hairEdgePositions1;
   hairEdgePositions0 = hairEdgePositions0 / hairEdgePositions0.w;

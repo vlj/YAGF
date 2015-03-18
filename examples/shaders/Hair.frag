@@ -145,7 +145,7 @@ void main() {
   float coverage = 1.f;
   coverage = ComputeCoverage(p0p1.xy, p0p1.zw, proj_pos.xy);
 
-  coverage *= g_FiberAlpha * tangent.w * g_FiberRadius;
+  coverage *= g_FiberAlpha;
   if (coverage > g_alphaThreshold)
     StoreFragments_Hair(gl_FragCoord.xy, tangent.xyz, coverage, gl_FragCoord.z);
   FragColor = vec4(1.);

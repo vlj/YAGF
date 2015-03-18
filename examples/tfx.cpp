@@ -15,7 +15,7 @@
 
 #include <fstream>
 
-float density = .95;
+float density = .9;
 
 FrameBuffer *MainFBO;
 // For clearing
@@ -44,8 +44,9 @@ GLuint ThicknessSSBO;
 GLuint FollowRootSSBO;
 
 GLuint TFXVao;
-GLuint TFXVbo;
 GLuint TFXTriangleIdx;
+GLuint TFXVaoLine;
+GLuint TFXLineIdx;
 GLuint ConstantBuffer;
 GLuint ConstantSimBuffer;
 
@@ -441,16 +442,19 @@ void init()
   DebugUtil::enableDebugOutput();
 
   tfxassets = loadTress("..\\examples\\ruby.tfxb");
-  // Need to create manually buffer size indexes are 32 bits and not 16bits
   glGenVertexArrays(1, &TFXVao);
   glBindVertexArray(TFXVao);
-  glGenBuffers(1, &TFXVbo);
-  glBindBuffer(GL_ARRAY_BUFFER, TFXVbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(StrandVertex), 0, GL_STATIC_DRAW);
 
   glGenBuffers(1, &TFXTriangleIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, tfxassets.m_Triangleindices.size() * sizeof(unsigned), tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
+
+  glGenVertexArrays(1, &TFXVaoLine);
+  glBindVertexArray(TFXVaoLine);
+
+  glGenBuffers(1, &TFXLineIdx);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXLineIdx);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, tfxassets.m_LineIndices.size() * sizeof(unsigned), tfxassets.m_LineIndices.data(), GL_STATIC_DRAW);
   glBindVertexArray(0);
 
   DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
@@ -573,7 +577,8 @@ void clean()
   glDeleteBuffers(1, &FollowRootSSBO);
 
   glDeleteVertexArrays(1, &TFXVao);
-  glDeleteBuffers(1, &TFXVbo);
+  glDeleteVertexArrays(1, &TFXVaoLine);
+  glDeleteBuffers(1, &TFXLineIdx);
   glDeleteBuffers(1, &TFXTriangleIdx);
   glDeleteTextures(1, &PerPixelLinkedListHeadTexture);
   glDeleteSamplers(1, &Sampler);
@@ -656,7 +661,7 @@ void fillConstantBuffer(float time)
   cbuf.g_fHairKs2 = .5; // Ks2
   cbuf.g_fHairEx2 = 8.0; // Ex2
 
-  cbuf.g_FiberRadius = 0.15;
+  cbuf.g_FiberRadius = 0.3;
   cbuf.g_FiberAlpha = .5;
   cbuf.g_FiberSpacing = .3;
   cbuf.g_alphaThreshold = .00388;
@@ -862,15 +867,16 @@ void draw(float time)
   glClearColor(0., 0., 0., 1.);
   glClearDepth(1.);
   glClearStencil(0);
-  glBindVertexArray(TFXVao);
+
   // Draw shadow map
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
   HairSMFBO->Bind();
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glBindVertexArray(TFXVaoLine);
   glUseProgram(HairShadow::getInstance()->Program);
   HairShadow::getInstance()->setUniforms();
-  glDrawArrays(GL_LINES, 0, density * tfxassets.m_NumTotalHairVertices);
+  glDrawElementsBaseVertex(GL_LINES, density * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
@@ -888,10 +894,11 @@ void draw(float time)
 
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+  glBindVertexArray(TFXVao);
   glUseProgram(Transparent::getInstance()->Program);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, density * tfxassets.m_NumTotalHairVertices * 6, GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, density * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
