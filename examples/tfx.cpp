@@ -683,10 +683,15 @@ void fillConstantBuffer(float time)
   cbuf.g_PointLightColor[3] = 1.;
 
   irr::core::matrix4 View, InvView, tmp, LightMatrix;
-  tmp.setTranslation(irr::core::vector3df(0., 0., 200.));
-  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0., 0., 200.), irr::core::vector3df(0., 0., 0.), irr::core::vector3df(0., 1., 0.));
+  View.buildProjectionMatrixPerspectiveFovRH(70. / 180. * 3.14, 1., 1., 1000.);
   View *= tmp;
   View.getInverse(InvView);
+
+  cbuf.g_vEye[0] = 0.;
+  cbuf.g_vEye[1] = 0.;
+  cbuf.g_vEye[2] = 200.;
+
   irr::core::matrix4 Model;
 
   LightMatrix.buildProjectionMatrixPerspectiveFovRH(0.6, 1., 532, 769);
