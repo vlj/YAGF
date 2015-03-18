@@ -301,7 +301,7 @@ void main() {
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
     float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
-    vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
+    vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= (1. - FragmentAlpha);
 
