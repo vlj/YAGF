@@ -658,7 +658,7 @@ void fillConstantBuffer(float time)
 
   cbuf.g_FiberRadius = 0.15;
   cbuf.g_FiberAlpha = .5;
-  cbuf.g_FiberSpacing = .5;
+  cbuf.g_FiberSpacing = .3;
   cbuf.g_alphaThreshold = .00388;
 
   cbuf.g_AmbientLightColor[0] = .15;
@@ -726,8 +726,8 @@ void fillConstantBuffer(float time)
   cbuf.g_WinSize[2] = 1. / 1024.;
   cbuf.g_WinSize[3] = 1. / 1024.;
 
-  cbuf.g_fNearLight = 100.;
-  cbuf.g_fFarLight = 300.;
+  cbuf.g_fNearLight = 532.711365;
+  cbuf.g_fFarLight = 768.133728;
 
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
@@ -885,8 +885,12 @@ void draw(float time)
 
   glEnable(GL_BLEND);
   glEnable(GL_FRAMEBUFFER_SRGB);
+  glClearColor(0.25f, 0.25f, 0.35f, 0.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
+
 
   FragmentMerge::getInstance()->SetTextureUnits(HairShadowMapDepth, Sampler, PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
