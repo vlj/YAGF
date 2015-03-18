@@ -303,7 +303,7 @@ void main() {
     float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
     vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
-    result.w *= result.w * (1. - FragmentAlpha);
+    result.w *= (1. - FragmentAlpha);
 
     ListBucketId = PPLL[ListBucketId].next;
   }
@@ -354,7 +354,7 @@ void main() {
     vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
 
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
-    result.w *= result.w * (1. - FragmentAlpha);
+    result.w *= (1. - FragmentAlpha);
   }
   FragColor = result;
 };
