@@ -49,20 +49,6 @@ layout(std140, binding = 1) uniform Constants
   int g_NumLocalShapeMatchingIterations;
 };
 
-
-
-/*
-RWStructuredBuffer<float4> g_HairVertexTangents			: register(u2); 
-RWStructuredBuffer<float4> g_InitialHairPositions		: register(u3);
-RWStructuredBuffer<float4> g_GlobalRotations			: register(u4); 
-RWStructuredBuffer<float4> g_LocalRotations				: register(u5); 
-
-Buffer<float>	g_HairRestLengthSRV			: register(t0);
-Buffer<int>		g_HairStrandType			: register(t1); 
-Buffer<float4>	g_HairRefVecsInLocalFrame	: register(t2); 
-Buffer<float4>	g_FollowHairRootOffset   	: register(t3); 
-*/
-
 layout(std430, binding = 1) buffer InitialHairPos
 {
   vec4 g_InitialHairPositions[1000000];

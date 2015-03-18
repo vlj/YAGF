@@ -272,7 +272,9 @@ void main() {
   uint ListBucketId = ListBucketHead;
   vec4 result = vec4(0., 0., 0., 1.);
 
+  uint numfrag = 0;
   while (ListBucketId != 0) {
+    numfrag++;
     float max_depth = 0.;
     uint max_idx = 0;
     for (int i = 0; i < kbuf_size; i++)
@@ -309,6 +311,17 @@ void main() {
     ListBucketId = PPLL[ListBucketId].next;
   }
 
+//#define DEBUG
+#ifdef DEBUG
+  if (numfrag < 32)
+    FragColor = vec4(0., 1., 0., 0.);
+  else if (numfrag < 64)
+    FragColor = vec4(1., 1., 0., 0.);
+  else
+    FragColor = vec4(1., 0., 0., 0.);
+  return;
+#endif
+
   uint reverse = 0;
   bool isSorted = false;
   while (!isSorted) {
@@ -327,17 +340,6 @@ void main() {
       }
     }
   }
-
-// #define DEBUG
-#ifdef DEBUG
-  if (reverse < 1)
-    FragColor = vec4(1., 0., 0., 1.);
-  else if (reverse < 4)
-    FragColor = vec4(0., 1., 0., 1.);
-  else
-    FragColor = vec4(0., 0., 1., 1.);
-  return;
-#endif
 
   for (int i = 0; i < kbuf_size; i++)
   {
