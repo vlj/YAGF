@@ -215,6 +215,8 @@ vec3 ComputeHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
    return vColor * amountLight;
 }
 
+#define SUPERSIMPLESHADING
+
 vec3 SimpleHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
 {
   vec3 baseColor = g_MatBaseColor.xyz;
@@ -303,7 +305,7 @@ void main() {
     Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
-    float amountOfLight = ComputeShadow(Pos.xyz, g_HairShadowAlpha);
+    float amountOfLight = ComputeSimpleShadow(Pos.xyz, g_HairShadowAlpha);
     vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= (1. - FragmentAlpha);

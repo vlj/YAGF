@@ -15,7 +15,7 @@
 
 #include <fstream>
 
-float density = .9;
+float density = .4;
 
 FrameBuffer *MainFBO;
 // For clearing
