@@ -91,7 +91,7 @@ float ComputeShadow(vec3 worldPos, float alpha)
   vec2 texSM = .5 * projPosLight.xy + .5;
   float depth = .5 * projPosLight.z / projPosLight.w + .5;
   float epsilon = depth * SM_EPSILON;
-  float depth_fragment = g_fNearLight / (1. - depth * (g_fFarLight - g_fNearLight) / g_fFarLight);
+  float depth_fragment = projPosLight.w;
 
   // for shadow casted by scene objs, use PCF shadow
   float total_weight = 0;
@@ -108,7 +108,7 @@ float ComputeShadow(vec3 worldPos, float alpha)
       float weight = 1 / (2 * PI * sigma * sigma) * pow(2.7, exp);
 
       // shadow casted by hair: simplified deep shadow map
-      float depthSMHair = texture(HairShadowMap, texSM + vec2(dx, dy) / 640.).x; //z/w
+      float depthSMHair = 2. * texture(HairShadowMap, texSM + vec2(dx, dy) / 2048.).x - 1.; //z/w
 
       float depth_smPoint = g_fNearLight / (1 - depthSMHair * (g_fFarLight - g_fNearLight) / g_fFarLight);
 
@@ -150,7 +150,7 @@ float ComputeSimpleShadow(vec3 worldPos, float alpha)
   float amountLight_scene = 1.;//g_txSMScene.SampleCmpLevelZero(g_samShadow, texSM, depth-epsilon); // TODO
 
   // shadow casted by hair: simplified deep shadow map
-  float depthSMHair = texture(HairShadowMap, texSM).x; //z/w
+  float depthSMHair = 2. * texture(HairShadowMap, texSM).x - 1.; //z/w
 
   float depth_smPoint = g_fNearLight / (1. - depthSMHair * (g_fFarLight - g_fNearLight) / g_fFarLight);
 
@@ -161,7 +161,7 @@ float ComputeSimpleShadow(vec3 worldPos, float alpha)
   numFibers += (depth_range > .00001) ? 1. : 0.;
   float amountLight_hair = pow(abs(1 - alpha), numFibers);
 
-  return abs(depth_fragment ) / 300.;
+  return amountLight_hair;
 }
 
 vec3 ComputeHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
@@ -294,9 +294,10 @@ void main() {
     float d = PPLL[ListBucketId].depth;
     vec3 ndcPos = 2. * vec3(gl_FragCoord.xy * g_WinSize.zw, d) - 1.;
     vec4 clipPos;
-    clipPos.w = g_mViewProj[2][3] / (ndcPos.z - (g_mViewProj[2][2] / g_mViewProj[3][2]));
+    clipPos.w = g_mViewProj[3][2] / (ndcPos.z - (g_mViewProj[2][2] / g_mViewProj[2][3]));
     clipPos.xyz = ndcPos.xyz * clipPos.w;
     vec4 Pos = g_mInvViewProj * clipPos;
+    Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
     float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
@@ -342,18 +343,18 @@ void main() {
     float d = kbuf[i].depth;
     vec3 ndcPos = 2. * vec3(gl_FragCoord.xy * g_WinSize.zw, d) - 1.;
     vec4 clipPos;
-    clipPos.w = g_mViewProj[2][3] / (ndcPos.z - (g_mViewProj[2][2] / g_mViewProj[3][2]));
+    clipPos.w = g_mViewProj[3][2] / (ndcPos.z - (g_mViewProj[2][2] / g_mViewProj[2][3]));
     clipPos.xyz = ndcPos.xyz * clipPos.w;
     vec4 Pos = g_mInvViewProj * clipPos;
+    Pos /= Pos.w;
+
     vec3 Tangent = GetTangent(kbuf[i].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(kbuf[i].TangentAndCoverage);
-    float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
-    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
+    float amountOfLight = ComputeShadow(Pos.xyz, FragmentAlpha);
+    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
 
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= result.w * (1. - FragmentAlpha);
-//	result.xyz = vec3(amountOfLight);
-//	result.w = 1.;
   }
   FragColor = result;
 };
