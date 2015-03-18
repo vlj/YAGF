@@ -88,8 +88,9 @@ float GetCoverage(uint packedCoverage)
 float ComputeShadow(vec3 worldPos, float alpha)
 {
   vec4 projPosLight = g_mViewProjLight * vec4(worldPos,1);
+  projPosLight.xy /= projPosLight.w;
   vec2 texSM = .5 * projPosLight.xy + .5;
-  float depth = .5 * projPosLight.z / projPosLight.w + .5;
+  float depth = projPosLight.z / projPosLight.w;
   float epsilon = depth * SM_EPSILON;
   float depth_fragment = projPosLight.w;
 
@@ -108,7 +109,7 @@ float ComputeShadow(vec3 worldPos, float alpha)
       float weight = 1 / (2 * PI * sigma * sigma) * pow(2.7, exp);
 
       // shadow casted by hair: simplified deep shadow map
-      float depthSMHair = 2. * texture(HairShadowMap, texSM + vec2(dx, dy) / 2048.).x - 1.; //z/w
+      float depthSMHair = 2. * texture(HairShadowMap, texSM + vec2(dx, dy) / 640.).x - 1.; //z/w
 
       float depth_smPoint = g_fNearLight / (1 - depthSMHair * (g_fFarLight - g_fNearLight) / g_fFarLight);
 
@@ -117,7 +118,7 @@ float ComputeShadow(vec3 worldPos, float alpha)
 
       // if occluded by hair, there is at least one fiber
       numFibers += (depth_range > .00001) ? 1. : 0.;
-      amountLight_hair += pow(abs(1-alpha), numFibers) * weight;
+      amountLight_hair += pow(abs(1 - alpha), numFibers) * weight;
 
       total_weight += weight;
     }
@@ -300,7 +301,7 @@ void main() {
     Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
-    float amountOfLight = ComputeSimpleShadow(Pos.xyz, g_HairShadowAlpha);
+    float amountOfLight = ComputeShadow(Pos.xyz, g_HairShadowAlpha);
     vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= (1. - FragmentAlpha);

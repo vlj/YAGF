@@ -463,12 +463,12 @@ void init()
 
   glGenTextures(1, &HairShadowMapTexture);
   glBindTexture(GL_TEXTURE_2D, HairShadowMapTexture);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 2048, 2048);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 640, 640);
   glGenTextures(1, &HairShadowMapDepth);
   glBindTexture(GL_TEXTURE_2D, HairShadowMapDepth);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 2048, 2048);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 640, 640);
 
-  HairSMFBO = new FrameBuffer({ HairShadowMapTexture }, HairShadowMapDepth, 2048, 2048);
+  HairSMFBO = new FrameBuffer({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
 
   MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
   PerPixelLinkedListHeadFBO = new FrameBuffer({ PerPixelLinkedListHeadTexture }, 1024, 1024);
@@ -684,7 +684,7 @@ void fillConstantBuffer(float time)
   View.getInverse(InvView);
   irr::core::matrix4 Model;
 
-  LightMatrix.buildProjectionMatrixPerspectiveRH(0.6, 1., 532, 769);
+  LightMatrix.buildProjectionMatrixPerspectiveFovRH(0.6, 1., 532, 769);
 
 //  LightMatrix.print();
   tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1] = 306.79, cbuf.g_PointLightPos[2] = 343.),
