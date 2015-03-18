@@ -15,7 +15,7 @@
 
 #include <fstream>
 
-float density = 1.;
+float density = .95;
 
 FrameBuffer *MainFBO;
 // For clearing
@@ -454,7 +454,9 @@ void init()
   glBindVertexArray(0);
 
   DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
-  MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
+  glGenTextures(1, &MainTexture);
+  glBindTexture(GL_TEXTURE_2D, MainTexture);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_SRGB8_ALPHA8, 1024, 1024);
   glGenTextures(1, &PerPixelLinkedListHeadTexture);
   glBindTexture(GL_TEXTURE_2D, PerPixelLinkedListHeadTexture);
   glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, 1024, 1024);
@@ -674,28 +676,59 @@ void fillConstantBuffer(float time)
   cbuf.g_PointLightColor[2] = 1.;
   cbuf.g_PointLightColor[3] = 1.;
 
-  irr::core::matrix4 View, InvView, tmp, LightMatrix;
+/*  irr::core::matrix4 View, InvView, tmp, LightMatrix;
   tmp.setTranslation(irr::core::vector3df(0., 0., 200.));
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
   View *= tmp;
   View.getInverse(InvView);
   irr::core::matrix4 Model;
 
-  LightMatrix.buildProjectionMatrixPerspectiveFovRH(.3, 1., 500., 800.);
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(421.25, 306.79, 343.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
-  LightMatrix *= tmp;
-  memcpy(cbuf.g_mViewProjLight, LightMatrix.pointer(), 16 * sizeof(float));
+  LightMatrix.buildProjectionMatrixOrthoRH(320, 320, 100., 300.);
 
-  memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
-  memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
-  memcpy(cbuf.g_mInvViewProj, InvView.pointer(), 16 * sizeof(float));
+//  LightMatrix.print();
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0., 0., 200.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
+  LightMatrix *= tmp;*/
+  float World[16] = {
+    1., 0., 0., -26.,
+    0., 1., 0., 36.,
+    0., 0., 1., -58.,
+    0., 0., 0., 1.
+  };
+  float ViewProj[16] = {
+    -1.441579, -0.000000, 1.095600, 0.000000,
+    -0.138931, 2.403270, -0.182805, -96.130806,
+    -0.603548, -0.095297, -0.794142, 309.860260,
+    -0.602341, -0.095106, -0.792553, 319.240540
+  };
+
+  float invViewProj[16] = {
+    -0.439708, -0.023837, -18.962017, 18.397676,
+    0.000000, 0.412336, -6.986005, 6.904898,
+    0.334179, -0.031364, -24.950022, 24.207466,
+    0.000000, 0.000000, -0.099800, 0.100000
+  };
+  float LightMat[16] = {
+    -2.397597, 0.000000, 2.647745, 101.223297,
+    -0.983831, 3.316237, -0.890883, -297.174957,
+    -2.245398, -1.212366, -2.033262, 277.551025,
+    -0.688184, -0.371573, -0.623167, 617.776917,
+  };
+
+  memcpy(cbuf.g_mViewProjLight, LightMat, 16 * sizeof(float));
+
+//  tmp.print();
+
+  memcpy(cbuf.g_mWorld, World, 16 * sizeof(float));
+  memcpy(cbuf.g_mViewProj, ViewProj, 16 * sizeof(float));
+  memcpy(cbuf.g_mInvViewProj, invViewProj, 16 * sizeof(float));
   cbuf.g_WinSize[0] = 1024.;
   cbuf.g_WinSize[1] = 1024.;
   cbuf.g_WinSize[2] = 1. / 1024.;
   cbuf.g_WinSize[3] = 1. / 1024.;
 
-  cbuf.g_fNearLight = 500.;
-  cbuf.g_fFarLight = 800.;
+  cbuf.g_fNearLight = 100.;
+  cbuf.g_fFarLight = 300.;
+
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
@@ -712,9 +745,9 @@ void simulate(float time)
     cbuf.bWarp = 1;
   else
     cbuf.bWarp = 0;
-
-  if (time > 180 * 360)
-    time = 180 * 360;
+//  time = 0.;
+//  if (time > 180 * 360)
+//    time = 180 * 360;
 
   Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
 
@@ -839,7 +872,7 @@ void draw(float time)
   glUseProgram(Transparent::getInstance()->Program);
   Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
   Transparent::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_TRIANGLES, density * tfxassets.m_Triangleindices.size(), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, density * tfxassets.m_NumTotalHairVertices * 6, GL_UNSIGNED_INT, 0, 0);
   glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -847,7 +880,8 @@ void draw(float time)
   glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
   glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE, GL_ZERO);
+  glEnable(GL_FRAMEBUFFER_SRGB);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
 
   FragmentMerge::getInstance()->SetTextureUnits(HairShadowMapDepth, Sampler, PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
@@ -855,12 +889,13 @@ void draw(float time)
 
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);
-  glEnable(GL_FRAMEBUFFER_SRGB);
+
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0, 0, 1024, 1024);
   Passthrough::getInstance()->SetTextureUnits(MainTexture, Sampler);
   DrawFullScreenEffect<Passthrough>();
+  glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 int main()

@@ -2,7 +2,7 @@
 uniform sampler2D HairShadowMap;
 layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
 
-layout(std140, binding = 0) uniform Constants
+layout(std140, binding = 0, row_major) uniform Constants
 {
   mat4 g_mWorld;
   mat4 g_mViewProj;
@@ -142,9 +142,9 @@ float ComputeSimpleShadow(vec3 worldPos, float alpha)
   projPosLight.xy /= projPosLight.w;
 
   vec2 texSM = .5 * projPosLight.xy + .5;
-  float depth = .5 * projPosLight.z / projPosLight.w + .5;
+  float depth = projPosLight.z / projPosLight.w;
   float epsilon = depth * SM_EPSILON;
-  float depth_fragment = g_fNearLight / (1. - depth * (g_fFarLight - g_fNearLight) / g_fFarLight);
+  float depth_fragment = projPosLight.w;
 
   // shadow casted by scene
   float amountLight_scene = 1.;//g_txSMScene.SampleCmpLevelZero(g_samShadow, texSM, depth-epsilon); // TODO
@@ -161,7 +161,7 @@ float ComputeSimpleShadow(vec3 worldPos, float alpha)
   numFibers += (depth_range > .00001) ? 1. : 0.;
   float amountLight_hair = pow(abs(1 - alpha), numFibers);
 
-  return amountLight_hair * amountLight_hair;
+  return abs(depth_fragment ) / 300.;
 }
 
 vec3 ComputeHairShading(vec3 iPos, vec3 iTangent, vec4 iTex, float amountLight)
@@ -297,11 +297,10 @@ void main() {
     clipPos.w = g_mViewProj[2][3] / (ndcPos.z - (g_mViewProj[2][2] / g_mViewProj[3][2]));
     clipPos.xyz = ndcPos.xyz * clipPos.w;
     vec4 Pos = g_mInvViewProj * clipPos;
-    Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
     float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
-    vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
+    vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= result.w * (1. - FragmentAlpha);
 
@@ -346,11 +345,10 @@ void main() {
     clipPos.w = g_mViewProj[2][3] / (ndcPos.z - (g_mViewProj[2][2] / g_mViewProj[3][2]));
     clipPos.xyz = ndcPos.xyz * clipPos.w;
     vec4 Pos = g_mInvViewProj * clipPos;
-    Pos /= Pos.w;
     vec3 Tangent = GetTangent(kbuf[i].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(kbuf[i].TangentAndCoverage);
-    float amountOfLight = ComputeShadow(Pos.xyz, FragmentAlpha);
-    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
+    float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
+    vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), 1.);
 
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= result.w * (1. - FragmentAlpha);
