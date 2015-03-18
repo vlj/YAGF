@@ -463,12 +463,12 @@ void init()
 
   glGenTextures(1, &HairShadowMapTexture);
   glBindTexture(GL_TEXTURE_2D, HairShadowMapTexture);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 640, 640);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 2048, 2048);
   glGenTextures(1, &HairShadowMapDepth);
   glBindTexture(GL_TEXTURE_2D, HairShadowMapDepth);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, 640, 640);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 2048, 2048);
 
-  HairSMFBO = new FrameBuffer({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
+  HairSMFBO = new FrameBuffer({ HairShadowMapTexture }, HairShadowMapDepth, 2048, 2048);
 
   MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
   PerPixelLinkedListHeadFBO = new FrameBuffer({ PerPixelLinkedListHeadTexture }, 1024, 1024);
@@ -660,6 +660,7 @@ void fillConstantBuffer(float time)
   cbuf.g_FiberAlpha = .5;
   cbuf.g_FiberSpacing = .3;
   cbuf.g_alphaThreshold = .00388;
+  cbuf.g_HairShadowAlpha = .004000;
 
   cbuf.g_AmbientLightColor[0] = .15;
   cbuf.g_AmbientLightColor[1] = .15;
@@ -676,19 +677,25 @@ void fillConstantBuffer(float time)
   cbuf.g_PointLightColor[2] = 1.;
   cbuf.g_PointLightColor[3] = 1.;
 
-/*  irr::core::matrix4 View, InvView, tmp, LightMatrix;
+  irr::core::matrix4 View, InvView, tmp, LightMatrix;
   tmp.setTranslation(irr::core::vector3df(0., 0., 200.));
   View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 1000.);
   View *= tmp;
   View.getInverse(InvView);
   irr::core::matrix4 Model;
 
-  LightMatrix.buildProjectionMatrixOrthoRH(320, 320, 100., 300.);
+  LightMatrix.buildProjectionMatrixPerspectiveRH(0.6, 1., 532, 769);
 
 //  LightMatrix.print();
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0., 0., 200.), irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
-  LightMatrix *= tmp;*/
-  float World[16] = {
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1] = 306.79, cbuf.g_PointLightPos[2] = 343.),
+    irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
+  LightMatrix *= tmp;
+  memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
+  memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
+  memcpy(cbuf.g_mInvViewProj, InvView.pointer(), 16 * sizeof(float));
+  memcpy(cbuf.g_mViewProjLight, LightMatrix.pointer(), 16 * sizeof(float));
+
+/*  float World[16] = {
     1., 0., 0., -26.,
     0., 1., 0., 36.,
     0., 0., 1., -58.,
@@ -714,13 +721,21 @@ void fillConstantBuffer(float time)
     -0.688184, -0.371573, -0.623167, 617.776917,
   };
 
+  float InvViewport[16] = {
+    -0.000859, 0.000062, -18.962017, 18.813549,
+    0.000000, -0.001074, -6.986005, 7.317234,
+    0.000653, 0.000082, -24.950022, 23.841923,
+    0.000000, 0.000000, -0.099800, 0.100000
+  };
+  memcpy(cbuf.g_mInvViewProjViewport, InvViewport, 16 * sizeof(float));
+
   memcpy(cbuf.g_mViewProjLight, LightMat, 16 * sizeof(float));
 
 //  tmp.print();
 
   memcpy(cbuf.g_mWorld, World, 16 * sizeof(float));
   memcpy(cbuf.g_mViewProj, ViewProj, 16 * sizeof(float));
-  memcpy(cbuf.g_mInvViewProj, invViewProj, 16 * sizeof(float));
+  memcpy(cbuf.g_mInvViewProj, invViewProj, 16 * sizeof(float));*/
   cbuf.g_WinSize[0] = 1024.;
   cbuf.g_WinSize[1] = 1024.;
   cbuf.g_WinSize[2] = 1. / 1024.;
@@ -745,7 +760,7 @@ void simulate(float time)
     cbuf.bWarp = 1;
   else
     cbuf.bWarp = 0;
-//  time = 0.;
+
 
   float p;
 
@@ -888,7 +903,7 @@ void draw(float time)
   glClearColor(0.25f, 0.25f, 0.35f, 0.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_ONE, GL_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
 
 

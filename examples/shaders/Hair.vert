@@ -1,7 +1,7 @@
 
 #version 430
 
-layout(std140, binding = 0, row_major) uniform Constants
+layout(std140, binding = 0) uniform Constants
 {
   mat4 g_mWorld;
   mat4 g_mViewProj;

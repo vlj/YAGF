@@ -2,7 +2,7 @@
 uniform sampler2D HairShadowMap;
 layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
 
-layout(std140, binding = 0, row_major) uniform Constants
+layout(std140, binding = 0) uniform Constants
 {
   mat4 g_mWorld;
   mat4 g_mViewProj;
@@ -113,7 +113,7 @@ float ComputeShadow(vec3 worldPos, float alpha)
       float depth_smPoint = g_fNearLight / (1 - depthSMHair * (g_fFarLight - g_fNearLight) / g_fFarLight);
 
       float depth_range = max(0, depth_fragment-depth_smPoint);
-      float numFibers =  depth_range/(g_FiberSpacing*g_FiberRadius);
+      float numFibers =  depth_range / (g_FiberSpacing * g_FiberRadius);
 
       // if occluded by hair, there is at least one fiber
       numFibers += (depth_range > .00001) ? 1. : 0.;
@@ -300,7 +300,7 @@ void main() {
     Pos /= Pos.w;
     vec3 Tangent = GetTangent(PPLL[ListBucketId].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(PPLL[ListBucketId].TangentAndCoverage);
-    float amountOfLight = ComputeSimpleShadow(Pos.xyz, FragmentAlpha);
+    float amountOfLight = ComputeSimpleShadow(Pos.xyz, g_HairShadowAlpha);
     vec3 FragmentColor = SimpleHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
     result.w *= (1. - FragmentAlpha);
@@ -350,7 +350,7 @@ void main() {
 
     vec3 Tangent = GetTangent(kbuf[i].TangentAndCoverage);
     float FragmentAlpha = GetCoverage(kbuf[i].TangentAndCoverage);
-    float amountOfLight = ComputeShadow(Pos.xyz, FragmentAlpha);
+    float amountOfLight = ComputeShadow(Pos.xyz, g_HairShadowAlpha);
     vec3 FragmentColor = ComputeHairShading(Pos.xyz, Tangent, vec4(0.), amountOfLight);
 
     result.xyz = result.xyz * (1. - FragmentAlpha) + FragmentAlpha * FragmentColor;
