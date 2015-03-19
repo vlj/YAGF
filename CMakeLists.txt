@@ -105,6 +105,15 @@ endif()
 
 include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
 
-
-add_executable(tfx-ocl examples/TressFX/tfx-ocl.cpp)
-target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib")
+add_executable(tfx-ocl examples/TressFX/tfx-ocl.cpp examples/TressFX/common.cpp)
+target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib" ${FREETYPE_LIBRARY})
+if (WIN32)
+add_custom_command(TARGET tfx-ocl POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/freetype6.dll"
+         $<TARGET_FILE_DIR:tfx-ocl>)
+ add_custom_command(TARGET tfx-ocl POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/zlib1.dll"
+         $<TARGET_FILE_DIR:tfx-ocl>)
+endif()

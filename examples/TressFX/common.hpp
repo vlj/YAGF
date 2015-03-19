@@ -95,6 +95,10 @@ struct TressFXAsset
   int m_NumFollowHairsPerOneGuideHair;
 };
 
+extern GLuint PosSSBO;
+extern GLuint TangentSSBO;
+extern GLuint ThicknessSSBO;
+
 TressFXAsset loadTress(const char* filename);
 void cleanTFXAssetContent(const TressFXAsset &tfxassets);
 void initCommon(const TressFXAsset& tfxassets);
