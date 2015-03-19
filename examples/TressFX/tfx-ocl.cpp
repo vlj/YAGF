@@ -21,12 +21,15 @@ TressFXAsset tfxassets;
 
 cl_context context;
 cl_command_queue queue;
-cl_kernel kernel;
+cl_kernel kernel_Global;
+cl_kernel kernel_Local;
 cl_program prog;
 cl_mem InitialPos;
 cl_mem StrandType;
 cl_mem PreviousPos;
 cl_mem PosBuffer;
+cl_mem GlobalRotations;
+cl_mem HairRefVecs;
 cl_mem ConstantSimBuffer;
 
 typedef cl_event(CALLBACK *PFNCreateEventFromGLsyncKHRCustom)(cl_context, cl_GLsync, cl_int *);
@@ -79,13 +82,16 @@ void init()
   delete log;
 
   queue = clCreateCommandQueue(context, device, 0, &err);
-  kernel = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
+  kernel_Global = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
+  kernel_Local = clCreateKernel(prog, "LocalShapeConstraintsWithIteration", &err);
   ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
 
   InitialPos = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
   PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
   PreviousPos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
   StrandType = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, &err);
+  GlobalRotations = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4* sizeof(float), tfxassets.m_pGlobalRotations, &err);
+  HairRefVecs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * 4 * sizeof(float), tfxassets.m_pRefVectors, &err);
 }
 
 void clean()
@@ -153,16 +159,23 @@ void simulate(float time)
 
   // First pass is done so sim is done too, can safely upload
   err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
-
   err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
-  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &PosBuffer);
-  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &PreviousPos);
-  err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &StrandType);
-  err = clSetKernelArg(kernel, 3, sizeof(cl_mem), &InitialPos);
-  err = clSetKernelArg(kernel, 4, sizeof(cl_mem), &ConstantSimBuffer);
+
+  err = clSetKernelArg(kernel_Global, 0, sizeof(cl_mem), &PosBuffer);
+  err = clSetKernelArg(kernel_Global, 1, sizeof(cl_mem), &PreviousPos);
+  err = clSetKernelArg(kernel_Global, 2, sizeof(cl_mem), &StrandType);
+  err = clSetKernelArg(kernel_Global, 3, sizeof(cl_mem), &InitialPos);
+  err = clSetKernelArg(kernel_Global, 4, sizeof(cl_mem), &ConstantSimBuffer);
   size_t local_wg = 64;
   size_t global_wg = density * tfxassets.m_NumTotalHairVertices;
-  err = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &global_wg, &local_wg, 0, 0, 0);
+  err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg, &local_wg, 0, 0, 0);
+
+  err = clSetKernelArg(kernel_Local, 0, sizeof(cl_mem), &PosBuffer);
+  err = clSetKernelArg(kernel_Local, 1, sizeof(cl_mem), &StrandType);
+  err = clSetKernelArg(kernel_Local, 2, sizeof(cl_mem), &GlobalRotations);
+  err = clSetKernelArg(kernel_Local, 3, sizeof(cl_mem), &HairRefVecs);
+  err = clSetKernelArg(kernel_Local, 4, sizeof(cl_mem), &ConstantSimBuffer);
+  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg, &local_wg, 0, 0, 0);
 
   err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   clFinish(queue);
