@@ -165,8 +165,6 @@ void clean()
   cleanTFXAssetContent(tfxassets);
 }
 
-GLsync syncobj;
-
 void simulate(float time)
 {
   struct SimulationConstants cbuf = {};
@@ -224,14 +222,7 @@ void simulate(float time)
   memset(cbuf.Wind3, 0, 4 * sizeof(float));
 
   if (syncobj)
-  {
-    GLenum status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-    while (status == GL_TIMEOUT_EXPIRED)
-    {
-      status = glClientWaitSync(syncobj, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-    }
     glDeleteSync(syncobj);
-  }
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
@@ -283,7 +274,6 @@ int main()
   {
     simulate(tmp);
     draw(density);
-    syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glfwSwapBuffers(window);
     glfwPollEvents();
     tmp += 300.;

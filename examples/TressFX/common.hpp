@@ -98,6 +98,7 @@ struct TressFXAsset
 extern GLuint PosSSBO;
 extern GLuint TangentSSBO;
 extern GLuint ThicknessSSBO;
+extern GLsync syncobj; // Emitted after first pass complete
 
 TressFXAsset loadTress(const char* filename);
 void cleanTFXAssetContent(const TressFXAsset &tfxassets);

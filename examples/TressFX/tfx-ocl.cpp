@@ -93,8 +93,6 @@ void clean()
   cleanCommon();
 }
 
-GLsync syncFirstPassRenderComplete;
-
 void simulate(float time)
 {
   struct SimulationConstants cbuf = {};
@@ -148,8 +146,8 @@ void simulate(float time)
 
   int err = CL_SUCCESS;
   cl_event ev = 0;
-  if (syncFirstPassRenderComplete);
-    ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
+  if (syncobj)
+    ev = clCreateEventFromGLsyncKHRCustom(context, syncobj, &err);
 
   glFinish();
 
@@ -168,9 +166,9 @@ void simulate(float time)
 
   err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   clFinish(queue);
-  if (syncFirstPassRenderComplete);
+  if (syncobj);
   {
-    glDeleteSync(syncFirstPassRenderComplete);
+    glDeleteSync(syncobj);
     clReleaseEvent(ev);
   }
   return;

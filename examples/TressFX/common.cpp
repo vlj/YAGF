@@ -368,7 +368,6 @@ void cleanCommon()
 
 static void fillConstantBuffer()
 {
-
   /*
   // From Ruby tfx demo
   static COLORREF g_vCustHairColors[16] =
@@ -459,6 +458,8 @@ static void fillConstantBuffer()
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
 }
 
+GLsync syncobj;
+
 void draw(float density)
 {
   fillConstantBuffer();
@@ -517,6 +518,8 @@ void draw(float density)
 
     sprintf(t, "First pass: %f ms", result / 1000000.);
   }
+
+  syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
   glStencilFunc(GL_EQUAL, 1, 0xFF);
