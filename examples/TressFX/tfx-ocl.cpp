@@ -13,6 +13,8 @@
 #include <iostream>
 #include "common.hpp"
 
+#include <Util/Debug.h>
+
 float density = .4;
 
 TressFXAsset tfxassets;
@@ -32,6 +34,11 @@ PFNCreateEventFromGLsyncKHRCustom clCreateEventFromGLsyncKHRCustom;
 
 void init()
 {
+  tfxassets = loadTress("..\\examples\\TressFX\\ruby.tfxb");
+
+  initCommon(tfxassets);
+
+  DebugUtil::enableDebugOutput();
   int err;
   cl_platform_id platform;
   clGetPlatformIDs(1, &platform, NULL);
@@ -74,10 +81,6 @@ void init()
   queue = clCreateCommandQueue(context, device, 0, &err);
   kernel = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
   ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
-
-  tfxassets = loadTress("..\\examples\\TressFX\\ruby.tfxb");
-
-  initCommon(tfxassets);
 
   InitialPos = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
   PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
