@@ -143,7 +143,7 @@ class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraint
 public:
   GlobalConstraintSimulation()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\Simulation.comp", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\GlobalConstraints.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
