@@ -90,11 +90,21 @@ endif()
 add_executable(mesh examples/mesh.cpp)
 target_link_libraries(mesh ${PROJECT_NAME})
 
-add_executable(tfx examples/tfx.cpp)
+add_executable(tfx examples/TressFX/tfx.cpp)
 target_link_libraries(tfx ${PROJECT_NAME} ${FREETYPE_LIBRARY})
+if (WIN32)
+add_custom_command(TARGET tfx POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/freetype6.dll"
+         $<TARGET_FILE_DIR:tfx>)
+ add_custom_command(TARGET tfx POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/freetype2/bin/zlib1.dll"
+         $<TARGET_FILE_DIR:tfx>)
+endif()
 
 include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
 
 
-add_executable(tfx-ocl examples/tfx-ocl.cpp)
+add_executable(tfx-ocl examples/TressFX/tfx-ocl.cpp)
 target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib")

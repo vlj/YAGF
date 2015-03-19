@@ -64,11 +64,11 @@ class HairShadow : public ShaderHelperSingleton<HairShadow>
 public:
   HairShadow()
   {
-    std::ifstream invtx("..\\examples\\shaders\\HairSM.vert", std::ios::in);
+    std::ifstream invtx("..\\examples\\TressFX\\shaders\\HairSM.vert", std::ios::in);
 
     const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
 
-    std::ifstream infrag("..\\examples\\shaders\\HairSM.frag", std::ios::in);
+    std::ifstream infrag("..\\examples\\TressFX\\shaders\\HairSM.frag", std::ios::in);
 
     const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
 
@@ -84,11 +84,11 @@ class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRea
 public:
   Transparent()
   {
-    std::ifstream invtx("..\\examples\\shaders\\Hair.vert", std::ios::in);
+    std::ifstream invtx("..\\examples\\TressFX\\shaders\\Hair.vert", std::ios::in);
 
     const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
 
-    std::ifstream infrag("..\\examples\\shaders\\Hair.frag", std::ios::in);
+    std::ifstream infrag("..\\examples\\TressFX\\shaders\\Hair.frag", std::ios::in);
 
     const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
 
@@ -105,7 +105,7 @@ class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public Textur
 public:
   FragmentMerge()
   {
-    std::ifstream in("..\\examples\\shaders\\FSShading.frag", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\FSShading.frag", std::ios::in);
 
     const std::string &fragmerge = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -143,7 +143,7 @@ class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraint
 public:
   GlobalConstraintSimulation()
   {
-    std::ifstream in("..\\examples\\shaders\\Simulation.comp", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\Simulation.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -157,7 +157,7 @@ class LocalConstraintSimulation : public ShaderHelperSingleton<LocalConstraintSi
 public:
   LocalConstraintSimulation()
   {
-    std::ifstream in("..\\examples\\shaders\\LocalConstraints.comp", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\LocalConstraints.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -172,7 +172,7 @@ public:
 
   WindLengthTangentConstraint()
   {
-    std::ifstream in("..\\examples\\shaders\\LengthWindTangentComputation.comp", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\LengthWindTangentComputation.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -187,7 +187,7 @@ public:
 
   PrepareFollowHairGuide()
   {
-    std::ifstream in("..\\examples\\shaders\\PrepareFollowHair.comp", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\PrepareFollowHair.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -202,7 +202,7 @@ public:
 
   UpdateFollowHairGuide()
   {
-    std::ifstream in("..\\examples\\shaders\\UpdateFollowHair.comp", std::ios::in);
+    std::ifstream in("..\\examples\\TressFX\\shaders\\UpdateFollowHair.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -441,7 +441,7 @@ void init()
 {
   DebugUtil::enableDebugOutput();
 
-  tfxassets = loadTress("..\\examples\\ruby.tfxb");
+  tfxassets = loadTress("..\\examples\\TressFX\\ruby.tfxb");
   glGenVertexArrays(1, &TFXVao);
   glBindVertexArray(TFXVao);
 
