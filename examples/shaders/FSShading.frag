@@ -281,7 +281,7 @@ void main() {
     uint max_idx = 0;
     for (int i = 0; i < kbuf_size; i++)
     {
-      float d = kbuf[kbuf_size].depth;
+      float d = kbuf[i].depth;
       max_depth = max(max_depth, d);
       max_idx = (max_depth == d) ? i : max_idx;
     }
