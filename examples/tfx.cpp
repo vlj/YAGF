@@ -896,7 +896,7 @@ void draw(float time)
   glEnable(GL_STENCIL_TEST);
   glStencilFunc(GL_ALWAYS, 1, 0xFF);
   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
+  char t[50];
   {
     GLuint timer;
     glGenQueries(1, &timer);
@@ -915,8 +915,7 @@ void draw(float time)
     GLuint result;
     glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
 
-    char time[50];
-    printf("First pass: %f ms\n", result / 1000000.);
+    sprintf(t, "First pass: %f ms", result / 1000000.);
   }
 
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -944,6 +943,12 @@ void draw(float time)
   Passthrough::getInstance()->SetTextureUnits(MainTexture, Sampler);
   DrawFullScreenEffect<Passthrough>();
   glDisable(GL_FRAMEBUFFER_SRGB);
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendEquation(GL_FUNC_ADD);
+
+  BasicTextRender<14>::getInstance()->drawText(t, 0, 20, 1024, 1024);
 }
 
 int main()

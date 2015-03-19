@@ -91,7 +91,7 @@ add_executable(mesh examples/mesh.cpp)
 target_link_libraries(mesh ${PROJECT_NAME})
 
 add_executable(tfx examples/tfx.cpp)
-target_link_libraries(tfx ${PROJECT_NAME})
+target_link_libraries(tfx ${PROJECT_NAME} ${FREETYPE_LIBRARY})
 
 include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
 
