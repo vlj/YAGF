@@ -55,7 +55,7 @@ void init()
 
   context = clCreateContext(prop, 1, &device, NULL, NULL, NULL);
 
-  std::ifstream file("..\\examples\\shaders\\Simulation.cl", std::ios::in);
+  std::ifstream file("..\\examples\\TressFX\\shaders\\Simulation.cl", std::ios::in);
 
   const std::string &progstr = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   size_t src_sz = progstr.size();
@@ -75,7 +75,7 @@ void init()
   kernel = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
   ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
 
-  tfxassets = loadTress("..\\examples\\ruby.tfxb");
+  tfxassets = loadTress("..\\examples\\TressFX\\ruby.tfxb");
 
   initCommon(tfxassets);
 
@@ -147,6 +147,8 @@ void simulate(float time)
   cl_event ev = 0;
   if (syncFirstPassRenderComplete);
     ev = clCreateEventFromGLsyncKHRCustom(context, syncFirstPassRenderComplete, &err);
+
+  glFinish();
 
   // First pass is done so sim is done too, can safely upload
   err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
