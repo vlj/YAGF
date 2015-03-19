@@ -90,7 +90,7 @@ endif()
 add_executable(mesh examples/mesh.cpp)
 target_link_libraries(mesh ${PROJECT_NAME})
 
-add_executable(tfx examples/TressFX/tfx.cpp)
+add_executable(tfx examples/TressFX/tfx.cpp examples/TressFX/common.cpp)
 target_link_libraries(tfx ${PROJECT_NAME} ${FREETYPE_LIBRARY})
 if (WIN32)
 add_custom_command(TARGET tfx POST_BUILD
