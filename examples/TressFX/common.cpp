@@ -466,7 +466,7 @@ void draw(float density)
   // Reset PixelCount
   int pxcnt = 1;
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
-  glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(unsigned int), &pxcnt);
+  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), &pxcnt, GL_STATIC_DRAW);
 
   glDisable(GL_CULL_FACE);
   glDisable(GL_BLEND);
