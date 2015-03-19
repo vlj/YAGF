@@ -315,12 +315,11 @@ void main() {
 
 //#define DEBUG
 #ifdef DEBUG
-  if (numfrag < 32)
-    FragColor = vec4(0., 1., 0., 0.);
-  else if (numfrag < 64)
-    FragColor = vec4(1., 1., 0., 0.);
-  else
-    FragColor = vec4(1., 0., 0., 0.);
+  result = vec4(0., 1., 0., 0.);
+  if (numfrag > 32) result.xyz = vec3(1., 1., 0.);
+  if (numfrag > 64) result.xyz = vec3(1., .5, 0.);
+  if (numfrag > 128) result.xyz = vec3(1., 0., 0.);
+  FragColor = result;
   return;
 #endif
 
