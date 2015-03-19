@@ -782,9 +782,9 @@ void simulate(float time)
 
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
   cbuf.ModelRotateForHead[0] = 0.;
-  cbuf.ModelRotateForHead[1] = sin((time / 720) * (3.14 / 180.));
+  cbuf.ModelRotateForHead[1] = sin((time / 720.) * (3.14 / 180.));
   cbuf.ModelRotateForHead[2] = 0.;
-  cbuf.ModelRotateForHead[3] = cos((3.14 / 180.) * time / 720);
+  cbuf.ModelRotateForHead[3] = cos((time / 720.) * (3.14 / 180.));
 
   cbuf.timeStep = .016;
 

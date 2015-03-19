@@ -264,11 +264,11 @@ void main() {
   int kbuf_size;
   for (kbuf_size = 0; kbuf_size < K_BUFFER; kbuf_size++)
   {
+    if (ListBucketHead == 0)
+      break;
     kbuf[kbuf_size].depth = PPLL[ListBucketHead].depth;
     kbuf[kbuf_size].TangentAndCoverage = PPLL[ListBucketHead].TangentAndCoverage;
     ListBucketHead = PPLL[ListBucketHead].next;
-    if (ListBucketHead == 0)
-      break;
   }
 
   uint ListBucketId = ListBucketHead;
