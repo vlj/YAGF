@@ -331,7 +331,7 @@ __kernel void LocalShapeConstraintsWithIteration(
     &strandType);
 
   // stiffness for local shape constraints
-  float stiffnessForLocalShapeMatching = 0.4;
+  float stiffnessForLocalShapeMatching = 0.4f;
 
   if ( strandType == 2)
     stiffnessForLocalShapeMatching = params->StiffnessForLocalShapeMatching2;
@@ -343,13 +343,13 @@ __kernel void LocalShapeConstraintsWithIteration(
     stiffnessForLocalShapeMatching = params->StiffnessForLocalShapeMatching0;
 
   //1.0 for stiffness makes things unstable sometimes.
-  stiffnessForLocalShapeMatching = 0.5 * min(stiffnessForLocalShapeMatching, 0.95f);
+  stiffnessForLocalShapeMatching = 0.5f * min(stiffnessForLocalShapeMatching, 0.95f);
 
   //------------------------------
   // Copy strand data into registers, for faster iteration
   //------------------------------
   unsigned int globalVertexIndex = 0;
-  __local float4 sharedStrandPos[MAX_VERTS_PER_STRAND];
+  float4 sharedStrandPos[MAX_VERTS_PER_STRAND];
   for (unsigned int localVertexIndex = 0; localVertexIndex < numVerticesInTheStrand; localVertexIndex++)
   {
     globalVertexIndex = globalRootVertexIndex + localVertexIndex;
@@ -395,7 +395,7 @@ __kernel void LocalShapeConstraintsWithIteration(
       float3 e = (float3)(1.f, 0.f, 0.f);
       float3 rotAxis = cross(e, x_i_plus_1_frame_i);
 
-      if ( length(rotAxis) > 0.001 )
+      if ( length(rotAxis) > 0.001f )
       {
         float angle_radian = acos(dot(e, x_i_plus_1_frame_i));
         rotAxis = normalize(rotAxis);
@@ -405,7 +405,7 @@ __kernel void LocalShapeConstraintsWithIteration(
       }
 
       sharedStrandPos[localVertexIndex].xyz = pos.xyz;
-      sharedStrandPos[localVertexIndex+1].xyz = pos_plus_one.xyz;
+      sharedStrandPos[localVertexIndex + 1].xyz = pos_plus_one.xyz;
 
       pos = pos_plus_one;
     }
