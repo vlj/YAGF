@@ -20,6 +20,7 @@ float density = .4;
 TressFXAsset tfxassets;
 
 cl_context context;
+cl_device_id device;
 cl_command_queue queue;
 cl_kernel kernel_Global;
 cl_kernel kernel_Local;
@@ -45,7 +46,6 @@ void init()
   int err;
   cl_platform_id platform;
   clGetPlatformIDs(1, &platform, NULL);
-  cl_device_id device;
   clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, 0);
 
   clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom) clGetExtensionFunctionAddressForPlatform(platform, "clCreateEventFromGLsyncKHR");
@@ -96,6 +96,19 @@ void init()
 
 void clean()
 {
+  clReleaseKernel(kernel_Global);
+  clReleaseKernel(kernel_Local);
+  clReleaseProgram(prog);
+  clReleaseMemObject(InitialPos);
+  clReleaseMemObject(PosBuffer);
+  clReleaseMemObject(PreviousPos);
+  clReleaseMemObject(StrandType);
+  clReleaseMemObject(StrandType);
+  clReleaseMemObject(GlobalRotations);
+  clReleaseMemObject(ConstantSimBuffer);
+  clReleaseCommandQueue(queue);
+  clReleaseDevice(device);
+  clReleaseContext(context);
   cleanCommon();
 }
 
