@@ -90,15 +90,12 @@ void init()
   PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
   PreviousPos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
   StrandType = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, &err);
-  GlobalRotations = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4* sizeof(float), tfxassets.m_pGlobalRotations, &err);
-  HairRefVecs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * 4 * sizeof(float), tfxassets.m_pRefVectors, &err);
+  GlobalRotations = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pGlobalRotations, &err);
+  HairRefVecs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pRefVectors, &err);
 }
 
 void clean()
 {
-  clReleaseKernel(kernel_Global);
-  clReleaseKernel(kernel_Local);
-  clReleaseProgram(prog);
   clReleaseMemObject(InitialPos);
   clReleaseMemObject(PosBuffer);
   clReleaseMemObject(PreviousPos);
@@ -106,6 +103,9 @@ void clean()
   clReleaseMemObject(StrandType);
   clReleaseMemObject(GlobalRotations);
   clReleaseMemObject(ConstantSimBuffer);
+  clReleaseKernel(kernel_Global);
+  clReleaseKernel(kernel_Local);
+  clReleaseProgram(prog);
   clReleaseCommandQueue(queue);
   clReleaseDevice(device);
   clReleaseContext(context);
@@ -171,7 +171,7 @@ void simulate(float time)
   glFinish();
 
   // First pass is done so sim is done too, can safely upload
-  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
+  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_TRUE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
   err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
 
   err = clSetKernelArg(kernel_Global, 0, sizeof(cl_mem), &PosBuffer);
