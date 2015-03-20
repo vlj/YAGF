@@ -100,8 +100,8 @@ void clean()
   clReleaseMemObject(PosBuffer);
   clReleaseMemObject(PreviousPos);
   clReleaseMemObject(StrandType);
-  clReleaseMemObject(StrandType);
   clReleaseMemObject(GlobalRotations);
+  clReleaseMemObject(HairRefVecs);
   clReleaseMemObject(ConstantSimBuffer);
   clReleaseKernel(kernel_Global);
   clReleaseKernel(kernel_Local);
