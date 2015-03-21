@@ -132,7 +132,7 @@ public:
     }
 };
 
-class LinearizeDepthShader : public ShaderHelperSingleton<LinearizeDepthShader, float, float>, public TextureRead<Texture2D>
+class LinearizeDepthShader : public ShaderHelperSingleton<LinearizeDepthShader, float, float>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     LinearizeDepthShader()
@@ -142,11 +142,11 @@ public:
           GL_FRAGMENT_SHADER, lineardepthshader);
       AssignUniforms("zn", "zf");
 
-      AssignSamplerNames(Program, 0, "tex");
+      AssignSamplerNames(Program, "tex");
     }
 };
 
-class SSAOShader : public ShaderHelperSingleton<SSAOShader, irr::core::matrix4>, public TextureRead<Texture2D>
+class SSAOShader : public ShaderHelperSingleton<SSAOShader, irr::core::matrix4>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     SSAOShader()
@@ -155,7 +155,7 @@ public:
           GL_VERTEX_SHADER, screenquadshader,
           GL_FRAGMENT_SHADER, ssaoshader);
 
-      AssignSamplerNames(Program, 0, "dtex");
+      AssignSamplerNames(Program, "dtex");
       AssignUniforms("ProjectionMatrix");
     }
 };

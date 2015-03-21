@@ -126,7 +126,7 @@ const char *fragmerge =
 "  FragColor = result;\n"
 "}\n";
 
-class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4, irr::video::SColorf>, public TextureRead<Image2D>
+class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4, irr::video::SColorf>, public TextureRead<ImageResource<0> >
 {
 public:
     Transparent()
@@ -135,11 +135,11 @@ public:
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
         AssignUniforms("ModelMatrix", "ViewProjectionMatrix", "color");
-        AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+        AssignSamplerNames(Program, "PerPixelLinkedListHead");
     }
 };
 
-class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<Image2D>
+class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<ImageResource<0> >
 {
 public:
     FragmentMerge()
@@ -147,7 +147,7 @@ public:
         Program = ProgramShaderLoading::LoadProgram(
             GL_VERTEX_SHADER, screenquadshader,
             GL_FRAGMENT_SHADER, fragmerge);
-        AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+        AssignSamplerNames(Program, "PerPixelLinkedListHead");
     }
 };
 

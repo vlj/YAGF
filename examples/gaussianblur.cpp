@@ -67,7 +67,7 @@ static const char *bilateralH =
 "  imageStore(dest, iuv, sum / total_weight); \n"
 "}";
 
-class GaussianBlurH : public ShaderHelperSingleton<GaussianBlurH, irr::core::vector2df, float>, public TextureRead<Texture2D, Image2D>
+class GaussianBlurH : public ShaderHelperSingleton<GaussianBlurH, irr::core::vector2df, float>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
 {
 public:
     GaussianBlurH()
@@ -76,11 +76,11 @@ public:
             GL_COMPUTE_SHADER, bilateralH);
         AssignUniforms("pixel", "sigma");
 
-        AssignSamplerNames(Program, 0, "source", 1, "dest");
+        AssignSamplerNames(Program, "source", "dest");
     }
 };
 
-class FullScreenPassthrough : public ShaderHelperSingleton<FullScreenPassthrough>, public TextureRead<Texture2D>
+class FullScreenPassthrough : public ShaderHelperSingleton<FullScreenPassthrough>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     FullScreenPassthrough()
@@ -90,7 +90,7 @@ public:
             GL_FRAGMENT_SHADER, passthrougfs);
         AssignUniforms();
 
-        AssignSamplerNames(Program, 0, "tex");
+        AssignSamplerNames(Program, "tex");
     }
 };
 
