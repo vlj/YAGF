@@ -132,22 +132,6 @@ class ProgramShaderLoading
     loadAndAttach(ProgramID, args...);
   }
 
-  static std::string LoadHeader()
-  {
-    std::string result;
-    //      std::ifstream Stream(file_manager->getAsset("shaders/header.txt").c_str(), std::ios::in);
-
-    /*      if (Stream.is_open())
-          {
-          std::string Line = "";
-          while (getline(Stream, Line))
-          result += "\n" + Line;
-          Stream.close();
-          }
-          */
-    return result;
-  }
-
   template<typename ...Types>
   static void printFileList()
   {
@@ -217,7 +201,6 @@ public:
             Code += "#define VSLayer\n";
             if (CVS->needsRGBBindlessWorkaround())
             Code += "#define SRGBBindlessFix\n";*/
-    Code += LoadHeader();
     if (Stream.is_open())
     {
       std::string Line = "";
@@ -302,13 +285,6 @@ struct UniformHelper
     setUniformsHelper<N + 1>(uniforms, arg...);
   }
 
-  /*    template<unsigned N = 0, typename... Args>
-      static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::core::dimension2df &v, const Args &... arg)
-      {
-      glUniform2f(uniforms[N], v.Width, v.Height);
-      setUniformsHelper<N + 1>(uniforms, arg...);
-      }*/
-
   template<unsigned N = 0, typename... Args>
   static void setUniformsHelper(const std::vector<GLuint> &uniforms, float f, const Args &... arg)
   {
@@ -343,10 +319,7 @@ struct UniformHelper
     glUniformMatrix4fv(uniforms[N], (int)v.size(), GL_FALSE, tmp.data());
     setUniformsHelper<N + 1>(uniforms, arg...);
   }
-
 };
-
-void bypassUBO(GLuint Program);
 
 extern std::vector<void(*)()> CleanTable;
 
