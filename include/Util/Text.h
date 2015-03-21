@@ -16,7 +16,7 @@ extern "C" {
 #include FT_LCD_FILTER_H
 }
 
-class GlyphRendering : public ShaderHelperSingleton<GlyphRendering, irr::core::vector2df, irr::core::vector2df>, public TextureRead < Texture2D >
+class GlyphRendering : public ShaderHelperSingleton<GlyphRendering, irr::core::vector2df, irr::core::vector2df>, public TextureRead <TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
   GlyphRendering()
@@ -48,7 +48,7 @@ public:
       GL_FRAGMENT_SHADER, passthrougfs);
     AssignUniforms("GlyphCenter", "GlyphScaling");
 
-    AssignSamplerNames(Program, 0, "tex");
+    AssignSamplerNames(Program, "tex");
   }
 };
 

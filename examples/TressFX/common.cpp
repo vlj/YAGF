@@ -78,7 +78,7 @@ public:
   }
 };
 
-class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<Image2D>
+class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<ImageResource<1> >
 {
 public:
   Transparent()
@@ -95,11 +95,11 @@ public:
       GL_VERTEX_SHADER, vtxshader.c_str(),
       GL_FRAGMENT_SHADER, fragshader.c_str());
     AssignUniforms();
-    AssignSamplerNames(Program, 0, "PerPixelLinkedListHead");
+    AssignSamplerNames(Program, "PerPixelLinkedListHead");
   }
 };
 
-class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<Texture2D, Image2D>
+class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
 {
 public:
   FragmentMerge()
@@ -111,12 +111,11 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, screenquadshader,
       GL_FRAGMENT_SHADER, fragmerge.c_str());
-    AssignSamplerNames(Program, 0, "HairShadowMap", 1, "PerPixelLinkedListHead");
+    AssignSamplerNames(Program, "HairShadowMap", "PerPixelLinkedListHead");
   }
 };
 
-#define TO_STRING(x) #x
-class Passthrough : public ShaderHelperSingleton<Passthrough>, public TextureRead<Texture2D>
+class Passthrough : public ShaderHelperSingleton<Passthrough>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
   Passthrough()
@@ -133,7 +132,7 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, screenquadshader,
       GL_FRAGMENT_SHADER, shader);
-    AssignSamplerNames(Program, 0, "tex");
+    AssignSamplerNames(Program, "tex");
   }
 };
 

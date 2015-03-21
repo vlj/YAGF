@@ -372,158 +372,102 @@ public:
   }
 };
 
-enum TextureType {
-  Texture2D,
-  Texture3D,
-  TextureCubemap,
-  Image2D,
+template<GLenum TextureType, unsigned TextureUnit>
+struct TextureResource
+{
+  template <typename BindStruct, typename ...Args>
+  static void ChainedBind(GLuint texid, GLuint samplerid, const Args&...args)
+  {
+    glActiveTexture(GL_TEXTURE0 + TextureUnit);
+    glBindTexture(TextureType, texid);
+    glBindSampler(TextureUnit, samplerid);
+    BindStruct::exec(args...);
+  }
+
+  template <typename AssignStruct, typename...Args>
+  static void ChainedAssign(GLuint Program, std::vector<GLuint> &TextureLocation, const char* name, const Args&...args)
+  {
+    GLuint location = glGetUniformLocation(Program, name);
+    TextureLocation.push_back(location);
+    glUniform1i(location, TextureUnit);
+    AssignStruct::exec(Program, TextureLocation, args...);
+  }
 };
 
-template<TextureType...tp>
+template<unsigned TextureUnit>
+struct ImageResource
+{
+  template <typename BindStruct, typename ...Args>
+  static void ChainedBind(GLuint texid, GLenum access, GLenum format, const Args&...args)
+  {
+    glActiveTexture(GL_TEXTURE0 + TextureUnit);
+    glBindImageTexture(TextureUnit, texid, 0, GL_FALSE, 0, access, format);
+    glBindSampler(TextureUnit, 0);
+    BindStruct::exec(args...);
+  }
+
+  template <typename AssignStruct, typename...Args>
+  static void ChainedAssign(GLuint Program, std::vector<GLuint> &TextureLocation, const char* name, const Args&...args)
+  {
+    GLuint location = glGetUniformLocation(Program, name);
+    TextureLocation.push_back(location);
+    glUniform1i(location, TextureUnit);
+    AssignStruct::exec(Program, TextureLocation, args...);
+  }
+};
+
+template<typename...tp>
 struct BindSamplerAndTexture;
 
 template<>
 struct BindSamplerAndTexture < >
 {
-  template <unsigned N>
-  static void exec(const std::vector<GLuint> & TUs)
+  static void exec()
   {}
 };
 
-template<TextureType...tp>
-struct BindSamplerAndTexture < Texture2D, tp... >
+template<typename T, typename...tp>
+struct BindSamplerAndTexture <T, tp...>
 {
-  template <unsigned N, typename ...Args>
-  static void exec(const std::vector<GLuint>& TUs, GLuint texid, GLuint samplerid, Args... args)
+  template <typename ...Args>
+  static void exec(const Args&... args)
   {
-    glActiveTexture(GL_TEXTURE0 + TUs[N]);
-    glBindTexture(GL_TEXTURE_2D, texid);
-    glBindSampler(TUs[N], samplerid);
-    BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
-  }
-};
-
-template<TextureType...tp>
-struct BindSamplerAndTexture < Texture3D, tp... >
-{
-  template <unsigned N, typename ...Args>
-  static void exec(const std::vector<GLuint>& TUs, GLuint texid, GLuint samplerid, Args... args)
-  {
-    glActiveTexture(GL_TEXTURE0 + TUs[N]);
-    glBindTexture(GL_TEXTURE_3D, texid);
-    glBindSampler(TUs[N], samplerid);
-    BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
-  }
-};
-
-template<TextureType...tp>
-struct BindSamplerAndTexture < TextureCubemap, tp... >
-{
-  template <unsigned N, typename ...Args>
-  static void exec(const std::vector<GLuint>& TUs, GLuint texid, GLuint samplerid, Args... args)
-  {
-    glActiveTexture(GL_TEXTURE0 + TUs[N]);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texid);
-    glBindSampler(TUs[N], samplerid);
-    BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
-  }
-};
-
-template<TextureType...tp>
-struct BindSamplerAndTexture < Image2D, tp... >
-{
-  template <unsigned N, typename ...Args>
-  static void exec(const std::vector<GLuint>& TUs, GLuint texid, GLenum access, GLenum format, Args... args)
-  {
-    glActiveTexture(GL_TEXTURE0 + TUs[N]);
-    glBindImageTexture(TUs[N], texid, 0, GL_FALSE, 0, access, format);
-    glBindSampler(TUs[N], 0);
-    BindSamplerAndTexture<tp...>::template exec<N + 1>(TUs, args...);
+    typedef BindSamplerAndTexture<tp...> Next;
+    T::template ChainedBind<Next>(args...);
   }
 };
 
 
 
-template<TextureType...tp>
+template<typename...tp>
 struct TextureAssign;
 
 template<>
 struct TextureAssign < >
 {
 public:
-  template<unsigned N>
-  static void exec(GLuint, std::vector<GLuint> &, std::vector<GLuint> &)
+  static void exec(GLuint, std::vector<GLuint> &)
   {
-
   }
 };
 
-template<TextureType...tp>
-struct TextureAssign < Texture2D, tp... >
+template<typename T, typename...tp>
+struct TextureAssign <T, tp... >
 {
 public:
-  template<unsigned N, typename...Args>
-  static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
+  template<typename...Args>
+  static void exec(GLuint Program, std::vector<GLuint> &TextureLocation, const Args&...args)
   {
-    GLuint location = glGetUniformLocation(Program, name);
-    TextureLocation.push_back(location);
-    glUniform1i(location, TexUnit);
-    TextureUnits.push_back(TexUnit);
-    TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
-  }
-};
-
-template<TextureType...tp>
-struct TextureAssign < Texture3D, tp... >
-{
-public:
-  template<unsigned N, typename...Args>
-  static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
-  {
-    GLuint location = glGetUniformLocation(Program, name);
-    TextureLocation.push_back(location);
-    glUniform1i(location, TexUnit);
-    TextureUnits.push_back(TexUnit);
-    TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
-  }
-};
-
-template<TextureType...tp>
-struct TextureAssign < TextureCubemap, tp... >
-{
-public:
-  template<unsigned N, typename...Args>
-  static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
-  {
-    GLuint location = glGetUniformLocation(Program, name);
-    TextureLocation.push_back(location);
-    glUniform1i(location, TexUnit);
-    TextureUnits.push_back(TexUnit);
-    TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
-  }
-};
-
-template<TextureType...tp>
-struct TextureAssign < Image2D, tp... >
-{
-public:
-  template<unsigned N, typename...Args>
-  static void exec(GLuint Program, std::vector<GLuint> &TextureUnits, std::vector<GLuint> &TextureLocation, GLuint TexUnit, const char *name, Args...args)
-  {
-    GLuint location = glGetUniformLocation(Program, name);
-    TextureLocation.push_back(location);
-    glUniform1i(location, TexUnit);
-    TextureUnits.push_back(TexUnit);
-    TextureAssign<tp...>::template exec<N + 1>(Program, TextureUnits, TextureLocation, args...);
+    typedef typename TextureAssign <tp... > AssignerStruct;
+    T::template ChainedAssign<AssignerStruct>(Program, TextureLocation, args...);
   }
 };
 
 
-template<TextureType...tp>
+template<typename...tp>
 class TextureRead
 {
 protected:
-  std::vector<GLuint> TextureUnits;
   std::vector<GLuint> TextureLocation;
 
   template<int N>
@@ -544,7 +488,7 @@ protected:
   void AssignSamplerNames(GLuint Program, Args...args)
   {
     glUseProgram(Program);
-    TextureAssign<tp...>::template exec<0>(Program, TextureUnits, TextureLocation, args...);
+    TextureAssign<tp...>::template exec(Program, TextureLocation, args...);
     glUseProgram(0);
   }
 
@@ -552,7 +496,7 @@ public:
   template<typename... TexIds>
   void SetTextureUnits(TexIds... args)
   {
-    BindSamplerAndTexture<tp...>::template exec<0>(TextureUnits, args...);
+    BindSamplerAndTexture<tp...>::template exec(args...);
   }
 
   template<typename... HandlesId>
@@ -561,4 +505,7 @@ public:
     SetTextureHandles_impl<0>(ids...);
   }
 };
+
+#define TO_STRING(x) #x
+
 #endif
