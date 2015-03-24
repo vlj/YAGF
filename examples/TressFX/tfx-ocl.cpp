@@ -82,7 +82,12 @@ void init()
   printf("%s\n", log);
   delete log;
 
-  queue = clCreateCommandQueue(context, device, 0, &err);
+  cl_queue_properties qprop[] = {
+//    CL_QUEUE_PROPERTIES, CL_QUEUE_ON_DEVICE,
+    CL_QUEUE_SIZE, CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE,
+    0
+  };
+  queue = clCreateCommandQueueWithProperties(context, device, qprop, &err);
   kernel_Global = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
   kernel_Local = clCreateKernel(prog, "LocalShapeConstraintsWithIteration", &err);
   ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
