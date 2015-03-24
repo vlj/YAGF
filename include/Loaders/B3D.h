@@ -208,7 +208,7 @@ namespace irr
 
         if (strncmp(header.name, "BB3D", 4) != 0)
         {
-          printf("File is not a b3d file. Loading failed (No header found)", B3DFile->getFileName().c_str());
+          printf("(%s)File is not a b3d file. Loading failed (No header found)", B3DFile->getFileName().c_str());
           return false;
         }
 
@@ -478,7 +478,7 @@ namespace irr
 
         if (tex_coord_sets >= max_tex_coords || tex_coord_set_size >= 4) // Something is wrong
         {
-          printf("tex_coord_sets or tex_coord_set_size too big", B3DFile->getFileName().c_str());
+          printf("(%s)tex_coord_sets or tex_coord_set_size too big", B3DFile->getFileName().c_str());
           return false;
         }
 
@@ -611,7 +611,7 @@ namespace irr
           {
             if ((unsigned)vertex_id[i] >= AnimatedVertices_VertexID.size())
             {
-              printf("Illegal vertex index found", B3DFile->getFileName().c_str());
+              printf("(%s)Illegal vertex index found", B3DFile->getFileName().c_str());
               return false;
             }
 
@@ -640,7 +640,7 @@ namespace irr
               AnimatedVertices_VertexID[vertex_id[i]] = (int)(meshBuffer->getVertexCount() - 1);
               AnimatedVertices_BufferID[vertex_id[i]] = (int)meshBufferID;
 
-              if (B3dMaterial)
+              //if (B3dMaterial)
               {
                 // Apply Material/Color/etc...
                 /*video::S3DVertex *Vertex = meshBuffer->getVertex(meshBuffer->getVertexCount() - 1);
@@ -1022,7 +1022,7 @@ namespace irr
 #endif
             if (ShowWarning && (texture_id != -1) && (n_texs > MATERIAL_MAX_TEXTURES))
             {
-              printf("Too many textures used in one material", B3DFile->getFileName().c_str());
+              printf("(%s)Too many textures used in one material", B3DFile->getFileName().c_str());
               ShowWarning = false;
             }
           }
