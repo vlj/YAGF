@@ -1,4 +1,13 @@
 deps/*
+*.rule
+*.cache
+Doxyfile
+
+# in build folder
+ftconfig.h
+glfw3.pc
+glfw_config.h
+
 *CMakeCache.txt
 *.check_cache
 *.cmake
