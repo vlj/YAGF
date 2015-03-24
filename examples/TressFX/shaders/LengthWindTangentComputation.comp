@@ -51,22 +51,22 @@ layout(std140, binding = 1) uniform Constants
 
 layout(std430, binding = 2) buffer HairPos
 {
-  vec4 g_HairVertexPositions[1000000];
+  vec4 g_HairVertexPositions[];
 };
 
 layout(std430, binding = 4) buffer StrandType
 {
-  int g_HairStrandType[1000000];
+  int g_HairStrandType[];
 };
 
 layout(std430, binding = 5) buffer HairLength
 {
-  float g_HairRestLengthSRV[1000000];
+  float g_HairRestLengthSRV[];
 };
 
 layout(std430, binding = 6) buffer HairTangent
 {
-  vec4 g_HairVertexTangents[1000000];
+  vec4 g_HairVertexTangents[];
 };
 
 

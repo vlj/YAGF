@@ -53,7 +53,7 @@ struct PerPixelListBucket
 
 layout(std430, binding = 0) buffer PerPixelLinkedList
 {
-    PerPixelListBucket PPLL[1000000];
+    PerPixelListBucket PPLL[];
 };
 
 //--------------------------------------------------------------------------------------

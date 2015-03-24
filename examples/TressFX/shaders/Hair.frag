@@ -42,7 +42,7 @@ layout(std140, binding = 0) uniform Constants
   mat4 g_mInvViewProjViewport;
 };
 
-
+layout(early_fragment_tests) in;
 //--------------------------------------------------------------------------------------
 // Helper functions for packing and unpacking the stored tangent and coverage
 //--------------------------------------------------------------------------------------
@@ -85,7 +85,7 @@ struct PerPixelListBucket
 
 layout(std430, binding = 0) restrict writeonly buffer PerPixelLinkedList
 {
-    PerPixelListBucket PPLL[10000000];
+    PerPixelListBucket PPLL[];
 };
 
 //--------------------------------------------------------------------------------------
