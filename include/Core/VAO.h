@@ -358,7 +358,7 @@ public:
   }
 };
 
-static void SetVertexAttrib_impl(size_t s)
+static void SetVertexAttrib_impl(GLsizei s)
 {
   glEnableVertexAttribArray(7);
   glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, s, 0);
@@ -458,7 +458,7 @@ class VertexArrayObject : public Singleton < VertexArrayObject<VBO> >
 {
 private:
   GLuint vao;
-  std::unordered_map<irr::scene::IMeshBuffer<typename VBO::VertexFormat>*, std::pair<GLuint, GLuint> > mappedBaseVertexBaseIndex;
+  std::unordered_map<irr::scene::IMeshBuffer<typename VBO::VertexFormat>*, std::pair<size_t, size_t> > mappedBaseVertexBaseIndex;
 
   template<typename... VertexAnnotation>
   void append(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...SkinnedData)
@@ -545,7 +545,7 @@ public:
   }
 
   template<typename... VertexAnnotation>
-  std::pair<unsigned, unsigned> getBase(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...ptr)
+  std::pair<size_t, size_t> getBase(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...ptr)
   {
     if (mappedBaseVertexBaseIndex.find(mb) == mappedBaseVertexBaseIndex.end())
     {

@@ -1,5 +1,3 @@
-
-#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
@@ -94,7 +92,7 @@ public:
     }
 };
 
-static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
     GLuint result;
     glGenTextures(1, &result);

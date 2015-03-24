@@ -1,5 +1,3 @@
-
-#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
@@ -13,7 +11,7 @@
 
 #include <Loaders/B3D.h>
 
-std::vector<std::tuple<unsigned, unsigned, unsigned> > CountBaseIndexVTX;
+std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
 
@@ -38,7 +36,7 @@ const char *fragshader =
 "  FragColor = vec4(color, 1.);\n"
 "}\n";
 
-static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
     GLuint result;
     glGenTextures(1, &result);
@@ -70,7 +68,7 @@ void init()
 
     for (auto tmp : buffers)
     {
-        std::pair<unsigned, unsigned> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
+        std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
         CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
     }
 
@@ -106,7 +104,7 @@ void draw()
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
     ObjectShader::getInstance()->setUniforms(Model, View);
     for (auto tmp : CountBaseIndexVTX)
-        glDrawElementsBaseVertex(GL_TRIANGLES, std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), std::get<2>(tmp));
+      glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
 }
 
 int main()

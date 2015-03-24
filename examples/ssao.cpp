@@ -1,5 +1,3 @@
-
-#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
@@ -108,7 +106,7 @@ const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/A
         "AO = max(pow(1.0 - min(2. * sigma * bl * invSamples, 0.99), k), 0.);\n"
     "}\n";
 
-static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
     GLuint result;
     glGenTextures(1, &result);
@@ -208,12 +206,12 @@ void draw()
   glUseProgram(ObjectShader::getInstance()->Program);
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
   ObjectShader::getInstance()->setUniforms(Model, View);
-  glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
   Model.setTranslation(irr::core::vector3df(0., 0., 10.));
   Model.setScale(2.);
   ObjectShader::getInstance()->setUniforms(Model, View);
-  glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+  glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);

@@ -1,4 +1,3 @@
-#define GLEW_STATIC
 #include <GL/glew.h>
 
 #include "common.hpp"
@@ -250,9 +249,9 @@ GLuint PosSSBO;
 GLuint TangentSSBO;
 GLuint ThicknessSSBO;
 
-static size_t lineIndicesCount, triangleIndicesCount;
+static GLsizei lineIndicesCount, triangleIndicesCount;
 
-static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
   GLuint result;
   glGenTextures(1, &result);
@@ -271,7 +270,7 @@ void initCommon(const TressFXAsset& tfxassets)
 
   glGenBuffers(1, &TFXTriangleIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
-  triangleIndicesCount = tfxassets.m_Triangleindices.size();
+  triangleIndicesCount = (GLsizei)tfxassets.m_Triangleindices.size();
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangleIndicesCount * sizeof(unsigned), tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
 
   glGenVertexArrays(1, &TFXVaoLine);
@@ -279,7 +278,7 @@ void initCommon(const TressFXAsset& tfxassets)
 
   glGenBuffers(1, &TFXLineIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXLineIdx);
-  lineIndicesCount = tfxassets.m_LineIndices.size();
+  lineIndicesCount = (GLsizei)tfxassets.m_LineIndices.size();
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, lineIndicesCount * sizeof(unsigned), tfxassets.m_LineIndices.data(), GL_STATIC_DRAW);
   glBindVertexArray(0);
 

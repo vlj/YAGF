@@ -1,5 +1,3 @@
-
-#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
@@ -151,7 +149,7 @@ public:
     }
 };
 
-static GLuint generateRTT(size_t width, size_t height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
 {
     GLuint result;
     glGenTextures(1, &result);
@@ -227,12 +225,12 @@ void draw()
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
     Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
     Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0.f, 1.f, 1.f, .5f));
-    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+    glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
     Model.setTranslation(irr::core::vector3df(0.f, 0.f, 10.f));
     Model.setScale(2.);
     Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1.f, 1.f, 0.f, .5f));
-    glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
+    glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

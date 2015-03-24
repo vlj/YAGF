@@ -146,7 +146,7 @@ namespace irr
         Indices.resize(getIndexCount() + numIndices);
         for (i = 0; i < numIndices; ++i)
         {
-          Indices.push_back(indices[i] + vertexCount);
+          Indices.push_back((unsigned short)(indices[i] + vertexCount));
         }
       }
 

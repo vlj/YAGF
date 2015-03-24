@@ -327,7 +327,7 @@ namespace irr
           }
           else if (strncmp(B3dStack.back().name, "MESH", 4) == 0)
           {
-            VerticesStart = BaseVertices.size();
+            VerticesStart = (unsigned int)BaseVertices.size();
             if (!readChunkMESH(joint))
               return false;
           }
@@ -559,7 +559,7 @@ namespace irr
         return true;
       }
 
-      bool readChunkTRIS(scene::SMeshBufferLightMap *meshBuffer, unsigned meshBufferID, int vertices_Start)
+      bool readChunkTRIS(scene::SMeshBufferLightMap *meshBuffer, size_t meshBufferID, int vertices_Start)
       {
 #ifdef _B3D_READER_DEBUG
         core::stringc logStr;
@@ -637,8 +637,8 @@ namespace irr
               meshBuffer->Vertices.push_back(BaseVertices[vertex_id[i]]);
 
               //create vertex id to meshbuffer index link:
-              AnimatedVertices_VertexID[vertex_id[i]] = meshBuffer->getVertexCount() - 1;
-              AnimatedVertices_BufferID[vertex_id[i]] = meshBufferID;
+              AnimatedVertices_VertexID[vertex_id[i]] = (int)(meshBuffer->getVertexCount() - 1);
+              AnimatedVertices_BufferID[vertex_id[i]] = (int)meshBufferID;
 
               if (B3dMaterial)
               {
