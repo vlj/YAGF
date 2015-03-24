@@ -1621,7 +1621,7 @@ namespace irr
     inline CMatrix4<T>& CMatrix4<T>::buildProjectionMatrixPerspectiveFovRH(
       float fieldOfViewRadians, float aspectRatio, float zNear, float zFar)
     {
-      float h = 1.f / (tan(fieldOfViewRadians*0.5));
+      float h = 1.f / (tanf(fieldOfViewRadians*0.5f));
       assert(aspectRatio != 0.f); //divide by zero
       const T w = static_cast<T>(h / aspectRatio);
 

@@ -145,20 +145,20 @@ public:
     glBindVertexArray(GlyphVAO);
     glUseProgram(GlyphRendering::getInstance()->Program);
 
-    irr::core::vector2df pixelSize(2. / screenWidth, 2. / screenHeight);
-    irr::core::vector2df screenpos(posX, posY);
+    irr::core::vector2df pixelSize(2.f / screenWidth, 2.f / screenHeight);
+    irr::core::vector2df screenpos((float)posX, (float)posY);
     screenpos *= pixelSize;
-    screenpos -= irr::core::vector2df(1., 1.);
+    screenpos -= irr::core::vector2df(1.f, 1.f);
 
     for (const char *p = text; *p != '\0'; p++)
     {
       const GlyphData &g = Glyph[*p];
       irr::core::vector2df truescreenpos(screenpos);
-      truescreenpos += irr::core::vector2df(g.bitmap_left, -g.bitmap_top) * pixelSize;
+      truescreenpos += irr::core::vector2df((float)g.bitmap_left, -(float)g.bitmap_top) * pixelSize;
       GlyphRendering::getInstance()->SetTextureUnits(GlyphTexture[*p], Sampler);
-      GlyphRendering::getInstance()->setUniforms(truescreenpos, irr::core::vector2df(g.width, g.height) * pixelSize);
+      GlyphRendering::getInstance()->setUniforms(truescreenpos, irr::core::vector2df((float)g.width, (float) g.height) * pixelSize);
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-      screenpos += irr::core::vector2df(g.advance_x >> 6, g.advance_y >> 6) * pixelSize;
+      screenpos += irr::core::vector2df((float)(g.advance_x >> 6), (float) (g.advance_y >> 6)) * pixelSize;
     }
   }
 };

@@ -93,14 +93,14 @@ void draw()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, 1024, 1024);
 
-    glClearColor(0., 0., 0., 1.);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
     glClearDepth(1.);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     irr::core::matrix4 Model, View;
-    View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 100.);
-    Model.setTranslation(irr::core::vector3df(0., 0., 8.));
-    Model.setRotationDegrees(irr::core::vector3df(270., 0., 0.));
+    View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+    Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
+    Model.setRotationDegrees(irr::core::vector3df(270.f, 0.f, 0.f));
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());

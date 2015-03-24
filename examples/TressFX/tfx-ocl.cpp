@@ -15,7 +15,7 @@
 
 #include <Util/Debug.h>
 
-float density = .4;
+float density = .4f;
 
 TressFXAsset tfxassets;
 
@@ -122,39 +122,39 @@ void simulate(float time)
   else
     cbuf.bWarp = 0;
 
-  if (time > 180 * 360)
-    time = 180 * 360;
+  if (time > 180.f * 360.f)
+    time = 180.f * 360.f;
 
-  Model.setRotationDegrees(irr::core::vector3df(0., time / 360., 0.));
+  Model.setRotationDegrees(irr::core::vector3df(0.f, time / 360.f, 0.f));
 
   memcpy(cbuf.ModelTransformForHead, Model.pointer(), 16 * sizeof(float));
-  cbuf.ModelRotateForHead[0] = 0.;
-  cbuf.ModelRotateForHead[1] = sin((time / 720) * (3.14 / 180.));
-  cbuf.ModelRotateForHead[2] = 0.;
-  cbuf.ModelRotateForHead[3] = cos((3.14 / 180.) * time / 720);
+  cbuf.ModelRotateForHead[0] = 0.f;
+  cbuf.ModelRotateForHead[1] = sinf((time / 720.f) * (3.14f / 180.f));
+  cbuf.ModelRotateForHead[2] = 0.f;
+  cbuf.ModelRotateForHead[3] = cosf((3.14f / 180.f) * time / 720.f);
 
-  cbuf.timeStep = .016;
+  cbuf.timeStep = .016f;
 
-  cbuf.Damping0 = 0.125;
-  cbuf.StiffnessForGlobalShapeMatching0 = 0.8;
-  cbuf.GlobalShapeMatchingEffectiveRange0 = 0.3;
-  cbuf.StiffnessForLocalShapeMatching0 = 0.2;
-  cbuf.Damping1 = 0.125;
-  cbuf.StiffnessForGlobalShapeMatching1 = 0.25;
-  cbuf.GlobalShapeMatchingEffectiveRange1 = 0.4;
-  cbuf.StiffnessForLocalShapeMatching1 = 0.75;
-  cbuf.Damping2 = 0.0199;
-  cbuf.StiffnessForGlobalShapeMatching2 = 0.;
-  cbuf.GlobalShapeMatchingEffectiveRange2 = 0.;
-  cbuf.StiffnessForLocalShapeMatching2 = 0.699;
-  cbuf.Damping3 = 0.1;
-  cbuf.StiffnessForGlobalShapeMatching3 = 0.2;
-  cbuf.GlobalShapeMatchingEffectiveRange3 = 0.3;
-  cbuf.StiffnessForLocalShapeMatching3 = 1.;
+  cbuf.Damping0 = 0.125f;
+  cbuf.StiffnessForGlobalShapeMatching0 = 0.8f;
+  cbuf.GlobalShapeMatchingEffectiveRange0 = 0.3f;
+  cbuf.StiffnessForLocalShapeMatching0 = 0.2f;
+  cbuf.Damping1 = 0.125f;
+  cbuf.StiffnessForGlobalShapeMatching1 = 0.25f;
+  cbuf.GlobalShapeMatchingEffectiveRange1 = 0.4f;
+  cbuf.StiffnessForLocalShapeMatching1 = 0.75f;
+  cbuf.Damping2 = 0.0199f;
+  cbuf.StiffnessForGlobalShapeMatching2 = 0.f;
+  cbuf.GlobalShapeMatchingEffectiveRange2 = 0.f;
+  cbuf.StiffnessForLocalShapeMatching2 = 0.699f;
+  cbuf.Damping3 = 0.1f;
+  cbuf.StiffnessForGlobalShapeMatching3 = 0.2f;
+  cbuf.GlobalShapeMatchingEffectiveRange3 = 0.3f;
+  cbuf.StiffnessForLocalShapeMatching3 = 1.f;
 
   cbuf.NumOfStrandsPerThreadGroup = 4;
 
-  cbuf.GravityMagnitude = 10.;
+  cbuf.GravityMagnitude = 10.f;
   cbuf.NumLengthConstraintIterations = 2;
   cbuf.NumLocalShapeMatchingIterations = 1;
 
@@ -180,7 +180,7 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Global, 3, sizeof(cl_mem), &InitialPos);
   err = clSetKernelArg(kernel_Global, 4, sizeof(cl_mem), &ConstantSimBuffer);
   size_t local_wg = 64;
-  size_t global_wg = density * tfxassets.m_NumTotalHairVertices;
+  size_t global_wg = (size_t) (density * tfxassets.m_NumTotalHairVertices);
   err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg, &local_wg, 0, 0, 0);
 
   err = clSetKernelArg(kernel_Local, 0, sizeof(cl_mem), &PosBuffer);
@@ -192,7 +192,7 @@ void simulate(float time)
 
   err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   clFinish(queue);
-  if (syncobj);
+  if (syncobj)
   {
     glDeleteSync(syncobj);
     clReleaseEvent(ev);

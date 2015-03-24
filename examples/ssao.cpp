@@ -197,13 +197,13 @@ void draw()
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
   MainFBO->Bind();
-  glClearColor(0., 0., 0., 1.);
-  glClearDepth(1.);
+  glClearColor(0.f, 0.f, 0.f, 1.f);
+  glClearDepth(1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   irr::core::matrix4 Model, View;
-  View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1. , 1., 100.);
-  Model.setTranslation(irr::core::vector3df(0., 0., 8.));
+  View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f , 1.f, 100.f);
+  Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
 
   glUseProgram(ObjectShader::getInstance()->Program);
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
@@ -219,7 +219,7 @@ void draw()
   glDepthMask(GL_FALSE);
   LinearDepthFBO->Bind();
   LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
-  DrawFullScreenEffect<LinearizeDepthShader>(1., 100.);
+  DrawFullScreenEffect<LinearizeDepthShader>(1.f, 100.f);
 
   // Generate mipmap
   glBindTexture(GL_TEXTURE_2D, LinearTexture);

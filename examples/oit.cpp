@@ -211,7 +211,7 @@ void draw()
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     PerPixelLinkedListHeadFBO->Bind();
-    glClearColor(0., 0., 0., 1.);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
     MainFBO->Bind();
     glClearDepth(1.);
@@ -220,18 +220,18 @@ void draw()
 //    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
     irr::core::matrix4 Model, View;
-    View.buildProjectionMatrixPerspectiveFovLH(70. / 180. * 3.14, 1., 1., 100.);
-    Model.setTranslation(irr::core::vector3df(0., 0., 8.));
+    View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+    Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
 
     glUseProgram(Transparent::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
     Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0., 1., 1., .5));
+    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0.f, 1.f, 1.f, .5f));
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
-    Model.setTranslation(irr::core::vector3df(0., 0., 10.));
+    Model.setTranslation(irr::core::vector3df(0.f, 0.f, 10.f));
     Model.setScale(2.);
-    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1., 1., 0., .5));
+    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1.f, 1.f, 0.f, .5f));
     glDrawElementsBaseVertex(GL_TRIANGLES, buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 

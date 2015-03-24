@@ -391,67 +391,67 @@ static void fillConstantBuffer()
   */
 
   struct Constants cbuf = {};
-  cbuf.g_MatBaseColor[0] = 98. / 255.;
-  cbuf.g_MatBaseColor[1] = 14. / 255.;
-  cbuf.g_MatBaseColor[2] = 4. / 255.;
+  cbuf.g_MatBaseColor[0] = 98.f / 255.f;
+  cbuf.g_MatBaseColor[1] = 14.f / 255.f;
+  cbuf.g_MatBaseColor[2] = 4.f / 255.f;
 
-  cbuf.g_MatKValue[0] = 0.; // Ka
-  cbuf.g_MatKValue[1] = 0.4; // Kd
-  cbuf.g_MatKValue[2] = 0.04; // Ks1
-  cbuf.g_MatKValue[3] = 80.; // Ex1
-  cbuf.g_fHairKs2 = .5; // Ks2
-  cbuf.g_fHairEx2 = 8.0; // Ex2
+  cbuf.g_MatKValue[0] = 0.f; // Ka
+  cbuf.g_MatKValue[1] = 0.4f; // Kd
+  cbuf.g_MatKValue[2] = 0.04f; // Ks1
+  cbuf.g_MatKValue[3] = 80.f; // Ex1
+  cbuf.g_fHairKs2 = .5f; // Ks2
+  cbuf.g_fHairEx2 = 8.0f; // Ex2
 
-  cbuf.g_FiberRadius = 0.3;
-  cbuf.g_FiberAlpha = .5;
-  cbuf.g_FiberSpacing = .3;
-  cbuf.g_alphaThreshold = .00388;
-  cbuf.g_HairShadowAlpha = .004000;
+  cbuf.g_FiberRadius = 0.3f;
+  cbuf.g_FiberAlpha = .5f;
+  cbuf.g_FiberSpacing = .3f;
+  cbuf.g_alphaThreshold = .00388f;
+  cbuf.g_HairShadowAlpha = .004000f;
 
-  cbuf.g_AmbientLightColor[0] = .15;
-  cbuf.g_AmbientLightColor[1] = .15;
-  cbuf.g_AmbientLightColor[2] = .15;
-  cbuf.g_AmbientLightColor[3] = 1.;
+  cbuf.g_AmbientLightColor[0] = .15f;
+  cbuf.g_AmbientLightColor[1] = .15f;
+  cbuf.g_AmbientLightColor[2] = .15f;
+  cbuf.g_AmbientLightColor[3] = 1.f;
 
-  cbuf.g_PointLightPos[0] = 421.25;
-  cbuf.g_PointLightPos[1] = 306.79;
-  cbuf.g_PointLightPos[2] = 343.;
-  cbuf.g_PointLightPos[3] = 0.;
+  cbuf.g_PointLightPos[0] = 421.25f;
+  cbuf.g_PointLightPos[1] = 306.79f;
+  cbuf.g_PointLightPos[2] = 343.f;
+  cbuf.g_PointLightPos[3] = 0.f;
 
-  cbuf.g_PointLightColor[0] = 1.;
-  cbuf.g_PointLightColor[1] = 1.;
-  cbuf.g_PointLightColor[2] = 1.;
-  cbuf.g_PointLightColor[3] = 1.;
+  cbuf.g_PointLightColor[0] = 1.f;
+  cbuf.g_PointLightColor[1] = 1.f;
+  cbuf.g_PointLightColor[2] = 1.f;
+  cbuf.g_PointLightColor[3] = 1.f;
 
   irr::core::matrix4 View, InvView, tmp, LightMatrix;
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0., 0., 200.), irr::core::vector3df(0., 0., 0.), irr::core::vector3df(0., 1., 0.));
-  View.buildProjectionMatrixPerspectiveFovRH(70. / 180. * 3.14, 1., 1., 1000.);
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0.f, 0.f, 200.f), irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
+  View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
   View *= tmp;
   View.getInverse(InvView);
 
-  cbuf.g_vEye[0] = 0.;
-  cbuf.g_vEye[1] = 0.;
-  cbuf.g_vEye[2] = 200.;
+  cbuf.g_vEye[0] = 0.f;
+  cbuf.g_vEye[1] = 0.f;
+  cbuf.g_vEye[2] = 200.f;
 
   irr::core::matrix4 Model;
 
-  LightMatrix.buildProjectionMatrixPerspectiveFovRH(0.6, 1., 532, 769);
+  LightMatrix.buildProjectionMatrixPerspectiveFovRH(0.6f, 1.f, 532.f, 769.f);
 
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1] = 306.79, cbuf.g_PointLightPos[2] = 343.),
-    irr::core::vector3df(0., 0., 0), irr::core::vector3df(0., 1., 0.));
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1], cbuf.g_PointLightPos[2]),
+    irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
   LightMatrix *= tmp;
   memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mInvViewProj, InvView.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mViewProjLight, LightMatrix.pointer(), 16 * sizeof(float));
 
-  cbuf.g_WinSize[0] = 1024.;
-  cbuf.g_WinSize[1] = 1024.;
-  cbuf.g_WinSize[2] = 1. / 1024.;
-  cbuf.g_WinSize[3] = 1. / 1024.;
+  cbuf.g_WinSize[0] = 1024.f;
+  cbuf.g_WinSize[1] = 1024.f;
+  cbuf.g_WinSize[2] = 1.f / 1024.f;
+  cbuf.g_WinSize[3] = 1.f / 1024.f;
 
-  cbuf.g_fNearLight = 532.711365;
-  cbuf.g_fFarLight = 768.133728;
+  cbuf.g_fNearLight = 532.711365f;
+  cbuf.g_fFarLight = 768.133728f;
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
@@ -481,7 +481,7 @@ void draw(float density)
   glBindVertexArray(TFXVaoLine);
   glUseProgram(HairShadow::getInstance()->Program);
   HairShadow::getInstance()->setUniforms();
-  glDrawElementsBaseVertex(GL_LINES, density * triangleIndicesCount, GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_LINES, (GLsizei)(density * triangleIndicesCount), GL_UNSIGNED_INT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
@@ -507,7 +507,7 @@ void draw(float density)
     glUseProgram(Transparent::getInstance()->Program);
     Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
     Transparent::getInstance()->setUniforms();
-    glDrawElementsBaseVertex(GL_TRIANGLES, density * lineIndicesCount, GL_UNSIGNED_INT, 0, 0);
+    glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei) (density * lineIndicesCount), GL_UNSIGNED_INT, 0, 0);
 
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
