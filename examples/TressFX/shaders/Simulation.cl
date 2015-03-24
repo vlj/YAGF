@@ -1,5 +1,3 @@
-
-
 // If you change the value below, you must change it in TressFXAsset.h as well.
 #define THREAD_GROUP_SIZE 64
 #define MAX_VERTS_PER_STRAND 16
@@ -124,7 +122,7 @@ float4 Integrate(
   float4 outputPos = curPosition;
 
   force.xyz += g_GravityMagnitude * (float3)(0.f, -1.f, 0.f);
-  outputPos.xyz = curPosition.xyz + (1.0 - dampingCoeff)*(curPosition.xyz - oldPosition.xyz) + force.xyz * timeStep * timeStep;
+  outputPos.xyz = curPosition.xyz + (1.f - dampingCoeff)*(curPosition.xyz - oldPosition.xyz) + force.xyz * timeStep * timeStep;
 
   return outputPos;
 }
@@ -209,8 +207,11 @@ void IntegrationAndGlobalShapeConstraints(
   __global float4 *g_HairVertexPositionsPrev,
   __global const int *g_HairStrandType,
   __global const float4 *g_InitialHairPositions,
-  __constant struct SimulationConstants* params)
+  __constant struct SimulationConstants* params,
+  unsigned int maxId)
 {
+  if (get_global_id(0) >= maxId)
+    return;
   unsigned int globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
   CalcIndicesInVertexLevelMaster(get_local_id(0), get_group_id(0),
     params->NumOfStrandsPerThreadGroup, params->NumFollowHairsPerOneGuideHair,
@@ -319,8 +320,11 @@ __kernel void LocalShapeConstraintsWithIteration(
   __global const int *g_HairStrandType,
   __global const float4 *g_GlobalRotations,
   __global const float4 *g_HairRefVecsInLocalFrame,
-  __constant struct SimulationConstants* params)
+  __constant struct SimulationConstants* params,
+  unsigned int maxId)
 {
+  if (get_global_id(0) >= maxId)
+    return;
   uint globalStrandIndex, numVerticesInTheStrand, globalRootVertexIndex, strandType;
   CalcIndicesInStrandLevelMaster(get_local_id(0), get_group_id(0),
     params->NumOfStrandsPerThreadGroup, params->NumFollowHairsPerOneGuideHair,
@@ -355,7 +359,7 @@ __kernel void LocalShapeConstraintsWithIteration(
     globalVertexIndex = globalRootVertexIndex + localVertexIndex;
     sharedStrandPos[localVertexIndex] = g_HairVertexPositions[globalVertexIndex];
   }
-
+  /*
   //--------------------------------------------
   // Local shape constraint for bending/twisting
   //--------------------------------------------
@@ -409,9 +413,9 @@ __kernel void LocalShapeConstraintsWithIteration(
 
       pos = pos_plus_one;
     }
-  }
+  }*/
 
-  for (unsigned  localVertexIndex = 0; localVertexIndex < numVerticesInTheStrand; localVertexIndex++)
+  for (unsigned int localVertexIndex = 0; localVertexIndex < numVerticesInTheStrand; localVertexIndex++)
   {
     globalVertexIndex = globalRootVertexIndex + localVertexIndex;
     g_HairVertexPositions[globalVertexIndex] = sharedStrandPos[localVertexIndex];
