@@ -1,13 +1,15 @@
 # YAGF
 Yet Another GL Framework
 
-
 MIT License except if file header states otherwise.
 
-HOW TO build on VS 2013 Win32
-- Download dependencies binaries :
-* GLFW http://www.glfw.org/
-* GLEW http://glew.sourceforge.net/
-* Freetype http://gnuwin32.sourceforge.net/packages/freetype.htm
-- Put them in deps/
-- Run cmake
+Dependencies:
+* GLFW3
+* GLEW
+* Freetype 2
+
+These dependencies are bundled with source file for VS build, you only need cmake.
+Tested with VS 2013 on windows.
+
+YOU NEED TO BUILD INSIDE A SUBFOLDER OF YAFG/ otherwise projects can't find
+binaries/shader files at runtime.
