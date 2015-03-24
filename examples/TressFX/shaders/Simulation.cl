@@ -208,10 +208,8 @@ void IntegrationAndGlobalShapeConstraints(
   __global const int *g_HairStrandType,
   __global const float4 *g_InitialHairPositions,
   __constant struct SimulationConstants* params,
-  unsigned int maxId)
+  unsigned int vertexCount)
 {
-  if (get_global_id(0) >= maxId)
-    return;
   unsigned int globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
   CalcIndicesInVertexLevelMaster(get_local_id(0), get_group_id(0),
     params->NumOfStrandsPerThreadGroup, params->NumFollowHairsPerOneGuideHair,
@@ -300,8 +298,11 @@ void IntegrationAndGlobalShapeConstraints(
   }
 
   // update global position buffers
-  g_HairVertexPositionsPrev[globalVertexIndex] = currentPos;
-  g_HairVertexPositions[globalVertexIndex] = tmpPos;
+  if (globalVertexIndex < vertexCount)
+  {
+    g_HairVertexPositionsPrev[globalVertexIndex] = currentPos;
+    g_HairVertexPositions[globalVertexIndex] = tmpPos;
+  }
 }
 
 
@@ -321,10 +322,8 @@ __kernel void LocalShapeConstraintsWithIteration(
   __global const float4 *g_GlobalRotations,
   __global const float4 *g_HairRefVecsInLocalFrame,
   __constant struct SimulationConstants* params,
-  unsigned int maxId)
+  unsigned int vertexCount)
 {
-  if (get_global_id(0) >= maxId)
-    return;
   uint globalStrandIndex, numVerticesInTheStrand, globalRootVertexIndex, strandType;
   CalcIndicesInStrandLevelMaster(get_local_id(0), get_group_id(0),
     params->NumOfStrandsPerThreadGroup, params->NumFollowHairsPerOneGuideHair,
@@ -359,7 +358,7 @@ __kernel void LocalShapeConstraintsWithIteration(
     globalVertexIndex = globalRootVertexIndex + localVertexIndex;
     sharedStrandPos[localVertexIndex] = g_HairVertexPositions[globalVertexIndex];
   }
-  /*
+
   //--------------------------------------------
   // Local shape constraint for bending/twisting
   //--------------------------------------------
@@ -413,12 +412,13 @@ __kernel void LocalShapeConstraintsWithIteration(
 
       pos = pos_plus_one;
     }
-  }*/
+  }
 
   for (unsigned int localVertexIndex = 0; localVertexIndex < numVerticesInTheStrand; localVertexIndex++)
   {
     globalVertexIndex = globalRootVertexIndex + localVertexIndex;
-    g_HairVertexPositions[globalVertexIndex] = sharedStrandPos[localVertexIndex];
+    if (globalVertexIndex < vertexCount)
+      g_HairVertexPositions[globalVertexIndex] = sharedStrandPos[localVertexIndex];
   }
 
   return;

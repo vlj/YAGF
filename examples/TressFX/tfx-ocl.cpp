@@ -46,7 +46,7 @@ void init()
   int err;
   cl_platform_id platforms[2];
   clGetPlatformIDs(2, platforms, NULL);
-  cl_platform_id platform = platforms[1];
+  cl_platform_id platform = platforms[0];
   clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, 0);
 
   clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom) clGetExtensionFunctionAddressForPlatform(platform, "clCreateEventFromGLsyncKHR");
@@ -174,26 +174,26 @@ void simulate(float time)
 
   // First pass is done so sim is done too, can safely upload
   err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_TRUE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
+  unsigned int maxId = tfxassets.m_NumTotalHairVertices;
 //  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   size_t local_wg = 64;
-  size_t global_wg = (size_t)(density * tfxassets.m_NumTotalHairVertices);
-  unsigned int maxId = tfxassets.m_NumTotalHairVertices;
+  size_t global_wg_kern_g = (size_t)(density * tfxassets.m_NumTotalHairVertices);
   err = clSetKernelArg(kernel_Global, 0, sizeof(cl_mem), &PosBuffer);
   err = clSetKernelArg(kernel_Global, 1, sizeof(cl_mem), &PreviousPos);
   err = clSetKernelArg(kernel_Global, 2, sizeof(cl_mem), &StrandType);
   err = clSetKernelArg(kernel_Global, 3, sizeof(cl_mem), &InitialPos);
   err = clSetKernelArg(kernel_Global, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Global, 5, sizeof(unsigned int), &maxId);
+  err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g, &local_wg, 0, 0, &ev);
 
-  err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg, &local_wg, 0, 0, &ev);
-
+  size_t global_wg_kern_l = (size_t)(density * tfxassets.m_NumTotalHairStrands);
   err = clSetKernelArg(kernel_Local, 0, sizeof(cl_mem), &PosBuffer);
   err = clSetKernelArg(kernel_Local, 1, sizeof(cl_mem), &StrandType);
   err = clSetKernelArg(kernel_Local, 2, sizeof(cl_mem), &GlobalRotations);
   err = clSetKernelArg(kernel_Local, 3, sizeof(cl_mem), &HairRefVecs);
   err = clSetKernelArg(kernel_Local, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Local, 5, sizeof(unsigned int), &maxId);
-  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg, &local_wg, 0, 0, 0);
+  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg_kern_l, &local_wg, 0, 0, 0);
 
   float *tmp = new float[tfxassets.m_NumTotalHairVertices * 4];
   err = clEnqueueReadBuffer(queue, PosBuffer, CL_TRUE, 0, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 0, 0, 0);
