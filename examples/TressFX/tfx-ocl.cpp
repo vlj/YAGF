@@ -192,8 +192,8 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Local, 2, sizeof(cl_mem), &GlobalRotations);
   err = clSetKernelArg(kernel_Local, 3, sizeof(cl_mem), &HairRefVecs);
   err = clSetKernelArg(kernel_Local, 4, sizeof(cl_mem), &ConstantSimBuffer);
+  err = clSetKernelArg(kernel_Local, 5, sizeof(unsigned int), &maxId);
   err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg, &local_wg, 0, 0, 0);
-  err = clSetKernelArg(kernel_Global, 5, sizeof(unsigned int), &maxId);
 
   float *tmp = new float[tfxassets.m_NumTotalHairVertices * 4];
   err = clEnqueueReadBuffer(queue, PosBuffer, CL_TRUE, 0, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 0, 0, 0);
