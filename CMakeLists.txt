@@ -1,6 +1,9 @@
 project(YAGF)
 cmake_minimum_required(VERSION 2.8)
 
+add_definitions(-DGLEW_STATIC)
+option(BUILD_OPENCL "Build Sample using OpenCL" OFF)
+
 if (WIN32)
   # GLEW
   add_library(glew STATIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew-1.12.0/src/glew.c" "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew-1.12.0/src/glewinfo.c")
@@ -37,7 +40,7 @@ add_library(${PROJECT_NAME} runtime.cpp ${HEADERS_LIST})
 if (WIN32)
   target_link_libraries(${PROJECT_NAME} glew ${GLEW_LIBRARY} glfw ${GLFW_LIBRARIES} freetype ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
 else()
-  target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${OPENGL_LIBRARY})
+  target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
 endif()
 
 add_executable(ssao examples/ssao.cpp)
@@ -58,7 +61,8 @@ target_link_libraries(mesh ${PROJECT_NAME})
 add_executable(tfx examples/TressFX/tfx.cpp examples/TressFX/common.cpp)
 target_link_libraries(tfx ${PROJECT_NAME})
 
-include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
-
-add_executable(tfx-ocl examples/TressFX/tfx-ocl.cpp examples/TressFX/common.cpp)
-target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib")
+if(BUILD_OPENCL)
+  include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
+  add_executable(tfx-ocl examples/TressFX/tfx-ocl.cpp examples/TressFX/common.cpp)
+  target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib")
+endif()
