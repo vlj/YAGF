@@ -64,7 +64,7 @@ layout(std430, binding = 6) buffer HairTangent
   vec4 g_HairVertexTangents[1000000];
 };
 
-layout(std430, binding = 10) buffer HairTangent
+layout(std430, binding = 10) buffer HairRootOffset
 {
   vec4 g_FollowHairRootOffset[1000000];
 };

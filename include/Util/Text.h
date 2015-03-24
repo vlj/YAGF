@@ -64,12 +64,12 @@ class BasicTextRender : public Singleton < BasicTextRender<GlyphSize> >
   GLuint GlyphTexture[256];
   struct GlyphData
   {
-    int width;
-    int height;
+    unsigned int width;
+    unsigned int height;
     int bitmap_left;
     int bitmap_top;
-    int advance_x;
-    int advance_y;
+    long int advance_x;
+    long int advance_y;
   };
 
   GlyphData Glyph[128];
@@ -85,7 +85,7 @@ public:
     if (FT_New_Face(Ft, "C:\\Windows\\Fonts\\arial.ttf", 0, &Face))
       printf("Can't init Arial\n");
 #else
-    if (FT_New_Face(Ft, "/usr/share/fonts/dejavu/DejaVuSansMono.ttf", 0, &Face))
+    if (FT_New_Face(Ft, "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 0, &Face))
       printf("Can't init DejaVuSansMono\n");
 #endif
     FT_Set_Pixel_Sizes(Face, GlyphSize, GlyphSize);

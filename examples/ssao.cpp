@@ -241,7 +241,7 @@ void draw()
   glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
 
   char time[50];
-  sprintf(time, "100 x SSAO: %f ms\0" , result / 1000000.);
+  sprintf(time, "100 x SSAO: %f ms" , result / 1000000.);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);

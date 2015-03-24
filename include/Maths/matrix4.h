@@ -13,6 +13,7 @@
 //#include <Maths/rect.h>
 #include <cstring> // For memset
 #include <cassert>
+#include <cstdio> // For printf
 
 #define DEGTORAD (3.14f / 180.f)
 #define RADTODEG (180.f / 3.14f)

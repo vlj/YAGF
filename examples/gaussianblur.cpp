@@ -154,7 +154,7 @@ void draw()
     glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
 
     char time[50];
-    sprintf(time, "100 x SSAO: %f ms\0", result / 1000000.);
+    sprintf(time, "100 x SSAO: %f ms", result / 1000000.);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT);

@@ -458,7 +458,7 @@ public:
   template<typename...Args>
   static void exec(GLuint Program, std::vector<GLuint> &TextureLocation, const Args&...args)
   {
-    typedef typename TextureAssign <tp... > AssignerStruct;
+    typedef TextureAssign <tp... > AssignerStruct;
     T::template ChainedAssign<AssignerStruct>(Program, TextureLocation, args...);
   }
 };

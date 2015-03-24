@@ -62,11 +62,11 @@ class HairShadow : public ShaderHelperSingleton<HairShadow>
 public:
   HairShadow()
   {
-    std::ifstream invtx("..\\examples\\TressFX\\shaders\\HairSM.vert", std::ios::in);
+    std::ifstream invtx("../examples/TressFX/shaders/HairSM.vert", std::ios::in);
 
     const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
 
-    std::ifstream infrag("..\\examples\\TressFX\\shaders\\HairSM.frag", std::ios::in);
+    std::ifstream infrag("../examples/TressFX/shaders/HairSM.frag", std::ios::in);
 
     const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
 
@@ -82,11 +82,11 @@ class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRea
 public:
   Transparent()
   {
-    std::ifstream invtx("..\\examples\\TressFX\\shaders\\Hair.vert", std::ios::in);
+    std::ifstream invtx("../examples/TressFX/shaders/Hair.vert", std::ios::in);
 
     const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
 
-    std::ifstream infrag("..\\examples\\TressFX\\shaders\\Hair.frag", std::ios::in);
+    std::ifstream infrag("../examples/TressFX/shaders/Hair.frag", std::ios::in);
 
     const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
 
@@ -103,7 +103,7 @@ class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public Textur
 public:
   FragmentMerge()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\FSShading.frag", std::ios::in);
+    std::ifstream in("../examples/TressFX/shaders/FSShading.frag", std::ios::in);
 
     const std::string &fragmerge = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -120,7 +120,7 @@ public:
   Passthrough()
   {
     const char *shader = TO_STRING(
-      #version 430\n
+      \#version 430\n
 
       uniform sampler2D tex;
     out vec4 FragColor;

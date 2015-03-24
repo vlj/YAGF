@@ -28,7 +28,7 @@ class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraint
 public:
   GlobalConstraintSimulation()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\GlobalConstraints.comp", std::ios::in);
+    std::ifstream in("../examples/TressFX/shaders/GlobalConstraints.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -42,7 +42,7 @@ class LocalConstraintSimulation : public ShaderHelperSingleton<LocalConstraintSi
 public:
   LocalConstraintSimulation()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\LocalConstraints.comp", std::ios::in);
+    std::ifstream in("../examples/TressFX/shaders/LocalConstraints.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -57,7 +57,7 @@ public:
 
   WindLengthTangentConstraint()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\LengthWindTangentComputation.comp", std::ios::in);
+    std::ifstream in("../examples/TressFX/shaders/LengthWindTangentComputation.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -72,7 +72,7 @@ public:
 
   PrepareFollowHairGuide()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\PrepareFollowHair.comp", std::ios::in);
+    std::ifstream in("../examples/TressFX/shaders/PrepareFollowHair.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -87,7 +87,7 @@ public:
 
   UpdateFollowHairGuide()
   {
-    std::ifstream in("..\\examples\\TressFX\\shaders\\UpdateFollowHair.comp", std::ios::in);
+    std::ifstream in("../examples/TressFX/shaders/UpdateFollowHair.comp", std::ios::in);
 
     const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
@@ -105,7 +105,7 @@ void init()
 {
   DebugUtil::enableDebugOutput();
 
-  tfxassets = loadTress("..\\examples\\TressFX\\ruby.tfxb");
+  tfxassets = loadTress("../examples/TressFX/ruby.tfxb");
   initCommon(tfxassets);
 
   glGenBuffers(1, &InitialPosSSBO);
@@ -175,7 +175,7 @@ void simulate(float time)
     cbuf.bWarp = 0;
 
 
-  float p;
+  double p;
 
   float dir = modf(time / (360.f * 360.f), &p);
   int clockwise = ((int)p) % 2;
