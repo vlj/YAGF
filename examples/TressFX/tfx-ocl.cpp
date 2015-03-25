@@ -47,7 +47,7 @@ void init()
   cl_platform_id platforms[2];
   clGetPlatformIDs(2, platforms, NULL);
   cl_platform_id platform = platforms[0];
-  clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 1, &device, 0);
+  clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, 0);
 
   clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom) clGetExtensionFunctionAddressForPlatform(platform, "clCreateEventFromGLsyncKHR");
 
@@ -83,8 +83,7 @@ void init()
   delete log;
 
   cl_queue_properties qprop[] = {
-//    CL_QUEUE_PROPERTIES, CL_QUEUE_ON_DEVICE,
-    CL_QUEUE_SIZE, CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE,
+    CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
     0
   };
   queue = clCreateCommandQueueWithProperties(context, device, qprop, &err);
@@ -177,8 +176,10 @@ void simulate(float time)
 
   glFinish();
 
+  cl_event ev_constant_upload, ev_global_constraints, ev_local_constraints;
+
   // First pass is done so sim is done too, can safely upload
-  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_TRUE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, 0);
+  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, &ev_constant_upload);
   unsigned int maxId = tfxassets.m_NumTotalHairVertices;
 //  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, 0);
   size_t local_wg = 64;
@@ -189,7 +190,7 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Global, 3, sizeof(cl_mem), &InitialPos);
   err = clSetKernelArg(kernel_Global, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Global, 5, sizeof(unsigned int), &maxId);
-  err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g, &local_wg, 0, 0, &ev);
+  err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g, &local_wg, 1, &ev_constant_upload, &ev_global_constraints);
 
   size_t global_wg_kern_l = (size_t)(density * tfxassets.m_NumTotalHairStrands);
   err = clSetKernelArg(kernel_Local, 0, sizeof(cl_mem), &PosBuffer);
@@ -198,10 +199,10 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Local, 3, sizeof(cl_mem), &HairRefVecs);
   err = clSetKernelArg(kernel_Local, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Local, 5, sizeof(unsigned int), &maxId);
-  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg_kern_l, &local_wg, 0, 0, 0);
+  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg_kern_l, &local_wg, 1, &ev_global_constraints, &ev_local_constraints);
 
   float *tmp = new float[tfxassets.m_NumTotalHairVertices * 4];
-  err = clEnqueueReadBuffer(queue, PosBuffer, CL_TRUE, 0, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 0, 0, 0);
+  err = clEnqueueReadBuffer(queue, PosBuffer, CL_FALSE, 0, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 1, &ev_local_constraints, 0);
   clFinish(queue);
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
