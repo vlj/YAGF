@@ -191,6 +191,36 @@ float4 mulMatrixVector(__constant float *Mat, float4 vector)
   return result;
 }
 
+float2 ConstraintMultiplier(float4 particle0, float4 particle1)
+{
+  if (IsMovable(particle0))
+  {
+    if (IsMovable(particle1))
+      return (float2)(.5f, .5f);
+    else
+      return (float2)(1.f, 0.f);
+  }
+  else
+  {
+    if (IsMovable(particle1))
+      return (float2)(0.f, 1.f);
+    else
+      return (float2)(0.f, 0.f);
+  }
+}
+
+void ApplyDistanceConstraint(__local float4* pos0, __local float4* pos1, float targetDistance, float stiffness)
+{
+  float3 delta = (*pos1).xyz - (*pos0).xyz;
+  float distance = max(length(delta), 1e-7f);
+  float stretching = 1.f - targetDistance / distance;
+  delta = stretching * delta;
+  float2 multiplier = ConstraintMultiplier(*pos0, *pos1);
+
+  (*pos0).xyz += multiplier.x * delta * stiffness;
+  (*pos1).xyz -= multiplier.y * delta * stiffness;
+}
+
 //--------------------------------------------------------------------------------------
 //
 //  IntegrationAndGlobalShapeConstraints
@@ -420,6 +450,184 @@ __kernel void LocalShapeConstraintsWithIteration(
     if (globalVertexIndex < vertexCount)
       g_HairVertexPositions[globalVertexIndex] = sharedStrandPos[localVertexIndex];
   }
+
+  return;
+}
+
+
+//--------------------------------------------------------------------------------------
+//
+//  LengthConstriantsWindAndCollision
+//
+//  Compute shader to move the vertex position based on wind, maintain the lenght constraints
+//  and handles collisions.
+//
+//  One thread computes one vertex.
+//
+//--------------------------------------------------------------------------------------
+__kernel
+void LengthConstriantsWindAndCollision(
+  __global float4 *g_HairVertexPositions,
+  __global float4 *g_HairVertexTangents,
+  __global const int *g_HairStrandType,
+  __global const float *g_HairRestLengthSRV,
+  __constant struct SimulationConstants* params,
+  unsigned int vertexCount)
+{
+  unsigned int globalStrandIndex, localStrandIndex, globalVertexIndex, localVertexIndex, numVerticesInTheStrand, indexForSharedMem, strandType;
+  CalcIndicesInVertexLevelMaster(get_local_id(0), get_group_id(0),
+    params->NumOfStrandsPerThreadGroup, params->NumFollowHairsPerOneGuideHair,
+    g_HairStrandType,
+    &globalStrandIndex,
+    &localStrandIndex,
+    &globalVertexIndex,
+    &localVertexIndex,
+    &numVerticesInTheStrand,
+    &indexForSharedMem,
+    &strandType);
+
+  unsigned int numOfStrandsPerThreadGroup = params->NumOfStrandsPerThreadGroup;
+
+  //------------------------------
+  // Copy data into shared memory
+  //------------------------------
+
+   __local float4 sharedPos[THREAD_GROUP_SIZE];
+   __local float sharedLength[THREAD_GROUP_SIZE];
+  sharedPos[indexForSharedMem] = g_HairVertexPositions[globalVertexIndex];
+  sharedLength[indexForSharedMem] = g_HairRestLengthSRV[globalVertexIndex];
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+
+  //------------
+  // Wind
+  //------------
+  if (params->Wind.x != 0.f || params->Wind.y != 0.f || params->Wind.z != 0.f)
+  {
+    float4 force = (float4)(0.);
+
+    float frame = params->Wind.w;
+
+    if (localVertexIndex >= 2 && localVertexIndex < numVerticesInTheStrand - 1)
+    {
+      // combining four winds.
+      float a = (float)(globalStrandIndex % 20) / 20.f;
+      float3 w = a * params->Wind.xyz + (1.f - a) * params->Wind1.xyz + a * params->Wind2.xyz + (1.f - a) * params->Wind3.xyz;
+
+      uint sharedIndex = localVertexIndex * numOfStrandsPerThreadGroup + localStrandIndex;
+
+      float3 v = sharedPos[sharedIndex].xyz - sharedPos[sharedIndex + numOfStrandsPerThreadGroup].xyz;
+      float3 force = -cross(cross(v, w), v);
+      sharedPos[sharedIndex].xyz += force * params->timeStep * params->timeStep;
+    }
+  }
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+
+  //----------------------------
+  // Enforce length constraints
+  //----------------------------
+  unsigned int a = (unsigned int) floor(numVerticesInTheStrand / 2.f);
+  unsigned int b = (unsigned int) floor((numVerticesInTheStrand - 1.f) / 2.f);
+
+  for (int iterationE = 0; iterationE < params->NumLengthConstraintIterations; iterationE++)
+  {
+    unsigned int sharedIndex = 2 * localVertexIndex * numOfStrandsPerThreadGroup + localStrandIndex;
+
+    if( localVertexIndex < a)
+      ApplyDistanceConstraint(&sharedPos[sharedIndex], &sharedPos[sharedIndex+numOfStrandsPerThreadGroup], sharedLength[sharedIndex], 1.f);
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if( localVertexIndex < b)
+      ApplyDistanceConstraint(&sharedPos[sharedIndex + numOfStrandsPerThreadGroup], &sharedPos[sharedIndex + numOfStrandsPerThreadGroup * 2], sharedLength[sharedIndex + numOfStrandsPerThreadGroup], 1.f);
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+
+
+  //-------------------------------------------------
+  // Collision handling hard-code collision shapes
+  //-------------------------------------------------
+  bool bColDetected = false;
+
+  /*
+	float4 oldPos = g_HairVertexPositionsPrev[globalVertexIndex];
+
+    if ( g_bCollision > 0 )
+    {
+		float3 newPos;
+
+        {
+            float3 centerSphere = g_cc0_center;
+            centerSphere = mul(float4( centerSphere.xyz, 1), g_ModelTransformForHead).xyz;
+            float radius = g_cc0_radius;
+
+			CollisionCapsule cc;
+			cc.p1.xyz = centerSphere;
+			cc.p1.w = radius;
+			cc.p2.xyz = centerSphere + float3(0.0,1.0,0.0);
+			cc.p2.w = g_cc0_radius2;
+			
+			bColDetected = CapsuleCollision(sharedPos[indexForSharedMem], oldPos, newPos, cc, true);
+
+			if ( bColDetected )
+				sharedPos[indexForSharedMem].xyz = newPos;
+        }
+
+        {
+            float3 centerSphere = g_cc1_center;
+            centerSphere = mul(float4( centerSphere.xyz, 1), g_ModelTransformForHead).xyz;
+            float radius = g_cc1_radius;
+
+			CollisionCapsule cc;
+			cc.p1.xyz = centerSphere;
+			cc.p1.w = radius;
+			cc.p2.xyz = centerSphere + float3(0.0,1.0,0.0);
+			cc.p2.w = g_cc1_radius2;
+			
+			bColDetected = CapsuleCollision(sharedPos[indexForSharedMem], oldPos, newPos, cc, true);
+
+			if ( bColDetected )
+				sharedPos[indexForSharedMem].xyz = newPos;
+        }
+
+        {
+            float3 centerSphere = g_cc2_center;
+            centerSphere = mul(float4( centerSphere.xyz, 1), g_ModelTransformForHead).xyz;
+            float radius = g_cc2_radius;
+
+			CollisionCapsule cc;
+			cc.p1.xyz = centerSphere;
+			cc.p1.w = radius;
+			cc.p2.xyz = centerSphere + float3(0.0,1.0,0.0);
+			cc.p2.w =  g_cc2_radius2;
+			
+			bColDetected = CapsuleCollision(sharedPos[indexForSharedMem], oldPos, newPos, cc, true);
+
+			if ( bColDetected )
+				sharedPos[indexForSharedMem].xyz = newPos;
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+*/
+  //-------------------
+  // Compute tangent
+  //-------------------
+  float3 tangent = sharedPos[indexForSharedMem + numOfStrandsPerThreadGroup].xyz - sharedPos[indexForSharedMem].xyz;
+  if (globalVertexIndex < vertexCount)
+    g_HairVertexTangents[globalVertexIndex].xyz = normalize(tangent);
+
+  //---------------------------------------
+  // update global position buffers
+  //---------------------------------------
+  if (globalVertexIndex < vertexCount)
+    g_HairVertexPositions[globalVertexIndex] = sharedPos[indexForSharedMem];
+
+//  if ( bColDetected )
+//    g_HairVertexPositionsPrev[globalVertexIndex] = sharedPos[indexForSharedMem];
 
   return;
 }

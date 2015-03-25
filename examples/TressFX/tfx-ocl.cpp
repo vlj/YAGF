@@ -24,13 +24,16 @@ cl_device_id device;
 cl_command_queue queue;
 cl_kernel kernel_Global;
 cl_kernel kernel_Local;
+cl_kernel kernel_Length;
 cl_program prog;
 cl_mem InitialPos;
 cl_mem StrandType;
 cl_mem PreviousPos;
 cl_mem PosBuffer;
+cl_mem TangentBuffer;
 cl_mem GlobalRotations;
 cl_mem HairRefVecs;
+cl_mem HairRestLength;
 cl_mem ConstantSimBuffer;
 
 typedef cl_event(CALLBACK *PFNCreateEventFromGLsyncKHRCustom)(cl_context, cl_GLsync, cl_int *);
@@ -89,11 +92,14 @@ void init()
   queue = clCreateCommandQueueWithProperties(context, device, qprop, &err);
   kernel_Global = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
   kernel_Local = clCreateKernel(prog, "LocalShapeConstraintsWithIteration", &err);
+  kernel_Length = clCreateKernel(prog, "LengthConstriantsWindAndCollision", &err);
   ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
 
   InitialPos = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
   PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
+  TangentBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, TangentSSBO, &err);
 //  PosBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
+  HairRestLength = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pRestLengths, &err);
   PreviousPos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
   StrandType = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, &err);
   GlobalRotations = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pGlobalRotations, &err);
@@ -130,6 +136,8 @@ void simulate(float time)
 
   if (time > 180.f * 360.f)
     time = 180.f * 360.f;
+
+  time = 0.;
 
   Model.setRotationDegrees(irr::core::vector3df(0.f, time / 360.f, 0.f));
 
@@ -174,7 +182,7 @@ void simulate(float time)
   if (syncobj)
     ev = clCreateEventFromGLsyncKHRCustom(context, syncobj, &err);
 
-  cl_event ev_constant_upload, ev_gl_buffer_acquired, ev_global_constraints, ev_local_constraints;
+  cl_event ev_constant_upload, ev_gl_buffer_acquired, ev_global_constraints, ev_local_constraints, ev_length;
 
   // First pass is done so sim is done too, can safely upload
   err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, &ev_constant_upload);
@@ -208,18 +216,27 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Local, 5, sizeof(unsigned int), &maxId);
   err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg_kern_l, &local_wg, 1, &ev_global_constraints, &ev_local_constraints);
 
+  err = clSetKernelArg(kernel_Length, 0, sizeof(cl_mem), &PosBuffer);
+  err = clSetKernelArg(kernel_Length, 1, sizeof(cl_mem), &TangentBuffer);
+  err = clSetKernelArg(kernel_Length, 2, sizeof(cl_mem), &StrandType);
+  err = clSetKernelArg(kernel_Length, 3, sizeof(cl_mem), &HairRestLength);
+  err = clSetKernelArg(kernel_Length, 4, sizeof(cl_mem), &ConstantSimBuffer);
+  err = clSetKernelArg(kernel_Length, 5, sizeof(unsigned int), &maxId);
+  err = clEnqueueNDRangeKernel(queue, kernel_Length, 1, 0, &global_wg_kern_g, &local_wg, 1, &ev_local_constraints, &ev_length);
+
 //  float *tmp = new float[tfxassets.m_NumTotalHairVertices * 4];
 //  err = clEnqueueReadBuffer(queue, PosBuffer, CL_FALSE, 0, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 1, &ev_local_constraints, 0);
 
 //  glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
 //  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, GL_STATIC_DRAW);
 
-  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 1, &ev_local_constraints, 0);
+  err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 1, &ev_length, 0);
   clFinish(queue);
   clReleaseEvent(ev_constant_upload);
   clReleaseEvent(ev_global_constraints);
   clReleaseEvent(ev_local_constraints);
   clReleaseEvent(ev_gl_buffer_acquired);
+  clReleaseEvent(ev_length);
 
   if (syncobj)
   {
