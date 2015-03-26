@@ -132,10 +132,11 @@ void simulate(float time)
   else
     cbuf.bWarp = 0;
 
-  if (time > 180.f * 360.f)
-    time = 180.f * 360.f;
+  double p;
 
-  time = 0.;
+  float dir = modf(time / (360.f * 360.f), &p);
+  int clockwise = ((int)p) % 2;
+  time = 360.f * 360.f * dir * ((clockwise > 0) ? 1.f : -1.f);
 
   Model.setRotationDegrees(irr::core::vector3df(0.f, time / 360.f, 0.f));
 
