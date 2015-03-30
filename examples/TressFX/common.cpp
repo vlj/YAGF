@@ -516,6 +516,7 @@ void draw(float density)
     glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
 
     sprintf(t, "First pass: %f ms", result / 1000000.);
+	glDeleteQueries(1, &timer);
   }
 
   syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
