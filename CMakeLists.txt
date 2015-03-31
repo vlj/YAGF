@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 2.8)
 add_definitions(-DGLEW_STATIC)
 option(BUILD_OPENCL "Build Sample using OpenCL" OFF)
 
+option(BUILD_DX12 "Build Sample using DX12" OFF)
+
 if (WIN32)
   # GLEW
   add_library(glew STATIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew-1.12.0/src/glew.c" "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew-1.12.0/src/glewinfo.c")
@@ -65,4 +67,10 @@ if(BUILD_OPENCL)
   include_directories("C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/include")
   add_executable(tfx-ocl examples/TressFX/tfx-ocl.cpp examples/TressFX/common.cpp)
   target_link_libraries(tfx-ocl ${PROJECT_NAME} "C:/Program Files (x86)/AMD APP SDK/3.0-0-Beta/lib/x86/OpenCL.lib")
+endif()
+
+if(BUILD_DX12)
+add_executable(meshdx12 examples/meshdx12.cpp)
+set_target_properties(meshdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS") 
+target_link_libraries(meshdx12 ${PROJECT_NAME})
 endif()
