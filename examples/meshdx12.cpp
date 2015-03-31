@@ -12,6 +12,21 @@ LRESULT CALLBACK WindowProc(HWND hWnd,
 	WPARAM wParam,
 	LPARAM lParam);
 
+void InitD3D()
+{
+
+}
+
+void Draw()
+{
+
+}
+
+void Clean()
+{
+
+}
+
 int WINAPI WinMain(HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR lpCmdLine,
@@ -20,10 +35,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	// the handle for the window, filled by a function
 	HWND hWnd;
 	// this struct holds information for the window class
-	WNDCLASSEX wc;
-
-	// clear out the window class for use
-	ZeroMemory(&wc, sizeof(WNDCLASSEX));
+	WNDCLASSEX wc = {};
 
 	// fill in the struct with the needed information
 	wc.cbSize = sizeof(WNDCLASSEX);
@@ -40,22 +52,22 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	// create the window and use the result as the handle
 	hWnd = CreateWindowEx(NULL,
 		"WindowClass1",    // name of the window class
-		"Our First Windowed Program",   // title of the window
+		"MeshDX12",   // title of the window
 		WS_OVERLAPPEDWINDOW,    // window style
 		300,    // x-position of the window
 		300,    // y-position of the window
-		500,    // width of the window
-		400,    // height of the window
+		1024,    // width of the window
+		1024,    // height of the window
 		NULL,    // we have no parent window, NULL
 		NULL,    // we aren't using menus, NULL
 		hInstance,    // application handle
 		NULL);    // used with multiple windows, NULL
-
-				  // display the window on the screen
 	ShowWindow(hWnd, nCmdShow);
 
 	// this struct holds Windows event messages
 	MSG msg;
+
+	InitD3D();
 
 	// wait for the next message in the queue, store the result in 'msg'
 	while (GetMessage(&msg, NULL, 0, 0))
@@ -65,7 +77,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 		// send the message to the WindowProc function
 		DispatchMessage(&msg);
+
+		Draw();
 	}
+
+	Clean();
 	// return this part of the WM_QUIT message to Windows
 	return msg.wParam;
 }
