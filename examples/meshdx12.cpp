@@ -36,6 +36,8 @@ ComPtr<ID3D12Resource> buffer[2];
 D3D12_CPU_DESCRIPTOR_HANDLE cpudesc[2];
 ComPtr<ID3D12DescriptorHeap> descheap;
 HANDLE handle;
+ComPtr<ID3D12Resource> cbuffer;
+ComPtr<ID3D12DescriptorHeap> CbufferHeap;
 
 void InitD3D(HWND hWnd)
 {
@@ -165,10 +167,40 @@ void InitD3D(HWND hWnd)
 		cmdlist->Reset(cmdalloc.Get(), pso.Get());
 	}
 
+	hr = dev->CreateCommittedResource(
+		&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_MISC_NONE,
+		&CD3D12_RESOURCE_DESC::Buffer(256),
+		D3D12_RESOURCE_USAGE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&cbuffer));
+
+	float *tmp;
+	cbuffer->Map(0, nullptr, (void**)&tmp);
+	float white[4] = { 1.f, 1.f, 1.f, 1.f };
+	memcpy(tmp, white, 4 * sizeof(float));
+	cbuffer->Unmap(0, nullptr);
+
+	{
+		D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+		heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+		heapdesc.NumDescriptors = 1;
+		heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+		hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&CbufferHeap));
+
+		D3D12_CONSTANT_BUFFER_VIEW_DESC bufdesc = {};
+		bufdesc.BufferLocation = cbuffer->GetGPUVirtualAddress();
+		bufdesc.SizeInBytes = 256;
+		dev->CreateConstantBufferView(&bufdesc, CbufferHeap->GetCPUDescriptorHandleForHeapStart());
+	}
+
 	// Define Root Signature
 	{
+		D3D12_DESCRIPTOR_RANGE descrange = {};
+		descrange.Init(D3D12_DESCRIPTOR_RANGE_CBV, 1, 0);
+
 		D3D12_ROOT_PARAMETER RP;
-		RP.InitAsConstants(4, 0);
+		RP.InitAsDescriptorTable(1, &descrange);
 
 		D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(1, &RP);
 		RootSig.Flags = D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -207,17 +239,8 @@ void Draw()
 	view.MinDepth = 0;
 	view.MaxDepth = 1.;
 
-	D3D12_VERTEX_BUFFER_VIEW vtxb = {};
-	vtxb.BufferLocation = gpudata->GetGPUVirtualAddress();
-	vtxb.SizeInBytes = 4 * 4 * sizeof(float);
-	vtxb.StrideInBytes = 4 * sizeof(float);
-
 	cmdlist->RSSetViewports(1, &view);
 	cmdlist->RSSetScissorRects(1, &rect);
-
-	cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
-	float c[] = { 1., 1., 1., 1. };
-	cmdlist->SetGraphicsRoot32BitConstants(0, c, 0, 4);
 
 	D3D12_RESOURCE_BARRIER_DESC barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -228,6 +251,16 @@ void Draw()
 
 	float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
 	cmdlist->ClearRenderTargetView(cpudesc[chain->GetCurrentBackBufferIndex()], clearColor, 0, 0);
+
+	D3D12_VERTEX_BUFFER_VIEW vtxb = {};
+	vtxb.BufferLocation = gpudata->GetGPUVirtualAddress();
+	vtxb.SizeInBytes = 4 * 4 * sizeof(float);
+	vtxb.StrideInBytes = 4 * sizeof(float);
+
+//	cmdlist->SetDescriptorHeaps(CbufferHeap.GetAddressOf(), 1);
+	cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
+	float c[] = { 1., 1., 1., 1. };
+	cmdlist->SetGraphicsRootDescriptorTable(0, CbufferHeap->GetGPUDescriptorHandleForHeapStart());
 	cmdlist->SetRenderTargets(&cpudesc[chain->GetCurrentBackBufferIndex()], true, 1, nullptr);
 	cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdlist->SetVertexBuffers(0, &vtxb, 1);

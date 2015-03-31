@@ -1,5 +1,5 @@
 #define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
-                         "RootConstants(num32BitConstants = 4, b0) "
+                         "DescriptorTable(CBV(b0)) "
 
 
 [RootSignature(MyRS1)]
