@@ -36,7 +36,7 @@ namespace irr
     class IMeshBuffer// : public virtual IReferenceCounted
     {
     public:
-      IMeshBuffer() : Primitive(GL_TRIANGLES)
+      IMeshBuffer()// : Primitive(GL_TRIANGLES)
       {
 
       }
@@ -116,10 +116,10 @@ namespace irr
       //		virtual core::vector2df& getTCoords(size_t i) = 0;
 
       //! Returns the primitive type of this buffer
-      virtual GLenum getPrimitiveType() const
+/*      virtual GLenum getPrimitiveType() const
       {
         return Primitive;
-      }
+      }*/
 
       //! Append the vertices and indices to the current buffer
       /** Only works for compatible types, i.e. either the same type
@@ -187,7 +187,7 @@ namespace irr
       std::vector<uint16_t> Indices;
 
       //! What kind of primitives does this buffer contain? Default triangles
-      GLenum Primitive;
+//      GLenum Primitive;
     };
 
   } // end namespace scene

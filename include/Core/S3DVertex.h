@@ -9,7 +9,7 @@
 #include <Maths/vector3d.h>
 #include <Maths/vector2d.h>
 #include <Core/SColor.h>
-#include <Core/VAO.h>
+#include <Core/IMeshBuffer.h>
 
 namespace irr
 {

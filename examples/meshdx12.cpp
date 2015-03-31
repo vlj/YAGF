@@ -7,6 +7,7 @@
 
 
 #include <Loaders/B3D.h>
+#include <tuple>
 
 std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
 
@@ -177,6 +178,16 @@ void InitD3D(HWND hWnd)
 		hr = dev->CreateRootSignature(1,
 			pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
 			IID_PPV_ARGS(&pRootSignature));
+	}
+
+	irr::io::CReadFile *reader = new irr::io::CReadFile("..\\examples\\anchor.b3d");
+	irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
+	std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(reader);
+
+	for (auto tmp : buffers)
+	{
+//		std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
+//		CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
 	}
 }
 
