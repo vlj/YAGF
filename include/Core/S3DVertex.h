@@ -333,7 +333,7 @@ return hashVector3d(v.Pos) ^ hashVector3d(v.Normal) ^ hashVector2d(v.TCoords) ^ 
 };
 }*/
 
-
+/*
 template<>
 struct VertexAttribBinder < uint16_t >
 {
@@ -412,7 +412,7 @@ public:
     glEnableVertexAttribArray(6);
     glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertexTangents), (GLvoid*)48);
   }
-};
+};*/
 
 namespace irr
 {

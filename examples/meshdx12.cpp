@@ -5,6 +5,11 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 
+
+#include <Loaders/B3D.h>
+
+std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
+
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
 #pragma comment (lib, "d3dcompiler.lib")
