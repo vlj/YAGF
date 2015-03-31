@@ -70,7 +70,7 @@ if(BUILD_OPENCL)
 endif()
 
 if(BUILD_DX12)
-add_executable(meshdx12 examples/meshdx12.cpp)
+add_executable(meshdx12 examples/meshdx12.cpp examples/vtx.hlsl examples/pix.hlsl)
 set_target_properties(meshdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS") 
 target_link_libraries(meshdx12 ${PROJECT_NAME})
 endif()
