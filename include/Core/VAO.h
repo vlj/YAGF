@@ -265,7 +265,7 @@ public:
     VertexAttribBinder<Data>::bind();
   }
 
-  void append(size_t count, void *ptr)
+  void append(size_t count, const void *ptr)
   {
     size_t from = advertisedSize;
     resizeBufferIfNecessary(from + count);
@@ -333,7 +333,7 @@ private:
   }
 
   template<int N, typename ... VoidPtrType>
-  void append_impl(size_t count, void *ptr, VoidPtrType *...additionalData)
+  void append_impl(size_t count, const void *ptr, VoidPtrType *...additionalData)
   {
     std::get<N>(*this).append(count, ptr);
     append_impl<N + 1>(count, additionalData...);
@@ -352,7 +352,7 @@ public:
   }
 
   template<typename ... VoidPtrType>
-  void append(size_t count, void *ptr, VoidPtrType *...additionalData)
+  void append(size_t count, const void *ptr, const VoidPtrType *...additionalData)
   {
     append_impl<0>(count, ptr, additionalData...);
   }
@@ -458,10 +458,10 @@ class VertexArrayObject : public Singleton < VertexArrayObject<VBO> >
 {
 private:
   GLuint vao;
-  std::unordered_map<irr::scene::IMeshBuffer<typename VBO::VertexFormat>*, std::pair<size_t, size_t> > mappedBaseVertexBaseIndex;
+  std::unordered_map<const irr::scene::IMeshBuffer<typename VBO::VertexFormat>*, std::pair<size_t, size_t> > mappedBaseVertexBaseIndex;
 
   template<typename... VertexAnnotation>
-  void append(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...SkinnedData)
+  void append(const irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...SkinnedData)
   {
     size_t old_vtx_cnt = vbo.getSize();
     size_t old_idx_cnt = ibo.getSize();
@@ -545,7 +545,7 @@ public:
   }
 
   template<typename... VertexAnnotation>
-  std::pair<size_t, size_t> getBase(irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...ptr)
+  std::pair<size_t, size_t> getBase(const irr::scene::IMeshBuffer<typename VBO::VertexFormat> *mb, VertexAnnotation *...ptr)
   {
     if (mappedBaseVertexBaseIndex.find(mb) == mappedBaseVertexBaseIndex.end())
     {

@@ -85,17 +85,17 @@ void init()
 {
   DebugUtil::enableDebugOutput();
   irr::io::CReadFile reader("..\\examples\\anchor.b3d");
-  irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
-  std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(&reader);
-
+  irr::scene::CB3DMeshFileLoader loader(&reader);
+  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh;
 
   for (auto tmp : buffers)
   {
-    std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
-    CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
+    const irr::scene::SMeshBufferLightMap &tmpbuf = tmp.first;
+    std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmpbuf);
+    CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
   }
 
-  for (auto tmp : loader->Textures)
+  for (auto tmp : loader.Textures)
   {
     irr::io::CReadFile texreader("..\\examples\\anchor.png");
     imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
@@ -110,7 +110,6 @@ void init()
   TrilinearSampler = SamplerHelper::createBilinearSampler();
 
   glDepthFunc(GL_LEQUAL);
-  delete loader;
 }
 
 void clean()

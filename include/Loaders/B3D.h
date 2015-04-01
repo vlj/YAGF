@@ -314,18 +314,23 @@ namespace irr
     public:
 
       //! Constructor
-      CB3DMeshFileLoader()
+      CB3DMeshFileLoader(io::IReadFile* file)
         : B3DFile(0), NormalsInFile(false), HasVertexColors(false), ShowWarning(true)
-      { }
+      {
+        createMesh(file);
+      }
 
+      ~CB3DMeshFileLoader() {};
+
+    private:
       //! creates/loads an animated mesh from the file.
       //! \return Pointer to the created mesh. Returns 0 if loading failed.
       //! If you no longer need the mesh, you should call IAnimatedMesh::drop().
       //! See IReferenceCounted::drop() for more information.
-      std::vector<SMeshBufferLightMap> createMesh(io::IReadFile* file)
+      void createMesh(io::IReadFile* file)
       {
         if (!file)
-          return AnimatedMesh;
+          return;
 
         B3DFile = file;
         //                AnimatedMesh = new scene::CSkinnedMesh();
@@ -342,11 +347,7 @@ namespace irr
           //                    AnimatedMesh = 0;
           AnimatedMesh.clear();
         }
-
-        return AnimatedMesh;
       }
-
-      ~CB3DMeshFileLoader() {};
 
     private:
 
@@ -602,10 +603,9 @@ namespace irr
           else if (strncmp(B3dStack.back().name, "TRIS", 4) == 0)
           {
             //                        scene::SSkinMeshBuffer *meshBuffer = AnimatedMesh->addMeshBuffer();
-            AnimatedMesh.push_back(scene::SMeshBufferLightMap());
-            scene::SMeshBufferLightMap *meshBuffer = &(AnimatedMesh.back());
-            MeshMaterials.push_back(video::SMaterial());
-            video::SMaterial &meshBufferMaterial = MeshMaterials.back();
+            AnimatedMesh.push_back(std::make_pair(scene::SMeshBufferLightMap(), video::SMaterial()));
+            scene::SMeshBufferLightMap *meshBuffer = &(AnimatedMesh.back().first);
+            video::SMaterial &meshBufferMaterial = AnimatedMesh.back().second;
 
             if (brushID != -1)
             {
@@ -1424,6 +1424,7 @@ namespace irr
       std::vector<SB3dMaterial> Materials;
     public:
       std::vector<SB3dTexture> Textures;
+      std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > AnimatedMesh;
     protected:
 
       std::vector<int> AnimatedVertices_VertexID;
@@ -1434,8 +1435,6 @@ namespace irr
 
       //    ISceneManager*	SceneManager;
       //    CSkinnedMesh*	AnimatedMesh;
-      std::vector<SMeshBufferLightMap> AnimatedMesh;
-      std::vector<video::SMaterial> MeshMaterials;
       io::IReadFile* B3DFile;
 
       //B3Ds have Vertex ID's local within the mesh I don't want this
