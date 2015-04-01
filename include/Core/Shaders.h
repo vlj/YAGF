@@ -241,118 +241,11 @@ public:
   }
 };
 
-
-struct UniformHelper
-{
-  template<unsigned N = 0>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms)
-  {
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::core::matrix4 &mat, const Args &... arg)
-  {
-    glUniformMatrix4fv(uniforms[N], 1, GL_FALSE, mat.pointer());
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::video::SColorf &col, const Args &... arg)
-  {
-    glUniform4f(uniforms[N], col.r, col.g, col.b, col.a);
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::video::SColor &col, const Args &... arg)
-  {
-    glUniform4i(uniforms[N], col.getRed(), col.getGreen(), col.getBlue(), col.getAlpha());
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::core::vector3df &v, const Args &... arg)
-  {
-    glUniform3f(uniforms[N], v.X, v.Y, v.Z);
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const irr::core::vector2df &v, const Args &... arg)
-  {
-    glUniform2f(uniforms[N], v.X, v.Y);
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, float f, const Args &... arg)
-  {
-    glUniform1f(uniforms[N], f);
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, int f, const Args &... arg)
-  {
-    glUniform1i(uniforms[N], f);
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const std::vector<float> &v, const Args &... arg)
-  {
-    glUniform1fv(uniforms[N], (int)v.size(), v.data());
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-
-  template<unsigned N = 0, typename... Args>
-  static void setUniformsHelper(const std::vector<GLuint> &uniforms, const std::vector<irr::core::matrix4> &v, Args... arg)
-  {
-    std::vector<float> tmp;
-    for (unsigned mat = 0; mat < v.size(); mat++)
-    {
-      for (unsigned i = 0; i < 4; i++)
-        for (unsigned j = 0; j < 4; j++)
-          tmp.push_back(v[mat].pointer()[4 * i + j]);
-    }
-    glUniformMatrix4fv(uniforms[N], (int)v.size(), GL_FALSE, tmp.data());
-    setUniformsHelper<N + 1>(uniforms, arg...);
-  }
-};
-
 extern std::vector<void(*)()> CleanTable;
 
 template<typename T, typename... Args>
 class ShaderHelperSingleton : public Singleton < T >
 {
-protected:
-  std::vector<GLuint> uniforms;
-
-  void AssignUniforms_impl()
-  {
-    GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
-    if (uniform_ViewProjectionMatrixesUBO != GL_INVALID_INDEX)
-      glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
-    GLuint uniform_LightingUBO = glGetUniformBlockIndex(Program, "LightingData");
-    if (uniform_LightingUBO != GL_INVALID_INDEX)
-      glUniformBlockBinding(Program, uniform_LightingUBO, 1);
-  }
-
-  template<typename... U>
-  void AssignUniforms_impl(const char* name, U... rest)
-  {
-    uniforms.push_back(glGetUniformLocation(Program, name));
-    AssignUniforms_impl(rest...);
-  }
-
-  template<typename... U>
-  void AssignUniforms(U... rest)
-  {
-    static_assert(sizeof...(rest) == sizeof...(Args), "Count of Uniform's name mismatch");
-    AssignUniforms_impl(rest...);
-  }
-
 public:
   GLuint Program;
 
@@ -364,11 +257,6 @@ public:
   ~ShaderHelperSingleton()
   {
     glDeleteProgram(Program);
-  }
-
-  void setUniforms(const Args & ... args) const
-  {
-    UniformHelper::setUniformsHelper(uniforms, args...);
   }
 };
 

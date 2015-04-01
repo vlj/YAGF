@@ -73,7 +73,6 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, vtxshader.c_str(),
       GL_FRAGMENT_SHADER, fragshader.c_str());
-    AssignUniforms();
   }
 };
 
@@ -93,7 +92,6 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, vtxshader.c_str(),
       GL_FRAGMENT_SHADER, fragshader.c_str());
-    AssignUniforms();
     AssignSamplerNames(Program, "PerPixelLinkedListHead");
   }
 };
@@ -480,7 +478,6 @@ void draw(float density)
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glBindVertexArray(TFXVaoLine);
   glUseProgram(HairShadow::getInstance()->Program);
-  HairShadow::getInstance()->setUniforms();
   glDrawElementsBaseVertex(GL_LINES, (GLsizei)(density * triangleIndicesCount), GL_UNSIGNED_INT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
@@ -506,7 +503,6 @@ void draw(float density)
     glBindVertexArray(TFXVao);
     glUseProgram(Transparent::getInstance()->Program);
     Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-    Transparent::getInstance()->setUniforms();
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei) (density * lineIndicesCount), GL_UNSIGNED_INT, 0, 0);
 
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);

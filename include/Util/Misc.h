@@ -45,7 +45,6 @@ static void DrawFullScreenEffect(const Args &...args)
 {
   glUseProgram(T::getInstance()->Program);
   glBindVertexArray(SharedObject::getInstance()->FullScreenQuadVAO);
-  T::getInstance()->setUniforms(args...);
   glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 

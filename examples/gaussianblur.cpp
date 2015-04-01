@@ -88,8 +88,6 @@ public:
         Program = ProgramShaderLoading::LoadProgram(
             GL_VERTEX_SHADER, screenquadshader,
             GL_FRAGMENT_SHADER, passthrougfs);
-        AssignUniforms();
-
         AssignSamplerNames(Program, "tex");
     }
 };
