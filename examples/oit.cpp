@@ -37,8 +37,12 @@ struct PerPixelListBucket
 
 const char *vtxshader =
 "#version 430\n"
-"uniform mat4 ModelMatrix;\n"
-"uniform mat4 ViewProjectionMatrix;\n"
+"layout(std140) uniform OITBuffer\n"
+"{\n"
+"  mat4 ModelMatrix;\n"
+"  mat4 ViewProjectionMatrix;\n"
+"  vec4 color;\n"
+"};\n"
 "layout(location = 0) in vec3 Position;\n"
 "out float depth;"
 "void main(void) {\n"
@@ -50,7 +54,12 @@ const char *fragshader =
 "#version 430 core\n"
 "layout (binding = 0) uniform atomic_uint PixelCount;\n"
 "layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;\n"
-"uniform vec4 color;\n"
+"layout(std140) uniform OITBuffer\n"
+"{\n"
+"  mat4 ModelMatrix;\n"
+"  mat4 ViewProjectionMatrix;\n"
+"  vec4 color;\n"
+"};\n"
 "in float depth;"
 "out vec4 FragColor;\n"
 "struct PerPixelListBucket\n"
@@ -125,7 +134,7 @@ const char *fragmerge =
 "  FragColor = result;\n"
 "}\n";
 
-class Transparent : public ShaderHelperSingleton<Transparent, irr::core::matrix4, irr::core::matrix4, irr::video::SColorf>, public TextureRead<ImageResource<0> >
+class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<UniformBufferResource<0>, ImageResource<0> >
 {
 public:
     Transparent()
@@ -133,8 +142,7 @@ public:
         Program = ProgramShaderLoading::LoadProgram(
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
-        AssignUniforms("ModelMatrix", "ViewProjectionMatrix", "color");
-        AssignSamplerNames(Program, "PerPixelLinkedListHead");
+        AssignSamplerNames(Program, "OITBuffer", "PerPixelLinkedListHead");
     }
 };
 
@@ -162,6 +170,15 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
     return result;
 }
 
+struct OITBuffer
+{
+    float Model[16];
+    float ViewProj[16];
+    float color[4];
+};
+
+GLuint cbuf;
+
 void init()
 {
     DebugUtil::enableDebugOutput();
@@ -187,6 +204,8 @@ void init()
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
     glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
 
+    glGenBuffers(1, &cbuf);
+
     BilinearSampler = SamplerHelper::createBilinearSampler();
 
     glDepthFunc(GL_LEQUAL);
@@ -196,6 +215,7 @@ void clean()
 {
     glDeleteSamplers(1, &BilinearSampler);
     glDeleteTextures(1, &MainTexture);
+    glDeleteBuffers(1, &cbuf);
 }
 
 void draw()
@@ -222,15 +242,34 @@ void draw()
     View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
     Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
 
+    struct OITBuffer cbufdata;
+
+    memcpy(cbufdata.ViewProj, View.pointer(), 16 * sizeof(float));
+
+
     glUseProgram(Transparent::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
-    Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(0.f, 1.f, 1.f, .5f));
+
+    memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
+    cbufdata.color[0] = 0.f;
+    cbufdata.color[1] = 1.f;
+    cbufdata.color[2] = 1.f;
+    cbufdata.color[3] = .5f;
+    glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct OITBuffer), &cbufdata, GL_STATIC_DRAW);
+    Transparent::getInstance()->SetTextureUnits(cbuf, PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
     Model.setTranslation(irr::core::vector3df(0.f, 0.f, 10.f));
     Model.setScale(2.);
-    Transparent::getInstance()->setUniforms(Model, View, irr::video::SColorf(1.f, 1.f, 0.f, .5f));
+    memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
+    cbufdata.color[0] = 1.f;
+    cbufdata.color[1] = 1.f;
+    cbufdata.color[2] = 0.f;
+    cbufdata.color[3] = .5f;
+    glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct OITBuffer), &cbufdata, GL_STATIC_DRAW);
+    Transparent::getInstance()->SetTextureUnits(cbuf, PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -241,7 +280,6 @@ void draw()
 //    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
     int *tmp = (int*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
-//    printf("%d\n", *tmp);
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
