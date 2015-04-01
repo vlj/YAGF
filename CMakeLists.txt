@@ -21,7 +21,7 @@ if (WIN32)
   include_directories("${CMAKE_CURRENT_SOURCE_DIR}/deps/zlib-1.2.8/")
   include_directories("${CMAKE_CURRENT_BINARY_DIR}/deps/zlib-1.2.8")
   set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/zlib-1.2.8/")
-  set(ZLIB_LIBRARY zlib)
+  set(ZLIB_LIBRARY zlibstatic)
   # LIBPNG
   set(SKIP_INSTALL_ALL TRUE)
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/lpng1617")
@@ -51,7 +51,7 @@ include_directories(
 file(GLOB_RECURSE HEADERS_LIST include "*.h")
 add_library(${PROJECT_NAME} runtime.cpp ${HEADERS_LIST})
 if (WIN32)
-  target_link_libraries(${PROJECT_NAME} glew ${GLEW_LIBRARY} glfw ${GLFW_LIBRARIES} freetype ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} zlib png16)
+  target_link_libraries(${PROJECT_NAME} glew ${GLEW_LIBRARY} glfw ${GLFW_LIBRARIES} freetype ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} zlib png16_static)
     add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
      COMMAND ${CMAKE_COMMAND} -E copy_if_different
          "${PROJECT_SOURCE_DIR}/deps/lpng1617/scripts/pnglibconf.h.prebuilt"
