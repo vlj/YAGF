@@ -472,11 +472,7 @@ namespace irr
         AnimatedVertices_VertexID.clear();
         AnimatedVertices_BufferID.clear();
 
-        for (auto tmp : Textures)
-          printf("Need %s\n", tmp.TextureName.c_str());
-
         Materials.clear();
-        Textures.clear();
 
         return true;
       }

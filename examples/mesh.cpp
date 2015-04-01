@@ -79,7 +79,7 @@ void init()
 
     for (auto tmp : loader->Textures)
     {
-      irr::io::CReadFile texreader(tmp.TextureName);
+      irr::io::CReadFile texreader("..\\examples\\anchor.png");
       imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
     }
 
