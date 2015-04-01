@@ -283,6 +283,7 @@ void draw()
   }
   GLuint result;
   glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
+  glDeleteQueries(1, &timer);
 
   char time[50];
   sprintf(time, "100 x SSAO: %f ms" , result / 1000000.);
