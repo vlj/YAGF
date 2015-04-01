@@ -1430,7 +1430,9 @@ namespace irr
       std::vector<SB3dChunk> B3dStack;
 
       std::vector<SB3dMaterial> Materials;
+    public:
       std::vector<SB3dTexture> Textures;
+    protected:
 
       std::vector<int> AnimatedVertices_VertexID;
 
