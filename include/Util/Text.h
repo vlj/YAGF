@@ -16,15 +16,17 @@ extern "C" {
 #include FT_LCD_FILTER_H
 }
 
-class GlyphRendering : public ShaderHelperSingleton<GlyphRendering, irr::core::vector2df, irr::core::vector2df>, public TextureRead <TextureResource<GL_TEXTURE_2D, 0> >
+class GlyphRendering : public ShaderHelperSingleton<GlyphRendering>, public TextureRead <UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
   GlyphRendering()
   {
     const char *glyphvs =
       "#version 330\n"
-      "uniform vec2 GlyphCenter;\n"
-      "uniform vec2 GlyphScaling;\n"
+      "layout(std140) uniform GlyphBuffer {\n"
+      "  vec2 GlyphCenter;\n"
+      "  vec2 GlyphScaling;\n"
+      "};"
       "layout(location = 0) in vec2 Position;\n"
       "layout(location = 1) in vec2 Texcoord;\n"
       "out vec2 uv;"
@@ -46,9 +48,8 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, glyphvs,
       GL_FRAGMENT_SHADER, passthrougfs);
-    AssignUniforms("GlyphCenter", "GlyphScaling");
 
-    AssignSamplerNames(Program, "tex");
+    AssignSamplerNames(Program, "GlyphBuffer", "tex");
   }
 };
 
@@ -60,6 +61,7 @@ class BasicTextRender : public Singleton < BasicTextRender<GlyphSize> >
 
   GLuint GlyphVAO;
   GLuint GlyphVBO;
+  GLuint GlyphUBO;
 
   GLuint GlyphTexture[256];
   struct GlyphData
@@ -70,6 +72,12 @@ class BasicTextRender : public Singleton < BasicTextRender<GlyphSize> >
     int bitmap_top;
     long int advance_x;
     long int advance_y;
+  };
+
+  struct GlyphBuffer
+  {
+    float GlyphCenter[2];
+    float GlyphScaling[2];
   };
 
   GlyphData Glyph[128];
@@ -129,6 +137,8 @@ public:
     }
     FT_Done_Face(Face);
     FT_Done_FreeType(Ft);
+
+    glGenBuffers(1, &GlyphUBO);
   }
 
   ~BasicTextRender()
@@ -137,6 +147,7 @@ public:
     glDeleteBuffers(1, GlyphVBO);
     glDeleteTextures(128, GlyphTexture);
     glDeleteSamplers(1, Sampler);
+    glDeleteBuffers(1, &GlyphUBO);
   }
 
   void drawText(const char *text, size_t posX, size_t posY, size_t screenWidth, size_t screenHeight)
@@ -150,13 +161,19 @@ public:
     screenpos *= pixelSize;
     screenpos -= irr::core::vector2df(1.f, 1.f);
 
+    struct GlyphBuffer cbufdata;
+
     for (const char *p = text; *p != '\0'; p++)
     {
       const GlyphData &g = Glyph[*p];
       irr::core::vector2df truescreenpos(screenpos);
       truescreenpos += irr::core::vector2df((float)g.bitmap_left, -(float)g.bitmap_top) * pixelSize;
-      GlyphRendering::getInstance()->SetTextureUnits(GlyphTexture[*p], Sampler);
-      GlyphRendering::getInstance()->setUniforms(truescreenpos, irr::core::vector2df((float)g.width, (float) g.height) * pixelSize);
+      cbufdata.GlyphCenter[0] = truescreenpos.X;
+      cbufdata.GlyphCenter[1] = truescreenpos.Y;
+      cbufdata.GlyphScaling[0] = (float)g.width * pixelSize.X;
+      glBindBuffer(GL_UNIFORM_BUFFER, GlyphUBO);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(struct GlyphBuffer), &cbufdata, GL_STATIC_DRAW);
+      GlyphRendering::getInstance()->SetTextureUnits(GlyphUBO, GlyphTexture[*p], Sampler);
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
       screenpos += irr::core::vector2df((float)(g.advance_x >> 6), (float) (g.advance_y >> 6)) * pixelSize;
     }
