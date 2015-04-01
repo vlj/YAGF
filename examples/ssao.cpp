@@ -217,6 +217,7 @@ void clean()
   glDeleteTextures(1, &DepthStencilTexture);
   glDeleteTextures(1, &MainTexture);
   glDeleteTextures(1, &LinearTexture);
+  glDeleteBuffers(1, &cbuf);
 }
 
 void draw()
