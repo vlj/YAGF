@@ -67,7 +67,7 @@ namespace irr
       }
 
       //! creates a surface from the file
-      IImage* loadImage(io::IReadFile* file) const
+      static IImage* loadImage(io::IReadFile* file)
       {
         if (!file)
           return 0;

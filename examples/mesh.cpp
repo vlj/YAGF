@@ -62,16 +62,25 @@ public:
     }
 };
 
+std::vector<IImage *> imgs;
+
 void init()
 {
-    irr::io::CReadFile *reader = new irr::io::CReadFile("..\\examples\\anchor.b3d");
+    irr::io::CReadFile reader("..\\examples\\anchor.b3d");
     irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
-    std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(reader);
+    std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(&reader);
+
 
     for (auto tmp : buffers)
     {
         std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
         CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
+    }
+
+    for (auto tmp : loader->Textures)
+    {
+      irr::io::CReadFile texreader(tmp.TextureName);
+      imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
     }
 
     TrilinearSampler = SamplerHelper::createBilinearSampler();
@@ -83,6 +92,8 @@ void init()
 void clean()
 {
     glDeleteSamplers(1, &TrilinearSampler);
+    for (auto tmp : imgs)
+      delete tmp;
 }
 
 void draw()
