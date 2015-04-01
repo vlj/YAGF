@@ -215,9 +215,9 @@ void InitD3D(HWND hWnd)
 			nullptr,
 			IID_PPV_ARGS(&indexdata));
 
-		hr = vertexdata->Map(0, nullptr, &tmp);
+		hr = indexdata->Map(0, nullptr, &tmp);
 		memcpy(tmp, buffers[0].getIndices(), buffers[0].getIndexCount() * sizeof(unsigned short));
-		vertexdata->Unmap(0, nullptr);
+		indexdata->Unmap(0, nullptr);
 
 		hr = dev->CreateCommittedResource(
 			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -306,7 +306,7 @@ void Draw()
 	cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdlist->SetIndexBuffer(&idxb);
 	cmdlist->SetVertexBuffers(0, &vtxb, 1);
-	cmdlist->DrawInstanced(idxb.SizeInBytes / sizeof(unsigned short), 1, 0, 0);
+	cmdlist->DrawIndexedInstanced(idxb.SizeInBytes / sizeof(unsigned short), 1, 0, 0, 0);
 
 	barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
