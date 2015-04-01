@@ -1,64 +1,51 @@
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
-// This file is part of the "Irrlicht Engine".
-// For conditions of distribution and use, see copyright notice in irrlicht.h
-
-// this file was created by rt (www.tomkorp.com), based on ttk's png-reader
-// i wanted to be able to read in PNG images with irrlicht :)
-// why?  lossless compression with 8-bit alpha channel!
+// Copyright (C) 2015 Vincent Lejeune
+// Contains code from the "Irrlicht Engine".
+// For conditions of distribution and use, see copyright notice in License.txt
 
 #ifndef __C_IMAGE_LOADER_PNG_H_INCLUDED__
 #define __C_IMAGE_LOADER_PNG_H_INCLUDED__
 
-//#include "IImageLoader.h"
-
-#ifndef _IRR_USE_NON_SYSTEM_LIB_PNG_
-//#include <png.h> // use system lib png
-#else // _IRR_USE_NON_SYSTEM_LIB_PNG_
-#include "libpng/png.h" // use irrlicht included lib png
-#endif // _IRR_USE_NON_SYSTEM_LIB_PNG_
-
-//#include "../CImage.h"
-//#include "../CReadFile.h"
-//#include "../os.h"
-
+#include <Loaders/IReadFile.h>
+#include <png.h>
 
 namespace irr
 {
   namespace video
   {
+    // PNG function for file reading
+    static void PNGAPI user_read_data_fcn(png_structp png_ptr, png_bytep data, png_size_t length)
+    {
+      png_size_t check;
+
+      // changed by zola {
+      io::IReadFile* file = (io::IReadFile*)png_get_io_ptr(png_ptr);
+      check = (png_size_t)file->read((void*)data, (unsigned int)length);
+      // }
+
+      if (check != length)
+        png_error(png_ptr, "Read Error");
+    }
+
     class IImage;
 
     //!  Surface Loader for PNG files
-    class CImageLoaderPng// : public IImageLoader
+    class CImageLoaderPng
     {
     private:
-/*      // PNG function for error handling
+      // PNG function for error handling
       static void png_cpexcept_error(png_structp png_ptr, png_const_charp msg)
       {
-        os::Printer::log("PNG fatal error", msg, ELL_ERROR);
+        printf("PNG fatal error", msg);
         longjmp(png_jmpbuf(png_ptr), 1);
       }
 
       // PNG function for warning handling
       static void png_cpexcept_warn(png_structp png_ptr, png_const_charp msg)
       {
-        os::Printer::log("PNG warning", msg, ELL_WARNING);
+        printf("PNG warning", msg);
       }
 
-
-      // PNG function for file reading
-      void PNGAPI user_read_data_fcn(png_structp png_ptr, png_bytep data, png_size_t length)
-      {
-        png_size_t check;
-
-        // changed by zola {
-        io::IReadFile* file = (io::IReadFile*)png_get_io_ptr(png_ptr);
-        check = (png_size_t)file->read((void*)data, (u32)length);
-        // }
-
-        if (check != length)
-          png_error(png_ptr, "Read Error");
-      }*/
     public:
 
       //! returns true if the file maybe is able to be loaded by this class
@@ -70,39 +57,39 @@ namespace irr
       {
         if (!file)
           return false;
-        /*
+
         png_byte buffer[8];
         // Read the first few bytes of the PNG file
         if (file->read(buffer, 8) != 8)
           return false;
 
         // Check if it really is a PNG file
-        return !png_sig_cmp(buffer, 0, 8);*/
+        return !png_sig_cmp(buffer, 0, 8);
       }
 
       //! creates a surface from the file
       IImage* loadImage(io::IReadFile* file) const
       {
-/*        if (!file)
+        if (!file)
           return 0;
 
         bool sRGB = false;
         video::IImage* image = 0;
         //Used to point to image rows
-        u8** RowPointers = 0;
+        unsigned char** RowPointers = 0;
 
         png_byte buffer[8];
         // Read the first few bytes of the PNG file
         if (file->read(buffer, 8) != 8)
         {
-          os::Printer::log("LOAD PNG: can't read file\n", file->getFileName(), ELL_ERROR);
+          printf("LOAD PNG: can't read file\n", file->getFileName());
           return 0;
         }
 
         // Check if it really is a PNG file
         if (png_sig_cmp(buffer, 0, 8))
         {
-          os::Printer::log("LOAD PNG: not really a png\n", file->getFileName(), ELL_ERROR);
+          printf("LOAD PNG: not really a png\n", file->getFileName());
           return 0;
         }
 
@@ -111,7 +98,7 @@ namespace irr
           NULL, (png_error_ptr)png_cpexcept_error, (png_error_ptr)png_cpexcept_warn);
         if (!png_ptr)
         {
-          os::Printer::log("LOAD PNG: Internal PNG create read struct failure\n", file->getFileName(), ELL_ERROR);
+          printf("LOAD PNG: Internal PNG create read struct failure\n", file->getFileName());
           return 0;
         }
 
@@ -119,7 +106,7 @@ namespace irr
         png_infop info_ptr = png_create_info_struct(png_ptr);
         if (!info_ptr)
         {
-          os::Printer::log("LOAD PNG: Internal PNG create info struct failure\n", file->getFileName(), ELL_ERROR);
+          printf("LOAD PNG: Internal PNG create info struct failure\n", file->getFileName());
           png_destroy_read_struct(&png_ptr, NULL, NULL);
           return 0;
         }
@@ -140,10 +127,10 @@ namespace irr
 
         png_read_info(png_ptr, info_ptr); // Read the info section of the png file
 
-        u32 Width;
-        u32 Height;
-        s32 BitDepth;
-        s32 ColorType;
+        unsigned int Width;
+        unsigned int Height;
+        int BitDepth;
+        int ColorType;
         {
           // Use temporary variables to avoid passing casted pointers
           png_uint_32 w, h;
@@ -221,13 +208,13 @@ namespace irr
         }
 
         // Create the image structure to be filled by png data
-        if (ColorType == PNG_COLOR_TYPE_RGB_ALPHA)
+/*        if (ColorType == PNG_COLOR_TYPE_RGB_ALPHA)
           image = new CImage(ECF_A8R8G8B8, core::dimension2d<u32>(Width, Height));
         else
           image = new CImage(ECF_R8G8B8, core::dimension2d<u32>(Width, Height));
         if (!image)
         {
-          os::Printer::log("LOAD PNG: Internal PNG create image struct failure\n", file->getFileName(), ELL_ERROR);
+          printf("LOAD PNG: Internal PNG create image struct failure\n", file->getFileName());
           png_destroy_read_struct(&png_ptr, NULL, NULL);
           return 0;
         }
@@ -236,7 +223,7 @@ namespace irr
         RowPointers = new png_bytep[Height];
         if (!RowPointers)
         {
-          os::Printer::log("LOAD PNG: Internal PNG create row pointers failure\n", file->getFileName(), ELL_ERROR);
+          printf("LOAD PNG: Internal PNG create row pointers failure\n", file->getFileName());
           png_destroy_read_struct(&png_ptr, NULL, NULL);
           delete image;
           return 0;
@@ -244,7 +231,7 @@ namespace irr
 
         // Fill array of pointers to rows in image data
         unsigned char* data = (unsigned char*)image->lock();
-        for (u32 i = 0; i<Height; ++i)
+        for (unsigned int i = 0; i<Height; ++i)
         {
           RowPointers[i] = data;
           data += image->getPitch();
@@ -267,9 +254,9 @@ namespace irr
         delete[] RowPointers;
         image->unlock();
         png_destroy_read_struct(&png_ptr, &info_ptr, 0); // Clean up memory
-        image->setColorspaceSRGB(sRGB);
+        image->setColorspaceSRGB(sRGB);*/
 
-        return image;*/
+        return image;
       }
     };
   } // end namespace video
