@@ -117,6 +117,7 @@ void clean()
 {
     glDeleteSamplers(1, &TrilinearSampler);
     glDeleteTextures(1, &texture);
+    glDeleteBuffers(1, &cbuf);
     for (auto tmp : imgs)
       delete tmp;
 }
