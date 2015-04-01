@@ -29,9 +29,12 @@ static const char *bilateralH =
   "#version 430\n"
   "// From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch40.html \n"
   "uniform sampler2D source;\n"
-  "uniform vec2 pixel; \n"
+  "layout(std140) uniform GAUSSIANBuffer {\n"
+  "  vec2 pixel; \n"
+  "  vec2 pad; \n"
+  "  float sigma; \n"
+  "};\n"
   "uniform layout(rgba16f) volatile restrict writeonly image2D dest; \n"
-  "uniform float sigma = 5.; \n"
   "layout(local_size_x = 8, local_size_y = 8) in; \n"
   "shared vec4 local_src[8 + 2 * 8][8]; \n"
   "void main()\n"
@@ -65,16 +68,15 @@ static const char *bilateralH =
 "  imageStore(dest, iuv, sum / total_weight); \n"
 "}";
 
-class GaussianBlurH : public ShaderHelperSingleton<GaussianBlurH, irr::core::vector2df, float>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
+class GaussianBlurH : public ShaderHelperSingleton<GaussianBlurH>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
 {
 public:
     GaussianBlurH()
     {
         Program = ProgramShaderLoading::LoadProgram(
             GL_COMPUTE_SHADER, bilateralH);
-        AssignUniforms("pixel", "sigma");
 
-        AssignSamplerNames(Program, "source", "dest");
+        AssignSamplerNames(Program, "GAUSSIANBuffer", "source", "dest");
     }
 };
 
@@ -104,6 +106,14 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
     return result;
 }
 
+struct GAUSSIANBuffer
+{
+    float pixel[4];
+    float sigma;
+};
+
+GLuint cbuf;
+
 void init()
 {
     DebugUtil::enableDebugOutput();
@@ -126,6 +136,8 @@ void init()
     AuxTexture = generateRTT(1024, 1024, GL_RGBA16F, GL_RGBA, GL_FLOAT);
 
     BilinearSampler = SamplerHelper::createBilinearSampler();
+
+    glGenBuffers(1, &cbuf);
 }
 
 void clean()
@@ -133,25 +145,33 @@ void clean()
     glDeleteSamplers(1, &BilinearSampler);
     glDeleteTextures(1, &MainTexture);
     glDeleteTextures(1, &AuxTexture);
+    glDeleteBuffers(1, &cbuf);
 }
 
 void draw()
 {
     glUseProgram(GaussianBlurH::getInstance()->Program);
-    GaussianBlurH::getInstance()->setUniforms(irr::core::vector2df(1. / 1024., 1. / 1024.), 1.);
+    struct GAUSSIANBuffer cbufferdata;
+    cbufferdata.pixel[0] = 1.f / 1024.f;
+    cbufferdata.pixel[1] = 1.f / 1024.f;
+    cbufferdata.sigma = 1.f;
+
+    glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(GAUSSIANBuffer), &cbufferdata, GL_STATIC_DRAW);
 
     GLuint timer;
     glGenQueries(1, &timer);
     glBeginQuery(GL_TIME_ELAPSED, timer);
     for (unsigned i = 0; i < 100; i++)
     {
-        GaussianBlurH::getInstance()->SetTextureUnits(InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
+        GaussianBlurH::getInstance()->SetTextureUnits(cbuf, InitialTexture, BilinearSampler, MainTexture, GL_WRITE_ONLY, GL_RGBA16F);
         glDispatchCompute(1024 / 8, 1024 / 8, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
     glEndQuery(GL_TIME_ELAPSED);
     GLuint result;
     glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
+    glDeleteQueries(1, &timer);
 
     char time[50];
     sprintf(time, "100 x SSAO: %f ms", result / 1000000.);
