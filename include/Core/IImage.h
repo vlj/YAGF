@@ -37,9 +37,9 @@ public:
     switch (Format)
     {
     case irr::video::ECF_A8R8G8B8:
-      return 4;
+      return 4 * Width;
     case irr::video::ECF_R8G8B8:
-      return 3;
+      return 3 * Width;
     default:
       assert(0 && "unimplemented");
       return -1;

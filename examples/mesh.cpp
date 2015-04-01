@@ -92,7 +92,7 @@ void init()
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
 
   TrilinearSampler = SamplerHelper::createBilinearSampler();
 
