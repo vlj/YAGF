@@ -3,7 +3,7 @@
 // Contains code from the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in License.txt
 
-#include <Core/S3DVertex.h>
+#include <Core/BasicVertexLayout.h>
 #include <Maths/vector3d.h>
 
 

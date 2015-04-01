@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
 #include <Core/VAO.h>
+#include <GLAPI/S3DVertex.h>
 
 #include <Core/Shaders.h>
 #include <Core/FBO.h>

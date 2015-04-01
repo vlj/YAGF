@@ -13,7 +13,7 @@
 #include <string>
 #include <Maths/matrix4.h>
 #include <vector>
-#include <Core/S3DVertex.h>
+#include <Core/BasicVertexLayout.h>
 #include <Loaders/IReadFile.h>
 
 // Copyright (C) 2002-2012 Nikolaus Gebhardt
