@@ -372,6 +372,25 @@ public:
   }
 };
 
+template<unsigned BindingPoint>
+struct UniformBufferResource
+{
+    template <typename BindStruct, typename ...Args>
+    static void ChainedBind(GLuint bufferid, const Args&...args)
+    {
+        glBindBufferBase(GL_UNIFORM_BUFFER, BindingPoint, bufferid);
+        BindStruct::exec(args...);
+    }
+
+    template <typename AssignStruct, typename...Args>
+    static void ChainedAssign(GLuint Program, std::vector<GLuint> &TextureLocation, const char* name, const Args&...args)
+    {
+        GLuint location = glGetUniformBlockIndex(Program, name);
+        glUniformBlockBinding(Program, location, BindingPoint);
+        AssignStruct::exec(Program, TextureLocation, args...);
+    }
+};
+
 template<GLenum TextureType, unsigned TextureUnit>
 struct TextureResource
 {

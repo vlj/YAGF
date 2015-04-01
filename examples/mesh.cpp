@@ -22,8 +22,11 @@ GLuint TrilinearSampler;
 
 const char *vtxshader =
 "#version 330\n"
-"uniform mat4 ModelMatrix;\n"
-"uniform mat4 ViewProjectionMatrix;\n"
+"layout(std140) uniform Matrices\n"
+"{\n"
+"mat4 ModelMatrix;\n"
+"mat4 ViewProjectionMatrix;\n"
+"};\n"
 "layout(location = 0) in vec3 Position;\n"
 "layout(location = 3) in vec2 Texcoord;\n"
 "out vec2 uv;\n"
@@ -54,7 +57,7 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
     return result;
 }
 
-class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
+class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     ObjectShader()
@@ -62,13 +65,21 @@ public:
         Program = ProgramShaderLoading::LoadProgram(
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
-        AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
-        AssignSamplerNames(Program, "tex");
+
+        AssignSamplerNames(Program, "Matrices", "tex");
     }
 };
 
 std::vector<IImage *> imgs;
 GLuint texture;
+
+struct Matrixes
+{
+    float Model[16];
+    float ViewProj[16];
+};
+
+GLuint cbuf;
 
 void init()
 {
@@ -93,6 +104,8 @@ void init()
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
+
+  glGenBuffers(1, &cbuf);
 
   TrilinearSampler = SamplerHelper::createBilinearSampler();
 
@@ -120,15 +133,21 @@ void draw()
     glClearDepth(1.);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    Matrixes cbufdata;
     irr::core::matrix4 Model, View;
     View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
     Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
     Model.setRotationDegrees(irr::core::vector3df(270.f, 0.f, 0.f));
+    memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
+    memcpy(cbufdata.ViewProj, View.pointer(), 16 * sizeof(float));
+
+    glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Matrixes), &cbufdata, GL_STATIC_DRAW);
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
-    ObjectShader::getInstance()->SetTextureUnits(texture, TrilinearSampler);
-    ObjectShader::getInstance()->setUniforms(Model, View);
+    ObjectShader::getInstance()->SetTextureUnits(cbuf, texture, TrilinearSampler);
+    ObjectShader::getInstance()->setUniforms();
     for (auto tmp : CountBaseIndexVTX)
       glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
 }
