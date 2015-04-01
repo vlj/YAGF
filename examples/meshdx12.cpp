@@ -31,13 +31,16 @@ ComPtr<ID3D12RootSignature> pRootSignature;
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
 ComPtr<ID3D12Fence> fence;
 ComPtr<ID3D12PipelineState> pso;
-ComPtr<ID3D12Resource> gpudata;
+ComPtr<ID3D12Resource> vertexbuffer;
+ComPtr<ID3D12Resource> indexbuffer;
 ComPtr<ID3D12Resource> buffer[2];
 D3D12_CPU_DESCRIPTOR_HANDLE cpudesc[2];
 ComPtr<ID3D12DescriptorHeap> descheap;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> CbufferHeap;
+D3D12_VERTEX_BUFFER_VIEW vtxb = {};
+D3D12_INDEX_BUFFER_VIEW idxb = {};
 
 void InitD3D(HWND hWnd)
 {
@@ -94,12 +97,31 @@ void InitD3D(HWND hWnd)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
 		psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+/*		// Position
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), 0);
+		// Normal
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)12);
+		// Color
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)24);
+		// Texcoord
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)28);
+		// SecondTexcoord
+		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)36);*/
 		D3D12_INPUT_ELEMENT_DESC IAdesc[] =
 		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 }
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR", 2, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 24, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 3, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+			{ "SECONDTEXCOORD", 4, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D12_INPUT_PER_VERTEX_DATA, 0 },
 		};
 		psodesc.InputLayout.pInputElementDescs = IAdesc;
-		psodesc.InputLayout.NumElements = 1;
+		psodesc.InputLayout.NumElements = 5;
 		psodesc.NumRenderTargets = 1;
 		psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
 		psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
@@ -112,59 +134,6 @@ void InitD3D(HWND hWnd)
 		psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
 
 		hr = dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(&pso));
-	}
-
-	D3D12_RESOURCE_BARRIER_DESC barrier = {};
-	// Upload to gpudata
-	{
-		ComPtr<ID3D12Resource> data;
-		hr = dev->CreateCommittedResource(
-			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_MISC_NONE,
-			&CD3D12_RESOURCE_DESC::Buffer(64),
-			D3D12_RESOURCE_USAGE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&data));
-
-		float *tmp;
-		hr = data->Map(0, nullptr, (void**)&tmp);
-
-		float values[12] =
-		{
-			0., .5, 0., 1.,
-			.45, -.5, 0., 1.,
-			-.45, -.5, 0., 1.,
-		};
-
-		memcpy(tmp, values, 16 * sizeof(float));
-		data->Unmap(0, nullptr);
-
-		hr = dev->CreateCommittedResource(
-			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_MISC_NONE,
-			&CD3D12_RESOURCE_DESC::Buffer(64),
-			D3D12_RESOURCE_USAGE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(&gpudata));
-
-		cmdlist->CopyBufferRegion(gpudata.Get(), 0, data.Get(), 0, 64, D3D12_COPY_NONE);
-
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = gpudata.Get();
-		barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
-		cmdlist->ResourceBarrier(1, &barrier);
-
-		ComPtr<ID3D12Fence> datauploadfence;
-		hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&datauploadfence));
-		HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
-		datauploadfence->SetEventOnCompletion(1, cpudatauploadevent);
-		cmdlist->Close();
-		cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
-		cmdqueue->Signal(datauploadfence.Get(), 1);
-		WaitForSingleObject(cpudatauploadevent, INFINITE);
-		cmdalloc->Reset();
-		cmdlist->Reset(cmdalloc.Get(), pso.Get());
 	}
 
 	hr = dev->CreateCommittedResource(
@@ -216,10 +185,85 @@ void InitD3D(HWND hWnd)
 	irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
 	std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(reader);
 
-	for (auto tmp : buffers)
 	{
 //		std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
-//		CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
+		CountBaseIndexVTX.push_back(std::make_tuple(buffers[0].getIndexCount(), 0, 0));
+	}
+
+	D3D12_RESOURCE_BARRIER_DESC barrier = {};
+	// Upload to gpudata
+	{
+		ComPtr<ID3D12Resource> vertexdata, indexdata;
+		hr = dev->CreateCommittedResource(
+			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_MISC_NONE,
+			&CD3D12_RESOURCE_DESC::Buffer(buffers[0].getVertexCount() * sizeof(irr::video::S3DVertex2TCoords)),
+			D3D12_RESOURCE_USAGE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&vertexdata));
+
+		void *tmp;
+		hr = vertexdata->Map(0, nullptr, &tmp);
+		memcpy(tmp, buffers[0].getVertices(), buffers[0].getVertexCount() * sizeof(irr::video::S3DVertex2TCoords));
+		vertexdata->Unmap(0, nullptr);
+
+		hr = dev->CreateCommittedResource(
+			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_MISC_NONE,
+			&CD3D12_RESOURCE_DESC::Buffer(buffers[0].getIndexCount() * sizeof(unsigned short)),
+			D3D12_RESOURCE_USAGE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&indexdata));
+
+		hr = vertexdata->Map(0, nullptr, &tmp);
+		memcpy(tmp, buffers[0].getIndices(), buffers[0].getIndexCount() * sizeof(unsigned short));
+		vertexdata->Unmap(0, nullptr);
+
+		hr = dev->CreateCommittedResource(
+			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_MISC_NONE,
+			&CD3D12_RESOURCE_DESC::Buffer(buffers[0].getVertexCount() * sizeof(irr::video::S3DVertex2TCoords)),
+			D3D12_RESOURCE_USAGE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&vertexbuffer));
+
+		hr = dev->CreateCommittedResource(
+			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_MISC_NONE,
+			&CD3D12_RESOURCE_DESC::Buffer(buffers[0].getIndexCount() * sizeof(unsigned short)),
+			D3D12_RESOURCE_USAGE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&indexbuffer));
+
+		cmdlist->CopyBufferRegion(vertexbuffer.Get(), 0, vertexdata.Get(), 0, buffers[0].getVertexCount() * sizeof(irr::video::S3DVertex2TCoords), D3D12_COPY_NONE);
+		cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, indexdata.Get(), 0, buffers[0].getIndexCount() * sizeof(unsigned short), D3D12_COPY_NONE);
+
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Transition.pResource = vertexbuffer.Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
+		cmdlist->ResourceBarrier(1, &barrier);
+		barrier.Transition.pResource = indexbuffer.Get();
+		cmdlist->ResourceBarrier(1, &barrier);
+
+		ComPtr<ID3D12Fence> datauploadfence;
+		hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&datauploadfence));
+		HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
+		datauploadfence->SetEventOnCompletion(1, cpudatauploadevent);
+		cmdlist->Close();
+		cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+		cmdqueue->Signal(datauploadfence.Get(), 1);
+		WaitForSingleObject(cpudatauploadevent, INFINITE);
+		cmdalloc->Reset();
+		cmdlist->Reset(cmdalloc.Get(), pso.Get());
+
+		vtxb.BufferLocation = vertexbuffer->GetGPUVirtualAddress();
+		vtxb.SizeInBytes = buffers[0].getVertexCount() * sizeof(irr::video::S3DVertex2TCoords);
+		vtxb.StrideInBytes = sizeof(irr::video::S3DVertex2TCoords);
+
+		idxb.BufferLocation = indexbuffer->GetGPUVirtualAddress();
+		idxb.Format = DXGI_FORMAT_R16_UINT;
+		idxb.SizeInBytes = buffers[0].getIndexCount() * sizeof(unsigned short);
 	}
 }
 
@@ -252,10 +296,7 @@ void Draw()
 	float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
 	cmdlist->ClearRenderTargetView(cpudesc[chain->GetCurrentBackBufferIndex()], clearColor, 0, 0);
 
-	D3D12_VERTEX_BUFFER_VIEW vtxb = {};
-	vtxb.BufferLocation = gpudata->GetGPUVirtualAddress();
-	vtxb.SizeInBytes = 4 * 4 * sizeof(float);
-	vtxb.StrideInBytes = 4 * sizeof(float);
+
 
 //	cmdlist->SetDescriptorHeaps(CbufferHeap.GetAddressOf(), 1);
 	cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
@@ -263,8 +304,9 @@ void Draw()
 	cmdlist->SetGraphicsRootDescriptorTable(0, CbufferHeap->GetGPUDescriptorHandleForHeapStart());
 	cmdlist->SetRenderTargets(&cpudesc[chain->GetCurrentBackBufferIndex()], true, 1, nullptr);
 	cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	cmdlist->SetIndexBuffer(&idxb);
 	cmdlist->SetVertexBuffers(0, &vtxb, 1);
-	cmdlist->DrawInstanced(3, 1, 0, 0);
+	cmdlist->DrawInstanced(idxb.SizeInBytes / sizeof(unsigned short), 1, 0, 0);
 
 	barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
