@@ -9,6 +9,7 @@
 #include <Util/Misc.h>
 #include <Util/Samplers.h>
 #include <Util/Text.h>
+#include <Util/Debug.h>
 
 #include <Loaders/B3D.h>
 #include <Loaders/PNG.h>
@@ -24,18 +25,21 @@ const char *vtxshader =
 "uniform mat4 ModelMatrix;\n"
 "uniform mat4 ViewProjectionMatrix;\n"
 "layout(location = 0) in vec3 Position;\n"
+"layout(location = 3) in vec2 Texcoord;\n"
+"out vec2 uv;\n"
 "out vec3 color;\n"
 "void main(void) {\n"
 "  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
-"  color = vec3(1.);\n"
+"  uv = Texcoord;\n"
 "}\n";
 
 const char *fragshader =
 "#version 330\n"
-"in vec3 color;\n"
+"uniform sampler2D tex;\n"
+"in vec2 uv;\n"
 "out vec4 FragColor;\n"
 "void main() {\n"
-"  FragColor = vec4(color, 1.);\n"
+"  FragColor = texture(tex, uv);\n"
 "}\n";
 
 static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
@@ -50,7 +54,7 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
     return result;
 }
 
-class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<>
+class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     ObjectShader()
@@ -59,39 +63,47 @@ public:
             GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
         AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
+        AssignSamplerNames(Program, "tex");
     }
 };
 
 std::vector<IImage *> imgs;
+GLuint texture;
 
 void init()
 {
-    irr::io::CReadFile reader("..\\examples\\anchor.b3d");
-    irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
-    std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(&reader);
+  DebugUtil::enableDebugOutput();
+  irr::io::CReadFile reader("..\\examples\\anchor.b3d");
+  irr::scene::CB3DMeshFileLoader *loader = new irr::scene::CB3DMeshFileLoader();
+  std::vector<irr::scene::SMeshBufferLightMap> buffers = loader->createMesh(&reader);
 
 
-    for (auto tmp : buffers)
-    {
-        std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
-        CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
-    }
+  for (auto tmp : buffers)
+  {
+    std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp);
+    CountBaseIndexVTX.push_back(std::make_tuple(tmp.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
+  }
 
-    for (auto tmp : loader->Textures)
-    {
-      irr::io::CReadFile texreader("..\\examples\\anchor.png");
-      imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
-    }
+  for (auto tmp : loader->Textures)
+  {
+    irr::io::CReadFile texreader("..\\examples\\anchor.png");
+    imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
+  }
 
-    TrilinearSampler = SamplerHelper::createBilinearSampler();
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
 
-    glDepthFunc(GL_LEQUAL);
-    delete loader;
+  TrilinearSampler = SamplerHelper::createBilinearSampler();
+
+  glDepthFunc(GL_LEQUAL);
+  delete loader;
 }
 
 void clean()
 {
     glDeleteSamplers(1, &TrilinearSampler);
+    glDeleteTextures(1, &texture);
     for (auto tmp : imgs)
       delete tmp;
 }
@@ -115,6 +127,7 @@ void draw()
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
+    ObjectShader::getInstance()->SetTextureUnits(texture, TrilinearSampler);
     ObjectShader::getInstance()->setUniforms(Model, View);
     for (auto tmp : CountBaseIndexVTX)
       glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
@@ -126,6 +139,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
     glfwMakeContextCurrent(window);
 

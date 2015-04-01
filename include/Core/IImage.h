@@ -46,6 +46,16 @@ public:
     }
   }
 
+  size_t getWidth() const
+  {
+    return Width;
+  }
+
+  size_t getHeight() const
+  {
+    return Height;
+  }
+
   ~IImage()
   {
     free(ptr);
