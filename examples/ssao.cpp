@@ -22,8 +22,14 @@ GLuint NearestSampler, TrilinearSampler;
 
 const char *vtxshader =
     "#version 330\n"
-    "uniform mat4 ModelMatrix;\n"
-    "uniform mat4 ViewProjectionMatrix;\n"
+    "layout(std140) uniform SSAOBuffer\n"
+    "{\n"
+    "  mat4 ModelMatrix;\n"
+    "  mat4 ViewProjectionMatrix;\n"
+    "  mat4 ProjectionMatrix;\n"
+    "  float zn;\n"
+    "  float zf;\n"
+    "};\n"
     "layout(location = 0) in vec3 Position;\n"
     "out vec3 color;\n"
     "void main(void) {\n"
@@ -41,8 +47,14 @@ const char *fragshader =
 
 const char *lineardepthshader = "#version 330\n"
     "uniform sampler2D tex;\n"
-    "uniform float zn;\n"
-    "uniform float zf;\n"
+    "layout(std140) uniform SSAOBuffer\n"
+    "{\n"
+    "  mat4 ModelMatrix;\n"
+    "  mat4 ViewProjectionMatrix;\n"
+    "  mat4 ProjectionMatrix;\n"
+    "  float zn;\n"
+    "  float zf;\n"
+    "};\n"
     "out float Depth;\n"
     "void main()\n"
     "{\n"
@@ -56,10 +68,17 @@ const char *ssaoshader = "// From paper http://graphics.cs.williams.edu/papers/A
     "// and improvements here http://graphics.cs.williams.edu/papers/SAOHPG12/ \n"
     "#version 330\n"
     "uniform sampler2D dtex;"
-    "uniform mat4 ProjectionMatrix;"
-    "uniform float radius = 1.;\n"
-    "uniform float k = 1.5;\n"
-    "uniform float sigma = 1.;\n"
+    "layout(std140) uniform SSAOBuffer\n"
+    "{\n"
+    "  mat4 ModelMatrix;\n"
+    "  mat4 ViewProjectionMatrix;\n"
+    "  mat4 ProjectionMatrix;"
+    "  float zn;\n"
+    "  float zf;\n"
+    "};\n"
+    "const float radius = 1.;\n"
+    "const float k = 1.5;\n"
+    "const float sigma = 1.;\n"
     "out float AO;\n"
     "const float tau = 7.;\n"
     "const float beta = 0.002;\n"
@@ -119,7 +138,7 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
     return result;
 }
 
-class ObjectShader : public ShaderHelperSingleton<ObjectShader, irr::core::matrix4, irr::core::matrix4>, public TextureRead<>
+class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0> >
 {
 public:
     ObjectShader()
@@ -127,11 +146,11 @@ public:
       Program = ProgramShaderLoading::LoadProgram(
           GL_VERTEX_SHADER, vtxshader,
           GL_FRAGMENT_SHADER, fragshader);
-      AssignUniforms("ModelMatrix", "ViewProjectionMatrix");
+      AssignSamplerNames(Program, "SSAOBuffer");
     }
 };
 
-class LinearizeDepthShader : public ShaderHelperSingleton<LinearizeDepthShader, float, float>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
+class LinearizeDepthShader : public ShaderHelperSingleton<LinearizeDepthShader>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     LinearizeDepthShader()
@@ -139,13 +158,11 @@ public:
       Program = ProgramShaderLoading::LoadProgram(
           GL_VERTEX_SHADER, screenquadshader,
           GL_FRAGMENT_SHADER, lineardepthshader);
-      AssignUniforms("zn", "zf");
-
-      AssignSamplerNames(Program, "tex");
+      AssignSamplerNames(Program, "SSAOBuffer", "tex");
     }
 };
 
-class SSAOShader : public ShaderHelperSingleton<SSAOShader, irr::core::matrix4>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
+class SSAOShader : public ShaderHelperSingleton<SSAOShader>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     SSAOShader()
@@ -154,10 +171,20 @@ public:
           GL_VERTEX_SHADER, screenquadshader,
           GL_FRAGMENT_SHADER, ssaoshader);
 
-      AssignSamplerNames(Program, "dtex");
-      AssignUniforms("ProjectionMatrix");
+      AssignSamplerNames(Program, "SSAOBuffer", "dtex");
     }
 };
+
+struct SSAOBuffer
+{
+  float ModelMatrix[16];
+  float ViewProjectionMatrix[16];
+  float ProjectionMatrix[16];
+  float zn;
+  float zf;
+};
+
+GLuint cbuf;
 
 void init()
 {
@@ -175,6 +202,8 @@ void init()
 
   NearestSampler = SamplerHelper::createNearestSampler();
   TrilinearSampler = SamplerHelper::createBilinearSampler();
+
+  glGenBuffers(1, &cbuf);
 
   glDepthFunc(GL_LEQUAL);
 }
@@ -204,21 +233,34 @@ void draw()
   View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f , 1.f, 100.f);
   Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
 
+  SSAOBuffer cbufdata;
+  memcpy(cbufdata.ViewProjectionMatrix, View.pointer(), 16 * sizeof(float));
+  memcpy(cbufdata.ProjectionMatrix, View.pointer(), 16 * sizeof(float));
+  cbufdata.zn = 1.f;
+  cbufdata.zf = 100.f;
+
   glUseProgram(ObjectShader::getInstance()->Program);
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
-  ObjectShader::getInstance()->setUniforms(Model, View);
+  memcpy(cbufdata.ModelMatrix, Model.pointer(), 16 * sizeof(float));
+  glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(SSAOBuffer), &cbufdata, GL_STATIC_DRAW);
+  ObjectShader::getInstance()->SetTextureUnits(cbuf);
   glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
   Model.setTranslation(irr::core::vector3df(0., 0., 10.));
   Model.setScale(2.);
-  ObjectShader::getInstance()->setUniforms(Model, View);
+
+  memcpy(cbufdata.ModelMatrix, Model.pointer(), 16 * sizeof(float));
+  glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(SSAOBuffer), &cbufdata, GL_STATIC_DRAW);
+  ObjectShader::getInstance()->SetTextureUnits(cbuf);
   glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)buffer->getIndexCount(), GL_UNSIGNED_SHORT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
   LinearDepthFBO->Bind();
-  LinearizeDepthShader::getInstance()->SetTextureUnits(DepthStencilTexture, NearestSampler);
-  DrawFullScreenEffect<LinearizeDepthShader>(1.f, 100.f);
+  LinearizeDepthShader::getInstance()->SetTextureUnits(cbuf, DepthStencilTexture, NearestSampler);
+  DrawFullScreenEffect<LinearizeDepthShader>();
 
   // Generate mipmap
   glBindTexture(GL_TEXTURE_2D, LinearTexture);
@@ -233,8 +275,8 @@ void draw()
       glBeginQuery(GL_TIME_ELAPSED, timer);
       for (unsigned i = 0; i < 100; i++)
       {
-          SSAOShader::getInstance()->SetTextureUnits(LinearTexture, TrilinearSampler);
-          DrawFullScreenEffect<SSAOShader>(View);
+          SSAOShader::getInstance()->SetTextureUnits(cbuf, LinearTexture, TrilinearSampler);
+          DrawFullScreenEffect<SSAOShader>();
       }
       glEndQuery(GL_TIME_ELAPSED);
   }
