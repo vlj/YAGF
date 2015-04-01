@@ -171,6 +171,7 @@ public:
       cbufdata.GlyphCenter[0] = truescreenpos.X;
       cbufdata.GlyphCenter[1] = truescreenpos.Y;
       cbufdata.GlyphScaling[0] = (float)g.width * pixelSize.X;
+      cbufdata.GlyphScaling[1] = (float)g.height * pixelSize.Y;
       glBindBuffer(GL_UNIFORM_BUFFER, GlyphUBO);
       glBufferData(GL_UNIFORM_BUFFER, sizeof(struct GlyphBuffer), &cbufdata, GL_STATIC_DRAW);
       GlyphRendering::getInstance()->SetTextureUnits(GlyphUBO, GlyphTexture[*p], Sampler);
