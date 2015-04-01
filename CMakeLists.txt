@@ -26,6 +26,7 @@ if (WIN32)
   set(SKIP_INSTALL_ALL TRUE)
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/lpng1617")
   include_directories("${CMAKE_CURRENT_SOURCE_DIR}/deps/lpng1617/")
+  include_directories("${CMAKE_CURRENT_BINARY_DIR}/deps/lpng1617/")
 else ()
   find_package(PkgConfig REQUIRED)
   pkg_search_module(GLFW REQUIRED glfw3)
@@ -51,6 +52,11 @@ file(GLOB_RECURSE HEADERS_LIST include "*.h")
 add_library(${PROJECT_NAME} runtime.cpp ${HEADERS_LIST})
 if (WIN32)
   target_link_libraries(${PROJECT_NAME} glew ${GLEW_LIBRARY} glfw ${GLFW_LIBRARIES} freetype ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} zlib png16)
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         "${PROJECT_SOURCE_DIR}/deps/lpng1617/scripts/pnglibconf.h.prebuilt"
+         "${CMAKE_CURRENT_BINARY_DIR}/deps/lpng1617/pnglibconf.h")
+
 else()
   target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
 endif()
