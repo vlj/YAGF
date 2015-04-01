@@ -6,6 +6,7 @@
 #ifndef __C_IMAGE_LOADER_PNG_H_INCLUDED__
 #define __C_IMAGE_LOADER_PNG_H_INCLUDED__
 
+#include <Core/IImage.h>
 #include <Loaders/IReadFile.h>
 #include <png.h>
 
@@ -26,8 +27,6 @@ namespace irr
       if (check != length)
         png_error(png_ptr, "Read Error");
     }
-
-    class IImage;
 
     //!  Surface Loader for PNG files
     class CImageLoaderPng
@@ -74,7 +73,7 @@ namespace irr
           return 0;
 
         bool sRGB = false;
-        video::IImage* image = 0;
+        IImage* image = 0;
         //Used to point to image rows
         unsigned char** RowPointers = 0;
 
@@ -208,10 +207,10 @@ namespace irr
         }
 
         // Create the image structure to be filled by png data
-/*        if (ColorType == PNG_COLOR_TYPE_RGB_ALPHA)
-          image = new CImage(ECF_A8R8G8B8, core::dimension2d<u32>(Width, Height));
+        if (ColorType == PNG_COLOR_TYPE_RGB_ALPHA)
+          image = new IImage(ECF_A8R8G8B8, Width, Height, sRGB);
         else
-          image = new CImage(ECF_R8G8B8, core::dimension2d<u32>(Width, Height));
+          image = new IImage(ECF_R8G8B8, Width, Height, sRGB);
         if (!image)
         {
           printf("LOAD PNG: Internal PNG create image struct failure\n", file->getFileName());
@@ -230,7 +229,7 @@ namespace irr
         }
 
         // Fill array of pointers to rows in image data
-        unsigned char* data = (unsigned char*)image->lock();
+        unsigned char* data = (unsigned char*)image->getPointer();
         for (unsigned int i = 0; i<Height; ++i)
         {
           RowPointers[i] = data;
@@ -242,7 +241,6 @@ namespace irr
         {
           png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
           delete[] RowPointers;
-          image->unlock();
           delete image;
           return 0;
         }
@@ -252,9 +250,7 @@ namespace irr
 
         png_read_end(png_ptr, NULL);
         delete[] RowPointers;
-        image->unlock();
         png_destroy_read_struct(&png_ptr, &info_ptr, 0); // Clean up memory
-        image->setColorspaceSRGB(sRGB);*/
 
         return image;
       }
