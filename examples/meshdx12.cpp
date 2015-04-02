@@ -42,6 +42,7 @@ ComPtr<ID3D12DescriptorHeap> CbufferHeap;
 D3D12_VERTEX_BUFFER_VIEW vtxb = {};
 D3D12_INDEX_BUFFER_VIEW idxb = {};
 ComPtr<ID3D12Resource> Texture;
+ComPtr<ID3D12DescriptorHeap> TextureHeap;
 ComPtr<ID3D12DescriptorHeap> Sampler;
 
 void InitD3D(HWND hWnd)
@@ -140,7 +141,7 @@ void InitD3D(HWND hWnd)
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
     heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 2;
+    heapdesc.NumDescriptors = 1;
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&CbufferHeap));
 
@@ -160,11 +161,12 @@ void InitD3D(HWND hWnd)
     samplerrange.Init(D3D12_DESCRIPTOR_RANGE_SAMPLER, 1, 0);
 
 
-    D3D12_ROOT_PARAMETER RP[2];
-    RP[0].InitAsDescriptorTable(2, descrange);
-    RP[1].InitAsDescriptorTable(1, &samplerrange);
+    D3D12_ROOT_PARAMETER RP[3];
+    RP[0].InitAsDescriptorTable(1, &descrange[0]);
+    RP[1].InitAsDescriptorTable(1, &descrange[1]);
+    RP[2].InitAsDescriptorTable(1, &samplerrange);
 
-    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(2, RP);
+    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(3, RP);
     RootSig.Flags = D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     ComPtr<ID3DBlob> pSerializedRootSig;
     hr = D3D12SerializeRootSignature(&RootSig, D3D_ROOT_SIGNATURE_V1, &pSerializedRootSig, nullptr);
@@ -240,23 +242,63 @@ void InitD3D(HWND hWnd)
     cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, indexdata.Get(), 0, buffers[0].first.getIndexCount() * sizeof(unsigned short), D3D12_COPY_NONE);
 
     // Texture
+    ComPtr<ID3D12Resource> texinram;
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, imgs[0]->getWidth(), imgs[0]->getHeight(), 1, 1),
+      &CD3D12_RESOURCE_DESC::Buffer(4 * sizeof(char) * imgs[0]->getWidth() * imgs[0]->getHeight()),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&texinram)
+      );
+
+    texinram->Map(0, nullptr, &tmp);
+    memcpy(tmp, imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getWidth() * imgs[0]->getHeight());
+    texinram->Unmap(0, nullptr);
+
+    hr = dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, imgs[0]->getWidth(), imgs[0]->getHeight(), 1, 1, 1, 0, D3D12_RESOURCE_MISC_NONE),
+      D3D12_RESOURCE_USAGE_COPY_DEST,
       nullptr,
       IID_PPV_ARGS(&Texture)
       );
-    D3D12_BOX box = {0, 0, 0, imgs[0]->getWidth(), imgs[0]->getHeight(), 1};
-    Texture->WriteToSubresource(0, &box, imgs[0]->getPointer(), 4 * sizeof(float) * imgs[0]->getWidth(), 0);
+
+    D3D12_TEXTURE_COPY_LOCATION dst = {};
+    dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
+    dst.pResource = Texture.Get();
+    dst.Subresource = 0;
+
+    D3D12_TEXTURE_COPY_LOCATION src = {};
+    src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
+    src.pResource = texinram.Get();
+    src.PlacedTexture.Offset = 0;
+    src.PlacedTexture.Placement.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    src.PlacedTexture.Placement.Width = imgs[0]->getWidth();
+    src.PlacedTexture.Placement.Height = imgs[0]->getHeight();
+    src.PlacedTexture.Placement.Depth = 1;
+    src.PlacedTexture.Placement.RowPitch = imgs[0]->getWidth() * 4 * sizeof(char);
+    cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
+
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = Texture.Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
+    cmdlist->ResourceBarrier(1, &barrier);
+
+    D3D12_DESCRIPTOR_HEAP_DESC texheapdesc = {};
+    texheapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+    texheapdesc.NumDescriptors = 1;
+    texheapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+    hr = dev->CreateDescriptorHeap(&texheapdesc, IID_PPV_ARGS(&TextureHeap));
 
     D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
-    resdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    resdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    resdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    resdesc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1);
     resdesc.Texture2D.MipLevels = 1;
-    dev->CreateShaderResourceView(Texture.Get(), &resdesc, CbufferHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+    dev->CreateShaderResourceView(Texture.Get(), &resdesc, TextureHeap->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
@@ -265,11 +307,11 @@ void InitD3D(HWND hWnd)
     hr = dev->CreateDescriptorHeap(&sampler_heap, IID_PPV_ARGS(&Sampler));
 
     D3D12_SAMPLER_DESC samplerdesc = {};
-    samplerdesc.Filter = D3D12_FILTER_ANISOTROPIC;
+    samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_WRAP;
     samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_WRAP;
     samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
-    samplerdesc.MaxAnisotropy = 16;
+    samplerdesc.MaxAnisotropy = 1;
     samplerdesc.MinLOD = 0;
     samplerdesc.MaxLOD = 0;
     dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
@@ -336,7 +378,8 @@ void Draw()
   cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, CbufferHeap->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(1, TextureHeap->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetRenderTargets(&cpudesc[chain->GetCurrentBackBufferIndex()], true, 1, nullptr);
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&idxb);
