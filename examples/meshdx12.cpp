@@ -41,6 +41,8 @@ ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> CbufferHeap;
 D3D12_VERTEX_BUFFER_VIEW vtxb = {};
 D3D12_INDEX_BUFFER_VIEW idxb = {};
+ComPtr<ID3D12Resource> Texture;
+ComPtr<ID3D12DescriptorHeap> Sampler;
 
 void InitD3D(HWND hWnd)
 {
@@ -97,21 +99,6 @@ void InitD3D(HWND hWnd)
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    /*		// Position
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), 0);
-            // Normal
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)12);
-            // Color
-            glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)24);
-            // Texcoord
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)28);
-            // SecondTexcoord
-            glEnableVertexAttribArray(4);
-            glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(irr::video::S3DVertex2TCoords), (GLvoid*)36);*/
     D3D12_INPUT_ELEMENT_DESC IAdesc[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
@@ -200,6 +187,7 @@ void InitD3D(HWND hWnd)
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
   // Upload to gpudata
   {
+    // Vertex and Index Buffer
     ComPtr<ID3D12Resource> vertexdata, indexdata;
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -244,6 +232,34 @@ void InitD3D(HWND hWnd)
 
     cmdlist->CopyBufferRegion(vertexbuffer.Get(), 0, vertexdata.Get(), 0, buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords), D3D12_COPY_NONE);
     cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, indexdata.Get(), 0, buffers[0].first.getIndexCount() * sizeof(unsigned short), D3D12_COPY_NONE);
+
+    // Texture
+    hr = dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, imgs[0]->getWidth(), imgs[0]->getHeight(), 1, 1),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&Texture)
+      );
+    D3D12_BOX box = {0, 0, 0, imgs[0]->getWidth(), imgs[0]->getHeight(), 1};
+    Texture->WriteToSubresource(0, &box, imgs[0]->getPointer(), 4 * sizeof(float) * imgs[0]->getWidth(), 0);
+
+    D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
+    sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
+    sampler_heap.NumDescriptors = 1;
+    sampler_heap.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+    hr = dev->CreateDescriptorHeap(&sampler_heap, IID_PPV_ARGS(&Sampler));
+
+    D3D12_SAMPLER_DESC samplerdesc = {};
+    samplerdesc.Filter = D3D12_FILTER_ANISOTROPIC;
+    samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.MaxAnisotropy = 16;
+    samplerdesc.MinLOD = 0;
+    samplerdesc.MaxLOD = 0;
+    dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
 
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = vertexbuffer.Get();
