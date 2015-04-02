@@ -38,11 +38,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE cpudesc[2];
 ComPtr<ID3D12DescriptorHeap> descheap;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
-ComPtr<ID3D12DescriptorHeap> CbufferHeap;
+ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
 D3D12_VERTEX_BUFFER_VIEW vtxb = {};
 D3D12_INDEX_BUFFER_VIEW idxb = {};
 ComPtr<ID3D12Resource> Texture;
-ComPtr<ID3D12DescriptorHeap> TextureHeap;
 ComPtr<ID3D12DescriptorHeap> Sampler;
 
 void InitD3D(HWND hWnd)
@@ -141,14 +140,14 @@ void InitD3D(HWND hWnd)
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
     heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 1;
+    heapdesc.NumDescriptors = 2;
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&CbufferHeap));
+    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&ReadResourceHeaps));
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC bufdesc = {};
     bufdesc.BufferLocation = cbuffer->GetGPUVirtualAddress();
     bufdesc.SizeInBytes = 256;
-    dev->CreateConstantBufferView(&bufdesc, CbufferHeap->GetCPUDescriptorHandleForHeapStart());
+    dev->CreateConstantBufferView(&bufdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart());
   }
 
   // Define Root Signature
@@ -162,11 +161,10 @@ void InitD3D(HWND hWnd)
 
 
     D3D12_ROOT_PARAMETER RP[3];
-    RP[0].InitAsDescriptorTable(1, &descrange[0]);
-    RP[1].InitAsDescriptorTable(1, &descrange[1]);
-    RP[2].InitAsDescriptorTable(1, &samplerrange);
+    RP[0].InitAsDescriptorTable(2, descrange);
+    RP[1].InitAsDescriptorTable(1, &samplerrange);
 
-    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(3, RP);
+    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(2, RP);
     RootSig.Flags = D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     ComPtr<ID3DBlob> pSerializedRootSig;
     hr = D3D12SerializeRootSignature(&RootSig, D3D_ROOT_SIGNATURE_V1, &pSerializedRootSig, nullptr);
@@ -287,18 +285,12 @@ void InitD3D(HWND hWnd)
     barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
     cmdlist->ResourceBarrier(1, &barrier);
 
-    D3D12_DESCRIPTOR_HEAP_DESC texheapdesc = {};
-    texheapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    texheapdesc.NumDescriptors = 1;
-    texheapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    hr = dev->CreateDescriptorHeap(&texheapdesc, IID_PPV_ARGS(&TextureHeap));
-
     D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
     resdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     resdesc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1);
     resdesc.Texture2D.MipLevels = 1;
-    dev->CreateShaderResourceView(Texture.Get(), &resdesc, TextureHeap->GetCPUDescriptorHandleForHeapStart());
+    dev->CreateShaderResourceView(Texture.Get(), &resdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
@@ -377,9 +369,8 @@ void Draw()
 
   cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
-  cmdlist->SetGraphicsRootDescriptorTable(0, CbufferHeap->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootDescriptorTable(1, TextureHeap->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetRenderTargets(&cpudesc[chain->GetCurrentBackBufferIndex()], true, 1, nullptr);
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&idxb);
