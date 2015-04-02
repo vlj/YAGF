@@ -140,7 +140,7 @@ void InitD3D(HWND hWnd)
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
     heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 1;
+    heapdesc.NumDescriptors = 2;
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&CbufferHeap));
 
@@ -152,13 +152,19 @@ void InitD3D(HWND hWnd)
 
   // Define Root Signature
   {
-    D3D12_DESCRIPTOR_RANGE descrange = {};
-    descrange.Init(D3D12_DESCRIPTOR_RANGE_CBV, 1, 0);
+    D3D12_DESCRIPTOR_RANGE descrange[2];
+    descrange[0].Init(D3D12_DESCRIPTOR_RANGE_CBV, 1, 0);
+    descrange[1].Init(D3D12_DESCRIPTOR_RANGE_SRV, 1, 0);
 
-    D3D12_ROOT_PARAMETER RP;
-    RP.InitAsDescriptorTable(1, &descrange);
+    D3D12_DESCRIPTOR_RANGE samplerrange;
+    samplerrange.Init(D3D12_DESCRIPTOR_RANGE_SAMPLER, 1, 0);
 
-    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(1, &RP);
+
+    D3D12_ROOT_PARAMETER RP[2];
+    RP[0].InitAsDescriptorTable(2, descrange);
+    RP[1].InitAsDescriptorTable(1, &samplerrange);
+
+    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(2, RP);
     RootSig.Flags = D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     ComPtr<ID3DBlob> pSerializedRootSig;
     hr = D3D12SerializeRootSignature(&RootSig, D3D_ROOT_SIGNATURE_V1, &pSerializedRootSig, nullptr);
@@ -245,6 +251,13 @@ void InitD3D(HWND hWnd)
     D3D12_BOX box = {0, 0, 0, imgs[0]->getWidth(), imgs[0]->getHeight(), 1};
     Texture->WriteToSubresource(0, &box, imgs[0]->getPointer(), 4 * sizeof(float) * imgs[0]->getWidth(), 0);
 
+    D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
+    resdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    resdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    resdesc.Texture2D.MipLevels = 1;
+    dev->CreateShaderResourceView(Texture.Get(), &resdesc, CbufferHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
     sampler_heap.NumDescriptors = 1;
@@ -320,11 +333,10 @@ void Draw()
   cmdlist->ClearRenderTargetView(cpudesc[chain->GetCurrentBackBufferIndex()], clearColor, 0, 0);
 
 
-
-  //	cmdlist->SetDescriptorHeaps(CbufferHeap.GetAddressOf(), 1);
   cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, CbufferHeap->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetRenderTargets(&cpudesc[chain->GetCurrentBackBufferIndex()], true, 1, nullptr);
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&idxb);
