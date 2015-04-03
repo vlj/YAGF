@@ -353,7 +353,7 @@ void Draw()
 
 void Clean()
 {
-
+  Context::getInstance()->kill();
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,
