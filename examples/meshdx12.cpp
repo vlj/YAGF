@@ -1,9 +1,8 @@
 #include <windows.h>
 #include <windowsx.h>
-#include <d3d12.h>
-#include <dxgi1_4.h>
+
+#include <D3DAPI/Context.h>
 #include <d3dcompiler.h>
-#include <wrl/client.h>
 
 #include <Loaders/B3D.h>
 #include <Loaders/PNG.h>
@@ -23,9 +22,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd,
   WPARAM wParam,
   LPARAM lParam);
 
-ComPtr<ID3D12Device> dev;
-ComPtr<ID3D12CommandQueue> cmdqueue;
-ComPtr<IDXGISwapChain3> chain;
 ComPtr<ID3D12CommandAllocator> cmdalloc;
 ComPtr<ID3D12RootSignature> pRootSignature;
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
@@ -33,9 +29,6 @@ ComPtr<ID3D12Fence> fence;
 ComPtr<ID3D12PipelineState> pso;
 ComPtr<ID3D12Resource> vertexbuffer;
 ComPtr<ID3D12Resource> indexbuffer;
-ComPtr<ID3D12Resource> buffer[2];
-D3D12_CPU_DESCRIPTOR_HANDLE cpudesc[2];
-ComPtr<ID3D12DescriptorHeap> descheap;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
@@ -44,47 +37,13 @@ D3D12_INDEX_BUFFER_VIEW idxb = {};
 ComPtr<ID3D12Resource> Texture;
 ComPtr<ID3D12DescriptorHeap> Sampler;
 
-void InitD3D(HWND hWnd)
+void Init(HWND hWnd)
 {
-  HRESULT hr = D3D12CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, D3D12_CREATE_DEVICE_DEBUG, D3D_FEATURE_LEVEL_11_1, D3D12_SDK_VERSION, IID_PPV_ARGS(&dev));
+  Context::getInstance()->InitD3D(hWnd);
+  ID3D12Device *dev = Context::getInstance()->dev.Get();
 
-  D3D12_COMMAND_QUEUE_DESC cmddesc = {};
-  cmddesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-  hr = dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(&cmdqueue));
-
-  DXGI_SWAP_CHAIN_DESC swapChain = {};
-  swapChain.BufferCount = 2;
-  swapChain.Windowed = true;
-  swapChain.OutputWindow = hWnd;
-  swapChain.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  swapChain.SampleDesc.Count = 1;
-  swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-  swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-
-  ComPtr<IDXGIFactory> fact;
-  hr = CreateDXGIFactory(IID_PPV_ARGS(&fact));
-  hr = fact->CreateSwapChain(cmdqueue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf());
-
-  hr = dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+  HRESULT hr = dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
   hr = dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), 0, IID_PPV_ARGS(&cmdlist));
-
-
-  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-  heapdesc.NumDescriptors = 2;
-  heapdesc.Type = D3D12_RTV_DESCRIPTOR_HEAP;
-
-  hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&descheap));
-
-  cpudesc[0] = descheap->GetCPUDescriptorHandleForHeapStart();
-  cpudesc[1] = descheap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP));
-  hr = chain->GetBuffer(0, IID_PPV_ARGS(&buffer[0]));
-  dev->CreateRenderTargetView(buffer[0].Get(), nullptr, cpudesc[0]);
-  hr = chain->GetBuffer(1, IID_PPV_ARGS(&buffer[1]));
-  dev->CreateRenderTargetView(buffer[1].Get(), nullptr, cpudesc[1]);
-  buffer[0]->SetName(L"Buffer0");
-  buffer[1]->SetName(L"Buffer1");
-
 
   handle = CreateEvent(0, FALSE, FALSE, 0);
   hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&fence));
@@ -321,8 +280,8 @@ void InitD3D(HWND hWnd)
     HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
     datauploadfence->SetEventOnCompletion(1, cpudatauploadevent);
     cmdlist->Close();
-    cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
-    cmdqueue->Signal(datauploadfence.Get(), 1);
+    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+    Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
     WaitForSingleObject(cpudatauploadevent, INFINITE);
     cmdalloc->Reset();
     cmdlist->Reset(cmdalloc.Get(), pso.Get());
@@ -358,20 +317,20 @@ void Draw()
 
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = buffer[chain->GetCurrentBackBufferIndex()].Get();
+  barrier.Transition.pResource = Context::getInstance()->getCurrentBackBuffer();
   barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_PRESENT;
   barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_RENDER_TARGET;
   cmdlist->ResourceBarrier(1, &barrier);
 
   float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
-  cmdlist->ClearRenderTargetView(cpudesc[chain->GetCurrentBackBufferIndex()], clearColor, 0, 0);
+  cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
 
 
   cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetRenderTargets(&cpudesc[chain->GetCurrentBackBufferIndex()], true, 1, nullptr);
+  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, nullptr);
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&idxb);
   cmdlist->SetVertexBuffers(0, &vtxb, 1);
@@ -381,15 +340,15 @@ void Draw()
   barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
   cmdlist->ResourceBarrier(1, &barrier);
   HRESULT hr = cmdlist->Close();
-  cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+  Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
 
   hr = fence->Signal(0);
   hr = fence->SetEventOnCompletion(1, handle);
-  hr = cmdqueue->Signal(fence.Get(), 1);
+  hr = Context::getInstance()->cmdqueue->Signal(fence.Get(), 1);
   WaitForSingleObject(handle, INFINITE);
   cmdalloc->Reset();
   cmdlist->Reset(cmdalloc.Get(), pso.Get());
-  hr = chain->Present(1, 0);
+  Context::getInstance()->Swap();
 }
 
 void Clean()
@@ -437,7 +396,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
   // this struct holds Windows event messages
   MSG msg;
 
-  InitD3D(hWnd);
+  Init(hWnd);
 
   // wait for the next message in the queue, store the result in 'msg'
   while (GetMessage(&msg, NULL, 0, 0))
