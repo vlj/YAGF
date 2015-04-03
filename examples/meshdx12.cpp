@@ -2,6 +2,7 @@
 #include <windowsx.h>
 
 #include <D3DAPI/Context.h>
+#include <D3DAPI/RootSignature.h>
 #include <d3dcompiler.h>
 
 #include <Loaders/B3D.h>
@@ -23,7 +24,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd,
   LPARAM lParam);
 
 ComPtr<ID3D12CommandAllocator> cmdalloc;
-ComPtr<ID3D12RootSignature> pRootSignature;
+
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
 ComPtr<ID3D12Fence> fence;
 ComPtr<ID3D12PipelineState> pso;
@@ -36,6 +37,8 @@ D3D12_VERTEX_BUFFER_VIEW vtxb = {};
 D3D12_INDEX_BUFFER_VIEW idxb = {};
 ComPtr<ID3D12Resource> Texture;
 ComPtr<ID3D12DescriptorHeap> Sampler;
+
+RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
 void Init(HWND hWnd)
 {
@@ -111,27 +114,9 @@ void Init(HWND hWnd)
 
   // Define Root Signature
   {
-    D3D12_DESCRIPTOR_RANGE descrange[2];
-    descrange[0].Init(D3D12_DESCRIPTOR_RANGE_CBV, 1, 0);
-    descrange[1].Init(D3D12_DESCRIPTOR_RANGE_SRV, 1, 0);
-
-    D3D12_DESCRIPTOR_RANGE samplerrange;
-    samplerrange.Init(D3D12_DESCRIPTOR_RANGE_SAMPLER, 1, 0);
-
-
-    D3D12_ROOT_PARAMETER RP[3];
-    RP[0].InitAsDescriptorTable(2, descrange);
-    RP[1].InitAsDescriptorTable(1, &samplerrange);
-
-    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(2, RP);
-    RootSig.Flags = D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-    ComPtr<ID3DBlob> pSerializedRootSig;
-    hr = D3D12SerializeRootSignature(&RootSig, D3D_ROOT_SIGNATURE_V1, &pSerializedRootSig, nullptr);
-
-    hr = dev->CreateRootSignature(1,
-      pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
-      IID_PPV_ARGS(&pRootSignature));
-  }  irr::io::CReadFile reader("..\\examples\\anchor.b3d");
+    rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
+  }
+  irr::io::CReadFile reader("..\\examples\\anchor.b3d");
   irr::scene::CB3DMeshFileLoader loader(&reader);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh;
 
@@ -326,7 +311,7 @@ void Draw()
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
 
 
-  cmdlist->SetGraphicsRootSignature(pRootSignature.Get());
+  cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
@@ -354,6 +339,7 @@ void Draw()
 void Clean()
 {
   Context::getInstance()->kill();
+  delete rs;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,
