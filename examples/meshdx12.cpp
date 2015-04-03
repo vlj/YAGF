@@ -186,9 +186,7 @@ void Init(HWND hWnd)
 
     // Texture
     TextureInRam = new Texture(imgs[0]->getWidth(), imgs[0]->getHeight(), 4 * sizeof(char));
-    TextureInRam->texinram->Map(0, nullptr, &tmp);
-    memcpy(tmp, imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getHeight() * imgs[0]->getWidth());
-    TextureInRam->texinram->Unmap(0, nullptr);
+    memcpy(TextureInRam->getPointer(), imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getHeight() * imgs[0]->getWidth());
 
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -199,7 +197,7 @@ void Init(HWND hWnd)
       IID_PPV_ARGS(&Tex)
       );
 
-    TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get());
+    TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get(), 0);
 
     dev->CreateShaderResourceView(Tex.Get(), &TextureInRam->getResourceViewDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 

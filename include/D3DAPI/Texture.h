@@ -10,9 +10,9 @@ class Texture
 private:
   size_t Width, Height;
   size_t RowPitch;
-public:
   Microsoft::WRL::ComPtr<ID3D12Resource> texinram;
-
+  void* pointer;
+public:
   Texture(size_t w, size_t h, size_t formatsize) : Width(w), Height(h), RowPitch(formatsize * w)
   {
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
@@ -23,6 +23,12 @@ public:
       nullptr,
       IID_PPV_ARGS(&texinram)
       );
+    hr = texinram->Map(0, nullptr, &pointer);
+  }
+
+  ~Texture()
+  {
+    texinram->Unmap(0, nullptr);
   }
 
   size_t getWidth() const
@@ -35,12 +41,22 @@ public:
     return Height;
   }
 
-  void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource)
+  void* getPointer()
+  {
+    return pointer;
+  }
+
+  const void* getPointer() const
+  {
+    return pointer;
+  }
+
+  void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource, UINT subresource) const
   {
     D3D12_TEXTURE_COPY_LOCATION dst = {};
     dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
     dst.pResource = DestResource;
-    dst.Subresource = 0;
+    dst.Subresource = subresource;
 
     D3D12_RESOURCE_BARRIER_DESC barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -70,7 +86,7 @@ public:
     D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
     resdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    resdesc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1, D3D12_SHADER_COMPONENT_FORCE_VALUE_1);
+    resdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     resdesc.Texture2D.MipLevels = 1;
     return resdesc;
   }
