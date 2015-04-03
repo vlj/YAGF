@@ -38,7 +38,6 @@ D3D12_VERTEX_BUFFER_VIEW vtxb = {};
 D3D12_INDEX_BUFFER_VIEW idxb = {};
 ComPtr<ID3D12Resource> Tex;
 ComPtr<ID3D12DescriptorHeap> Sampler;
-Texture *TextureInRam;
 
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
@@ -185,8 +184,8 @@ void Init(HWND hWnd)
     cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, indexdata.Get(), 0, buffers[0].first.getIndexCount() * sizeof(unsigned short), D3D12_COPY_NONE);
 
     // Texture
-    TextureInRam = new Texture(imgs[0]->getWidth(), imgs[0]->getHeight(), 4 * sizeof(char));
-    memcpy(TextureInRam->getPointer(), imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getHeight() * imgs[0]->getWidth());
+    Texture TextureInRam(imgs[0]->getWidth(), imgs[0]->getHeight(), 4 * sizeof(char));
+    memcpy(TextureInRam.getPointer(), imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getHeight() * imgs[0]->getWidth());
 
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -197,9 +196,9 @@ void Init(HWND hWnd)
       IID_PPV_ARGS(&Tex)
       );
 
-    TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get(), 0);
+    TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get(), 0);
 
-    dev->CreateShaderResourceView(Tex.Get(), &TextureInRam->getResourceViewDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+    dev->CreateShaderResourceView(Tex.Get(), &TextureInRam.getResourceViewDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
@@ -305,7 +304,6 @@ void Clean()
 {
   Context::getInstance()->kill();
   delete rs;
-  delete TextureInRam;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,
