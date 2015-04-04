@@ -3,6 +3,7 @@
 #include <D3DAPI/Texture.h>
 #include <d3dcompiler.h>
 #include <D3DAPI/Misc.h>
+#include <D3DAPI/VAO.h>
 
 #include <Loaders/B3D.h>
 #include <Loaders/PNG.h>
@@ -17,9 +18,6 @@ std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
 using namespace Microsoft::WRL; // For ComPtr
 
 
-
-ComPtr<ID3D12CommandAllocator> cmdalloc;
-
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
 ComPtr<ID3D12Fence> fence;
 ComPtr<ID3D12PipelineState> pso;
@@ -28,10 +26,11 @@ ComPtr<ID3D12Resource> indexbuffer;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
-D3D12_VERTEX_BUFFER_VIEW vtxb = {};
-D3D12_INDEX_BUFFER_VIEW idxb = {};
 ComPtr<ID3D12Resource> Tex;
 ComPtr<ID3D12DescriptorHeap> Sampler;
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
+
+FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
 
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
@@ -113,13 +112,18 @@ void Init(HWND hWnd)
   irr::io::CReadFile reader("..\\examples\\anchor.b3d");
   irr::scene::CB3DMeshFileLoader loader(&reader);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh;
+  std::vector<irr::scene::SMeshBufferLightMap> reorg;
 
   for (auto buf : buffers)
   {
     const irr::scene::SMeshBufferLightMap &tmpbuf = buf.first;
     //		std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmpbuf);
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), 0, 0));
+    reorg.push_back(tmpbuf);
   }
+
+
+  vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
   std::vector<IImage *> imgs;
   for (auto tex : loader.Textures)
@@ -131,52 +135,6 @@ void Init(HWND hWnd)
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
   // Upload to gpudata
   {
-    // Vertex and Index Buffer
-    ComPtr<ID3D12Resource> vertexdata, indexdata;
-    hr = dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords)),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&vertexdata));
-
-    void *ptr;
-    hr = vertexdata->Map(0, nullptr, &ptr);
-    memcpy(ptr, buffers[0].first.getVertices(), buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords));
-    vertexdata->Unmap(0, nullptr);
-
-    hr = dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(buffers[0].first.getIndexCount() * sizeof(unsigned short)),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&indexdata));
-
-    hr = indexdata->Map(0, nullptr, &ptr);
-    memcpy(ptr, buffers[0].first.getIndices(), buffers[0].first.getIndexCount() * sizeof(unsigned short));
-    indexdata->Unmap(0, nullptr);
-
-    hr = dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords)),
-      D3D12_RESOURCE_USAGE_COPY_DEST,
-      nullptr,
-      IID_PPV_ARGS(&vertexbuffer));
-
-    hr = dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(buffers[0].first.getIndexCount() * sizeof(unsigned short)),
-      D3D12_RESOURCE_USAGE_COPY_DEST,
-      nullptr,
-      IID_PPV_ARGS(&indexbuffer));
-
-    cmdlist->CopyBufferRegion(vertexbuffer.Get(), 0, vertexdata.Get(), 0, buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords), D3D12_COPY_NONE);
-    cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, indexdata.Get(), 0, buffers[0].first.getIndexCount() * sizeof(unsigned short), D3D12_COPY_NONE);
-
     // Texture
     Texture TextureInRam(imgs[0]->getWidth(), imgs[0]->getHeight(), 4 * sizeof(char));
     memcpy(TextureInRam.getPointer(), imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getHeight() * imgs[0]->getWidth());
@@ -210,14 +168,6 @@ void Init(HWND hWnd)
     samplerdesc.MaxLOD = 0;
     dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
 
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = vertexbuffer.Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
-    cmdlist->ResourceBarrier(1, &barrier);
-    barrier.Transition.pResource = indexbuffer.Get();
-    cmdlist->ResourceBarrier(1, &barrier);
-
     ComPtr<ID3D12Fence> datauploadfence;
     hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&datauploadfence));
     HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
@@ -226,16 +176,7 @@ void Init(HWND hWnd)
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
     Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
     WaitForSingleObject(cpudatauploadevent, INFINITE);
-    cmdalloc->Reset();
     cmdlist->Reset(cmdalloc.Get(), pso.Get());
-
-    vtxb.BufferLocation = vertexbuffer->GetGPUVirtualAddress();
-    vtxb.SizeInBytes = (UINT) (buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords));
-    vtxb.StrideInBytes = sizeof(irr::video::S3DVertex2TCoords);
-
-    idxb.BufferLocation = indexbuffer->GetGPUVirtualAddress();
-    idxb.Format = DXGI_FORMAT_R16_UINT;
-    idxb.SizeInBytes = (UINT) (buffers[0].first.getIndexCount() * sizeof(unsigned short));
   }
 }
 
@@ -275,9 +216,9 @@ void Draw()
   cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, nullptr);
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-  cmdlist->SetIndexBuffer(&idxb);
-  cmdlist->SetVertexBuffers(0, &vtxb, 1);
-  cmdlist->DrawIndexedInstanced(idxb.SizeInBytes / sizeof(unsigned short), 1, 0, 0, 0);
+  cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
+  cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
+  cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, std::get<1>(vao->meshOffset[0]), std::get<2>(vao->meshOffset[0]), 0);
 
   barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_RENDER_TARGET;
   barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
@@ -298,6 +239,7 @@ void Clean()
 {
   Context::getInstance()->kill();
   delete rs;
+  delete vao;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,
