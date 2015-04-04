@@ -4,10 +4,12 @@
 #include <d3dcompiler.h>
 #include <D3DAPI/Misc.h>
 #include <D3DAPI/VAO.h>
-
+#include <D3DAPI/S3DVertex.h>
 #include <Loaders/B3D.h>
 #include <Loaders/PNG.h>
 #include <tuple>
+
+
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
@@ -50,16 +52,8 @@ void Init(HWND hWnd)
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    D3D12_INPUT_ELEMENT_DESC IAdesc[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 2, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 24, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-        { "SECONDTEXCOORD", 4, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-    };
-    psodesc.InputLayout.pInputElementDescs = IAdesc;
-    psodesc.InputLayout.NumElements = 5;
+    psodesc.InputLayout.pInputElementDescs = VertexLayout<irr::video::S3DVertex2TCoords>::getInputAssemblyLayout();
+    psodesc.InputLayout.NumElements = VertexLayout<irr::video::S3DVertex2TCoords>::getInputAssemblySize();
     psodesc.NumRenderTargets = 1;
     psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
     psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();

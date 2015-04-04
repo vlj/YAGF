@@ -1,3 +1,6 @@
+// Copyright (C) 2015 Vincent Lejeune
+// For conditions of distribution and use, see copyright notice in License.txt
+
 #ifndef __BASIC_VERTEX_LAYOUT_H__
 #define __BASIC_VERTEX_LAYOUT_H__
 
