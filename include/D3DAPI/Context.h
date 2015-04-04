@@ -22,6 +22,7 @@ public:
   Microsoft::WRL::ComPtr<ID3D12CommandQueue> cmdqueue;
   Microsoft::WRL::ComPtr<ID3D12Resource> buffer[2];
   D3D12_CPU_DESCRIPTOR_HANDLE BackBufferDescriptors[2];
+  Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 
   Context() : Initialised(false)
   {}
@@ -62,7 +63,11 @@ public:
     dev->CreateRenderTargetView(buffer[1].Get(), nullptr, BackBufferDescriptors[1]);
     buffer[0]->SetName(L"BackBuffer0");
     buffer[1]->SetName(L"BackBuffer1");
+
+    hr = dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+
     Initialised = true;
+
   }
 
   ID3D12Resource *getCurrentBackBuffer() const
