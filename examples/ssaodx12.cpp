@@ -34,6 +34,7 @@ struct SSAOBuffer
   float ModelMatrix[16];
   float ViewProjectionMatrix[16];
   float ProjectionMatrix[16];
+  float color[4];
   float zn;
   float zf;
 };
@@ -42,7 +43,7 @@ FormattedVertexStorage<irr::video::S3DVertex> *vao;
 
 using namespace Microsoft::WRL;
 ComPtr<ID3D12Resource> DepthTexture;
-ComPtr<ID3D12Resource> cbufferdata;
+ComPtr<ID3D12Resource> cbufferdata[2];
 ComPtr<ID3D12DescriptorHeap> descriptors;
 ComPtr<ID3D12DescriptorHeap> depth_descriptors;
 
@@ -87,19 +88,31 @@ void Init(HWND hWnd)
     &CD3D12_RESOURCE_DESC::Buffer(sizeof(struct SSAOBuffer)),
     D3D12_RESOURCE_USAGE_GENERIC_READ,
     nullptr,
-    IID_PPV_ARGS(&cbufferdata)
+    IID_PPV_ARGS(&cbufferdata[0])
+    );
+
+  Context::getInstance()->dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Buffer(sizeof(struct SSAOBuffer)),
+    D3D12_RESOURCE_USAGE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(&cbufferdata[1])
     );
 
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
   heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-  heapdesc.NumDescriptors = 1;
+  heapdesc.NumDescriptors = 2;
   heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
   Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&descriptors));
 
   D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdesc = {};
-  cbvdesc.BufferLocation = cbufferdata->GetGPUVirtualAddress();
+  cbvdesc.BufferLocation = cbufferdata[0]->GetGPUVirtualAddress();
   cbvdesc.SizeInBytes = 256;
   Context::getInstance()->dev->CreateConstantBufferView(&cbvdesc, descriptors->GetCPUDescriptorHandleForHeapStart());
+  cbvdesc.BufferLocation = cbufferdata[1]->GetGPUVirtualAddress();
+  cbvdesc.SizeInBytes = 256;
+  Context::getInstance()->dev->CreateConstantBufferView(&cbvdesc, descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 
   rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>> >();
 
@@ -129,19 +142,6 @@ void Draw()
   cmdlist->RSSetViewports(1, &view);
   cmdlist->RSSetScissorRects(1, &rect);
 
-  irr::core::matrix4 Model, View;
-  View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-  Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.));
-
-  SSAOBuffer *cbufdata;
-  cbufferdata->Map(0, nullptr, (void**)&cbufdata);
-  memcpy(cbufdata->ViewProjectionMatrix, View.pointer(), 16 * sizeof(float));
-  memcpy(cbufdata->ProjectionMatrix, View.pointer(), 16 * sizeof(float));
-  memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
-  cbufdata->zn = 1.f;
-  cbufdata->zf = 100.f;
-  cbufferdata->Unmap(0, nullptr);
-
   float tmp[] = { 0., 0., 0., 0. };
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -153,12 +153,45 @@ void Draw()
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
-  cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
-
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &depth_descriptors->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
+
+  irr::core::matrix4 Model, View;
+  View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+  Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.));
+
+  SSAOBuffer *cbufdata;
+  cbufferdata[0]->Map(0, nullptr, (void**)&cbufdata);
+  memcpy(cbufdata->ViewProjectionMatrix, View.pointer(), 16 * sizeof(float));
+  memcpy(cbufdata->ProjectionMatrix, View.pointer(), 16 * sizeof(float));
+  memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
+  cbufdata->color[0] = 1.;
+  cbufdata->color[1] = 0.;
+  cbufdata->color[2] = 0.;
+  cbufdata->color[3] = 0.;
+  cbufdata->zn = 1.f;
+  cbufdata->zf = 100.f;
+  cbufferdata[0]->Unmap(0, nullptr);
+
+  cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+  cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
+
+  Model.setTranslation(irr::core::vector3df(0., 0., 10.));
+  Model.setScale(2.);
+  cbufferdata[1]->Map(0, nullptr, (void**)&cbufdata);
+  memcpy(cbufdata->ViewProjectionMatrix, View.pointer(), 16 * sizeof(float));
+  memcpy(cbufdata->ProjectionMatrix, View.pointer(), 16 * sizeof(float));
+  memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
+  cbufdata->color[0] = 0.;
+  cbufdata->color[1] = 1.;
+  cbufdata->color[2] = 0.;
+  cbufdata->color[3] = 0.;
+  cbufdata->zn = 1.f;
+  cbufdata->zf = 100.f;
+  cbufferdata[1]->Unmap(0, nullptr);
+  cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
   cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
