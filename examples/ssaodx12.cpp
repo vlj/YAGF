@@ -44,6 +44,7 @@ using namespace Microsoft::WRL;
 ComPtr<ID3D12Resource> DepthTexture;
 ComPtr<ID3D12Resource> cbufferdata;
 ComPtr<ID3D12DescriptorHeap> descriptors;
+ComPtr<ID3D12DescriptorHeap> depth_descriptors;
 
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>> > *rs;
 
@@ -67,6 +68,18 @@ void Init(HWND hWnd)
     IID_PPV_ARGS(&DepthTexture)
     );
 
+  D3D12_DESCRIPTOR_HEAP_DESC heapdesc_depth = {};
+  heapdesc_depth.Type = D3D12_DSV_DESCRIPTOR_HEAP;
+  heapdesc_depth.NumDescriptors = 1;
+  heapdesc_depth.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc_depth, IID_PPV_ARGS(&depth_descriptors));
+
+  D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
+  depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  depth_stencil_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  depth_stencil_desc.Texture2D.MipSlice = 0;
+  Context::getInstance()->dev->CreateDepthStencilView(DepthTexture.Get(), &depth_stencil_desc, depth_descriptors->GetCPUDescriptorHandleForHeapStart());
+
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
     D3D12_HEAP_MISC_NONE,
@@ -75,6 +88,7 @@ void Init(HWND hWnd)
     nullptr,
     IID_PPV_ARGS(&cbufferdata)
     );
+
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
   heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
   heapdesc.NumDescriptors = 1;
@@ -138,7 +152,7 @@ void Draw()
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, nullptr);
+  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &depth_descriptors->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
