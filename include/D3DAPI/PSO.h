@@ -7,6 +7,7 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <D3DAPI/Context.h>
+#include <D3DAPI/S3DVertex.h>
 
 template<typename T, typename VTXLayout>
 class PipelineStateObject : public Singleton<T>
@@ -16,7 +17,7 @@ public:
 
   PipelineStateObject(const wchar_t *VertexShaderCSO, const wchar_t *PixelShaderCSO)
   {
-    ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
+    Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
     HRESULT hr;
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
     if (VertexShaderCSO)
