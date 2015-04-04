@@ -72,6 +72,7 @@ void Init(HWND hWnd)
   heapdesc_depth.Type = D3D12_DSV_DESCRIPTOR_HEAP;
   heapdesc_depth.NumDescriptors = 1;
   heapdesc_depth.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  heapdesc_depth.NodeMask = 1;
   Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc_depth, IID_PPV_ARGS(&depth_descriptors));
 
   D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
@@ -149,9 +150,11 @@ void Draw()
   barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_RENDER_TARGET;
   cmdlist->ResourceBarrier(1, &barrier);
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), tmp, nullptr, 0);
+  cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
+
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &depth_descriptors->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
