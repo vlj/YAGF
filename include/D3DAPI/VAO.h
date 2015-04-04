@@ -62,7 +62,8 @@ public:
       nullptr,
       IID_PPV_ARGS(&cpuindexdata));
 
-    S3DVertexFormat *vertexmap, *indexmap;
+    S3DVertexFormat *vertexmap;
+    unsigned short *indexmap;
     hr = cpuvertexdata->Map(0, nullptr, (void**)&vertexmap);
     hr = cpuindexdata->Map(0, nullptr, (void**)&indexmap);
 
