@@ -97,27 +97,27 @@ public:
       nullptr,
       IID_PPV_ARGS(&indexbuffer));
 
-    ID3D12CommandAllocator* cmdalloc;
-    hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&cmdalloc));
+    ID3D12CommandAllocator* temporarycommandalloc;
+    hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&temporarycommandalloc));
 
-    ID3D12GraphicsCommandList *cmdlist;
-    hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, cmdalloc, nullptr, IID_PPV_ARGS(&cmdlist));
-    cmdlist->CopyBufferRegion(vertexbuffers[0].Get(), 0, cpuvertexdata, 0, total_vertex_cnt * sizeof(S3DVertexFormat), D3D12_COPY_NONE);
-    cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, cpuindexdata, 0, total_index_cnt * sizeof(unsigned short), D3D12_COPY_NONE);
+    ID3D12GraphicsCommandList *uploadcmdlist;
+    hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, temporarycommandalloc, nullptr, IID_PPV_ARGS(&uploadcmdlist));
+    uploadcmdlist->CopyBufferRegion(vertexbuffers[0].Get(), 0, cpuvertexdata, 0, total_vertex_cnt * sizeof(S3DVertexFormat), D3D12_COPY_NONE);
+    uploadcmdlist->CopyBufferRegion(indexbuffer.Get(), 0, cpuindexdata, 0, total_index_cnt * sizeof(unsigned short), D3D12_COPY_NONE);
 
     D3D12_RESOURCE_BARRIER_DESC barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = vertexbuffers[0].Get();
     barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
     barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
-    cmdlist->ResourceBarrier(1, &barrier);
+    uploadcmdlist->ResourceBarrier(1, &barrier);
     barrier.Transition.pResource = indexbuffer.Get();
-    cmdlist->ResourceBarrier(1, &barrier);
+    uploadcmdlist->ResourceBarrier(1, &barrier);
 
-    cmdlist->Close();
-    queue->ExecuteCommandLists(1, (ID3D12CommandList**)&cmdlist);
+    uploadcmdlist->Close();
+    queue->ExecuteCommandLists(1, (ID3D12CommandList**)&uploadcmdlist);
 
-    std::thread t1([=]() {cmdalloc->Release(); cmdlist->Release(); cpuindexdata->Release(); cpuvertexdata->Release(); });
+    std::thread t1([=]() {temporarycommandalloc->Release(); uploadcmdlist->Release(); cpuindexdata->Release(); cpuvertexdata->Release(); });
     t1.detach();
 
     vtxb.BufferLocation = vertexbuffers[0]->GetGPUVirtualAddress();

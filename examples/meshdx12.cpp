@@ -9,20 +9,15 @@
 #include <Loaders/PNG.h>
 #include <tuple>
 
-std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
-
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
 using namespace Microsoft::WRL; // For ComPtr
 
-
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
 ComPtr<ID3D12Fence> fence;
 ComPtr<ID3D12PipelineState> pso;
-ComPtr<ID3D12Resource> vertexbuffer;
-ComPtr<ID3D12Resource> indexbuffer;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
@@ -115,13 +110,7 @@ void Init(HWND hWnd)
   std::vector<irr::scene::SMeshBufferLightMap> reorg;
 
   for (auto buf : buffers)
-  {
-    const irr::scene::SMeshBufferLightMap &tmpbuf = buf.first;
-    //		std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmpbuf);
-    CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), 0, 0));
-    reorg.push_back(tmpbuf);
-  }
-
+    reorg.push_back(buf.first);
 
   vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
@@ -218,7 +207,7 @@ void Draw()
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
-  cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, std::get<1>(vao->meshOffset[0]), std::get<2>(vao->meshOffset[0]), 0);
+  cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[0]), 1, (UINT)std::get<1>(vao->meshOffset[0]), (UINT)std::get<2>(vao->meshOffset[0]), 0);
 
   barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_RENDER_TARGET;
   barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
