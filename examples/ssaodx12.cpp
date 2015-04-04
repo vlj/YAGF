@@ -71,7 +71,7 @@ void Init(HWND hWnd)
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc_depth = {};
   heapdesc_depth.Type = D3D12_DSV_DESCRIPTOR_HEAP;
   heapdesc_depth.NumDescriptors = 1;
-  heapdesc_depth.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  heapdesc_depth.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
   heapdesc_depth.NodeMask = 1;
   Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc_depth, IID_PPV_ARGS(&depth_descriptors));
 
