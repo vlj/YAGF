@@ -72,7 +72,7 @@ public:
     for (const irr::scene::IMeshBuffer<S3DVertexFormat>& mesh : meshes)
     {
       memcpy(&vertexmap[basevertex], mesh.getVertices(), sizeof(S3DVertexFormat) * mesh.getVertexCount());
-      memcpy(&indexmap[baseindex], mesh.getIndices(), sizeof(unsigned char) * mesh.getIndexCount());
+      memcpy(&indexmap[baseindex], mesh.getIndices(), sizeof(unsigned short) * mesh.getIndexCount());
       meshOffset.push_back(std::make_tuple(mesh.getIndexCount(), basevertex, baseindex));
       basevertex += mesh.getVertexCount();
       baseindex += mesh.getIndexCount();
