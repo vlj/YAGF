@@ -114,15 +114,15 @@ void Init(HWND hWnd)
   irr::scene::CB3DMeshFileLoader loader(&reader);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh;
 
-  for (auto tmp : buffers)
+  for (auto buf : buffers)
   {
-    const irr::scene::SMeshBufferLightMap &tmpbuf = tmp.first;
+    const irr::scene::SMeshBufferLightMap &tmpbuf = buf.first;
     //		std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmpbuf);
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), 0, 0));
   }
 
   std::vector<IImage *> imgs;
-  for (auto tmp : loader.Textures)
+  for (auto tex : loader.Textures)
   {
     irr::io::CReadFile texreader("..\\examples\\anchor.png");
     imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
@@ -141,9 +141,9 @@ void Init(HWND hWnd)
       nullptr,
       IID_PPV_ARGS(&vertexdata));
 
-    void *tmp;
-    hr = vertexdata->Map(0, nullptr, &tmp);
-    memcpy(tmp, buffers[0].first.getVertices(), buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords));
+    void *ptr;
+    hr = vertexdata->Map(0, nullptr, &ptr);
+    memcpy(ptr, buffers[0].first.getVertices(), buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords));
     vertexdata->Unmap(0, nullptr);
 
     hr = dev->CreateCommittedResource(
@@ -154,8 +154,8 @@ void Init(HWND hWnd)
       nullptr,
       IID_PPV_ARGS(&indexdata));
 
-    hr = indexdata->Map(0, nullptr, &tmp);
-    memcpy(tmp, buffers[0].first.getIndices(), buffers[0].first.getIndexCount() * sizeof(unsigned short));
+    hr = indexdata->Map(0, nullptr, &ptr);
+    memcpy(ptr, buffers[0].first.getIndices(), buffers[0].first.getIndexCount() * sizeof(unsigned short));
     indexdata->Unmap(0, nullptr);
 
     hr = dev->CreateCommittedResource(
@@ -184,7 +184,7 @@ void Init(HWND hWnd)
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, imgs[0]->getWidth(), imgs[0]->getHeight(), 1, 1, 1, 0, D3D12_RESOURCE_MISC_NONE),
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, (UINT) imgs[0]->getWidth(), (UINT) imgs[0]->getHeight(), 1, 1, 1, 0, D3D12_RESOURCE_MISC_NONE),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&Tex)
@@ -230,12 +230,12 @@ void Init(HWND hWnd)
     cmdlist->Reset(cmdalloc.Get(), pso.Get());
 
     vtxb.BufferLocation = vertexbuffer->GetGPUVirtualAddress();
-    vtxb.SizeInBytes = buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords);
+    vtxb.SizeInBytes = (UINT) (buffers[0].first.getVertexCount() * sizeof(irr::video::S3DVertex2TCoords));
     vtxb.StrideInBytes = sizeof(irr::video::S3DVertex2TCoords);
 
     idxb.BufferLocation = indexbuffer->GetGPUVirtualAddress();
     idxb.Format = DXGI_FORMAT_R16_UINT;
-    idxb.SizeInBytes = buffers[0].first.getIndexCount() * sizeof(unsigned short);
+    idxb.SizeInBytes = (UINT) (buffers[0].first.getIndexCount() * sizeof(unsigned short));
   }
 }
 
@@ -324,6 +324,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
   Clean();
   // return this part of the WM_QUIT message to Windows
-  return msg.wParam;
+  return (int)msg.wParam;
 }
 

@@ -109,10 +109,10 @@ public:
     for (const std::vector<D3D12_DESCRIPTOR_RANGE>& ranges : descriptorRanges)
     {
       RootParameters.push_back(D3D12_ROOT_PARAMETER());
-      RootParameters.back().InitAsDescriptorTable(ranges.size(), ranges.data());
+      RootParameters.back().InitAsDescriptorTable((UINT)ranges.size(), ranges.data());
     }
 
-    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE(RootParameters.size(), RootParameters.data());
+    D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE((UINT)RootParameters.size(), RootParameters.data());
     RootSig.Flags = flags;
 
     ComPtr<ID3DBlob> pSerializedRootSig;

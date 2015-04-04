@@ -72,10 +72,10 @@ public:
     src.pResource = texinram.Get();
     src.PlacedTexture.Offset = 0;
     src.PlacedTexture.Placement.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    src.PlacedTexture.Placement.Width = Width;
-    src.PlacedTexture.Placement.Height = Height;
+    src.PlacedTexture.Placement.Width = (UINT)Width;
+    src.PlacedTexture.Placement.Height = (UINT)Height;
     src.PlacedTexture.Placement.Depth = 1;
-    src.PlacedTexture.Placement.RowPitch = RowPitch;
+    src.PlacedTexture.Placement.RowPitch = (UINT)RowPitch;
     cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
 
     barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
