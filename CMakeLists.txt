@@ -86,6 +86,8 @@ if(BUILD_OPENCL)
 endif()
 
 if(BUILD_DX12)
+  SET_SOURCE_FILES_PROPERTIES(examples/vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   add_executable(meshdx12 examples/meshdx12.cpp examples/vtx.hlsl examples/pix.hlsl)
   set_target_properties(meshdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   target_link_libraries(meshdx12 ${PROJECT_NAME})
