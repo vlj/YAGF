@@ -15,6 +15,8 @@
 #include <vector>
 #include <wrl/client.h>
 
+#include <thread>
+
 
 /** Set of buffers describing a formatted (ie with bound attributes) vertex storage.
 *  /tparam S3DVertexFormat is the vertex type
@@ -79,6 +81,9 @@ public:
     cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, cpuindexdata, 0, total_index_cnt * sizeof(unsigned short), D3D12_COPY_NONE);
     cmdlist->Close();
     queue->ExecuteCommandLists(1, (ID3D12CommandList**) &cmdlist);
+
+    std::thread t1([=]() {cmdalloc->Release(); cmdlist->Release(); cpuindexdata->Release(); cpuvertexdata->Release(); });
+    t1.detach();
   }
 
 };
