@@ -1,14 +1,14 @@
 #include <D3DAPI/Context.h>
 #include <D3DAPI/RootSignature.h>
 #include <D3DAPI/Texture.h>
-#include <d3dcompiler.h>
+
 #include <D3DAPI/Misc.h>
 #include <D3DAPI/VAO.h>
 #include <D3DAPI/S3DVertex.h>
 #include <Loaders/B3D.h>
 #include <Loaders/PNG.h>
 #include <tuple>
-
+#include <D3DAPI/PSO.h>
 
 
 #pragma comment (lib, "d3d12.lib")
@@ -19,7 +19,6 @@ using namespace Microsoft::WRL; // For ComPtr
 
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
 ComPtr<ID3D12Fence> fence;
-ComPtr<ID3D12PipelineState> pso;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
@@ -31,6 +30,24 @@ FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
 
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
+class Object : public PipelineStateObject<Object, irr::video::S3DVertex2TCoords>
+{
+public:
+  Object() : PipelineStateObject<Object, irr::video::S3DVertex2TCoords>(L"Debug\\vtx.cso", L"Debug\\pix.cso")
+  {}
+
+  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
+  {
+    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    psodesc.NumRenderTargets = 1;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  }
+};
+
 void Init(HWND hWnd)
 {
   Context::getInstance()->InitD3D(hWnd);
@@ -41,32 +58,6 @@ void Init(HWND hWnd)
 
   handle = CreateEvent(0, FALSE, FALSE, 0);
   hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&fence));
-
-  // Create PSO
-  {
-    ComPtr<ID3DBlob> vtxshaderblob;
-    hr = D3DReadFileToBlob(L"Debug\\vtx.cso", &vtxshaderblob);
-    ComPtr<ID3DBlob> pxshaderblob;
-    hr = D3DReadFileToBlob(L"Debug\\pix.cso", &pxshaderblob);
-
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
-    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psodesc.InputLayout.pInputElementDescs = VertexLayout<irr::video::S3DVertex2TCoords>::getInputAssemblyLayout();
-    psodesc.InputLayout.NumElements = VertexLayout<irr::video::S3DVertex2TCoords>::getInputAssemblySize();
-    psodesc.NumRenderTargets = 1;
-    psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
-    psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
-    psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
-    psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
-    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-    psodesc.SampleDesc.Count = 1;
-    psodesc.SampleMask = UINT_MAX;
-    psodesc.NodeMask = 1;
-    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-
-    hr = dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(&pso));
-  }
 
   hr = dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -159,7 +150,7 @@ void Init(HWND hWnd)
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
     Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
     WaitForSingleObject(cpudatauploadevent, INFINITE);
-    cmdlist->Reset(cmdalloc.Get(), pso.Get());
+    cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
   }
 }
 
@@ -214,13 +205,14 @@ void Draw()
   hr = Context::getInstance()->cmdqueue->Signal(fence.Get(), 1);
   WaitForSingleObject(handle, INFINITE);
   cmdalloc->Reset();
-  cmdlist->Reset(cmdalloc.Get(), pso.Get());
+  cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
   Context::getInstance()->Swap();
 }
 
 void Clean()
 {
   Context::getInstance()->kill();
+  Object::getInstance()->kill();
   delete rs;
   delete vao;
 }
