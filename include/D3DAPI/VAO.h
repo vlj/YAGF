@@ -27,15 +27,15 @@ private:
   std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > vertexbuffers;
   Microsoft::WRL::ComPtr<ID3D12Resource> indexbuffer;
 public:
-  FormattedVertexStorage(ID3D12CommandQueue *queue, std::vector<irr::scene::IMeshBuffer<S3DVertexFormat> *> meshes)
+  FormattedVertexStorage(ID3D12CommandQueue *queue, const std::vector<irr::scene::IMeshBuffer<S3DVertexFormat> >& meshes)
   {
     size_t total_vertex_cnt = 0, total_index_cnt = 0;
-    for (irr::scene::IMeshBuffer<S3DVertexFormat> *mesh : meshes)
+    for (const irr::scene::IMeshBuffer<S3DVertexFormat>& mesh : meshes)
     {
-      total_vertex_cnt += mesh->getVertexCount();
-      total_index_cnt += mesh->getIndexCount();
+      total_vertex_cnt += mesh.getVertexCount();
+      total_index_cnt += mesh.getIndexCount();
     }
-
+    vertexbuffers.resize(1);
     ID3D12Resource *cpuvertexdata;
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -45,7 +45,7 @@ public:
       nullptr,
       IID_PPV_ARGS(&cpuvertexdata));
 
-    HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+    hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
       &CD3D12_RESOURCE_DESC::Buffer(total_vertex_cnt * sizeof(S3DVertexFormat)),
@@ -54,7 +54,7 @@ public:
       IID_PPV_ARGS(&vertexbuffers[0]));
 
     ID3D12Resource *cpuindexdata;
-    HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+    hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
       D3D12_HEAP_MISC_NONE,
       &CD3D12_RESOURCE_DESC::Buffer(total_index_cnt * sizeof(unsigned short)),
@@ -62,15 +62,23 @@ public:
       nullptr,
       IID_PPV_ARGS(&cpuindexdata));
 
-    HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+    hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(total_index_cnt * sizeof(unsigned short),
+      &CD3D12_RESOURCE_DESC::Buffer(total_index_cnt * sizeof(unsigned short)),
       D3D12_RESOURCE_USAGE_COPY_DEST,
       nullptr,
       IID_PPV_ARGS(&indexbuffer));
 
+    ID3D12CommandAllocator* cmdalloc;
+    hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&cmdalloc));
+
     ID3D12GraphicsCommandList *cmdlist;
+    hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, cmdalloc, nullptr, IID_PPV_ARGS(&cmdlist));
+    cmdlist->CopyBufferRegion(vertexbuffers[0].Get(), 0, cpuvertexdata, 0, total_vertex_cnt * sizeof(S3DVertexFormat), D3D12_COPY_NONE);
+    cmdlist->CopyBufferRegion(indexbuffer.Get(), 0, cpuindexdata, 0, total_index_cnt * sizeof(unsigned short), D3D12_COPY_NONE);
+    cmdlist->Close();
+    queue->ExecuteCommandLists(1, (ID3D12CommandList**) &cmdlist);
   }
 
 };
