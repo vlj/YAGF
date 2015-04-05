@@ -29,6 +29,28 @@ public:
   }
 };
 
+class LinearizeDepthShader : public PipelineStateObject<LinearizeDepthShader, ScreenQuadVertex>
+{
+public:
+  LinearizeDepthShader() : PipelineStateObject<LinearizeDepthShader, ScreenQuadVertex>(L"Debug\\screenquad.cso", L"Debug\\linearize.cso")
+  {}
+
+  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
+  {
+    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    psodesc.NumRenderTargets = 1;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    psodesc.DepthStencilState.DepthEnable = false;
+    psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  }
+};
+
 struct SSAOBuffer
 {
   float ModelMatrix[16];
@@ -46,12 +68,58 @@ ComPtr<ID3D12Resource> DepthTexture;
 ComPtr<ID3D12Resource> cbufferdata[2];
 ComPtr<ID3D12DescriptorHeap> descriptors;
 ComPtr<ID3D12DescriptorHeap> depth_descriptors;
-
+ComPtr<ID3D12Resource> ScreenQuad;
+D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>> > *rs;
 
 void Init(HWND hWnd)
 {
   Context::getInstance()->InitD3D(hWnd);
+
+  // Create Screenquad
+  {
+    ComPtr<ID3D12Resource> ScreenQuadCPU;
+    Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(3 * 4 * sizeof(float)),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&ScreenQuadCPU)
+      );
+
+    const float tri_vertex[] = {
+      -1., -1., 0., 0.,
+      -1., 3., 0., 3.,
+      3., -1., 3., 0.
+    };
+    void *tmp;
+    ScreenQuadCPU->Map(0, nullptr, &tmp);
+    memcpy(tmp, tri_vertex, 3 * 4 * sizeof(float));
+    ScreenQuadCPU->Unmap(0, nullptr);
+
+    Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(3 * 4 * sizeof(float)),
+      D3D12_RESOURCE_USAGE_COPY_DEST,
+      nullptr,
+      IID_PPV_ARGS(&ScreenQuad)
+      );
+
+    ComPtr<ID3D12CommandAllocator> cmdalloc;
+    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+    ComPtr<ID3D12GraphicsCommandList> cmdlist;
+    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), Object::getInstance()->pso.Get(), IID_PPV_ARGS(&cmdlist));
+
+    cmdlist->CopyBufferRegion(ScreenQuad.Get(), 0, ScreenQuadCPU.Get(), 0, 3 * 4 * sizeof(float), D3D12_COPY_NONE);
+    cmdlist->Close();
+    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+
+    ScreenQuadView.BufferLocation = ScreenQuad->GetGPUVirtualAddress();
+    ScreenQuadView.StrideInBytes = 4 * sizeof(float);
+    ScreenQuadView.SizeInBytes = 3 * 4 * sizeof(float);
+  }
 
   irr::scene::SMeshBuffer *buffer = GeometryCreator::createCubeMeshBuffer(
     irr::core::vector3df(1., 1., 1.));
@@ -149,7 +217,6 @@ void Draw()
   barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_PRESENT;
   barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_RENDER_TARGET;
   cmdlist->ResourceBarrier(1, &barrier);
-  cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), tmp, nullptr, 0);
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
@@ -160,7 +227,8 @@ void Draw()
 
   irr::core::matrix4 Model, View;
   View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-  Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.));
+  Model.setTranslation(irr::core::vector3df(0., 0., 10.));
+  Model.setScale(2.);
 
   SSAOBuffer *cbufdata;
   cbufferdata[0]->Map(0, nullptr, (void**)&cbufdata);
@@ -178,8 +246,8 @@ void Draw()
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
   cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
-  Model.setTranslation(irr::core::vector3df(0., 0., 10.));
-  Model.setScale(2.);
+  Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.));
+  Model.setScale(1.);
   cbufferdata[1]->Map(0, nullptr, (void**)&cbufdata);
   memcpy(cbufdata->ViewProjectionMatrix, View.pointer(), 16 * sizeof(float));
   memcpy(cbufdata->ProjectionMatrix, View.pointer(), 16 * sizeof(float));
@@ -193,6 +261,13 @@ void Draw()
   cbufferdata[1]->Unmap(0, nullptr);
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
   cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
+
+
+  cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), tmp, nullptr, 0);
+  cmdlist->SetPipelineState(LinearizeDepthShader::getInstance()->pso.Get());
+  cmdlist->SetVertexBuffers(0, &ScreenQuadView, 1);
+  cmdlist->DrawInstanced(3, 1, 0, 0);
+
 
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   barrier.Transition.pResource = Context::getInstance()->getCurrentBackBuffer();
@@ -210,6 +285,7 @@ void Clean()
 {
   Context::getInstance()->kill();
   Object::getInstance()->kill();
+  LinearizeDepthShader::getInstance()->kill();
   delete vao;
   delete rs;
 }

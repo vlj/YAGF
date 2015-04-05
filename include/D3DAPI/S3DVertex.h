@@ -5,6 +5,10 @@
 #include <Core/BasicVertexLayout.h>
 #include <d3d12.h>
 
+struct ScreenQuadVertex
+{
+};
+
 template<typename T>
 struct VertexLayout
 {
@@ -36,4 +40,27 @@ D3D12_INPUT_ELEMENT_DESC VertexLayout<irr::video::S3DVertex2TCoords>::IAdesc[] =
   { "COLOR", 2, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 24, D3D12_INPUT_PER_VERTEX_DATA, 0 },
   { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
   { "SECONDTEXCOORD", 4, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+};
+
+
+template<>
+struct VertexLayout<ScreenQuadVertex>
+{
+  static D3D12_INPUT_ELEMENT_DESC IAdesc[];
+
+  static D3D12_INPUT_ELEMENT_DESC* getInputAssemblyLayout()
+  {
+    return IAdesc;
+  }
+
+  static size_t getInputAssemblySize()
+  {
+    return 2;
+  }
+};
+
+D3D12_INPUT_ELEMENT_DESC VertexLayout<ScreenQuadVertex>::IAdesc[] =
+{
+  { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+  { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D12_INPUT_PER_VERTEX_DATA, 0 },
 };
