@@ -29,6 +29,8 @@ public:
   }
 };
 
+RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
+
 class LinearizeDepthShader : public PipelineStateObject<LinearizeDepthShader, ScreenQuadVertex>
 {
 public:
@@ -37,6 +39,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
+    psodesc.pRootSignature = rs->pRootSignature.Get();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -65,12 +68,14 @@ FormattedVertexStorage<irr::video::S3DVertex> *vao;
 
 using namespace Microsoft::WRL;
 ComPtr<ID3D12Resource> DepthTexture;
+ComPtr<ID3D12Resource> DepthBuffer;
 ComPtr<ID3D12Resource> cbufferdata[2];
 ComPtr<ID3D12DescriptorHeap> descriptors;
+ComPtr<ID3D12DescriptorHeap> depth_tex_descriptors;
 ComPtr<ID3D12DescriptorHeap> depth_descriptors;
 ComPtr<ID3D12Resource> ScreenQuad;
 D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
-RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>> > *rs;
+ComPtr<ID3D12DescriptorHeap> SamplerHeap;
 
 void Init(HWND hWnd)
 {
@@ -134,7 +139,7 @@ void Init(HWND hWnd)
     &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, 1, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
     D3D12_RESOURCE_USAGE_DEPTH,
     &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0),
-    IID_PPV_ARGS(&DepthTexture)
+    IID_PPV_ARGS(&DepthBuffer)
     );
 
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc_depth = {};
@@ -142,13 +147,13 @@ void Init(HWND hWnd)
   heapdesc_depth.NumDescriptors = 1;
   heapdesc_depth.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
   heapdesc_depth.NodeMask = 1;
-  Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc_depth, IID_PPV_ARGS(&depth_descriptors));
+  HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc_depth, IID_PPV_ARGS(&depth_descriptors));
 
   D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
   depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
   depth_stencil_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
   depth_stencil_desc.Texture2D.MipSlice = 0;
-  Context::getInstance()->dev->CreateDepthStencilView(DepthTexture.Get(), &depth_stencil_desc, depth_descriptors->GetCPUDescriptorHandleForHeapStart());
+  Context::getInstance()->dev->CreateDepthStencilView(DepthBuffer.Get(), &depth_stencil_desc, depth_descriptors->GetCPUDescriptorHandleForHeapStart());
 
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -172,7 +177,7 @@ void Init(HWND hWnd)
   heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
   heapdesc.NumDescriptors = 2;
   heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-  Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&descriptors));
+  hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&descriptors));
 
   D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdesc = {};
   cbvdesc.BufferLocation = cbufferdata[0]->GetGPUVirtualAddress();
@@ -182,7 +187,45 @@ void Init(HWND hWnd)
   cbvdesc.SizeInBytes = 256;
   Context::getInstance()->dev->CreateConstantBufferView(&cbvdesc, descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 
-  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>> >();
+  Context::getInstance()->dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, 1),
+    D3D12_RESOURCE_USAGE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(&DepthTexture)
+    );
+
+  heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+  heapdesc.NumDescriptors = 1;
+  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&depth_tex_descriptors));
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
+  srv_view.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  srv_view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  srv_view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  srv_view.Texture2D.MipLevels = 1;
+
+  Context::getInstance()->dev->CreateShaderResourceView(DepthTexture.Get(), &srv_view, depth_tex_descriptors->GetCPUDescriptorHandleForHeapStart());
+
+
+  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0> >, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
+
+  heapdesc.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
+  heapdesc.NumDescriptors = 1;
+  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&SamplerHeap));
+
+  D3D12_SAMPLER_DESC samplerdesc = {};
+  samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+  samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_WRAP;
+  samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_WRAP;
+  samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
+  samplerdesc.MaxAnisotropy = 1;
+  samplerdesc.MinLOD = 0;
+  samplerdesc.MaxLOD = 0;
+  Context::getInstance()->dev->CreateSampler(&samplerdesc, SamplerHeap->GetCPUDescriptorHandleForHeapStart());
 
   delete buffer;
 }
@@ -263,6 +306,29 @@ void Draw()
   cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
 
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = DepthTexture.Get();
+  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_GENERIC_READ;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_COPY_DEST;
+  cmdlist->ResourceBarrier(1, &barrier);
+
+  D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
+  dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
+  dst.Subresource = 0;
+  dst.pResource = DepthTexture.Get();
+  src.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
+  src.Subresource = 0;
+  src.pResource = DepthBuffer.Get();
+  cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
+
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = DepthTexture.Get();
+  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
+  cmdlist->ResourceBarrier(1, &barrier);
+
+  cmdlist->SetGraphicsRootDescriptorTable(1, depth_tex_descriptors->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(2, SamplerHeap->GetGPUDescriptorHandleForHeapStart());
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), tmp, nullptr, 0);
   cmdlist->SetPipelineState(LinearizeDepthShader::getInstance()->pso.Get());
   cmdlist->SetVertexBuffers(0, &ScreenQuadView, 1);

@@ -1,5 +1,7 @@
 #define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
-                         "DescriptorTable(CBV(b0))"
+                         "DescriptorTable(CBV(b0))," \
+                         "DescriptorTable(SRV(t0)), " \
+                         "DescriptorTable(sampler(s0))"
 
 cbuffer CONSTANT_BUF : register(b0)
 {
