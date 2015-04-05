@@ -95,8 +95,8 @@ void Init(HWND hWnd)
 
     const float tri_vertex[] = {
       -1., -1., 0., 0.,
-      -1., 3., 0., 4.,
-      3., -1., 4., 0.
+      -1., 3., 0., 2.,
+      3., -1., 2., 0.
     };
     void *tmp;
     ScreenQuadCPU->Map(0, nullptr, &tmp);
@@ -136,7 +136,7 @@ void Init(HWND hWnd)
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, 1024, 1024, 1, 1, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, 1024, 1024, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
     D3D12_RESOURCE_USAGE_DEPTH,
     &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
     IID_PPV_ARGS(&DepthBuffer)
@@ -190,7 +190,7 @@ void Init(HWND hWnd)
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, 1024, 1024, 1, 1),
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, 1024, 1024),
     D3D12_RESOURCE_USAGE_GENERIC_READ,
     nullptr,
     IID_PPV_ARGS(&DepthTexture)
