@@ -95,8 +95,8 @@ void Init(HWND hWnd)
 
     const float tri_vertex[] = {
       -1., -1., 0., 0.,
-      -1., 3., 0., 3.,
-      3., -1., 3., 0.
+      -1., 3., 0., 4.,
+      3., -1., 4., 0.
     };
     void *tmp;
     ScreenQuadCPU->Map(0, nullptr, &tmp);
@@ -136,9 +136,9 @@ void Init(HWND hWnd)
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, 1, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, 1024, 1024, 1, 1, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
     D3D12_RESOURCE_USAGE_DEPTH,
-    &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0),
+    &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
     IID_PPV_ARGS(&DepthBuffer)
     );
 
@@ -151,7 +151,7 @@ void Init(HWND hWnd)
 
   D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
   depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-  depth_stencil_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  depth_stencil_desc.Format = DXGI_FORMAT_D32_FLOAT;
   depth_stencil_desc.Texture2D.MipSlice = 0;
   Context::getInstance()->dev->CreateDepthStencilView(DepthBuffer.Get(), &depth_stencil_desc, depth_descriptors->GetCPUDescriptorHandleForHeapStart());
 
@@ -190,7 +190,7 @@ void Init(HWND hWnd)
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, 1),
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, 1024, 1024, 1, 1),
     D3D12_RESOURCE_USAGE_GENERIC_READ,
     nullptr,
     IID_PPV_ARGS(&DepthTexture)
@@ -202,13 +202,11 @@ void Init(HWND hWnd)
   hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&depth_tex_descriptors));
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
-  srv_view.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  srv_view.Format = DXGI_FORMAT_R32_FLOAT;
   srv_view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
   srv_view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
   srv_view.Texture2D.MipLevels = 1;
-
   Context::getInstance()->dev->CreateShaderResourceView(DepthTexture.Get(), &srv_view, depth_tex_descriptors->GetCPUDescriptorHandleForHeapStart());
-
 
   rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0> >, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
 
@@ -228,6 +226,16 @@ void Init(HWND hWnd)
   Context::getInstance()->dev->CreateSampler(&samplerdesc, SamplerHeap->GetCPUDescriptorHandleForHeapStart());
 
   delete buffer;
+}
+
+void setResourceTransitionBarrier(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *res, UINT before, UINT after)
+{
+  D3D12_RESOURCE_BARRIER_DESC barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = res;
+  barrier.Transition.StateBefore = before;
+  barrier.Transition.StateAfter = after;
+  cmdlist->ResourceBarrier(1, &barrier);
 }
 
 void Draw()
@@ -254,12 +262,7 @@ void Draw()
   cmdlist->RSSetScissorRects(1, &rect);
 
   float tmp[] = { 0., 0., 0., 0. };
-  D3D12_RESOURCE_BARRIER_DESC barrier = {};
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = Context::getInstance()->getCurrentBackBuffer();
-  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_PRESENT;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_RENDER_TARGET;
-  cmdlist->ResourceBarrier(1, &barrier);
+  setResourceTransitionBarrier(cmdlist.Get(), Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET);
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
@@ -305,12 +308,8 @@ void Draw()
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
   cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
-
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = DepthTexture.Get();
-  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_GENERIC_READ;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_COPY_DEST;
-  cmdlist->ResourceBarrier(1, &barrier);
+  setResourceTransitionBarrier(cmdlist.Get(), DepthBuffer.Get(), D3D12_RESOURCE_USAGE_DEPTH, D3D12_RESOURCE_USAGE_COPY_SOURCE);
+  setResourceTransitionBarrier(cmdlist.Get(), DepthTexture.Get(), D3D12_RESOURCE_USAGE_GENERIC_READ, D3D12_RESOURCE_USAGE_COPY_DEST);
 
   D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
   dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
@@ -321,11 +320,8 @@ void Draw()
   src.pResource = DepthBuffer.Get();
   cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
 
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = DepthTexture.Get();
-  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
-  cmdlist->ResourceBarrier(1, &barrier);
+  setResourceTransitionBarrier(cmdlist.Get(), DepthBuffer.Get(), D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_DEPTH);
+  setResourceTransitionBarrier(cmdlist.Get(), DepthTexture.Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ);
 
   cmdlist->SetGraphicsRootDescriptorTable(1, depth_tex_descriptors->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, SamplerHeap->GetGPUDescriptorHandleForHeapStart());
@@ -334,12 +330,7 @@ void Draw()
   cmdlist->SetVertexBuffers(0, &ScreenQuadView, 1);
   cmdlist->DrawInstanced(3, 1, 0, 0);
 
-
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = Context::getInstance()->getCurrentBackBuffer();
-  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_RENDER_TARGET;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
-  cmdlist->ResourceBarrier(1, &barrier);
+  setResourceTransitionBarrier(cmdlist.Get(), Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT);
 
   cmdlist->Close();
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
