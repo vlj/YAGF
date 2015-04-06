@@ -363,7 +363,7 @@ namespace irr
                         for (unsigned i = 0; i < mipMapCount; i++)
                         {
                             size_t size = curWidth * curHeight;
-                            struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                            struct MipMapLevel mipdata = { offset, curWidth, curHeight, size };
                             image.Mips.push_back(mipdata);
                             offset += size;
                             size += curHeight * curWidth;
@@ -455,7 +455,7 @@ namespace irr
                             for (unsigned i = 0; i < mipMapCount; i++)
                             {
                                 size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                                struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                                struct MipMapLevel mipdata = { offset, curWidth, curHeight, size };
                                 image.Mips.push_back(mipdata);
                                 offset += size;
 

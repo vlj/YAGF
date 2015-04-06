@@ -35,7 +35,7 @@ public:
     {
         for (unsigned i = 0; i < image.Mips.size(); i++)
         {
-            IImage::MipMapLevel miplevel = image.Mips[i];
+            MipMapLevel miplevel = image.Mips[i];
             memcpy(pointer, ((char*)image.getPointer()) + miplevel.Offset, miplevel.Size);
         }
     }
