@@ -29,8 +29,8 @@ protected:
 public:
     std::vector<MipMapLevel> Mips;
   IImage(irr::video::ECOLOR_FORMAT fmt, size_t w, size_t h, size_t p, bool issrgb) : Width(w), Height(h), Format(fmt), Pitch(p), isSrgb(issrgb) {
-    // Alloc enough size for RGBA8
-    ptr = malloc(p * h * 4 * sizeof(char));
+    // Alloc enough size for RGBA8 and all mipmap levels
+    ptr = malloc(p * h * 4 * sizeof(char) * 2);
   }
 
   IImage(IImage &&movedImage) : Width(movedImage.Width), Height(movedImage.Height), Mips(movedImage.Mips), Format(movedImage.Format)
