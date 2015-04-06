@@ -121,7 +121,7 @@ void Init(HWND hWnd)
       IID_PPV_ARGS(&Tex)
       );
 
-    TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get(), 0);
+    TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get());
 
     dev->CreateShaderResourceView(Tex.Get(), &TextureInRam.getResourceViewDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 

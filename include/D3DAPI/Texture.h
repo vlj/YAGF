@@ -60,34 +60,38 @@ public:
     return Height;
   }
 
-  void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource, UINT subresource) const
+  void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource) const
   {
-    D3D12_TEXTURE_COPY_LOCATION dst = {};
-    dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
-    dst.pResource = DestResource;
-    dst.Subresource = subresource;
+    for (unsigned i = 0; i < Mips.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER_DESC barrier = {};
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrier.Transition.pResource = DestResource;
+      barrier.Transition.Subresource = i;
+      barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_GENERIC_READ;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_COPY_DEST;
+      cmdlist->ResourceBarrier(1, &barrier);
 
-    D3D12_RESOURCE_BARRIER_DESC barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = DestResource;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_GENERIC_READ;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_COPY_DEST;
-    cmdlist->ResourceBarrier(1, &barrier);
+      D3D12_TEXTURE_COPY_LOCATION dst = {};
+      dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
+      dst.pResource = DestResource;
+      dst.Subresource = i;
 
-    D3D12_TEXTURE_COPY_LOCATION src = {};
-    src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
-    src.pResource = texinram.Get();
-    src.PlacedTexture.Offset = 0;
-    src.PlacedTexture.Placement.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    src.PlacedTexture.Placement.Width = (UINT)Width;
-    src.PlacedTexture.Placement.Height = (UINT)Height;
-    src.PlacedTexture.Placement.Depth = 1;
-    src.PlacedTexture.Placement.RowPitch = (UINT)RowPitch;
-    cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
+      D3D12_TEXTURE_COPY_LOCATION src = {};
+      src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
+      src.pResource = texinram.Get();
+      src.PlacedTexture.Offset = Mips[0].Offset;
+      src.PlacedTexture.Placement.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+      src.PlacedTexture.Placement.Width = (UINT)Mips[i].Width;
+      src.PlacedTexture.Placement.Height = (UINT)Mips[i].Height;
+      src.PlacedTexture.Placement.Depth = 1;
+      src.PlacedTexture.Placement.RowPitch = (UINT)max(Mips[i].Width * 4, 256);
+      cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
 
-    barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
-    cmdlist->ResourceBarrier(1, &barrier);
+      barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
+      cmdlist->ResourceBarrier(1, &barrier);
+    }
   }
 
   D3D12_SHADER_RESOURCE_VIEW_DESC getResourceViewDesc() const
