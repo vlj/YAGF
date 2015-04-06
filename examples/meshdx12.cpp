@@ -6,7 +6,7 @@
 #include <D3DAPI/VAO.h>
 #include <D3DAPI/S3DVertex.h>
 #include <Loaders/B3D.h>
-#include <Loaders/PNG.h>
+#include <Loaders/DDS.h>
 #include <tuple>
 #include <D3DAPI/PSO.h>
 
@@ -99,24 +99,23 @@ void Init(HWND hWnd)
 
   vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
-  std::vector<IImage *> imgs;
+  std::vector<IImage> imgs;
   for (auto tex : loader.Textures)
   {
-    irr::io::CReadFile texreader("..\\examples\\anchor.png");
-    imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
+    irr::io::CReadFile texreader("..\\examples\\anchor.DDS");
+    imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
   }
 
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
   // Upload to gpudata
   {
     // Texture
-    Texture TextureInRam(imgs[0]->getWidth(), imgs[0]->getHeight(), 4 * sizeof(char));
-    memcpy(TextureInRam.getPointer(), imgs[0]->getPointer(), 4 * sizeof(char) * imgs[0]->getHeight() * imgs[0]->getWidth());
+    Texture TextureInRam(imgs[0]);
 
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, (UINT) imgs[0]->getWidth(), (UINT) imgs[0]->getHeight(), 1, 1, 1, 0, D3D12_RESOURCE_MISC_NONE),
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, (UINT) imgs[0].getWidth(), (UINT) imgs[0].getHeight(), 1, 1, 1, 0, D3D12_RESOURCE_MISC_NONE),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&Tex)

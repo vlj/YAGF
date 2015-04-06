@@ -6,6 +6,7 @@
 #include <d3d12.h>
 #include <vector>
 #include <wrl/client.h>
+#include <Core/IImage.h>
 
 class Texture
 {
@@ -13,19 +14,34 @@ private:
   size_t Width, Height;
   size_t RowPitch;
   Microsoft::WRL::ComPtr<ID3D12Resource> texinram;
-  void* pointer;
+
 public:
-  Texture(size_t w, size_t h, size_t formatsize) : Width(w), Height(h), RowPitch(formatsize * w)
+  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), RowPitch(image.getWidth() * 4)
   {
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(formatsize * w * h),
+      &CD3D12_RESOURCE_DESC::Buffer(4 * sizeof(char) * Width * Height * 2),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&texinram)
       );
+
+    void* pointer;
     hr = texinram->Map(0, nullptr, &pointer);
+
+
+    if (!irr::video::isCompressed(image.getFormat()))
+    {
+        for (unsigned i = 0; i < image.Mips.size(); i++)
+        {
+            IImage::MipMapLevel miplevel = image.Mips[i];
+            memcpy(pointer, ((char*)image.getPointer()) + miplevel.Offset, miplevel.Size);
+        }
+    }
+    else
+    {
+    }
   }
 
   ~Texture()
@@ -41,16 +57,6 @@ public:
   size_t getHeight() const
   {
     return Height;
-  }
-
-  void* getPointer()
-  {
-    return pointer;
-  }
-
-  const void* getPointer() const
-  {
-    return pointer;
   }
 
   void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource, UINT subresource) const

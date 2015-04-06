@@ -355,9 +355,28 @@ namespace irr
                     if (header.PixelFormat.Flags & DDPF_RGB) // Uncompressed formats
                     {
                         unsigned byteCount = header.PixelFormat.RGBBitCount / 8;
+                        IImage image(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+                        unsigned curWidth = header.Width;
+                        unsigned curHeight = header.Height;
+                        size_t offset = 0;
+
+                        for (unsigned i = 0; i < mipMapCount; i++)
+                        {
+                            size_t size = curWidth * curHeight;
+                            struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                            image.Mips.push_back(mipdata);
+                            offset += size;
+                            size += curHeight * curWidth;
+
+                            if (curWidth > 1)
+                                curWidth >>= 1;
+
+                            if (curHeight > 1)
+                                curHeight >>= 1;
+                        }
 
                         if (header.Flags & DDSD_PITCH)
-                            dataSize = header.PitchOrLinearSize * header.Height * header.Depth * (header.PixelFormat.RGBBitCount / 8);
+                            dataSize = offset * header.Depth * (header.PixelFormat.RGBBitCount / 8);
                         else
                             dataSize = header.Width * header.Height * header.Depth * (header.PixelFormat.RGBBitCount / 8);
 
@@ -415,7 +434,7 @@ namespace irr
                         }
                         }
 
-                        IImage image(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+
                         memcpy(image.getPointer(), data, dataSize);
                         delete[] data;
                         return image;
