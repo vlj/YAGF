@@ -13,6 +13,7 @@
 
 #include <Loaders/B3D.h>
 #include <Loaders/PNG.h>
+#include <Loaders/DDS.h>
 
 std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
 FrameBuffer *MainFBO;
@@ -99,6 +100,12 @@ void init()
   {
     irr::io::CReadFile texreader("..\\examples\\anchor.png");
     imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
+  }
+
+  {
+      irr::io::CReadFile texreader("..\\examples\\anchor.DDS");
+      bool b = irr::video::CImageLoaderDDS::isALoadableFileFormat(&texreader);
+      printf("is a loadable fmt %d\n", b);
   }
 
   glGenTextures(1, &texture);
