@@ -70,7 +70,7 @@ namespace irr
       ECF_UNKNOWN
     };
 
-    bool isCompressed(ECOLOR_FORMAT format)
+    inline bool isCompressed(ECOLOR_FORMAT format)
     {
         switch (format)
         {
