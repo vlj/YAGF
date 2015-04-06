@@ -111,7 +111,7 @@ void init()
 
   glGenBuffers(1, &cbuf);
 
-  TrilinearSampler = SamplerHelper::createBilinearSampler();
+  TrilinearSampler = SamplerHelper::createTrilinearSampler();
 
   glDepthFunc(GL_LEQUAL);
 }

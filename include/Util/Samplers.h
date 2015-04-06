@@ -34,8 +34,8 @@ public:
   {
     GLuint id;
     glGenSamplers(1, &id);
-    glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameterf(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glSamplerParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glSamplerParameterf(id, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.);
@@ -46,8 +46,8 @@ public:
   {
     GLuint id;
     glGenSamplers(1, &id);
-    glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glSamplerParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glSamplerParameterf(id, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisolevel);
