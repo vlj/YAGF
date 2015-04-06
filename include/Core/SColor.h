@@ -59,9 +59,11 @@ namespace irr
 
 
       // Block Compressed format
-      ECF_BC1,
-      ECF_BC3,
-      ECF_BC5,
+      ECF_BC1_UNORM, ECF_BC1_UNORM_SRGB,
+      ECF_BC2_UNORM, ECF_BC2_UNORM_SRGB,
+      ECF_BC3_UNORM, ECF_BC3_UNORM_SRGB,
+      ECF_BC4_UNORM, ECF_BC4_SNORM,
+      ECF_BC5_UNORM, ECF_BC5_SNORM,
 
 
       //! Unknown color format:
