@@ -14,9 +14,9 @@ private:
   size_t Width, Height;
   size_t RowPitch;
   Microsoft::WRL::ComPtr<ID3D12Resource> texinram;
-
+  std::vector<MipMapLevel> Mips;
 public:
-  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), RowPitch(image.getWidth() * 4)
+  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), RowPitch(image.getWidth() * 4), Mips(image.Mips)
   {
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -33,20 +33,21 @@ public:
 
     if (!irr::video::isCompressed(image.getFormat()))
     {
-        for (unsigned i = 0; i < image.Mips.size(); i++)
+        for (unsigned i = 0; i < Mips.size(); i++)
         {
-            MipMapLevel miplevel = image.Mips[i];
-            memcpy(pointer, ((char*)image.getPointer()) + miplevel.Offset, miplevel.Size);
+            MipMapLevel miplevel = Mips[i];
+            memcpy(((char*)pointer) + miplevel.Offset, ((char*)image.getPointer()) + miplevel.Offset, miplevel.Size);
         }
     }
     else
     {
     }
+    texinram->Unmap(0, nullptr);
   }
 
   ~Texture()
   {
-    texinram->Unmap(0, nullptr);
+
   }
 
   size_t getWidth() const
@@ -95,7 +96,7 @@ public:
     resdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     resdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    resdesc.Texture2D.MipLevels = 1;
+    resdesc.Texture2D.MipLevels = Mips.size();
     return resdesc;
   }
 };

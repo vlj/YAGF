@@ -1,6 +1,6 @@
+#include <D3DAPI/Texture.h>
 #include <D3DAPI/Context.h>
 #include <D3DAPI/RootSignature.h>
-#include <D3DAPI/Texture.h>
 
 #include <D3DAPI/Misc.h>
 #include <D3DAPI/VAO.h>
@@ -115,7 +115,7 @@ void Init(HWND hWnd)
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, (UINT) imgs[0].getWidth(), (UINT) imgs[0].getHeight(), 1, 1, 1, 0, D3D12_RESOURCE_MISC_NONE),
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, (UINT)imgs[0].getWidth(), (UINT)imgs[0].getHeight(), 1, 10),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&Tex)
@@ -158,12 +158,12 @@ void Draw()
   D3D12_RECT rect = {};
   rect.left = 0;
   rect.top = 0;
-  rect.bottom = 300;
-  rect.right = 300;
+  rect.bottom = 1024;
+  rect.right = 1024;
 
   D3D12_VIEWPORT view = {};
-  view.Height = 300;
-  view.Width = 300;
+  view.Height = 1024;
+  view.Width = 1024;
   view.TopLeftX = 0;
   view.TopLeftY = 0;
   view.MinDepth = 0;
