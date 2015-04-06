@@ -70,6 +70,26 @@ namespace irr
       ECF_UNKNOWN
     };
 
+    bool isCompressed(ECOLOR_FORMAT format)
+    {
+        switch (format)
+        {
+        default:
+            return false;
+        case ECF_BC1_UNORM:
+        case ECF_BC1_UNORM_SRGB:
+        case ECF_BC2_UNORM:
+        case ECF_BC2_UNORM_SRGB:
+        case ECF_BC3_UNORM:
+        case ECF_BC3_UNORM_SRGB:
+        case ECF_BC4_UNORM:
+        case ECF_BC4_SNORM:
+        case ECF_BC5_UNORM:
+        case ECF_BC5_SNORM:
+            return true;
+        }
+    }
+
 
     //! Creates a 16 bit A1R5G5B5 color
     inline short RGBA16(unsigned r, unsigned g, unsigned b, unsigned a = 0xFF)

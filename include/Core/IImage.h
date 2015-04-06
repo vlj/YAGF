@@ -61,6 +61,11 @@ public:
   {
     free(ptr);
   }
+
+  irr::video::ECOLOR_FORMAT getFormat() const
+  {
+      return Format;
+  }
 };
 
 #endif

@@ -3,6 +3,7 @@
 #include <Util/GeometryCreator.h>
 #include <Core/VAO.h>
 #include <GLAPI/S3DVertex.h>
+#include <GLAPI/Texture.h>
 
 #include <Core/Shaders.h>
 #include <Core/FBO.h>
@@ -72,7 +73,7 @@ public:
 };
 
 std::vector<IImage *> imgs;
-GLuint texture;
+Texture *texture;
 
 struct Matrixes
 {
@@ -102,16 +103,8 @@ void init()
     imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
   }
 
+  texture = new Texture(*imgs[0]);
 
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-//  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)imgs[0]->getWidth(), (GLsizei)imgs[0]->getHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
-  for (unsigned i = 0; i < imgs[0]->Mips.size(); i++)
-  {
-      IImage::MipMapLevel miplevel = imgs[0]->Mips[i];
-      glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, miplevel.Width, miplevel.Height, 0, miplevel.Size, ((char*)imgs[0]->getPointer()) + miplevel.Offset);
-  }
   glGenBuffers(1, &cbuf);
 
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
@@ -122,7 +115,7 @@ void init()
 void clean()
 {
     glDeleteSamplers(1, &TrilinearSampler);
-    glDeleteTextures(1, &texture);
+    delete(texture);
     glDeleteBuffers(1, &cbuf);
     for (auto tmp : imgs)
       delete tmp;
@@ -154,7 +147,7 @@ void draw()
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
-    ObjectShader::getInstance()->SetTextureUnits(cbuf, texture, TrilinearSampler);
+    ObjectShader::getInstance()->SetTextureUnits(cbuf, texture->Id, TrilinearSampler);
     for (auto tmp : CountBaseIndexVTX)
       glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
 }
