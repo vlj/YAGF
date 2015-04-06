@@ -230,6 +230,59 @@ namespace irr
         */
         class CImageLoaderDDS
         {
+        private:
+            static
+                /*
+                DDSGetInfo()
+                extracts relevant info from a dds texture, returns 0 on success
+                */
+                int DDSGetInfo(ddsHeader* dds, int* width, int* height, eDDSPixelFormat* pf)
+            {
+                /* dummy test */
+                if (dds == NULL)
+                    return -1;
+
+                /* test dds header */
+                if (*((int*)dds->Magic) != *((int*) "DDS "))
+                    return -1;
+                if (DDSLittleLong(dds->Size) != 124)
+                    return -1;
+                if (!(DDSLittleLong(dds->Flags) & DDSD_PIXELFORMAT))
+                    return -1;
+                if (!(DDSLittleLong(dds->Flags) & DDSD_CAPS))
+                    return -1;
+
+                /* extract width and height */
+                if (width != NULL)
+                    *width = DDSLittleLong(dds->Width);
+                if (height != NULL)
+                    *height = DDSLittleLong(dds->Height);
+
+                /* get pixel format */
+
+                /* extract fourCC */
+                const unsigned fourCC = dds->PixelFormat.FourCC;
+
+                /* test it */
+                if (fourCC == 0)
+                    *pf = DDS_PF_ARGB8888;
+                else if (fourCC == *((unsigned*) "DXT1"))
+                    *pf = DDS_PF_DXT1;
+                else if (fourCC == *((unsigned*) "DXT2"))
+                    *pf = DDS_PF_DXT2;
+                else if (fourCC == *((unsigned*) "DXT3"))
+                    *pf = DDS_PF_DXT3;
+                else if (fourCC == *((unsigned*) "DXT4"))
+                    *pf = DDS_PF_DXT4;
+                else if (fourCC == *((unsigned*) "DXT5"))
+                    *pf = DDS_PF_DXT5;
+                else
+                    *pf = DDS_PF_UNKNOWN;
+
+                /* return ok */
+                return 0;
+            }
+
         public:
 
             //! returns true if the file maybe is able to be loaded by this class
@@ -251,7 +304,7 @@ namespace irr
             //! creates a surface from the file
             static IImage* loadImage(io::IReadFile* file)
             {
-/*                ddsHeader header;
+                ddsHeader header;
                 IImage* image = 0;
                 int width, height;
                 eDDSPixelFormat pixelFormat;
@@ -359,7 +412,8 @@ namespace irr
                         {
                             if (!is3D) // Currently 3D textures are unsupported.
                             {
-                                image = new CImage(format, core::dimension2d<u32>(header.Width, header.Height), data, true, true, false);
+                                image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+                                memcpy(image->getPointer(), data, dataSize);
                             }
                         }
                         else
@@ -389,7 +443,7 @@ namespace irr
                                 dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
                             } while (curWidth != 1 || curWidth != 1);
 
-                            format = ECF_DXT1;
+                            format = ECF_BC1;
                             break;
                         }
                         case DDS_PF_DXT2:
@@ -411,7 +465,7 @@ namespace irr
                                 dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 16;
                             } while (curWidth != 1 || curWidth != 1);
 
-                            format = ECF_DXT3;
+                            format = ECF_BC3;
                             break;
                         }
                         case DDS_PF_DXT4:
@@ -433,7 +487,7 @@ namespace irr
                                 dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 16;
                             } while (curWidth != 1 || curWidth != 1);
 
-                            format = ECF_DXT5;
+                            format = ECF_BC5;
                             break;
                         }
                         }
@@ -447,14 +501,15 @@ namespace irr
 
                                 bool hasMipMap = (mipMapCount > 0) ? true : false;
 
-                                image = new CImage(format, core::dimension2d<u32>(header.Width, header.Height), data, true, true, true, hasMipMap);
+                                image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+                                memcpy(image->getPointer(), data, dataSize);
                             }
                         }
                     }
 #endif
                 }
 
-                return image;*/
+                return image;
             }
 
         };
@@ -476,57 +531,6 @@ namespace irr
 
     namespace video
     {
-
-        /*
-        DDSGetInfo()
-        extracts relevant info from a dds texture, returns 0 on success
-        */
-        int DDSGetInfo(ddsHeader* dds, int* width, int* height, eDDSPixelFormat* pf)
-        {
-            /* dummy test */
-            if (dds == NULL)
-                return -1;
-
-            /* test dds header */
-            if (*((int*)dds->Magic) != *((int*) "DDS "))
-                return -1;
-            if (DDSLittleLong(dds->Size) != 124)
-                return -1;
-            if (!(DDSLittleLong(dds->Flags) & DDSD_PIXELFORMAT))
-                return -1;
-            if (!(DDSLittleLong(dds->Flags) & DDSD_CAPS))
-                return -1;
-
-            /* extract width and height */
-            if (width != NULL)
-                *width = DDSLittleLong(dds->Width);
-            if (height != NULL)
-                *height = DDSLittleLong(dds->Height);
-
-            /* get pixel format */
-
-            /* extract fourCC */
-            const unsigned fourCC = dds->PixelFormat.FourCC;
-
-            /* test it */
-            if (fourCC == 0)
-                *pf = DDS_PF_ARGB8888;
-            else if (fourCC == *((unsigned*) "DXT1"))
-                *pf = DDS_PF_DXT1;
-            else if (fourCC == *((unsigned*) "DXT2"))
-                *pf = DDS_PF_DXT2;
-            else if (fourCC == *((unsigned*) "DXT3"))
-                *pf = DDS_PF_DXT3;
-            else if (fourCC == *((unsigned*) "DXT4"))
-                *pf = DDS_PF_DXT4;
-            else if (fourCC == *((unsigned*) "DXT5"))
-                *pf = DDS_PF_DXT5;
-            else
-                *pf = DDS_PF_UNKNOWN;
-
-            /* return ok */
-            return 0;
-        }
 
 
 #ifdef _IRR_COMPILE_WITH_DDS_DECODER_LOADER_

@@ -102,11 +102,6 @@ void init()
     imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
   }
 
-  {
-      irr::io::CReadFile texreader("..\\examples\\anchor.DDS");
-      bool b = irr::video::CImageLoaderDDS::isALoadableFileFormat(&texreader);
-      printf("is a loadable fmt %d\n", b);
-  }
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);

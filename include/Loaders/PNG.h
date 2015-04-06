@@ -208,9 +208,9 @@ namespace irr
 
         // Create the image structure to be filled by png data
         if (ColorType == PNG_COLOR_TYPE_RGB_ALPHA)
-          image = new IImage(ECF_A8R8G8B8, Width, Height, sRGB);
+          image = new IImage(ECF_A8R8G8B8, Width, Height, 4 * Width, sRGB);
         else
-          image = new IImage(ECF_R8G8B8, Width, Height, sRGB);
+          image = new IImage(ECF_R8G8B8, Width, Height, 3 * Width, sRGB);
         if (!image)
         {
           printf("LOAD PNG: Internal PNG create image struct failure\n", file->getFileName());

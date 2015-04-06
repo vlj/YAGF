@@ -12,14 +12,15 @@ class IImage {
 protected:
   size_t Width;
   size_t Height;
+  size_t Pitch;
 
   irr::video::ECOLOR_FORMAT Format;
   void *ptr;
   bool isSrgb;
 public:
-  IImage(irr::video::ECOLOR_FORMAT fmt, size_t w, size_t h, bool issrgb) : Width(w), Height(h), Format(fmt), isSrgb(issrgb) {
+  IImage(irr::video::ECOLOR_FORMAT fmt, size_t w, size_t h, size_t p, bool issrgb) : Width(w), Height(h), Format(fmt), Pitch(p), isSrgb(issrgb) {
     // Alloc enough size for RGBA8
-    ptr = malloc(w * h * 4 * sizeof(char));
+    ptr = malloc(p * h * 4 * sizeof(char));
   }
 
   void *getPointer()
@@ -34,16 +35,7 @@ public:
 
   size_t getPitch() const
   {
-    switch (Format)
-    {
-    case irr::video::ECF_A8R8G8B8:
-      return 4 * Width;
-    case irr::video::ECF_R8G8B8:
-      return 3 * Width;
-    default:
-      assert(0 && "unimplemented");
-      return -1;
-    }
+    return Pitch;
   }
 
   size_t getWidth() const

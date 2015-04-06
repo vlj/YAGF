@@ -57,6 +57,13 @@ namespace irr
       //! 128 bit floating point format. 32 bits are used for the red, green, blue and alpha channels.
       ECF_A32B32G32R32F,
 
+
+      // Block Compressed format
+      ECF_BC1,
+      ECF_BC3,
+      ECF_BC5,
+
+
       //! Unknown color format:
       ECF_UNKNOWN
     };
