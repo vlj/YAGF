@@ -337,6 +337,8 @@ namespace irr
 
                     is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
 
+                    if (is3D)
+                        return nullptr;
                     if (!is3D)
                         header.Depth = 1;
 
@@ -423,6 +425,7 @@ namespace irr
                     }
                     else if (header.PixelFormat.Flags & DDPF_FOURCC) // Compressed formats
                     {
+                        image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
                         switch (pixelFormat)
                         {
                         case DDS_PF_DXT1:
@@ -430,18 +433,24 @@ namespace irr
                             unsigned curWidth = header.Width;
                             unsigned curHeight = header.Height;
 
-                            dataSize = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
+                            size_t offset = 0;
 
-                            do
+                            for (unsigned i = 0; i < mipMapCount; i++)
                             {
+                                size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
+                                struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                                image->Mips.push_back(mipdata);
+                                offset += size;
+
                                 if (curWidth > 1)
                                     curWidth >>= 1;
 
                                 if (curHeight > 1)
                                     curHeight >>= 1;
-
-                                dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                            } while (curWidth != 1 || curWidth != 1);
+                            }
+                            dataSize = offset;
+                            unsigned char* data = new unsigned char[dataSize];
+                            file->read(image->getPointer(), dataSize);
 
                             format = ECF_BC1;
                             break;
@@ -490,44 +499,6 @@ namespace irr
                             format = ECF_BC5;
                             break;
                         }
-                        }
-
-                        if (format != ECF_UNKNOWN)
-                        {
-                            if (!is3D) // Currently 3D textures are unsupported.
-                            {
-                                unsigned char* data = new unsigned char[dataSize];
-                                file->read(data, dataSize);
-
-                                bool hasMipMap = (mipMapCount > 0) ? true : false;
-
-                                image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
-                                memcpy(image->getPointer(), data, dataSize);
-                                // MipMap
-                                {
-                                    unsigned curWidth = header.Width;
-                                    unsigned curHeight = header.Height;
-
-                                    size_t offset = 0;
-
-                                    while (true)
-                                    {
-                                        size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                                        struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
-                                        image->Mips.push_back(mipdata);
-                                        offset += size;
-
-                                        if (curWidth == 1 && curWidth == 1)
-                                            break;
-
-                                        if (curWidth > 1)
-                                            curWidth >>= 1;
-
-                                        if (curHeight > 1)
-                                            curHeight >>= 1;
-                                    }
-                                }
-                            }
                         }
                     }
                 }
