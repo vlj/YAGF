@@ -318,10 +318,9 @@ namespace irr
             }
 
             //! creates a surface from the file
-            static IImage* loadImage(io::IReadFile* file)
+            static IImage loadImage(io::IReadFile* file)
             {
                 ddsHeader header;
-                IImage* image = 0;
                 int width, height;
                 ECOLOR_FORMAT format = ECF_UNKNOWN;
                 unsigned dataSize = 0;
@@ -344,8 +343,7 @@ namespace irr
 
                     is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
 
-                    if (is3D)
-                        return nullptr;
+                    assert(!is3D);
                     if (!is3D)
                         header.Depth = 1;
 
@@ -417,22 +415,14 @@ namespace irr
                         }
                         }
 
-                        if (format != ECF_UNKNOWN)
-                        {
-                            if (!is3D) // Currently 3D textures are unsupported.
-                            {
-                                image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
-                                memcpy(image->getPointer(), data, dataSize);
-                            }
-                        }
-                        else
-                        {
-                            delete[] data;
-                        }
+                        IImage image(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+                        memcpy(image.getPointer(), data, dataSize);
+                        delete[] data;
+                        return image;
                     }
                     else if (header.PixelFormat.Flags & DDPF_FOURCC) // Compressed formats
                     {
-                        image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+                        IImage image(format, header.Width, header.Height, header.PitchOrLinearSize, false);
                         switch (format)
                         {
                         case ECF_BC1_UNORM:
@@ -447,7 +437,7 @@ namespace irr
                             {
                                 size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
                                 struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
-                                image->Mips.push_back(mipdata);
+                                image.Mips.push_back(mipdata);
                                 offset += size;
 
                                 if (curWidth > 1)
@@ -458,7 +448,7 @@ namespace irr
                             }
                             dataSize = offset;
                             unsigned char* data = new unsigned char[dataSize];
-                            file->read(image->getPointer(), dataSize);
+                            file->read(image.getPointer(), dataSize);
 
                             break;
                         }
@@ -509,10 +499,9 @@ namespace irr
                             break;
                         }
                         }
+                        return image;
                     }
                 }
-
-                return image;
             }
 
         };

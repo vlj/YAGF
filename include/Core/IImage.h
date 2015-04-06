@@ -32,6 +32,12 @@ public:
     ptr = malloc(p * h * 4 * sizeof(char));
   }
 
+  IImage(IImage &&movedImage) : Width(movedImage.Width), Height(movedImage.Height), Mips(movedImage.Mips), Format(movedImage.Format)
+  {
+      ptr = movedImage.ptr;
+      movedImage.ptr = 0;
+  }
+
   void *getPointer()
   {
     return ptr;
@@ -59,7 +65,8 @@ public:
 
   ~IImage()
   {
-    free(ptr);
+    if (ptr)
+      free(ptr);
   }
 
   irr::video::ECOLOR_FORMAT getFormat() const

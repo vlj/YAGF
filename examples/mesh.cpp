@@ -72,7 +72,6 @@ public:
     }
 };
 
-std::vector<IImage *> imgs;
 Texture *texture;
 
 struct Matrixes
@@ -97,13 +96,15 @@ void init()
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
   }
 
+  std::vector<IImage> imgs;
+
   for (auto tmp : loader.Textures)
   {
     irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
     imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
   }
 
-  texture = new Texture(*imgs[0]);
+  texture = new Texture(imgs[0]);
 
   glGenBuffers(1, &cbuf);
 
@@ -117,8 +118,6 @@ void clean()
     glDeleteSamplers(1, &TrilinearSampler);
     delete(texture);
     glDeleteBuffers(1, &cbuf);
-    for (auto tmp : imgs)
-      delete tmp;
 }
 
 void draw()
