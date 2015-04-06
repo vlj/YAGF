@@ -261,6 +261,11 @@ void Draw()
   cmdlist->RSSetViewports(1, &view);
   cmdlist->RSSetScissorRects(1, &rect);
 
+
+  cmdlist->SetDescriptorHeaps(descriptors.GetAddressOf(), 1);
+  cmdlist->SetDescriptorHeaps(depth_tex_descriptors.GetAddressOf(), 1);
+  cmdlist->SetDescriptorHeaps(SamplerHeap.GetAddressOf(), 1);
+
   float tmp[] = { 0., 0., 0., 0. };
   setResourceTransitionBarrier(cmdlist.Get(), Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET);
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
