@@ -7,6 +7,7 @@
 #include <Core/SColor.h>
 #include <stdlib.h>
 #include <cassert>
+#include <vector>
 
 class IImage {
 protected:
@@ -18,7 +19,14 @@ protected:
   void *ptr;
   bool isSrgb;
 public:
-    size_t ptrsz;
+    struct MipMapLevel
+    {
+      size_t Offset;
+      size_t Width;
+      size_t Height;
+      size_t Size;
+    };
+    std::vector<MipMapLevel> Mips;
   IImage(irr::video::ECOLOR_FORMAT fmt, size_t w, size_t h, size_t p, bool issrgb) : Width(w), Height(h), Format(fmt), Pitch(p), isSrgb(issrgb) {
     // Alloc enough size for RGBA8
     ptr = malloc(p * h * 4 * sizeof(char));

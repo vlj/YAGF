@@ -34,7 +34,7 @@ public:
   {
     GLuint id;
     glGenSamplers(1, &id);
-    glSamplerParameterf(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glSamplerParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glSamplerParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glSamplerParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);

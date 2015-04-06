@@ -432,8 +432,7 @@ namespace irr
 
                             dataSize = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
 
-                            // MipMap
-/*                            do
+                            do
                             {
                                 if (curWidth > 1)
                                     curWidth >>= 1;
@@ -442,7 +441,7 @@ namespace irr
                                     curHeight >>= 1;
 
                                 dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                            } while (curWidth != 1 || curWidth != 1);*/
+                            } while (curWidth != 1 || curWidth != 1);
 
                             format = ECF_BC1;
                             break;
@@ -503,8 +502,33 @@ namespace irr
                                 bool hasMipMap = (mipMapCount > 0) ? true : false;
 
                                 image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
-                                image->ptrsz = dataSize;
                                 memcpy(image->getPointer(), data, dataSize);
+                                // MipMap
+                                {
+                                    unsigned curWidth = header.Width;
+                                    unsigned curHeight = header.Height;
+
+                                    size_t offset = 0;
+                                    size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
+                                    struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                                    image->Mips.push_back(mipdata);
+                                    offset += size;
+
+                                    do
+                                    {
+
+
+                                        if (curWidth > 1)
+                                            curWidth >>= 1;
+
+                                        if (curHeight > 1)
+                                            curHeight >>= 1;
+                                        size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
+                                        struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                                        image->Mips.push_back(mipdata);
+                                        offset += size;
+                                    } while (curWidth != 1 && curWidth != 1);
+                                }
                             }
                         }
                     }
