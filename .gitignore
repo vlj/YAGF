@@ -7,6 +7,12 @@ Doxyfile
 ftconfig.h
 glfw3.pc
 glfw_config.h
+*.pc
+*.cso
+*.exp
+zconf.h
+pnglibconf.h
+*.res
 
 *CMakeCache.txt
 *.check_cache
