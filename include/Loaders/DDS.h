@@ -509,25 +509,23 @@ namespace irr
                                     unsigned curHeight = header.Height;
 
                                     size_t offset = 0;
-                                    size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                                    struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
-                                    image->Mips.push_back(mipdata);
-                                    offset += size;
 
-                                    do
+                                    while (true)
                                     {
+                                        size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
+                                        struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
+                                        image->Mips.push_back(mipdata);
+                                        offset += size;
 
+                                        if (curWidth == 1 && curWidth == 1)
+                                            break;
 
                                         if (curWidth > 1)
                                             curWidth >>= 1;
 
                                         if (curHeight > 1)
                                             curHeight >>= 1;
-                                        size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                                        struct IImage::MipMapLevel mipdata = { offset, curWidth, curHeight, size };
-                                        image->Mips.push_back(mipdata);
-                                        offset += size;
-                                    } while (curWidth != 1 && curWidth != 1);
+                                    }
                                 }
                             }
                         }
