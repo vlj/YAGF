@@ -105,8 +105,9 @@ void init()
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 //  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)imgs[0]->getWidth(), (GLsizei)imgs[0]->getHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
-  glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, imgs[0]->ptrsz, imgs[0]->getPointer());
+  glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, imgs[0]->ptrsz, imgs[0]->getPointer());
 
   glGenBuffers(1, &cbuf);
 
@@ -126,6 +127,7 @@ void clean()
 
 void draw()
 {
+    glEnable(GL_FRAMEBUFFER_SRGB);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

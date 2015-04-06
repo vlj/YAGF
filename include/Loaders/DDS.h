@@ -432,7 +432,8 @@ namespace irr
 
                             dataSize = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
 
-                            do
+                            // MipMap
+/*                            do
                             {
                                 if (curWidth > 1)
                                     curWidth >>= 1;
@@ -441,7 +442,7 @@ namespace irr
                                     curHeight >>= 1;
 
                                 dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                            } while (curWidth != 1 || curWidth != 1);
+                            } while (curWidth != 1 || curWidth != 1);*/
 
                             format = ECF_BC1;
                             break;
