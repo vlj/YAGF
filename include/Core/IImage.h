@@ -18,6 +18,7 @@ protected:
   void *ptr;
   bool isSrgb;
 public:
+    size_t ptrsz;
   IImage(irr::video::ECOLOR_FORMAT fmt, size_t w, size_t h, size_t p, bool issrgb) : Width(w), Height(h), Format(fmt), Pitch(p), isSrgb(issrgb) {
     // Alloc enough size for RGBA8
     ptr = malloc(p * h * 4 * sizeof(char));

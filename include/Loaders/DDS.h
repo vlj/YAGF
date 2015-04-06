@@ -14,6 +14,7 @@
 
 #include <Core/IImage.h>
 #include <Loaders/IReadFile.h>
+#include <cassert>
 
 namespace irr
 {
@@ -108,6 +109,14 @@ namespace irr
             unsigned Reserved2;
         } PACK_STRUCT;
 
+        struct ddsHeaderDXT10
+        {
+            unsigned format;
+            unsigned resourceDim;
+            unsigned miscFlag;
+            unsigned arraySize;
+            unsigned miscFlag2;
+        } PACK_STRUCT;
 
 #ifdef _IRR_COMPILE_WITH_DDS_DECODER_LOADER_
 
@@ -236,7 +245,7 @@ namespace irr
                 DDSGetInfo()
                 extracts relevant info from a dds texture, returns 0 on success
                 */
-                int DDSGetInfo(ddsHeader* dds, int* width, int* height, eDDSPixelFormat* pf)
+                int DDSGetInfo(ddsHeader* dds, int* width, int* height, eDDSPixelFormat* pf, bool &extendeddx10)
             {
                 /* dummy test */
                 if (dds == NULL)
@@ -262,24 +271,23 @@ namespace irr
 
                 /* extract fourCC */
                 const unsigned fourCC = dds->PixelFormat.FourCC;
+                *pf = DDS_PF_UNKNOWN;
+                extendeddx10 = false;
 
                 /* test it */
                 if (fourCC == 0)
                     *pf = DDS_PF_ARGB8888;
-                else if (fourCC == *((unsigned*) "DXT1"))
-                    *pf = DDS_PF_DXT1;
-                else if (fourCC == *((unsigned*) "DXT2"))
-                    *pf = DDS_PF_DXT2;
-                else if (fourCC == *((unsigned*) "DXT3"))
-                    *pf = DDS_PF_DXT3;
-                else if (fourCC == *((unsigned*) "DXT4"))
-                    *pf = DDS_PF_DXT4;
-                else if (fourCC == *((unsigned*) "DXT5"))
-                    *pf = DDS_PF_DXT5;
-                else
-                    *pf = DDS_PF_UNKNOWN;
+                if (fourCC == (*(unsigned *)"DX10"))
+                    extendeddx10 = true;
 
                 /* return ok */
+                return 0;
+            }
+
+            static int DDSDXT10GetInfo(ddsHeaderDXT10* dds, eDDSPixelFormat* pf)
+            {
+                if (dds->format == 72)
+                    *pf = DDS_PF_DXT1;
                 return 0;
             }
 
@@ -317,8 +325,16 @@ namespace irr
                 file->seek(0);
                 file->read(&header, sizeof(ddsHeader));
 
-                if (0 == DDSGetInfo(&header, &width, &height, &pixelFormat))
+                bool extendeddx10;
+                if (0 == DDSGetInfo(&header, &width, &height, &pixelFormat, extendeddx10))
                 {
+                    if (extendeddx10)
+                    {
+                        ddsHeaderDXT10 ddsheaderdxt10;
+                        file->read(&ddsheaderdxt10, sizeof(ddsHeaderDXT10));
+                        DDSDXT10GetInfo(&ddsheaderdxt10, &pixelFormat);
+                    }
+
                     is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
 
                     if (!is3D)
@@ -329,22 +345,6 @@ namespace irr
                     if (header.MipMapCount > 0 && (header.Flags & DDSD_MIPMAPCOUNT))
                         mipMapCount = header.MipMapCount;
 
-#ifdef _IRR_COMPILE_WITH_DDS_DECODER_LOADER_
-                    u32 newSize = file->getSize() - sizeof(ddsHeader);
-                    u8* memFile = new u8[newSize];
-                    file->read(memFile, newSize);
-
-                    image = new CImage(ECF_A8R8G8B8, core::dimension2d<u32>(width, height));
-
-                    if (DDSDecompress(&header, memFile, (u8*)image->lock()) == -1)
-                    {
-                        image->unlock();
-                        image->drop();
-                        image = 0;
-                    }
-
-                    delete[] memFile;
-#else
                     if (header.PixelFormat.Flags & DDPF_RGB) // Uncompressed formats
                     {
                         unsigned byteCount = header.PixelFormat.RGBBitCount / 8;
@@ -502,11 +502,11 @@ namespace irr
                                 bool hasMipMap = (mipMapCount > 0) ? true : false;
 
                                 image = new IImage(format, header.Width, header.Height, header.PitchOrLinearSize, false);
+                                image->ptrsz = dataSize;
                                 memcpy(image->getPointer(), data, dataSize);
                             }
                         }
                     }
-#endif
                 }
 
                 return image;

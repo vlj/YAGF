@@ -98,14 +98,15 @@ void init()
 
   for (auto tmp : loader.Textures)
   {
-    irr::io::CReadFile texreader("..\\examples\\anchor.png");
-    imgs.push_back(irr::video::CImageLoaderPng::loadImage(&texreader));
+    irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
+    imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
   }
 
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)imgs[0]->getWidth(), (GLsizei)imgs[0]->getHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
+//  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)imgs[0]->getWidth(), (GLsizei)imgs[0]->getHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, imgs[0]->getPointer());
+  glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, imgs[0]->getWidth(), imgs[0]->getHeight(), 0, imgs[0]->ptrsz, imgs[0]->getPointer());
 
   glGenBuffers(1, &cbuf);
 
