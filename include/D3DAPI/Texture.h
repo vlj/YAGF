@@ -16,7 +16,7 @@ private:
   Microsoft::WRL::ComPtr<ID3D12Resource> texinram;
   std::vector<MipMapLevel> Mips;
 public:
-  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), RowPitch(image.getWidth() * 4), Mips(image.Mips)
+  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), RowPitch(image.getWidth() * 4)
   {
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -33,17 +33,21 @@ public:
 
     if (!irr::video::isCompressed(image.getFormat()))
     {
-        for (unsigned i = 0; i < Mips.size(); i++)
+        for (unsigned i = 0; i < image.Mips.size(); i++)
         {
-            MipMapLevel miplevel = Mips[i];
-            size_t rowPitch = (UINT)max(Mips[i].Width * 4, 256);
+            MipMapLevel miplevel = image.Mips[i];
+            size_t offset = (miplevel.Offset + 511) & -0x200;
+            MipMapLevel mml = {
+              offset, image.Mips[i].Width, image.Mips[i].Height, image.Mips[i].Size
+            };
+            size_t rowPitch = (UINT)max(image.Mips[i].Width * 4, 256);
             //Needs to be 512 bytes aligned
-            uintptr_t offset = (miplevel.Offset + 511) & -0x200;
+            Mips.push_back(mml);
             for (unsigned row = 0; row < miplevel.Height; row++)
             {
               // Row pitch is always a multiple of 256
-              uintptr_t rowoffset = offset + row * rowPitch;
-              memcpy(((char*)pointer) + rowoffset, ((char*)image.getPointer()) + miplevel.Offset + row * Mips[i].Width * 4, Mips[i].Width * 4);
+              uintptr_t rowoffset = Mips[i].Offset + row * rowPitch;
+              memcpy(((char*)pointer) + rowoffset, ((char*)image.getPointer()) + image.Mips[i].Offset + row * Mips[i].Width * 4, Mips[i].Width * 4);
             }
         }
     }
