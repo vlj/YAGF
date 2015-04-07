@@ -1,8 +1,3 @@
-#define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
-                         "DescriptorTable(CBV(b0), SRV(t0))," \
-                         "DescriptorTable(Sampler(s0))"
-
-
 Texture2D<float4> Tex : register(t0);
 sampler TexSampler : register(s0);
 
@@ -17,7 +12,6 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
 };
 
-[RootSignature(MyRS1)]
 float4 main(PS_INPUT In) : SV_TARGET
 {
   int width, height, level;

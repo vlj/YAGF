@@ -22,13 +22,14 @@ ComPtr<ID3D12Fence> fence;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
+ComPtr<ID3D12DescriptorHeap> TexResourceHeaps;
 ComPtr<ID3D12Resource> Tex;
 ComPtr<ID3D12DescriptorHeap> Sampler;
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 
 FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
 
-RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
+RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>,DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
 class Object : public PipelineStateObject<Object, irr::video::S3DVertex2TCoords>
 {
@@ -38,6 +39,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
+    psodesc.pRootSignature = rs->pRootSignature.Get();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -76,7 +78,7 @@ void Init(HWND hWnd)
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
     heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 2;
+    heapdesc.NumDescriptors = 1;
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&ReadResourceHeaps));
 
@@ -87,7 +89,7 @@ void Init(HWND hWnd)
   }
 
   // Define Root Signature
-  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
+  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
 
   irr::io::CReadFile reader("..\\examples\\anchor.b3d");
   irr::scene::CB3DMeshFileLoader loader(&reader);
@@ -110,6 +112,13 @@ void Init(HWND hWnd)
   // Upload to gpudata
   {
     // Texture
+    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+    heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+    heapdesc.NumDescriptors = 1;
+    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&TexResourceHeaps));
+    
+
     Texture TextureInRam(imgs[0]);
 
     hr = dev->CreateCommittedResource(
@@ -123,7 +132,7 @@ void Init(HWND hWnd)
 
     TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get());
 
-    dev->CreateShaderResourceView(Tex.Get(), &TextureInRam.getResourceViewDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+    dev->CreateShaderResourceView(Tex.Get(), &TextureInRam.getResourceViewDesc(), TexResourceHeaps->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
@@ -186,7 +195,8 @@ void Draw()
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootDescriptorTable(1, Sampler->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(1, TexResourceHeaps->GetGPUDescriptorHandleForHeapStart());
+  cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, nullptr);
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
