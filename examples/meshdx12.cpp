@@ -104,7 +104,7 @@ void Init(HWND hWnd)
   std::vector<IImage> imgs;
   for (auto tex : loader.Textures)
   {
-    irr::io::CReadFile texreader("..\\examples\\anchor.DDS");
+    irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
     imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
   }
 
@@ -124,7 +124,7 @@ void Init(HWND hWnd)
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_B8G8R8A8_UNORM, (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_BC1_UNORM, (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&Tex)
@@ -147,7 +147,7 @@ void Init(HWND hWnd)
     samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
     samplerdesc.MaxAnisotropy = 1;
     samplerdesc.MinLOD = 0;
-    samplerdesc.MaxLOD = 9;
+    samplerdesc.MaxLOD = 10;
     dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
 
     ComPtr<ID3D12Fence> datauploadfence;
