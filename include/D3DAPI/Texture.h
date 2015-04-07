@@ -37,46 +37,40 @@ public:
     void* pointer;
     hr = texinram->Map(0, nullptr, &pointer);
 
+
+    size_t block_width = 4, block_height = 4;
+    size_t block_size = 8;
+
     if (!irr::video::isCompressed(image.getFormat()))
     {
-/*        for (unsigned i = 0; i < image.Mips.size(); i++)
-        {
-            MipMapLevel miplevel = image.Mips[i];
-            size_t offset = (miplevel.Offset + 511) & -0x200;
-            MipMapLevel mml = {
-              offset, image.Mips[i].Width, image.Mips[i].Height, image.Mips[i].Size
-            };
-            size_t rowPitch = (UINT)max(image.Mips[i].Width * 4, 256);
-            //Needs to be 512 bytes aligned
-            Mips.push_back(mml);
-            for (unsigned row = 0; row < miplevel.Height; row++)
-            {
-              // Row pitch is always a multiple of 256
-              uintptr_t rowoffset = Mips[i].Offset + row * rowPitch;
-              memcpy(((char*)pointer) + rowoffset, ((char*)image.getPointer()) + image.Mips[i].Offset + row * Mips[i].Width * 4, Mips[i].Width * 4);
-            }
-        }*/
+      block_width = 1, block_height = 1;
+      block_size = 4;
     }
     else
     {
       // For BC1_UNORM
-      size_t offset_in_texram = 0;
-      for (unsigned i = 0; i < image.Mips.size(); i++)
+      block_width = 4, block_height = 4;
+      block_size = 8;
+    }
+
+    size_t offset_in_texram = 0;
+    for (unsigned i = 0; i < image.Mips.size(); i++)
+    {
+      MipMapLevel miplevel = image.Mips[i];
+      // Offset needs to be aligned to 512 bytes
+      offset_in_texram = (offset_in_texram + 511) & -0x200;
+      // Row pitch is always a multiple of 256
+      size_t height_in_blocks = (image.Mips[i].Height + block_height - 1) / block_height;
+      size_t width_in_blocks = (image.Mips[i].Width + block_width - 1) / block_width;
+      size_t height_in_texram = height_in_blocks * block_height;
+      size_t width_in_texram = width_in_blocks * block_width;
+      size_t rowPitch = max(width_in_blocks * block_size, 256);
+      MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
+      Mips.push_back(mml);
+      for (unsigned row = 0; row < height_in_blocks; row++)
       {
-        MipMapLevel miplevel = image.Mips[i];
-        // Offset needs to be aligned to 512 bytes
-        offset_in_texram = (offset_in_texram + 511) & -0x200;
-        // Row pitch is always a multiple of 256
-        size_t height_in_texram = max(image.Mips[i].Height, 4);
-        size_t width_in_texram = max(image.Mips[i].Width, 4);
-        size_t rowPitch = max(width_in_texram * 2, 256);
-        MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
-        Mips.push_back(mml);
-        for (unsigned row = 0; row < height_in_texram / 4; row++)
-        {
-          memcpy(((char*)pointer) + offset_in_texram, ((char*)image.getPointer()) + image.Mips[i].Offset + row *  image.Mips[i].Width * 2, rowPitch);
-          offset_in_texram += rowPitch;
-        }
+        memcpy(((char*)pointer) + offset_in_texram, ((char*)image.getPointer()) + image.Mips[i].Offset + row * width_in_blocks * block_size, rowPitch);
+        offset_in_texram += rowPitch;
       }
     }
     texinram->Unmap(0, nullptr);
