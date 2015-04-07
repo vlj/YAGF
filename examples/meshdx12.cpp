@@ -147,7 +147,7 @@ void Init(HWND hWnd)
     samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
     samplerdesc.MaxAnisotropy = 1;
     samplerdesc.MinLOD = 0;
-    samplerdesc.MaxLOD = 3;
+    samplerdesc.MaxLOD = 9;
     dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
 
     ComPtr<ID3D12Fence> datauploadfence;

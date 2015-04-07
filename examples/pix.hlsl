@@ -14,7 +14,5 @@ struct PS_INPUT
 
 float4 main(PS_INPUT In) : SV_TARGET
 {
-  int width, height, level;
-  Tex.GetDimensions(0, width, height, level);
-  return Tex.SampleLevel(TexSampler, In.uv, level - 1);
+  return Tex.Sample(TexSampler, In.uv);
 }
