@@ -375,9 +375,9 @@ namespace irr
                         }
 
                         if (header.Flags & DDSD_PITCH)
-                            dataSize = offset * header.Depth * (header.PixelFormat.RGBBitCount / 8);
+                            dataSize = (unsigned)offset * header.Depth * (header.PixelFormat.RGBBitCount / 8);
                         else
-                            dataSize = header.Width * header.Height * header.Depth * (header.PixelFormat.RGBBitCount / 8);
+                            dataSize = (unsigned)header.Width * header.Height * header.Depth * (header.PixelFormat.RGBBitCount / 8);
 
                         unsigned char* data = new unsigned char[dataSize];
                         file->read(data, dataSize);
@@ -464,7 +464,7 @@ namespace irr
                                 if (curHeight > 1)
                                     curHeight >>= 1;
                             }
-                            dataSize = offset;
+                            dataSize = (unsigned int)offset;
                             unsigned char* data = new unsigned char[dataSize];
                             file->read(image.getPointer(), dataSize);
 
@@ -520,6 +520,7 @@ namespace irr
                         return image;
                     }
                 }
+                return IImage(ECF_UNKNOWN, 0, 0, 0, false);
             }
 
         };

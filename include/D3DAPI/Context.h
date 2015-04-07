@@ -57,9 +57,16 @@ public:
     BackBufferDescriptors[0] = BackBufferDescriptorsHeap->GetCPUDescriptorHandleForHeapStart();
     BackBufferDescriptors[1] = BackBufferDescriptorsHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP));
     hr = chain->GetBuffer(0, IID_PPV_ARGS(&buffer[0]));
-    dev->CreateRenderTargetView(buffer[0].Get(), nullptr, BackBufferDescriptors[0]);
+
+    D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+    rtv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtv_desc.Texture2D.MipSlice = 0;
+    rtv_desc.Texture2D.PlaneSlice = 0;
+
+    dev->CreateRenderTargetView(buffer[0].Get(), &rtv_desc, BackBufferDescriptors[0]);
     hr = chain->GetBuffer(1, IID_PPV_ARGS(&buffer[1]));
-    dev->CreateRenderTargetView(buffer[1].Get(), nullptr, BackBufferDescriptors[1]);
+    dev->CreateRenderTargetView(buffer[1].Get(), &rtv_desc, BackBufferDescriptors[1]);
     buffer[0]->SetName(L"BackBuffer0");
     buffer[1]->SetName(L"BackBuffer1");
 

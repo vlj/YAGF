@@ -124,7 +124,7 @@ void Init(HWND hWnd)
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_BC1_UNORM, (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_BC1_UNORM_SRGB, (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&Tex)

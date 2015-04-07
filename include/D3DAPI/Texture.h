@@ -113,7 +113,7 @@ public:
       src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
       src.pResource = texinram.Get();
       src.PlacedTexture.Offset = Mips[i].Offset;
-      src.PlacedTexture.Placement.Format = DXGI_FORMAT_BC1_UNORM;
+      src.PlacedTexture.Placement.Format = DXGI_FORMAT_BC1_UNORM_SRGB;
       src.PlacedTexture.Placement.Width = (UINT)miplevel.Width;
       src.PlacedTexture.Placement.Height = (UINT)miplevel.Height;
       src.PlacedTexture.Placement.Depth = 1;
@@ -129,10 +129,10 @@ public:
   D3D12_SHADER_RESOURCE_VIEW_DESC getResourceViewDesc() const
   {
     D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
-    resdesc.Format = DXGI_FORMAT_BC1_UNORM;
+    resdesc.Format = DXGI_FORMAT_BC1_UNORM_SRGB;
     resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     resdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    resdesc.Texture2D.MipLevels = Mips.size();
+    resdesc.Texture2D.MipLevels = (UINT)Mips.size();
     return resdesc;
   }
 };
