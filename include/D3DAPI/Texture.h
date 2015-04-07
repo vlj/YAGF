@@ -36,7 +36,15 @@ public:
         for (unsigned i = 0; i < Mips.size(); i++)
         {
             MipMapLevel miplevel = Mips[i];
-            memcpy(((char*)pointer) + miplevel.Offset, ((char*)image.getPointer()) + miplevel.Offset, miplevel.Size);
+            size_t rowPitch = (UINT)max(Mips[i].Width * 4, 256);
+            //Needs to be 512 bytes aligned
+            uintptr_t offset = (miplevel.Offset + 511) & -0x200;
+            for (unsigned row = 0; row < miplevel.Height; row++)
+            {
+              // Row pitch is always a multiple of 256
+              uintptr_t rowoffset = offset + row * rowPitch;
+              memcpy(((char*)pointer) + rowoffset, ((char*)image.getPointer()) + miplevel.Offset + row * Mips[i].Width * 4, Mips[i].Width * 4);
+            }
         }
     }
     else
@@ -62,8 +70,9 @@ public:
 
   void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource) const
   {
-    for (unsigned i = 0; i < 7; i++)
+    for (unsigned i = 0; i < Mips.size(); i++)
     {
+      MipMapLevel miplevel = Mips[i];
       D3D12_RESOURCE_BARRIER_DESC barrier = {};
       barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
       barrier.Transition.pResource = DestResource;
@@ -80,7 +89,9 @@ public:
       D3D12_TEXTURE_COPY_LOCATION src = {};
       src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
       src.pResource = texinram.Get();
-      src.PlacedTexture.Offset = Mips[i].Offset;
+      uintptr_t alignedPointer = (uintptr_t)miplevel.Offset + 511;
+      alignedPointer &= -0x200;
+      src.PlacedTexture.Offset = alignedPointer;
       src.PlacedTexture.Placement.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
       src.PlacedTexture.Placement.Width = (UINT)Mips[i].Width;
       src.PlacedTexture.Placement.Height = (UINT)Mips[i].Height;
