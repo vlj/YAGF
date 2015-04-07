@@ -62,7 +62,7 @@ public:
 
   void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource) const
   {
-    for (unsigned i = 0; i < Mips.size(); i++)
+    for (unsigned i = 0; i < 7; i++)
     {
       D3D12_RESOURCE_BARRIER_DESC barrier = {};
       barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -80,7 +80,7 @@ public:
       D3D12_TEXTURE_COPY_LOCATION src = {};
       src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
       src.pResource = texinram.Get();
-      src.PlacedTexture.Offset = Mips[0].Offset;
+      src.PlacedTexture.Offset = Mips[i].Offset;
       src.PlacedTexture.Placement.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
       src.PlacedTexture.Placement.Width = (UINT)Mips[i].Width;
       src.PlacedTexture.Placement.Height = (UINT)Mips[i].Height;

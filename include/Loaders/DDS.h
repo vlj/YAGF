@@ -362,11 +362,10 @@ namespace irr
 
                         for (unsigned i = 0; i < mipMapCount; i++)
                         {
-                            size_t size = curWidth * curHeight;
+                            size_t size = curWidth * curHeight * 4;
                             struct MipMapLevel mipdata = { offset, curWidth, curHeight, size };
                             image.Mips.push_back(mipdata);
                             offset += size;
-                            size += curHeight * curWidth;
 
                             if (curWidth > 1)
                                 curWidth >>= 1;
