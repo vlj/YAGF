@@ -8,6 +8,19 @@
 #include <wrl/client.h>
 #include <Core/IImage.h>
 
+inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
+{
+  switch (fmt)
+  {
+  case irr::video::ECF_A8R8G8B8:
+    return DXGI_FORMAT_R8G8B8A8_UNORM;
+  case irr::video::ECF_BC1_UNORM:
+    return DXGI_FORMAT_BC1_UNORM;
+  case irr::video::ECF_BC1_UNORM_SRGB:
+    return DXGI_FORMAT_BC1_UNORM_SRGB;
+  }
+}
+
 class Texture
 {
 private:
@@ -19,11 +32,11 @@ private:
     size_t RowPitch;
   };
   size_t Width, Height;
-  size_t RowPitch;
   Microsoft::WRL::ComPtr<ID3D12Resource> texinram;
   std::vector<MipLevelData> Mips;
+  irr::video::ECOLOR_FORMAT Format;
 public:
-  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), RowPitch(image.getWidth() * 4)
+  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), Format(image.getFormat())
   {
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -37,11 +50,10 @@ public:
     void* pointer;
     hr = texinram->Map(0, nullptr, &pointer);
 
-
     size_t block_width = 4, block_height = 4;
     size_t block_size = 8;
 
-    if (!irr::video::isCompressed(image.getFormat()))
+    if (!irr::video::isCompressed(Format))
     {
       block_width = 1, block_height = 1;
       block_size = 4;
@@ -113,7 +125,7 @@ public:
       src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
       src.pResource = texinram.Get();
       src.PlacedTexture.Offset = Mips[i].Offset;
-      src.PlacedTexture.Placement.Format = DXGI_FORMAT_BC1_UNORM_SRGB;
+      src.PlacedTexture.Placement.Format = getDXGIFormatFromColorFormat(Format);
       src.PlacedTexture.Placement.Width = (UINT)miplevel.Width;
       src.PlacedTexture.Placement.Height = (UINT)miplevel.Height;
       src.PlacedTexture.Placement.Depth = 1;
@@ -129,7 +141,7 @@ public:
   D3D12_SHADER_RESOURCE_VIEW_DESC getResourceViewDesc() const
   {
     D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
-    resdesc.Format = DXGI_FORMAT_BC1_UNORM_SRGB;
+    resdesc.Format = getDXGIFormatFromColorFormat(Format);
     resdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     resdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     resdesc.Texture2D.MipLevels = (UINT)Mips.size();
