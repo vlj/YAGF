@@ -13,7 +13,6 @@
 #include <Util/Debug.h>
 
 #include <Loaders/B3D.h>
-#include <Loaders/PNG.h>
 #include <Loaders/DDS.h>
 
 std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
