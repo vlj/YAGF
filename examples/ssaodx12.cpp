@@ -4,6 +4,7 @@
 #include <D3DAPI/VAO.h>
 #include <Maths/matrix4.h>
 #include <D3DAPI/RootSignature.h>
+#include <D3DAPI/Resource.h>
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
@@ -228,16 +229,6 @@ void Init(HWND hWnd)
   delete buffer;
 }
 
-void setResourceTransitionBarrier(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *res, UINT before, UINT after)
-{
-  D3D12_RESOURCE_BARRIER_DESC barrier = {};
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = res;
-  barrier.Transition.StateBefore = before;
-  barrier.Transition.StateAfter = after;
-  cmdlist->ResourceBarrier(1, &barrier);
-}
-
 void Draw()
 {
   D3D12_RECT rect = {};
@@ -267,7 +258,7 @@ void Draw()
   cmdlist->SetDescriptorHeaps(SamplerHeap.GetAddressOf(), 1);
 
   float tmp[] = { 0., 0., 0., 0. };
-  setResourceTransitionBarrier(cmdlist.Get(), Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET);
+  cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
@@ -313,8 +304,13 @@ void Draw()
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
   cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
-  setResourceTransitionBarrier(cmdlist.Get(), DepthBuffer.Get(), D3D12_RESOURCE_USAGE_DEPTH, D3D12_RESOURCE_USAGE_COPY_SOURCE);
-  setResourceTransitionBarrier(cmdlist.Get(), DepthTexture.Get(), D3D12_RESOURCE_USAGE_GENERIC_READ, D3D12_RESOURCE_USAGE_COPY_DEST);
+  {
+    D3D12_RESOURCE_BARRIER_DESC barriers[2] = {
+      setResourceTransitionBarrier(DepthBuffer.Get(), D3D12_RESOURCE_USAGE_DEPTH, D3D12_RESOURCE_USAGE_COPY_SOURCE),
+      setResourceTransitionBarrier(DepthTexture.Get(), D3D12_RESOURCE_USAGE_GENERIC_READ, D3D12_RESOURCE_USAGE_COPY_DEST)
+    };
+    cmdlist->ResourceBarrier(2, barriers);
+  }
 
   D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
   dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
@@ -325,8 +321,13 @@ void Draw()
   src.pResource = DepthBuffer.Get();
   cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
 
-  setResourceTransitionBarrier(cmdlist.Get(), DepthBuffer.Get(), D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_DEPTH);
-  setResourceTransitionBarrier(cmdlist.Get(), DepthTexture.Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ);
+  {
+    D3D12_RESOURCE_BARRIER_DESC barriers[2] = {
+      setResourceTransitionBarrier(DepthBuffer.Get(), D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_DEPTH),
+      setResourceTransitionBarrier(DepthTexture.Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ)
+    };
+    cmdlist->ResourceBarrier(2, barriers);
+  }
 
   cmdlist->SetGraphicsRootDescriptorTable(1, depth_tex_descriptors->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, SamplerHeap->GetGPUDescriptorHandleForHeapStart());
@@ -335,7 +336,7 @@ void Draw()
   cmdlist->SetVertexBuffers(0, &ScreenQuadView, 1);
   cmdlist->DrawInstanced(3, 1, 0, 0);
 
-  setResourceTransitionBarrier(cmdlist.Get(), Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT);
+  cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
 
   cmdlist->Close();
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());

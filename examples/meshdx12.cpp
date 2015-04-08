@@ -9,6 +9,7 @@
 #include <Loaders/DDS.h>
 #include <tuple>
 #include <D3DAPI/PSO.h>
+#include <D3DAPI/Resource.h>
 
 
 #pragma comment (lib, "d3d12.lib")
@@ -104,7 +105,6 @@ void Init(HWND hWnd)
   irr::io::CReadFile texreader("..\\examples\\anchorBC5.DDS");
   irr::video::CImageLoaderDDS DDSPic(&texreader);
 
-  D3D12_RESOURCE_BARRIER_DESC barrier = {};
   // Upload to gpudata
   {
     // Texture
@@ -176,12 +176,7 @@ void Draw()
   cmdlist->RSSetViewports(1, &view);
   cmdlist->RSSetScissorRects(1, &rect);
 
-  D3D12_RESOURCE_BARRIER_DESC barrier = {};
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = Context::getInstance()->getCurrentBackBuffer();
-  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_PRESENT;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_RENDER_TARGET;
-  cmdlist->ResourceBarrier(1, &barrier);
+  cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
 
   float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
@@ -198,9 +193,7 @@ void Draw()
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
   cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[0]), 1, (UINT)std::get<1>(vao->meshOffset[0]), (UINT)std::get<2>(vao->meshOffset[0]), 0);
 
-  barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_RENDER_TARGET;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_PRESENT;
-  cmdlist->ResourceBarrier(1, &barrier);
+  cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
   HRESULT hr = cmdlist->Close();
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
 
