@@ -31,6 +31,8 @@ inline GLenum getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
     return GL_COMPRESSED_RG_RGTC2;
   case irr::video::ECF_BC5_SNORM:
     return GL_COMPRESSED_SIGNED_RG_RGTC2;
+  default:
+    return -1;
   }
 }
 
@@ -62,7 +64,7 @@ public:
         for (unsigned i = 0; i < image.MipMapData.size(); i++)
         {
           struct PackedMipMapLevel miplevel = image.MipMapData[i];
-          glCompressedTexImage2D(GL_TEXTURE_2D, i, getInternalFormatFromColorFormat(image.Format), miplevel.Width, miplevel.Height, 0, miplevel.DataSize, miplevel.Data);
+          glCompressedTexImage2D(GL_TEXTURE_2D, i, getInternalFormatFromColorFormat(image.Format), (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
         }
       }
     }

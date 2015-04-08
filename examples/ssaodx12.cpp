@@ -259,7 +259,7 @@ void Draw()
 
   float tmp[] = { 0., 0., 0., 0. };
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
-  cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0., nullptr, 0);
+  cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1.f, 0, nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &depth_descriptors->GetCPUDescriptorHandleForHeapStart());
@@ -286,7 +286,7 @@ void Draw()
   cbufferdata[0]->Unmap(0, nullptr);
 
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
-  cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
+  cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
   Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.));
   Model.setScale(1.);
@@ -302,7 +302,7 @@ void Draw()
   cbufdata->zf = 100.f;
   cbufferdata[1]->Unmap(0, nullptr);
   cmdlist->SetGraphicsRootDescriptorTable(0, descriptors->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->DrawIndexedInstanced(std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
+  cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[0]), 1, 0, 0, 0);
 
   {
     D3D12_RESOURCE_BARRIER_DESC barriers[2] = {

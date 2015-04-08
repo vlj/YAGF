@@ -34,6 +34,8 @@ inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
     return DXGI_FORMAT_BC5_UNORM;
   case irr::video::ECF_BC5_SNORM:
     return DXGI_FORMAT_BC5_SNORM;
+  default:
+    return DXGI_FORMAT_UNKNOWN;
   }
 }
 

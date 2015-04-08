@@ -177,7 +177,7 @@ void simulate(float time)
 
   double p;
 
-  float dir = modf(time / (360.f * 360.f), &p);
+  float dir = (float)modf(time / (360.f * 360.f), &p);
   int clockwise = ((int)p) % 2;
   time = 360.f * 360.f * dir * ((clockwise > 0) ? 1.f : -1.f);
 

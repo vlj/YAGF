@@ -318,7 +318,7 @@ namespace irr
 
           for (unsigned i = 0; i < mipMapCount; i++)
           {
-            size_t size = curWidth * curHeight * byteCount;
+            unsigned int size = curWidth * curHeight * byteCount;
             unsigned char* data = new unsigned char[size];
             file->read(data, size);
             struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
@@ -388,8 +388,8 @@ namespace irr
         }
         else if (header.PixelFormat.Flags & DDPF_FOURCC) // Compressed formats
         {
-          size_t block_width, block_height;
-          size_t block_size;
+          unsigned block_width, block_height;
+          unsigned block_size;
           switch (format)
           {
           case ECF_BC1_UNORM:
@@ -420,7 +420,7 @@ namespace irr
 
           for (unsigned i = 0; i < mipMapCount; i++)
           {
-            size_t size = ((curWidth + block_width - 1) / block_width) * ((curHeight + block_height - 1) / block_height) * block_size;
+            unsigned size = ((curWidth + block_width - 1) / block_width) * ((curHeight + block_height - 1) / block_height) * block_size;
             unsigned char* data = new unsigned char[size];
             file->read(data, size);
             struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
@@ -438,13 +438,13 @@ namespace irr
       IImage LoadedImage;
     public:
       //! returns true if the file maybe is able to be loaded by this class
-      bool isALoadableFileFormat(io::IReadFile* file)
+      static bool isALoadableFileFormat(io::IReadFile* f)
       {
-        if (!file)
+        if (!f)
           return false;
 
         char MagicWord[4];
-        file->read(&MagicWord, 4);
+        f->read(&MagicWord, 4);
 
         return (MagicWord[0] == 'D' && MagicWord[1] == 'D' && MagicWord[2] == 'S');
       }
