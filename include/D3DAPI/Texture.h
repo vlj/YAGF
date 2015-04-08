@@ -36,8 +36,10 @@ private:
   std::vector<MipLevelData> Mips;
   irr::video::ECOLOR_FORMAT Format;
 public:
-  Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight()), Format(image.getFormat())
+  Texture(const IImage& image) : Format(image.Format)
   {
+    Width = image.MipMapData[0].Width;
+    Height = image.MipMapData[0].Height;
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
       D3D12_HEAP_MISC_NONE,
@@ -66,14 +68,14 @@ public:
     }
 
     size_t offset_in_texram = 0;
-    for (unsigned i = 0; i < image.Mips.size(); i++)
+    for (unsigned i = 0; i < image.MipMapData.size(); i++)
     {
-      MipMapLevel miplevel = image.Mips[i];
+      struct PackedMipMapLevel miplevel = image.MipMapData[i];
       // Offset needs to be aligned to 512 bytes
       offset_in_texram = (offset_in_texram + 511) & -0x200;
       // Row pitch is always a multiple of 256
-      size_t height_in_blocks = (image.Mips[i].Height + block_height - 1) / block_height;
-      size_t width_in_blocks = (image.Mips[i].Width + block_width - 1) / block_width;
+      size_t height_in_blocks = (image.MipMapData[i].Height + block_height - 1) / block_height;
+      size_t width_in_blocks = (image.MipMapData[i].Width + block_width - 1) / block_width;
       size_t height_in_texram = height_in_blocks * block_height;
       size_t width_in_texram = width_in_blocks * block_width;
       size_t rowPitch = max(width_in_blocks * block_size, 256);
@@ -81,7 +83,7 @@ public:
       Mips.push_back(mml);
       for (unsigned row = 0; row < height_in_blocks; row++)
       {
-        memcpy(((char*)pointer) + offset_in_texram, ((char*)image.getPointer()) + image.Mips[i].Offset + row * width_in_blocks * block_size, rowPitch);
+        memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, rowPitch);
         offset_in_texram += rowPitch;
       }
     }

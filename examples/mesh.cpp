@@ -95,15 +95,11 @@ void init()
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
   }
 
-  std::vector<IImage> imgs;
+  irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
+  irr::video::CImageLoaderDDS DDSFile(&texreader);
 
-  for (auto tmp : loader.Textures)
-  {
-    irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
-    imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
-  }
 
-  texture = new Texture(imgs[0]);
+  texture = new Texture(DDSFile.getLoadedImage());
 
   glGenBuffers(1, &cbuf);
 

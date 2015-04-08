@@ -101,12 +101,8 @@ void Init(HWND hWnd)
 
   vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
-  std::vector<IImage> imgs;
-  for (auto tex : loader.Textures)
-  {
-    irr::io::CReadFile texreader("..\\examples\\anchor.DDS");
-    imgs.push_back(irr::video::CImageLoaderDDS::loadImage(&texreader));
-  }
+  irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
+  irr::video::CImageLoaderDDS DDSPic(&texreader);
 
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
   // Upload to gpudata
@@ -118,12 +114,12 @@ void Init(HWND hWnd)
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&TexResourceHeaps));
 
-    Texture TextureInRam(imgs[0]);
+    Texture TextureInRam(DDSPic.getLoadedImage());
 
     hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(imgs[0].getFormat()), (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
+      &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&Tex)

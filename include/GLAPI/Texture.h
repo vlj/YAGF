@@ -14,28 +14,30 @@ private:
 public:
     GLuint Id;
 
-    Texture(const IImage& image) : Width(image.getWidth()), Height(image.getHeight())
+    Texture(const IImage& image)
     {
-        glGenTextures(1, &Id);
-        glBindTexture(GL_TEXTURE_2D, Id);
+      Width = image.MipMapData[0].Width;
+      Height = image.MipMapData[0].Height;
+      glGenTextures(1, &Id);
+      glBindTexture(GL_TEXTURE_2D, Id);
 
-        if (!irr::video::isCompressed(image.getFormat()))
+      if (!irr::video::isCompressed(image.Format))
+      {
+        for (unsigned i = 0; i < image.MipMapData.size(); i++)
         {
-            for (unsigned i = 0; i < image.Mips.size(); i++)
-            {
-                MipMapLevel miplevel = image.Mips[i];
-                glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, image.getPointer());
-            }
+          struct PackedMipMapLevel miplevel = image.MipMapData[i];
+          glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, miplevel.Data);
         }
-        else
+      }
+      else
+      {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        for (unsigned i = 0; i < image.MipMapData.size(); i++)
         {
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            for (unsigned i = 0; i < image.Mips.size(); i++)
-            {
-                MipMapLevel miplevel = image.Mips[i];
-                glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, miplevel.Width, miplevel.Height, 0, miplevel.Size, ((char*)image.getPointer()) + miplevel.Offset);
-            }
+          struct PackedMipMapLevel miplevel = image.MipMapData[i];
+          glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, miplevel.Width, miplevel.Height, 0, miplevel.DataSize, miplevel.Data);
         }
+      }
     }
 
     ~Texture()

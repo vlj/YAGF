@@ -18,10 +18,10 @@
 
 namespace irr
 {
-    namespace video
-    {
+  namespace video
+  {
 
-        // Header flag values
+    // Header flag values
 #define DDSD_CAPS			0x00000001
 #define DDSD_HEIGHT			0x00000002
 #define DDSD_WIDTH			0x00000004
@@ -59,95 +59,95 @@ namespace irr
 
         /* structures */
 
-        struct ddsPixelFormat
-        {
-            unsigned Size;
-            unsigned Flags;
-            unsigned FourCC;
-            unsigned RGBBitCount;
-            unsigned RBitMask;
-            unsigned GBitMask;
-            unsigned BBitMask;
-            unsigned ABitMask;
-        } PACK_STRUCT;
+    struct ddsPixelFormat
+    {
+      unsigned Size;
+      unsigned Flags;
+      unsigned FourCC;
+      unsigned RGBBitCount;
+      unsigned RBitMask;
+      unsigned GBitMask;
+      unsigned BBitMask;
+      unsigned ABitMask;
+    } PACK_STRUCT;
 
 
-        struct ddsCaps
-        {
-            unsigned caps1;
-            unsigned caps2;
-            unsigned caps3;
-            unsigned caps4;
-        } PACK_STRUCT;
+    struct ddsCaps
+    {
+      unsigned caps1;
+      unsigned caps2;
+      unsigned caps3;
+      unsigned caps4;
+    } PACK_STRUCT;
 
 
-        struct ddsHeader
-        {
-            char Magic[4];
-            unsigned Size;
-            unsigned Flags;
-            unsigned Height;
-            unsigned Width;
-            unsigned PitchOrLinearSize;
-            unsigned Depth;
-            unsigned MipMapCount;
-            unsigned Reserved1[11];
-            ddsPixelFormat PixelFormat;
-            ddsCaps Caps;
-            unsigned Reserved2;
-        } PACK_STRUCT;
+    struct ddsHeader
+    {
+      char Magic[4];
+      unsigned Size;
+      unsigned Flags;
+      unsigned Height;
+      unsigned Width;
+      unsigned PitchOrLinearSize;
+      unsigned Depth;
+      unsigned MipMapCount;
+      unsigned Reserved1[11];
+      ddsPixelFormat PixelFormat;
+      ddsCaps Caps;
+      unsigned Reserved2;
+    } PACK_STRUCT;
 
-        struct ddsHeaderDXT10
-        {
-            unsigned format;
-            unsigned resourceDim;
-            unsigned miscFlag;
-            unsigned arraySize;
-            unsigned miscFlag2;
-        } PACK_STRUCT;
+    struct ddsHeaderDXT10
+    {
+      unsigned format;
+      unsigned resourceDim;
+      unsigned miscFlag;
+      unsigned arraySize;
+      unsigned miscFlag2;
+    } PACK_STRUCT;
 
 #ifdef _IRR_COMPILE_WITH_DDS_DECODER_LOADER_
 
-        struct ddsColorBlock
-        {
-            u16		colors[2];
-            u8		row[4];
-        } PACK_STRUCT;
+    struct ddsColorBlock
+    {
+      u16		colors[2];
+      u8		row[4];
+    } PACK_STRUCT;
 
 
-        struct ddsAlphaBlockExplicit
-        {
-            u16		row[4];
-        } PACK_STRUCT;
+    struct ddsAlphaBlockExplicit
+    {
+      u16		row[4];
+    } PACK_STRUCT;
 
 
-        struct ddsAlphaBlock3BitLinear
-        {
-            u8		alpha0;
-            u8		alpha1;
-            u8		stuff[6];
-        } PACK_STRUCT;
+    struct ddsAlphaBlock3BitLinear
+    {
+      u8		alpha0;
+      u8		alpha1;
+      u8		stuff[6];
+    } PACK_STRUCT;
 
 
-        struct ddsColor
-        {
-            u8		r, g, b, a;
-        } PACK_STRUCT;
+    struct ddsColor
+    {
+      u8		r, g, b, a;
+    } PACK_STRUCT;
 
 #endif
 
 
-        // Default alignment
+    // Default alignment
 //#include "irrunpack.h"
 
 
         /* endian tomfoolery */
-        typedef union
-        {
-            float f;
-            char c[4];
-        }
-        floatSwapUnion;
+    typedef union
+    {
+      float f;
+      char c[4];
+    }
+    floatSwapUnion;
 
 
 #ifndef __BIG_ENDIAN__
@@ -159,374 +159,345 @@ namespace irr
 
 #ifdef __BIG_ENDIAN__
 
-        s32   DDSBigLong(s32 src) { return src; }
-        s16 DDSBigShort(s16 src) { return src; }
-        f32 DDSBigFloat(f32 src) { return src; }
+    s32   DDSBigLong(s32 src) { return src; }
+    s16 DDSBigShort(s16 src) { return src; }
+    f32 DDSBigFloat(f32 src) { return src; }
 
-        s32 DDSLittleLong(s32 src)
-        {
-            return ((src & 0xFF000000) >> 24) |
-                ((src & 0x00FF0000) >> 8) |
-                ((src & 0x0000FF00) << 8) |
-                ((src & 0x000000FF) << 24);
-        }
+    s32 DDSLittleLong(s32 src)
+    {
+      return ((src & 0xFF000000) >> 24) |
+        ((src & 0x00FF0000) >> 8) |
+        ((src & 0x0000FF00) << 8) |
+        ((src & 0x000000FF) << 24);
+    }
 
-        s16 DDSLittleShort(s16 src)
-        {
-            return ((src & 0xFF00) >> 8) |
-                ((src & 0x00FF) << 8);
-        }
+    s16 DDSLittleShort(s16 src)
+    {
+      return ((src & 0xFF00) >> 8) |
+        ((src & 0x00FF) << 8);
+    }
 
-        f32 DDSLittleFloat(f32 src)
-        {
-            floatSwapUnion in, out;
-            in.f = src;
-            out.c[0] = in.c[3];
-            out.c[1] = in.c[2];
-            out.c[2] = in.c[1];
-            out.c[3] = in.c[0];
-            return out.f;
-        }
+    f32 DDSLittleFloat(f32 src)
+    {
+      floatSwapUnion in, out;
+      in.f = src;
+      out.c[0] = in.c[3];
+      out.c[1] = in.c[2];
+      out.c[2] = in.c[1];
+      out.c[3] = in.c[0];
+      return out.f;
+    }
 
 #else /*__BIG_ENDIAN__*/
 
-        int   DDSLittleLong(int src) { return src; }
-        short int DDSLittleShort(short int src) { return src; }
-        float DDSLittleFloat(float src) { return src; }
+    int   DDSLittleLong(int src) { return src; }
+    short int DDSLittleShort(short int src) { return src; }
+    float DDSLittleFloat(float src) { return src; }
 
-        int DDSBigLong(int src)
-        {
-            return ((src & 0xFF000000) >> 24) |
-                ((src & 0x00FF0000) >> 8) |
-                ((src & 0x0000FF00) << 8) |
-                ((src & 0x000000FF) << 24);
-        }
+    int DDSBigLong(int src)
+    {
+      return ((src & 0xFF000000) >> 24) |
+        ((src & 0x00FF0000) >> 8) |
+        ((src & 0x0000FF00) << 8) |
+        ((src & 0x000000FF) << 24);
+    }
 
-        short int DDSBigShort(short int src)
-        {
-            return ((src & 0xFF00) >> 8) |
-                ((src & 0x00FF) << 8);
-        }
+    short int DDSBigShort(short int src)
+    {
+      return ((src & 0xFF00) >> 8) |
+        ((src & 0x00FF) << 8);
+    }
 
-        float DDSBigFloat(float src)
-        {
-            floatSwapUnion in, out;
-            in.f = src;
-            out.c[0] = in.c[3];
-            out.c[1] = in.c[2];
-            out.c[2] = in.c[1];
-            out.c[3] = in.c[0];
-            return out.f;
-        }
+    float DDSBigFloat(float src)
+    {
+      floatSwapUnion in, out;
+      in.f = src;
+      out.c[0] = in.c[3];
+      out.c[1] = in.c[2];
+      out.c[2] = in.c[1];
+      out.c[3] = in.c[0];
+      return out.f;
+    }
 
 #endif /*__BIG_ENDIAN__*/
 
 
-        /*!
-        Surface Loader for DDS images
+    /*!
+    Surface Loader for DDS images
+    */
+    class CImageLoaderDDS
+    {
+    private:
+      static
+        /*
+        DDSGetInfo()
+        extracts relevant info from a dds texture, returns 0 on success
         */
-        class CImageLoaderDDS
+        int DDSGetInfo(ddsHeader* dds, int* width, int* height, ECOLOR_FORMAT* pf, bool &extendeddx10)
+      {
+        /* dummy test */
+        if (dds == NULL)
+          return -1;
+
+        /* test dds header */
+        if (*((int*)dds->Magic) != *((int*) "DDS "))
+          return -1;
+        if (DDSLittleLong(dds->Size) != 124)
+          return -1;
+        if (!(DDSLittleLong(dds->Flags) & DDSD_PIXELFORMAT))
+          return -1;
+        if (!(DDSLittleLong(dds->Flags) & DDSD_CAPS))
+          return -1;
+
+        /* extract width and height */
+        if (width != NULL)
+          *width = DDSLittleLong(dds->Width);
+        if (height != NULL)
+          *height = DDSLittleLong(dds->Height);
+
+        /* get pixel format */
+
+        /* extract fourCC */
+        const unsigned fourCC = dds->PixelFormat.FourCC;
+        *pf = ECF_UNKNOWN;
+        extendeddx10 = false;
+
+        /* test it */
+        if (fourCC == 0)
+          *pf = ECF_A8R8G8B8;
+        if (fourCC == (*(unsigned *)"DX10"))
+          extendeddx10 = true;
+
+        /* return ok */
+        return 0;
+      }
+
+      static int DDSDXT10GetInfo(ddsHeaderDXT10* dds, ECOLOR_FORMAT* pf)
+      {
+        // Code here https://msdn.microsoft.com/en-us/library/windows/desktop/bb173059%28v=vs.85%29.aspx
+        unsigned int format = dds->format;
+        if (format == 71)
+          *pf = ECF_BC1_UNORM;
+        if (format == 72)
+          *pf = ECF_BC1_UNORM_SRGB;
+        if (format == 74)
+          *pf = ECF_BC2_UNORM;
+        if (format == 75)
+          *pf = ECF_BC2_UNORM_SRGB;
+        if (format == 77)
+          *pf = ECF_BC3_UNORM;
+        if (format == 78)
+          *pf = ECF_BC3_UNORM_SRGB;
+        if (format == 80)
+          *pf = ECF_BC4_UNORM;
+        if (format == 81)
+          *pf = ECF_BC4_SNORM;
+        if (format == 83)
+          *pf = ECF_BC5_UNORM;
+        if (format == 84)
+          *pf = ECF_BC5_SNORM;
+        return 0;
+      }
+
+      io::IReadFile* file;
+
+      ddsHeader header;
+      ddsHeaderDXT10 ddsheaderdxt10;
+      ECOLOR_FORMAT format;
+      bool is3D = false;
+      bool useAlpha = false;
+      unsigned mipMapCount;
+
+      void loadMipLevels()
+      {
+        if (header.PixelFormat.Flags & DDPF_RGB) // Uncompressed formats
         {
-        private:
-            static
-                /*
-                DDSGetInfo()
-                extracts relevant info from a dds texture, returns 0 on success
-                */
-                int DDSGetInfo(ddsHeader* dds, int* width, int* height, ECOLOR_FORMAT* pf, bool &extendeddx10)
+          unsigned byteCount = header.PixelFormat.RGBBitCount / 8;
+          unsigned curWidth = header.Width;
+          unsigned curHeight = header.Height;
+
+          for (unsigned i = 0; i < mipMapCount; i++)
+          {
+            size_t size = curWidth * curHeight * byteCount;
+            unsigned char* data = new unsigned char[size];
+            file->read(data, size);
+            struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
+            LoadedImage.MipMapData.push_back(mipdata);
+
+            if (curWidth > 1)
+              curWidth >>= 1;
+
+            if (curHeight > 1)
+              curHeight >>= 1;
+          }
+
+          /*          if (header.Flags & DDSD_PITCH)
+          dataSize = (unsigned)offset * header.Depth * (header.PixelFormat.RGBBitCount / 8);
+          else
+          dataSize = (unsigned)header.Width * header.Height * header.Depth * (header.PixelFormat.RGBBitCount / 8);*/
+
+          switch (header.PixelFormat.RGBBitCount) // Bytes per pixel
+          {
+          case 16:
+          {
+            if (useAlpha)
             {
-                /* dummy test */
-                if (dds == NULL)
-                    return -1;
-
-                /* test dds header */
-                if (*((int*)dds->Magic) != *((int*) "DDS "))
-                    return -1;
-                if (DDSLittleLong(dds->Size) != 124)
-                    return -1;
-                if (!(DDSLittleLong(dds->Flags) & DDSD_PIXELFORMAT))
-                    return -1;
-                if (!(DDSLittleLong(dds->Flags) & DDSD_CAPS))
-                    return -1;
-
-                /* extract width and height */
-                if (width != NULL)
-                    *width = DDSLittleLong(dds->Width);
-                if (height != NULL)
-                    *height = DDSLittleLong(dds->Height);
-
-                /* get pixel format */
-
-                /* extract fourCC */
-                const unsigned fourCC = dds->PixelFormat.FourCC;
-                *pf = ECF_UNKNOWN;
-                extendeddx10 = false;
-
-                /* test it */
-                if (fourCC == 0)
-                    *pf = ECF_A8R8G8B8;
-                if (fourCC == (*(unsigned *)"DX10"))
-                    extendeddx10 = true;
-
-                /* return ok */
-                return 0;
+              if (header.PixelFormat.ABitMask == 0x8000)
+                format = ECF_A1R5G5B5;
+            }
+            else
+            {
+              if (header.PixelFormat.RBitMask == 0xf800)
+                format = ECF_R5G6B5;
             }
 
-            static int DDSDXT10GetInfo(ddsHeaderDXT10* dds, ECOLOR_FORMAT* pf)
+            break;
+          }
+          case 24:
+          {
+            if (!useAlpha)
             {
-                // Code here https://msdn.microsoft.com/en-us/library/windows/desktop/bb173059%28v=vs.85%29.aspx
-                unsigned int format = dds->format;
-                if (format == 71)
-                    *pf = ECF_BC1_UNORM;
-                if (format == 72)
-                    *pf = ECF_BC1_UNORM_SRGB;
-                if (format == 74)
-                    *pf = ECF_BC2_UNORM;
-                if (format == 75)
-                    *pf = ECF_BC2_UNORM_SRGB;
-                if (format == 77)
-                    *pf = ECF_BC3_UNORM;
-                if (format == 78)
-                    *pf = ECF_BC3_UNORM_SRGB;
-                if (format == 80)
-                    *pf = ECF_BC4_UNORM;
-                if (format == 81)
-                    *pf = ECF_BC4_SNORM;
-                if (format == 83)
-                    *pf = ECF_BC5_UNORM;
-                if (format == 84)
-                    *pf = ECF_BC5_SNORM;
-                return 0;
+              if (header.PixelFormat.RBitMask == 0xff0000)
+                format = ECF_R8G8B8;
             }
 
-        public:
-
-            //! returns true if the file maybe is able to be loaded by this class
-            //! based on the file extension (e.g. ".tga")
-            //bool isALoadableFileExtension(const io::path& filename) const;
-
-            //! returns true if the file maybe is able to be loaded by this class
-            static bool isALoadableFileFormat(io::IReadFile* file)
+            break;
+          }
+          case 32:
+          {
+            if (useAlpha)
             {
-                if (!file)
-                    return false;
+              if (header.PixelFormat.RBitMask & 0xff0000)
+                format = ECF_A8R8G8B8;
+              else if (header.PixelFormat.RBitMask & 0xff)
+              {
+                // convert from A8B8G8R8 to A8R8G8B8
+                unsigned char tmp = 0;
 
-                char MagicWord[4];
-                file->read(&MagicWord, 4);
-
-                return (MagicWord[0] == 'D' && MagicWord[1] == 'D' && MagicWord[2] == 'S');
-            }
-
-            //! creates a surface from the file
-            static IImage loadImage(io::IReadFile* file)
-            {
-                ddsHeader header;
-                int width, height;
-                ECOLOR_FORMAT format = ECF_UNKNOWN;
-                unsigned dataSize = 0;
-                bool is3D = false;
-                bool useAlpha = false;
-                unsigned mipMapCount = 0;
-
-                file->seek(0);
-                file->read(&header, sizeof(ddsHeader));
-
-                bool extendeddx10;
-                if (0 == DDSGetInfo(&header, &width, &height, &format, extendeddx10))
+                /*                for (unsigned i = 0; i < dataSize; i += 4)
                 {
-                    if (extendeddx10)
-                    {
-                        ddsHeaderDXT10 ddsheaderdxt10;
-                        file->read(&ddsheaderdxt10, sizeof(ddsHeaderDXT10));
-                        DDSDXT10GetInfo(&ddsheaderdxt10, &format);
-                    }
-
-                    is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
-
-                    assert(!is3D);
-                    if (!is3D)
-                        header.Depth = 1;
-
-                    useAlpha = header.PixelFormat.Flags & DDPF_ALPHAPIXELS;
-
-                    if (header.MipMapCount > 0 && (header.Flags & DDSD_MIPMAPCOUNT))
-                        mipMapCount = header.MipMapCount;
-
-                    if (header.PixelFormat.Flags & DDPF_RGB) // Uncompressed formats
-                    {
-                        unsigned byteCount = header.PixelFormat.RGBBitCount / 8;
-                        IImage image(format, header.Width, header.Height, header.PitchOrLinearSize, false);
-                        unsigned curWidth = header.Width;
-                        unsigned curHeight = header.Height;
-                        size_t offset = 0;
-
-                        for (unsigned i = 0; i < mipMapCount; i++)
-                        {
-                            size_t size = curWidth * curHeight * 4;
-                            struct MipMapLevel mipdata = { offset, curWidth, curHeight, size };
-                            image.Mips.push_back(mipdata);
-                            offset += size;
-
-                            if (curWidth > 1)
-                                curWidth >>= 1;
-
-                            if (curHeight > 1)
-                                curHeight >>= 1;
-                        }
-
-                        if (header.Flags & DDSD_PITCH)
-                            dataSize = (unsigned)offset * header.Depth * (header.PixelFormat.RGBBitCount / 8);
-                        else
-                            dataSize = (unsigned)header.Width * header.Height * header.Depth * (header.PixelFormat.RGBBitCount / 8);
-
-                        unsigned char* data = new unsigned char[dataSize];
-                        file->read(data, dataSize);
-
-                        switch (header.PixelFormat.RGBBitCount) // Bytes per pixel
-                        {
-                        case 16:
-                        {
-                            if (useAlpha)
-                            {
-                                if (header.PixelFormat.ABitMask == 0x8000)
-                                    format = ECF_A1R5G5B5;
-                            }
-                            else
-                            {
-                                if (header.PixelFormat.RBitMask == 0xf800)
-                                    format = ECF_R5G6B5;
-                            }
-
-                            break;
-                        }
-                        case 24:
-                        {
-                            if (!useAlpha)
-                            {
-                                if (header.PixelFormat.RBitMask == 0xff0000)
-                                    format = ECF_R8G8B8;
-                            }
-
-                            break;
-                        }
-                        case 32:
-                        {
-                            if (useAlpha)
-                            {
-                                if (header.PixelFormat.RBitMask & 0xff0000)
-                                    format = ECF_A8R8G8B8;
-                                else if (header.PixelFormat.RBitMask & 0xff)
-                                {
-                                    // convert from A8B8G8R8 to A8R8G8B8
-                                    unsigned char tmp = 0;
-
-                                    for (unsigned i = 0; i < dataSize; i += 4)
-                                    {
-                                        tmp = data[i];
-                                        data[i] = data[i + 2];
-                                        data[i + 2] = tmp;
-                                    }
-                                }
-                            }
-
-                            break;
-                        }
-                        }
-
-
-                        memcpy(image.getPointer(), data, dataSize);
-                        delete[] data;
-                        return image;
-                    }
-                    else if (header.PixelFormat.Flags & DDPF_FOURCC) // Compressed formats
-                    {
-                        IImage image(format, header.Width, header.Height, header.PitchOrLinearSize, false);
-                        switch (format)
-                        {
-                        case ECF_BC1_UNORM:
-                        case ECF_BC1_UNORM_SRGB:
-                        {
-                            unsigned curWidth = header.Width;
-                            unsigned curHeight = header.Height;
-
-                            size_t offset = 0;
-
-                            for (unsigned i = 0; i < mipMapCount; i++)
-                            {
-                                size_t size = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 8;
-                                struct MipMapLevel mipdata = { offset, curWidth, curHeight, size };
-                                image.Mips.push_back(mipdata);
-                                offset += size;
-
-                                if (curWidth > 1)
-                                    curWidth >>= 1;
-
-                                if (curHeight > 1)
-                                    curHeight >>= 1;
-                            }
-                            dataSize = (unsigned int)offset;
-                            unsigned char* data = new unsigned char[dataSize];
-                            file->read(image.getPointer(), dataSize);
-
-                            break;
-                        }
-                        case ECF_BC2_UNORM:
-                        case ECF_BC2_UNORM_SRGB:
-                        case ECF_BC3_UNORM:
-                        case ECF_BC3_UNORM_SRGB:
-                        {
-                            unsigned curWidth = header.Width;
-                            unsigned curHeight = header.Height;
-
-                            dataSize = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 16;
-
-                            do
-                            {
-                                if (curWidth > 1)
-                                    curWidth >>= 1;
-
-                                if (curHeight > 1)
-                                    curHeight >>= 1;
-
-                                dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 16;
-                            } while (curWidth != 1 || curWidth != 1);
-
-                            break;
-                        }
-                        case ECF_BC4_UNORM:
-                        case ECF_BC4_SNORM:
-                        case ECF_BC5_UNORM:
-                        case ECF_BC5_SNORM:
-                        {
-                            unsigned curWidth = header.Width;
-                            unsigned curHeight = header.Height;
-
-                            dataSize = ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 16;
-
-                            do
-                            {
-                                if (curWidth > 1)
-                                    curWidth >>= 1;
-
-                                if (curHeight > 1)
-                                    curHeight >>= 1;
-
-                                dataSize += ((curWidth + 3) / 4) * ((curHeight + 3) / 4) * 16;
-                            } while (curWidth != 1 || curWidth != 1);
-
-                            break;
-                        }
-                        }
-                        return image;
-                    }
-                }
-                return IImage(ECF_UNKNOWN, 0, 0, 0, false);
+                tmp = data[i];
+                data[i] = data[i + 2];
+                data[i + 2] = tmp;
+                }*/
+              }
             }
+            break;
+          }
+          }
+        }
+        else if (header.PixelFormat.Flags & DDPF_FOURCC) // Compressed formats
+        {
+          size_t block_width, block_height;
+          size_t block_size;
+          switch (format)
+          {
+          case ECF_BC1_UNORM:
+          case ECF_BC1_UNORM_SRGB:
+            block_width = 4;
+            block_height = 4;
+            block_size = 8;
+            break;
+          case ECF_BC2_UNORM:
+          case ECF_BC2_UNORM_SRGB:
+          case ECF_BC3_UNORM:
+          case ECF_BC3_UNORM_SRGB:
+            block_width = 4;
+            block_height = 4;
+            block_size = 16;
+            break;
+          case ECF_BC4_UNORM:
+          case ECF_BC4_SNORM:
+          case ECF_BC5_UNORM:
+          case ECF_BC5_SNORM:
+            block_width = 4;
+            block_height = 4;
+            block_size = 16;
+          }
 
-        };
+          unsigned curWidth = header.Width;
+          unsigned curHeight = header.Height;
 
+          for (unsigned i = 0; i < mipMapCount; i++)
+          {
+            size_t size = ((curWidth + block_width - 1) / block_width) * ((curHeight + block_height - 1) / block_height) * block_size;
+            unsigned char* data = new unsigned char[size];
+            file->read(data, size);
+            struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
+            LoadedImage.MipMapData.push_back(mipdata);
 
-    } // end namespace video
+            if (curWidth > 1)
+              curWidth >>= 1;
+
+            if (curHeight > 1)
+              curHeight >>= 1;
+          }
+        }
+      }
+
+      IImage LoadedImage;
+    public:
+      //! returns true if the file maybe is able to be loaded by this class
+      bool isALoadableFileFormat(io::IReadFile* file)
+      {
+        if (!file)
+          return false;
+
+        char MagicWord[4];
+        file->read(&MagicWord, 4);
+
+        return (MagicWord[0] == 'D' && MagicWord[1] == 'D' && MagicWord[2] == 'S');
+      }
+
+      CImageLoaderDDS(io::IReadFile* f) : file(f), format(ECF_UNKNOWN), mipMapCount(0)
+      {
+        assert(isALoadableFileFormat(file));
+
+        // Load DDS headers
+        file->seek(0);
+        file->read(&header, sizeof(ddsHeader));
+
+        int width, height;
+        bool extendeddx10;
+        DDSGetInfo(&header, &width, &height, &format, extendeddx10);
+        if (extendeddx10)
+        {
+          file->read(&ddsheaderdxt10, sizeof(ddsHeaderDXT10));
+          DDSDXT10GetInfo(&ddsheaderdxt10, &format);
+        }
+
+        is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
+
+        assert(!is3D);
+        if (!is3D)
+          header.Depth = 1;
+
+        useAlpha = header.PixelFormat.Flags & DDPF_ALPHAPIXELS;
+
+        if (header.MipMapCount > 0 && (header.Flags & DDSD_MIPMAPCOUNT))
+          mipMapCount = header.MipMapCount;
+
+        LoadedImage.MipMapData.clear();
+        loadMipLevels();
+
+        LoadedImage.Format = format;
+      }
+
+      ~CImageLoaderDDS()
+      {
+        for (struct PackedMipMapLevel miplevel : LoadedImage.MipMapData)
+        {
+          delete[] miplevel.Data;
+        }
+      }
+
+      const IImage& getLoadedImage() const
+      {
+        return LoadedImage;
+      }
+    };
+
+  } // end namespace video
 } // end namespace irr
 
 #endif
