@@ -102,8 +102,8 @@ void Init(HWND hWnd)
 
   vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
-  irr::io::CReadFile texreader("..\\examples\\anchorBC5.DDS");
-  irr::video::CImageLoaderDDS DDSPic(&texreader);
+  std::ifstream DDSFile("..\\examples\\anchorBC5.DDS", std::ifstream::binary);
+  irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
   // Upload to gpudata
   {

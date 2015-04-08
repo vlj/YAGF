@@ -95,10 +95,10 @@ void init()
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
   }
 
-  irr::io::CReadFile texreader("..\\examples\\anchorBC5.DDS");
-  irr::video::CImageLoaderDDS DDSFile(&texreader);
+  std::ifstream DDSFile("..\\examples\\anchorBC5.DDS", std::ifstream::binary);
+  irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-  texture = new Texture(DDSFile.getLoadedImage());
+  texture = new Texture(DDSPic.getLoadedImage());
 
   glGenBuffers(1, &cbuf);
 

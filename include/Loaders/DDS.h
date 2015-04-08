@@ -13,7 +13,7 @@
 #define __C_IMAGE_LOADER_DDS_H_INCLUDED__
 
 #include <Core/IImage.h>
-#include <Loaders/IReadFile.h>
+#include <fstream>
 #include <cassert>
 
 namespace irr
@@ -83,7 +83,6 @@ namespace irr
 
     struct ddsHeader
     {
-      char Magic[4];
       unsigned Size;
       unsigned Flags;
       unsigned Height;
@@ -240,8 +239,6 @@ namespace irr
           return -1;
 
         /* test dds header */
-        if (*((int*)dds->Magic) != *((int*) "DDS "))
-          return -1;
         if (DDSLittleLong(dds->Size) != 124)
           return -1;
         if (!(DDSLittleLong(dds->Flags) & DDSD_PIXELFORMAT))
@@ -299,8 +296,6 @@ namespace irr
         return 0;
       }
 
-      io::IReadFile* file;
-
       ddsHeader header;
       ddsHeaderDXT10 ddsheaderdxt10;
       ECOLOR_FORMAT format;
@@ -308,7 +303,7 @@ namespace irr
       bool useAlpha = false;
       unsigned mipMapCount;
 
-      void loadMipLevels()
+      void loadMipLevels(std::ifstream &file)
       {
         if (header.PixelFormat.Flags & DDPF_RGB) // Uncompressed formats
         {
@@ -319,8 +314,8 @@ namespace irr
           for (unsigned i = 0; i < mipMapCount; i++)
           {
             unsigned int size = curWidth * curHeight * byteCount;
-            unsigned char* data = new unsigned char[size];
-            file->read(data, size);
+            char* data = new char[size];
+            file.read(data, size);
             struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
             LoadedImage.MipMapData.push_back(mipdata);
 
@@ -421,8 +416,8 @@ namespace irr
           for (unsigned i = 0; i < mipMapCount; i++)
           {
             unsigned size = ((curWidth + block_width - 1) / block_width) * ((curHeight + block_height - 1) / block_height) * block_size;
-            unsigned char* data = new unsigned char[size];
-            file->read(data, size);
+            char* data = new char[size];
+            file.read(data, size);
             struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
             LoadedImage.MipMapData.push_back(mipdata);
 
@@ -438,31 +433,30 @@ namespace irr
       IImage LoadedImage;
     public:
       //! returns true if the file maybe is able to be loaded by this class
-      static bool isALoadableFileFormat(io::IReadFile* f)
+      static bool isALoadableFileFormat(std::ifstream &f)
       {
-        if (!f)
+        if (!f.is_open())
           return false;
 
         char MagicWord[4];
-        f->read(&MagicWord, 4);
+        f.read(MagicWord, 4);
 
         return (MagicWord[0] == 'D' && MagicWord[1] == 'D' && MagicWord[2] == 'S');
       }
 
-      CImageLoaderDDS(io::IReadFile* f) : file(f), format(ECF_UNKNOWN), mipMapCount(0)
+      CImageLoaderDDS(std::ifstream &file) : format(ECF_UNKNOWN), mipMapCount(0)
       {
         assert(isALoadableFileFormat(file));
 
         // Load DDS headers
-        file->seek(0);
-        file->read(&header, sizeof(ddsHeader));
+        file.read((char*)&header, sizeof(ddsHeader));
 
         int width, height;
         bool extendeddx10;
         DDSGetInfo(&header, &width, &height, &format, extendeddx10);
         if (extendeddx10)
         {
-          file->read(&ddsheaderdxt10, sizeof(ddsHeaderDXT10));
+          file.read((char*)&ddsheaderdxt10, sizeof(ddsHeaderDXT10));
           DDSDXT10GetInfo(&ddsheaderdxt10, &format);
         }
 
@@ -478,9 +472,10 @@ namespace irr
           mipMapCount = header.MipMapCount;
 
         LoadedImage.MipMapData.clear();
-        loadMipLevels();
+        loadMipLevels(file);
 
         LoadedImage.Format = format;
+        file.close();
       }
 
       ~CImageLoaderDDS()
