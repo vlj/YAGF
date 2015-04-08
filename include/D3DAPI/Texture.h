@@ -18,6 +18,22 @@ inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
     return DXGI_FORMAT_BC1_UNORM;
   case irr::video::ECF_BC1_UNORM_SRGB:
     return DXGI_FORMAT_BC1_UNORM_SRGB;
+  case irr::video::ECF_BC2_UNORM:
+    return DXGI_FORMAT_BC2_UNORM;
+  case irr::video::ECF_BC2_UNORM_SRGB:
+    return DXGI_FORMAT_BC2_UNORM_SRGB;
+  case irr::video::ECF_BC3_UNORM:
+    return DXGI_FORMAT_BC3_UNORM;
+  case irr::video::ECF_BC3_UNORM_SRGB:
+    return DXGI_FORMAT_BC3_UNORM_SRGB;
+  case irr::video::ECF_BC4_UNORM:
+    return DXGI_FORMAT_BC4_UNORM;
+  case irr::video::ECF_BC4_SNORM:
+    return DXGI_FORMAT_BC4_SNORM;
+  case irr::video::ECF_BC5_UNORM:
+    return DXGI_FORMAT_BC5_UNORM;
+  case irr::video::ECF_BC5_SNORM:
+    return DXGI_FORMAT_BC5_SNORM;
   }
 }
 
@@ -62,9 +78,25 @@ public:
     }
     else
     {
-      // For BC1_UNORM
-      block_width = 4, block_height = 4;
-      block_size = 8;
+      switch (Format)
+      {
+      case irr::video::ECF_BC1_UNORM:
+      case irr::video::ECF_BC1_UNORM_SRGB:
+        block_width = 4, block_height = 4;
+        block_size = 8;
+        break;
+      case irr::video::ECF_BC2_UNORM:
+      case irr::video::ECF_BC2_UNORM_SRGB:
+      case irr::video::ECF_BC3_UNORM:
+      case irr::video::ECF_BC3_UNORM_SRGB:
+      case irr::video::ECF_BC4_UNORM:
+      case irr::video::ECF_BC4_SNORM:
+      case irr::video::ECF_BC5_UNORM:
+      case irr::video::ECF_BC5_SNORM:
+        block_width = 4, block_height = 4;
+        block_size = 16;
+        break;
+      }
     }
 
     size_t offset_in_texram = 0;

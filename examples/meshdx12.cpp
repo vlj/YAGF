@@ -101,7 +101,7 @@ void Init(HWND hWnd)
 
   vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
-  irr::io::CReadFile texreader("..\\examples\\anchorBC1.DDS");
+  irr::io::CReadFile texreader("..\\examples\\anchorBC5.DDS");
   irr::video::CImageLoaderDDS DDSPic(&texreader);
 
   D3D12_RESOURCE_BARRIER_DESC barrier = {};
