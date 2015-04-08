@@ -23,7 +23,7 @@ GLuint FollowRootSSBO;
 GLuint ConstantSimBuffer;
 
 
-class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraintSimulation>
+class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraintSimulation>, public TextureRead<UniformBufferResource<0> >
 {
 public:
   GlobalConstraintSimulation()
@@ -37,7 +37,7 @@ public:
   }
 };
 
-class LocalConstraintSimulation : public ShaderHelperSingleton<LocalConstraintSimulation>
+class LocalConstraintSimulation : public ShaderHelperSingleton<LocalConstraintSimulation>, public TextureRead<UniformBufferResource<0> >
 {
 public:
   LocalConstraintSimulation()
@@ -51,7 +51,7 @@ public:
   }
 };
 
-class WindLengthTangentConstraint : public ShaderHelperSingleton<WindLengthTangentConstraint>
+class WindLengthTangentConstraint : public ShaderHelperSingleton<WindLengthTangentConstraint>, public TextureRead<UniformBufferResource<0> >
 {
 public:
 
@@ -66,7 +66,7 @@ public:
   }
 };
 
-class PrepareFollowHairGuide : public ShaderHelperSingleton<PrepareFollowHairGuide>
+class PrepareFollowHairGuide : public ShaderHelperSingleton<PrepareFollowHairGuide>, public TextureRead<UniformBufferResource<0> >
 {
 public:
 
@@ -81,7 +81,7 @@ public:
   }
 };
 
-class UpdateFollowHairGuide : public ShaderHelperSingleton<UpdateFollowHairGuide>
+class UpdateFollowHairGuide : public ShaderHelperSingleton<UpdateFollowHairGuide>, public TextureRead<UniformBufferResource<0> >
 {
 public:
 
@@ -144,9 +144,6 @@ void init()
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, FollowRootSSBO);
 
   glGenBuffers(1, &ConstantSimBuffer);
-  glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), 0, GL_STATIC_DRAW);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 1, ConstantSimBuffer);
 }
 
 void clean()
@@ -230,28 +227,33 @@ void simulate(float time)
 
   // Prepare follow hair guide
   glUseProgram(PrepareFollowHairGuide::getInstance()->Program);
+  PrepareFollowHairGuide::getInstance()->SetTextureUnits(ConstantSimBuffer);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // Global Constraints
   glUseProgram(GlobalConstraintSimulation::getInstance()->Program);
+  GlobalConstraintSimulation::getInstance()->SetTextureUnits(ConstantSimBuffer);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // Local Constraints
   glUseProgram(LocalConstraintSimulation::getInstance()->Program);
+  LocalConstraintSimulation::getInstance()->SetTextureUnits(ConstantSimBuffer);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // Wind Lenght Tangent
   glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
+  WindLengthTangentConstraint::getInstance()->SetTextureUnits(ConstantSimBuffer);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   glUseProgram(UpdateFollowHairGuide::getInstance()->Program);
+  UpdateFollowHairGuide::getInstance()->SetTextureUnits(ConstantSimBuffer);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 }
 

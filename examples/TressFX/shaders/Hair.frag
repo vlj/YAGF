@@ -2,7 +2,7 @@
 layout (binding = 0) uniform atomic_uint PixelCount;
 layout(r32ui) uniform restrict uimage2D PerPixelLinkedListHead;
 
-layout(std140, binding = 0) uniform Constants
+layout(std140) uniform Constants
 {
   mat4 g_mWorld;
   mat4 g_mViewProj;

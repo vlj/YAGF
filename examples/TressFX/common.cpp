@@ -59,7 +59,7 @@ struct Constants
   float g_mInvViewProjViewport[16];
 };
 
-class HairShadow : public ShaderHelperSingleton<HairShadow>
+class HairShadow : public ShaderHelperSingleton<HairShadow>, public TextureRead<UniformBufferResource<0>>
 {
 public:
   HairShadow()
@@ -75,10 +75,11 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, vtxshader.c_str(),
       GL_FRAGMENT_SHADER, fragshader.c_str());
+    AssignSamplerNames(Program, "Constants");
   }
 };
 
-class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<ImageResource<1> >
+class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<UniformBufferResource<0>, ImageResource<1> >
 {
 public:
   Transparent()
@@ -94,11 +95,11 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, vtxshader.c_str(),
       GL_FRAGMENT_SHADER, fragshader.c_str());
-    AssignSamplerNames(Program, "PerPixelLinkedListHead");
+    AssignSamplerNames(Program, "Constants", "PerPixelLinkedListHead");
   }
 };
 
-class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
+class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
 {
 public:
   FragmentMerge()
@@ -110,7 +111,7 @@ public:
     Program = ProgramShaderLoading::LoadProgram(
       GL_VERTEX_SHADER, screenquadshader,
       GL_FRAGMENT_SHADER, fragmerge.c_str());
-    AssignSamplerNames(Program, "HairShadowMap", "PerPixelLinkedListHead");
+    AssignSamplerNames(Program, "Constants", "HairShadowMap", "PerPixelLinkedListHead");
   }
 };
 
@@ -328,9 +329,6 @@ void initCommon(const TressFXAsset& tfxassets)
   glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
 
   glGenBuffers(1, &ConstantBuffer);
-  glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), 0, GL_STATIC_DRAW);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, ConstantBuffer);
 
   Sampler = SamplerHelper::createNearestSampler();
 
@@ -480,6 +478,7 @@ void draw(float density)
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glBindVertexArray(TFXVaoLine);
   glUseProgram(HairShadow::getInstance()->Program);
+  HairShadow::getInstance()->SetTextureUnits(ConstantBuffer);
   glDrawElementsBaseVertex(GL_LINES, (GLsizei)(density * triangleIndicesCount), GL_UNSIGNED_INT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
@@ -504,7 +503,7 @@ void draw(float density)
 
     glBindVertexArray(TFXVao);
     glUseProgram(Transparent::getInstance()->Program);
-    Transparent::getInstance()->SetTextureUnits(PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
+    Transparent::getInstance()->SetTextureUnits(ConstantBuffer, PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei) (density * lineIndicesCount), GL_UNSIGNED_INT, 0, 0);
 
     glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -534,7 +533,7 @@ void draw(float density)
   glBlendEquation(GL_FUNC_ADD);
 
 
-  FragmentMerge::getInstance()->SetTextureUnits(HairShadowMapDepth, Sampler, PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
+  FragmentMerge::getInstance()->SetTextureUnits(ConstantBuffer, HairShadowMapDepth, Sampler, PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
 
   glDisable(GL_STENCIL_TEST);

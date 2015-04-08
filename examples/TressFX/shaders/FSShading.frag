@@ -2,7 +2,7 @@
 uniform sampler2D HairShadowMap;
 layout(r32ui) uniform volatile restrict uimage2D PerPixelLinkedListHead;
 
-layout(std140, binding = 0) uniform Constants
+layout(std140) uniform Constants
 {
   mat4 g_mWorld;
   mat4 g_mViewProj;
