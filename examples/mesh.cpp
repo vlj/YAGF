@@ -95,9 +95,8 @@ void init()
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
   }
 
-  irr::io::CReadFile texreader("..\\examples\\anchorBC3.DDS");
+  irr::io::CReadFile texreader("..\\examples\\anchorBC5.DDS");
   irr::video::CImageLoaderDDS DDSFile(&texreader);
-
 
   texture = new Texture(DDSFile.getLoadedImage());
 

@@ -20,17 +20,17 @@ inline GLenum getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
   case irr::video::ECF_BC2_UNORM_SRGB:
     return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
   case irr::video::ECF_BC3_UNORM:
-    return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
   case irr::video::ECF_BC3_UNORM_SRGB:
-    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
   case irr::video::ECF_BC4_UNORM:
-    return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    return GL_COMPRESSED_RED_RGTC1;
   case irr::video::ECF_BC4_SNORM:
-    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+    return GL_COMPRESSED_SIGNED_RED_RGTC1;
   case irr::video::ECF_BC5_UNORM:
-    return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    return GL_COMPRESSED_RG_RGTC2;
   case irr::video::ECF_BC5_SNORM:
-    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+    return GL_COMPRESSED_SIGNED_RG_RGTC2;
   }
 }
 
