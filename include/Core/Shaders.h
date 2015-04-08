@@ -180,12 +180,12 @@ class ProgramShaderLoading
     }*/
 public:
   GLuint LoadTFBProgram(const char * vertex_file_path, const char **varyings, unsigned varyingscount);
-  const char *getShaderCode(const char *file)
-  {
-    printf("Loading shader : %s\n", file);
-    char versionString[20];
-    sprintf(versionString, "#version %d\n", 330);
-    std::string Code = versionString;
+//  const char *getShaderCode(const char *file)
+//  {
+//    printf("Loading shader : %s\n", file);
+//    char versionString[20];
+//    sprintf(versionString, "#version %d\n", 330);
+//    std::string Code = versionString;
     /*      if (CVS->isAMDVertexShaderLayerUsable())
             Code += "#extension GL_AMD_vertex_shader_layer : enable\n";
             if (CVS->isAZDOEnabled())
@@ -193,23 +193,23 @@ public:
             Code += "#extension GL_ARB_bindless_texture : enable\n";
             Code += "#define Use_Bindless_Texture\n";
             }*/
-    std::ifstream Stream(file, std::ios::in);
-    Code += "//" + std::string(file) + "\n";
+//    std::ifstream Stream(file, std::ios::in);
+//    Code += "//" + std::string(file) + "\n";
     /*    if (!CVS->isARBUniformBufferObjectUsable())
             Code += "#define UBO_DISABLED\n";
             if (CVS->isAMDVertexShaderLayerUsable())
             Code += "#define VSLayer\n";
             if (CVS->needsRGBBindlessWorkaround())
             Code += "#define SRGBBindlessFix\n";*/
-    if (Stream.is_open())
-    {
-      std::string Line = "";
-      while (getline(Stream, Line))
-        Code += "\n" + Line;
-      Stream.close();
-    }
-    return Code.c_str();
-  }
+//    if (Stream.is_open())
+//    {
+//      std::string Line = "";
+//      while (getline(Stream, Line))
+//        Code += "\n" + Line;
+//      Stream.close();
+//    }
+//    return Code.c_str();
+//  }
 
   template<typename ... Types>
   static GLint LoadProgram(Types ... args)

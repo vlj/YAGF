@@ -9,6 +9,8 @@
 #include <Util/Text.h>
 
 #include <fstream>
+#include <sstream>
+
 
 struct PerPixelListBucket
 {
@@ -493,7 +495,7 @@ void draw(float density)
   glEnable(GL_STENCIL_TEST);
   glStencilFunc(GL_ALWAYS, 1, 0xFF);
   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-  char t[50];
+  std::string t;
   {
     GLuint timer;
     glGenQueries(1, &timer);
@@ -511,8 +513,10 @@ void draw(float density)
     GLuint result;
     glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
 
-    sprintf(t, "First pass: %f ms", result / 1000000.);
-	glDeleteQueries(1, &timer);
+    std::stringstream strstream;
+    strstream << "First pass: " << result / 1000000. << "ms";
+    t = strstream.str();
+    glDeleteQueries(1, &timer);
   }
 
   syncobj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -547,5 +551,5 @@ void draw(float density)
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
 
-  BasicTextRender<14>::getInstance()->drawText(t, 0, 20, 1024, 1024);
+  BasicTextRender<14>::getInstance()->drawText(t.c_str(), 0, 20, 1024, 1024);
 }

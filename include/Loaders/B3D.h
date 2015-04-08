@@ -1166,7 +1166,9 @@ namespace irr
 #ifdef __BIG_ENDIAN__
         n_texs = os::Byteswap::byteswap(n_texs);
 #endif
+#ifndef min
 #define min(a,b) ((a) < (b) ? (a) : (b))
+#endif
         // number of texture ids read for Irrlicht
         const unsigned num_textures = min(n_texs, MATERIAL_MAX_TEXTURES);
         // number of bytes to skip (for ignored texture ids)

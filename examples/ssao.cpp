@@ -10,6 +10,8 @@
 #include <Util/Samplers.h>
 #include <Util/Text.h>
 
+#include <sstream>
+
 irr::scene::IMeshBuffer<irr::video::S3DVertex> *buffer;
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
@@ -285,14 +287,14 @@ void draw()
   glGetQueryObjectuiv(timer, GL_QUERY_RESULT, &result);
   glDeleteQueries(1, &timer);
 
-  char time[50];
-  sprintf(time, "100 x SSAO: %f ms" , result / 1000000.);
+  std::stringstream strbuf;
+  strbuf << "100 x SSAO: " << result / 1000000. << " ms";
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
 
-  BasicTextRender<14>::getInstance()->drawText(time, 0, 20, 1024, 1024);
+  BasicTextRender<14>::getInstance()->drawText(strbuf.str().c_str(), 0, 20, 1024, 1024);
 }
 
 int main()
