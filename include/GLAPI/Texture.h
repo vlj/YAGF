@@ -7,6 +7,33 @@
 #include <GL/glew.h>
 #include <Core/IImage.h>
 
+inline GLenum getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
+{
+  switch (fmt)
+  {
+  case irr::video::ECF_BC1_UNORM:
+    return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+  case irr::video::ECF_BC1_UNORM_SRGB:
+    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+  case irr::video::ECF_BC2_UNORM:
+    return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+  case irr::video::ECF_BC2_UNORM_SRGB:
+    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+  case irr::video::ECF_BC3_UNORM:
+    return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+  case irr::video::ECF_BC3_UNORM_SRGB:
+    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+  case irr::video::ECF_BC4_UNORM:
+    return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+  case irr::video::ECF_BC4_SNORM:
+    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+  case irr::video::ECF_BC5_UNORM:
+    return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+  case irr::video::ECF_BC5_SNORM:
+    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+  }
+}
+
 class Texture
 {
 private:
@@ -35,7 +62,7 @@ public:
         for (unsigned i = 0; i < image.MipMapData.size(); i++)
         {
           struct PackedMipMapLevel miplevel = image.MipMapData[i];
-          glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, miplevel.Width, miplevel.Height, 0, miplevel.DataSize, miplevel.Data);
+          glCompressedTexImage2D(GL_TEXTURE_2D, i, getInternalFormatFromColorFormat(image.Format), miplevel.Width, miplevel.Height, 0, miplevel.DataSize, miplevel.Data);
         }
       }
     }
