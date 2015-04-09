@@ -100,6 +100,9 @@ void init()
 
   texture = new Texture(DDSPic.getLoadedImage());
 
+  loader.AnimatedMesh.animateMesh(10., 1.);
+  loader.AnimatedMesh.skinMesh(1.);
+
   glGenBuffers(1, &cbuf);
 
   TrilinearSampler = SamplerHelper::createTrilinearSampler();

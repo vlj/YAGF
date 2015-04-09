@@ -596,9 +596,7 @@ namespace irr
               //--j;
             }
             else
-            {
               verticesTotalWeight[weight.buffer_id][weight.vertex_id] += weight.strength;
-            }
           }
         }
 
@@ -815,6 +813,47 @@ namespace irr
         SkinnedLastFrame = false;
       }
 
+      void buildAllGlobalAnimatedMatrices(SJoint *joint = nullptr, SJoint *parentJoint = nullptr)
+      {
+        if (!joint)
+        {
+          for (SJoint *rootjoint : RootJoints)
+            buildAllGlobalAnimatedMatrices(rootjoint, 0);
+          return;
+        }
+        else
+        {
+          // Find global matrix...
+          if (!parentJoint || joint->GlobalSkinningSpace)
+            joint->GlobalAnimatedMatrix = joint->LocalAnimatedMatrix;
+          else
+            joint->GlobalAnimatedMatrix = parentJoint->GlobalAnimatedMatrix * joint->LocalAnimatedMatrix;
+        }
+
+        for (SJoint *childjoint : joint->Children)
+          buildAllGlobalAnimatedMatrices(childjoint, joint);
+      }
+
+
+      void skinJoint(SJoint *joint, SJoint *parentJoint, float strength)
+      {
+        if (!joint->Weights.empty())
+        {
+          //Find this joints pull on vertices...
+          core::matrix4 jointVertexPull(core::matrix4::EM4CONST_NOTHING);
+          jointVertexPull.setbyproduct(joint->GlobalAnimatedMatrix, joint->GlobalInversedMatrix);
+
+          core::vector3df thisVertexMove, thisNormalMove;
+
+//          core::array<scene::SSkinMeshBuffer*> &buffersUsed = *SkinningBuffers;
+//          JointMatrixes.push_back(jointVertexPull);
+        }
+
+        //Skin all children
+        for (SJoint *childjoint : joint->Children)
+          skinJoint(childjoint, joint, strength);
+      }
+
     public:
       //! Gets joint count.
       /** \return Amount of joints in the skeletal animated mesh. */
@@ -831,14 +870,6 @@ namespace irr
             \return Number of the joint or -1 if not found. */
             //virtual int getJointNumber(const char* name) const = 0;
 
-                  //! Use animation from another mesh
-                  /** The animation is linked (not copied) based on joint names
-                  so make sure they are unique.
-                  \return True if all joints in this mesh were
-                  matched up (empty names will not be matched, and it's case
-                  sensitive). Unmatched joints will not be animated. */
-                  //virtual bool useAnimationFrom(const ISkinnedMesh *mesh) = 0;
-
       //! Gets the frame count of the animated mesh.
       /** \param fps Frames per second to play the animation with. If the amount is 0, it is not animated.
       The actual speed is set in the scene node the mesh is instantiated in.*/
@@ -852,9 +883,6 @@ namespace irr
       Else update normals, which allows for proper lighting of
       animated meshes. */
       //      virtual void updateNormalsWhenAnimating(bool on) = 0;
-
-            //! Sets Interpolation Mode
-      //      virtual void setInterpolationMode(E_INTERPOLATION_MODE mode) = 0;
 
       //! Animates this mesh's joints based on frame input
       //! blend: {0-old position, 1-New position}
@@ -915,7 +943,45 @@ namespace irr
       }
 
       //! Preforms a software skin on this mesh based of joint positions
-//      virtual void skinMesh(float strength = 1.f) = 0;
+      void skinMesh(float strength = 1.f)
+      {
+        if (!HasAnimation || SkinnedLastFrame)
+          return;
+
+        //----------------
+        // This is marked as "Temp!".  A shiny dubloon to whomever can tell me why.
+        buildAllGlobalAnimatedMatrices();
+        //-----------------
+
+        SkinnedLastFrame = true;
+
+/*        if (!areWeightGenerated)
+          generateWeightInfluenceData();
+        areWeightGenerated = true;
+        JointMatrixes.clear();*/
+
+        if (!HardwareSkinning)
+        {
+          //rigid animation
+          for (unsigned i = 0; i<AllJoints.size(); ++i)
+          {
+            for (unsigned j = 0; j<AllJoints[i]->AttachedMeshes.size(); ++j)
+            {
+//              SSkinMeshBuffer* Buffer = (*SkinningBuffers)[AllJoints[i]->AttachedMeshes[j]];
+//              Buffer->Transformation = AllJoints[i]->GlobalAnimatedMatrix;
+            }
+          }
+
+          //clear skinning helper array
+          for (unsigned i = 0; i<Vertices_Moved.size(); ++i)
+            for (unsigned j = 0; j<Vertices_Moved[i].size(); ++j)
+              Vertices_Moved[i][j] = false;
+
+          //skin starting with the root joints
+          for (unsigned i = 0; i<RootJoints.size(); ++i)
+            skinJoint(RootJoints[i], 0, strength);
+        }
+      }
 
       //! converts the vertex type of all meshbuffers to tangents.
       /** E.g. used for bump mapping. */
