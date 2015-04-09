@@ -271,45 +271,45 @@ namespace irr
       /** \param number: Zero based index of joint. The last joint
       has the number getJointCount()-1;
       \return Name of joint and null if an error happened. */
-      //      virtual const char* getJointName(unsigned number) const = 0;
+//      virtual const char* getJointName(unsigned number) const = 0;
 
-            //! Gets a joint number from its name
-            /** \param name: Name of the joint.
-            \return Number of the joint or -1 if not found. */
-            //      virtual int getJointNumber(const char* name) const = 0;
+      //! Gets a joint number from its name
+      /** \param name: Name of the joint.
+      \return Number of the joint or -1 if not found. */
+//      virtual int getJointNumber(const char* name) const = 0;
 
-                  //! Use animation from another mesh
-                  /** The animation is linked (not copied) based on joint names
-                  so make sure they are unique.
-                  \return True if all joints in this mesh were
-                  matched up (empty names will not be matched, and it's case
-                  sensitive). Unmatched joints will not be animated. */
-                  //      virtual bool useAnimationFrom(const ISkinnedMesh *mesh) = 0;
+      //! Use animation from another mesh
+      /** The animation is linked (not copied) based on joint names
+      so make sure they are unique.
+      \return True if all joints in this mesh were
+      matched up (empty names will not be matched, and it's case
+      sensitive). Unmatched joints will not be animated. */
+//      virtual bool useAnimationFrom(const ISkinnedMesh *mesh) = 0;
 
-                        //! Update Normals when Animating
-                        /** \param on If false don't animate, which is faster.
-                        Else update normals, which allows for proper lighting of
-                        animated meshes. */
-                        //      virtual void updateNormalsWhenAnimating(bool on) = 0;
+      //! Update Normals when Animating
+      /** \param on If false don't animate, which is faster.
+      Else update normals, which allows for proper lighting of
+      animated meshes. */
+//      virtual void updateNormalsWhenAnimating(bool on) = 0;
 
-                              //! Sets Interpolation Mode
-                        //      virtual void setInterpolationMode(E_INTERPOLATION_MODE mode) = 0;
+      //! Sets Interpolation Mode
+//      virtual void setInterpolationMode(E_INTERPOLATION_MODE mode) = 0;
 
-                              //! Animates this mesh's joints based on frame input
-                        //      virtual void animateMesh(float frame, float blend) = 0;
+      //! Animates this mesh's joints based on frame input
+//      virtual void animateMesh(float frame, float blend) = 0;
 
-                              //! Preforms a software skin on this mesh based of joint positions
-                        //      virtual void skinMesh(float strength = 1.f) = 0;
+      //! Preforms a software skin on this mesh based of joint positions
+//      virtual void skinMesh(float strength = 1.f) = 0;
 
-                              //! converts the vertex type of all meshbuffers to tangents.
-                              /** E.g. used for bump mapping. */
-                        //      virtual void convertMeshToTangents() = 0;
+      //! converts the vertex type of all meshbuffers to tangents.
+      /** E.g. used for bump mapping. */
+//      virtual void convertMeshToTangents() = 0;
 
-                              //! Allows to enable hardware skinning.
-                              /* This feature is not implementated in Irrlicht yet */
-                        //      virtual bool setHardwareSkinning(bool on) = 0;
+      //! Allows to enable hardware skinning.
+      /* This feature is not implementated in Irrlicht yet */
+//      virtual bool setHardwareSkinning(bool on) = 0;
 
-                              //! A vertex weight
+      //! A vertex weight
       struct SWeight
       {
         //! Index of the mesh buffer
@@ -404,9 +404,9 @@ namespace irr
         int scaleHint;
         int rotationHint;
       };
-    private:
-      std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > LocalBuffers;
-    public:
+      private:
+        std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > LocalBuffers;
+        public:
 
 
       //Interface for the mesh loaders (finalize should lock these functions, and they should have some prefix like loader_
@@ -414,10 +414,10 @@ namespace irr
       //these functions will use the needed arrays, set values, etc to help the loaders
 
       //! exposed for loaders: to add mesh buffers
-      virtual std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> >& getMeshBuffers()
-      {
-        return LocalBuffers;
-      }
+          std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> >& getMeshBuffers()
+          {
+            return LocalBuffers;
+          }
 
       //! exposed for loaders: joints list
 //      virtual std::vector<SJoint*>& getAllJoints() = 0;
@@ -429,17 +429,27 @@ namespace irr
 //      virtual void finalize() = 0;
 
       //! Adds a new meshbuffer to the mesh, access it as last one
-      virtual std::pair<SMeshBufferLightMap, video::SMaterial>& addMeshBuffer()
-      {
-        LocalBuffers.push_back(std::make_pair(scene::SMeshBufferLightMap(), video::SMaterial()));
-        return LocalBuffers.back();
-      }
+          std::pair<SMeshBufferLightMap, video::SMaterial>& addMeshBuffer()
+          {
+            LocalBuffers.push_back(std::make_pair(scene::SMeshBufferLightMap(), video::SMaterial()));
+            return LocalBuffers.back();
+          }
 
       //! Adds a new joint to the mesh, access it as last one
-//      virtual SJoint* addJoint(SJoint *parent = 0) = 0;
+          SJoint* addJoint(SJoint *parent = 0)
+          {
+            SJoint *joint = new SJoint;
+
+            //AllJoints.push_back(joint);
+            return joint;
+          }
 
       //! Adds a new weight to the mesh, access it as last one
-//      virtual SWeight* addWeight(SJoint *joint) = 0;
+          SWeight* addWeight(SJoint *joint)
+          {
+            joint->Weights.push_back(SWeight());
+            return &joint->Weights.back();
+          }
 
       //! Adds a new position key to the mesh, access it as last one
 //      virtual SPositionKey* addPositionKey(SJoint *joint) = 0;

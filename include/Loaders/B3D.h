@@ -26,64 +26,6 @@ namespace irr
 
   namespace scene
   {
-    class CSkinnedMesh{
-    public:
-      //! Joints
-      struct SJoint
-      {
-        SJoint() : UseAnimationFrom(0), GlobalSkinningSpace(false),
-          positionHint(-1), scaleHint(-1), rotationHint(-1)
-        {
-        }
-
-        //! The name of this joint
-        std::string Name;
-
-        //! Local matrix of this joint
-        core::matrix4 LocalMatrix;
-
-        //! List of child joints
-        std::vector<SJoint*> Children;
-
-        //! List of attached meshes
-        std::vector<unsigned> AttachedMeshes;
-
-        //! Animation keys causing translation change
-        //std::vector<SPositionKey> PositionKeys;
-
-        //! Animation keys causing scale change
-        //std::vector<SScaleKey> ScaleKeys;
-
-        //! Animation keys causing rotation change
-        //std::vector<SRotationKey> RotationKeys;
-
-        //! Skin weights
-        //std::vector<SWeight> Weights;
-
-        //! Unnecessary for loaders, will be overwritten on finalize
-        core::matrix4 GlobalMatrix;
-        core::matrix4 GlobalAnimatedMatrix;
-        core::matrix4 LocalAnimatedMatrix;
-        core::vector3df Animatedposition;
-        core::vector3df Animatedscale;
-        //core::quaternion Animatedrotation;
-
-        core::matrix4 GlobalInversedMatrix; //the x format pre-calculates this
-
-      private:
-        //! Internal members used by CSkinnedMesh
-        friend class CSkinnedMesh;
-
-        SJoint *UseAnimationFrom;
-        bool GlobalSkinningSpace;
-
-        int positionHint;
-        int scaleHint;
-        int rotationHint;
-      };
-
-    };
-
     //! Meshloader for B3D format
     class CB3DMeshFileLoader
     {
@@ -231,14 +173,13 @@ namespace irr
           }
           else if (strncmp(B3dStack.back().name, "NODE", 4) == 0)
           {
-            if (!readChunkNODE((CSkinnedMesh::SJoint*)0))
+            if (!readChunkNODE((ISkinnedMesh::SJoint*)0))
               return false;
           }
           else
           {
             printf("Unknown chunk found in mesh base - skipping");
             B3DFile->seek(B3dStack.back().startposition + B3dStack.back().length);
-            //                        B3dStack.erase(B3dStack.size() - 1);
             B3dStack.pop_back();
           }
         }
@@ -254,9 +195,9 @@ namespace irr
         return true;
       }
 
-      bool readChunkNODE(CSkinnedMesh::SJoint* inJoint)
+      bool readChunkNODE(ISkinnedMesh::SJoint* inJoint)
       {
-        CSkinnedMesh::SJoint *joint = new CSkinnedMesh::SJoint();// AnimatedMesh->addJoint(inJoint);
+        ISkinnedMesh::SJoint *joint = AnimatedMesh.addJoint(inJoint);
         readString(joint->Name);
 
 #ifdef _B3D_READER_DEBUG
@@ -314,21 +255,21 @@ namespace irr
             if (!readChunkMESH(joint))
               return false;
           }
-          /*                    else if (strncmp(B3dStack.back().name, "BONE", 4) == 0)
-                              {
-                              if (!readChunkBONE(joint))
-                              return false;
-                              }
-                              else if (strncmp(B3dStack.back().name, "KEYS", 4) == 0)
-                              {
-                              if (!readChunkKEYS(joint))
-                              return false;
-                              }
-                              else if (strncmp(B3dStack.back().name, "ANIM", 4) == 0)
-                              {
-                              if (!readChunkANIM())
-                              return false;
-                              }*/
+          else if (strncmp(B3dStack.back().name, "BONE", 4) == 0)
+          {
+            if (!readChunkBONE(joint))
+              return false;
+          }
+          else if (strncmp(B3dStack.back().name, "KEYS", 4) == 0)
+          {
+            if (!readChunkKEYS(joint))
+              return false;
+          }
+          else if (strncmp(B3dStack.back().name, "ANIM", 4) == 0)
+          {
+            if (!readChunkANIM())
+              return false;
+          }
           else
           {
             printf("Unknown chunk found in node chunk - skipping");
@@ -342,7 +283,7 @@ namespace irr
         return true;
       }
 
-      bool readChunkMESH(CSkinnedMesh::SJoint* inJoint)
+      bool readChunkMESH(ISkinnedMesh::SJoint* inJoint)
       {
 #ifdef _B3D_READER_DEBUG
         core::stringc logStr;
@@ -437,7 +378,7 @@ namespace irr
       float tex_coords[tex_coord_sets][tex_coord_set_size]	;tex coords
       }
       */
-      bool readChunkVRTS(CSkinnedMesh::SJoint *inJoint)
+      bool readChunkVRTS(ISkinnedMesh::SJoint *inJoint)
       {
 #ifdef _B3D_READER_DEBUG
         core::stringc logStr;
@@ -663,50 +604,50 @@ namespace irr
         return true;
       }
 
-      bool readChunkBONE(CSkinnedMesh::SJoint* InJoint)
+      bool readChunkBONE(ISkinnedMesh::SJoint* InJoint)
       {
-        /*#ifdef _B3D_READER_DEBUG
-                        core::stringc logStr;
-                        for (unsigned i = 1; i < B3dStack.size(); ++i)
-                        logStr += "-";
-                        logStr += "read ChunkBONE";
-                        os::Printer::log(logStr.c_str());
-                        #endif
+#ifdef _B3D_READER_DEBUG
+        core::stringc logStr;
+        for (unsigned i = 1; i < B3dStack.size(); ++i)
+          logStr += "-";
+        logStr += "read ChunkBONE";
+        os::Printer::log(logStr.c_str());
+#endif
 
-                        if (B3dStack.back().length > 8)
-                        {
-                        while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) // this chunk repeats
-                        {
-                        unsigned globalVertexID;
-                        float strength;
-                        B3DFile->read(&globalVertexID, sizeof(globalVertexID));
-                        B3DFile->read(&strength, sizeof(strength));
-                        #ifdef __BIG_ENDIAN__
-                        globalVertexID = os::Byteswap::byteswap(globalVertexID);
-                        strength = os::Byteswap::byteswap(strength);
-                        #endif
-                        globalVertexID += VerticesStart;
+        if (B3dStack.back().length > 8)
+        {
+          while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) // this chunk repeats
+          {
+            unsigned globalVertexID;
+            float strength;
+            B3DFile->read(&globalVertexID, sizeof(globalVertexID));
+            B3DFile->read(&strength, sizeof(strength));
+#ifdef __BIG_ENDIAN__
+            globalVertexID = os::Byteswap::byteswap(globalVertexID);
+            strength = os::Byteswap::byteswap(strength);
+#endif
+            globalVertexID += VerticesStart;
 
-                        if (AnimatedVertices_VertexID[globalVertexID] == -1)
-                        {
-                        printf("B3dMeshLoader: Weight has bad vertex id (no link to meshbuffer index found)");
-                        }
-                        else if (strength > 0)
-                        {
-                        CSkinnedMesh::SWeight *weight = AnimatedMesh->addWeight(inJoint);
-                        weight->strength = strength;
-                        //Find the meshbuffer and Vertex index from the Global Vertex ID:
-                        weight->vertex_id = AnimatedVertices_VertexID[globalVertexID];
-                        weight->buffer_id = AnimatedVertices_BufferID[globalVertexID];
-                        }
-                        }
-                        }
+            if (AnimatedVertices_VertexID[globalVertexID] == -1)
+            {
+              printf("B3dMeshLoader: Weight has bad vertex id (no link to meshbuffer index found)");
+            }
+            else if (strength > 0)
+            {
+              ISkinnedMesh::SWeight *weight = AnimatedMesh.addWeight(InJoint);
+              weight->strength = strength;
+              //Find the meshbuffer and Vertex index from the Global Vertex ID:
+              weight->vertex_id = AnimatedVertices_VertexID[globalVertexID];
+              weight->buffer_id = AnimatedVertices_BufferID[globalVertexID];
+            }
+          }
+        }
 
-                        B3dStack.erase(B3dStack.size() - 1);*/
+        B3dStack.pop_back();
         return true;
       }
 
-      bool readChunkKEYS(CSkinnedMesh::SJoint* InJoint)
+      bool readChunkKEYS(ISkinnedMesh::SJoint* InJoint)
       {
         /*#ifdef _B3D_READER_DEBUG
                         // Only print first, that's just too much output otherwise
