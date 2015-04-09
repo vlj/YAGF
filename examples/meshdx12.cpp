@@ -26,6 +26,8 @@ ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
 ComPtr<ID3D12DescriptorHeap> TexResourceHeaps;
 ComPtr<ID3D12Resource> Tex;
 ComPtr<ID3D12DescriptorHeap> Sampler;
+ComPtr<ID3D12Resource> DepthBuffer;
+ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 
 FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
@@ -46,6 +48,8 @@ public:
 
     psodesc.NumRenderTargets = 1;
     psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
     psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
   }
@@ -87,6 +91,28 @@ void Init(HWND hWnd)
     bufdesc.BufferLocation = cbuffer->GetGPUVirtualAddress();
     bufdesc.SizeInBytes = 256;
     dev->CreateConstantBufferView(&bufdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart());
+  }
+
+  {
+    hr = dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, 1024, 1024, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
+      D3D12_RESOURCE_USAGE_DEPTH,
+      &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
+      IID_PPV_ARGS(&DepthBuffer));
+
+    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+    heapdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
+    heapdesc.NumDescriptors = 1;
+    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
+    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+    dsv.Format = DXGI_FORMAT_D32_FLOAT;
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    dsv.Texture2D.MipSlice = 0;
+    dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   }
 
   // Define Root Signature
@@ -180,14 +206,14 @@ void Draw()
 
   float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
-
+  cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(1, TexResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, nullptr);
+  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
