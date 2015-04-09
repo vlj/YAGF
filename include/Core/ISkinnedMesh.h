@@ -360,7 +360,11 @@ namespace irr
     private:
       std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > LocalBuffers;
       std::vector<SJoint *> AllJoints;
+      std::vector<SJoint*> RootJoints;
+
+      std::vector<std::vector<bool> > Vertices_Moved;
       float FramesPerSecond;
+      float AnimationFrames;
       bool HasAnimation;
       bool PreparedForSkinning;
       bool AnimateNormals;
@@ -566,6 +570,195 @@ namespace irr
         }
       }
 
+      void normalizeWeights()
+      {
+        // note: unsure if weights ids are going to be used.
+
+        // Normalise the weights on bones....
+        std::vector<std::vector<float> > verticesTotalWeight;
+
+        verticesTotalWeight.reserve(LocalBuffers.size());
+        for (unsigned i = 0; i<LocalBuffers.size(); ++i)
+        {
+          verticesTotalWeight.push_back(std::vector<float>());
+          verticesTotalWeight[i].resize(LocalBuffers[i].first.getVertexCount());
+        }
+
+        for (unsigned i = 0; i < verticesTotalWeight.size(); ++i)
+          for (unsigned j = 0; j < verticesTotalWeight[i].size(); ++j)
+            verticesTotalWeight[i][j] = 0;
+
+        for (unsigned i = 0; i<AllJoints.size(); ++i)
+        {
+          SJoint *joint = AllJoints[i];
+          for (unsigned j = 0; j<joint->Weights.size(); ++j)
+          {
+            if (joint->Weights[j].strength <= 0)//Check for invalid weights
+            {
+              //joint->Weights.erase(j);
+              --j;
+            }
+            else
+            {
+              verticesTotalWeight[joint->Weights[j].buffer_id][joint->Weights[j].vertex_id] += joint->Weights[j].strength;
+            }
+          }
+        }
+
+        for (unsigned i = 0; i<AllJoints.size(); ++i)
+        {
+          SJoint *joint = AllJoints[i];
+          for (unsigned j = 0; j< joint->Weights.size(); ++j)
+          {
+            const float total = verticesTotalWeight[joint->Weights[j].buffer_id][joint->Weights[j].vertex_id];
+            if (total != 0 && total != 1)
+              joint->Weights[j].strength /= total;
+          }
+        }
+      }
+
+
+      void checkForAnimation()
+      {
+        unsigned i, j;
+        //Check for animation...
+        HasAnimation = false;
+        for (i = 0; i<AllJoints.size(); ++i)
+        {
+          if (AllJoints[i]->UseAnimationFrom)
+          {
+            if (AllJoints[i]->UseAnimationFrom->PositionKeys.size() ||
+              AllJoints[i]->UseAnimationFrom->ScaleKeys.size() ||
+              AllJoints[i]->UseAnimationFrom->RotationKeys.size())
+            {
+              HasAnimation = true;
+              break;
+            }
+          }
+        }
+
+        //meshes with weights, are still counted as animated for ragdolls, etc
+        if (!HasAnimation)
+        {
+          for (i = 0; i<AllJoints.size(); ++i)
+          {
+            if (AllJoints[i]->Weights.size())
+            {
+              HasAnimation = true;
+              break;
+            }
+          }
+        }
+
+        if (HasAnimation)
+        {
+          //--- Find the length of the animation ---
+          AnimationFrames = 0;
+          for (i = 0; i<AllJoints.size(); ++i)
+          {
+            if (AllJoints[i]->UseAnimationFrom)
+            {
+              if (AllJoints[i]->UseAnimationFrom->PositionKeys.size())
+                if (AllJoints[i]->UseAnimationFrom->PositionKeys.back().frame > AnimationFrames)
+                  AnimationFrames = AllJoints[i]->UseAnimationFrom->PositionKeys.back().frame;
+
+              if (AllJoints[i]->UseAnimationFrom->ScaleKeys.size())
+                if (AllJoints[i]->UseAnimationFrom->ScaleKeys.back().frame > AnimationFrames)
+                  AnimationFrames = AllJoints[i]->UseAnimationFrom->ScaleKeys.back().frame;
+
+              if (AllJoints[i]->UseAnimationFrom->RotationKeys.size())
+                if (AllJoints[i]->UseAnimationFrom->RotationKeys.back().frame > AnimationFrames)
+                  AnimationFrames = AllJoints[i]->UseAnimationFrom->RotationKeys.back().frame;
+            }
+          }
+        }
+
+        if (HasAnimation && !PreparedForSkinning)
+        {
+          PreparedForSkinning = true;
+
+          //check for bugs:
+          for (i = 0; i < AllJoints.size(); ++i)
+          {
+            SJoint *joint = AllJoints[i];
+            for (j = 0; j<joint->Weights.size(); ++j)
+            {
+              const unsigned short buffer_id = joint->Weights[j].buffer_id;
+              const unsigned vertex_id = joint->Weights[j].vertex_id;
+
+              //check for invalid ids
+              if (buffer_id >= LocalBuffers.size())
+              {
+                printf("Skinned Mesh: Weight buffer id too large");
+                joint->Weights[j].buffer_id = joint->Weights[j].vertex_id = 0;
+              }
+              else if (vertex_id >= LocalBuffers[buffer_id].first.getVertexCount())
+              {
+                printf("Skinned Mesh: Weight vertex id too large");
+                joint->Weights[j].buffer_id = joint->Weights[j].vertex_id = 0;
+              }
+            }
+          }
+
+          //An array used in skinning
+
+          for (i = 0; i<Vertices_Moved.size(); ++i)
+            for (j = 0; j<Vertices_Moved[i].size(); ++j)
+              Vertices_Moved[i][j] = false;
+
+          // For skinning: cache weight values for speed
+          //          for (i = 0; i<AllJoints.size(); ++i)
+          //          {
+          //            SJoint *joint = AllJoints[i];
+          //            for (j = 0; j<joint->Weights.size(); ++j)
+          //            {
+          //              const unsigned short buffer_id = joint->Weights[j].buffer_id;
+          //              const unsigned vertex_id = joint->Weights[j].vertex_id;
+
+          //              joint->Weights[j].Moved = &Vertices_Moved[buffer_id][vertex_id];
+          //              joint->Weights[j].StaticPos = LocalBuffers[buffer_id].first->getVertex(vertex_id)->Pos;
+          //              joint->Weights[j].StaticNormal = LocalBuffers[buffer_id].first->getVertex(vertex_id)->Normal;
+          //            }
+          //          }
+
+          // normalize weights
+          normalizeWeights();
+        }
+        SkinnedLastFrame = false;
+      }
+
+      void calculateGlobalMatrices(SJoint *joint, SJoint *parentJoint)
+      {
+        if (!joint && parentJoint) // bit of protection from endless loops
+          return;
+
+        //Go through the root bones
+        if (!joint)
+        {
+          for (unsigned i = 0; i<RootJoints.size(); ++i)
+            calculateGlobalMatrices(RootJoints[i], 0);
+          return;
+        }
+
+        if (!parentJoint)
+          joint->GlobalMatrix = joint->LocalMatrix;
+        else
+          joint->GlobalMatrix = parentJoint->GlobalMatrix * joint->LocalMatrix;
+
+        joint->LocalAnimatedMatrix = joint->LocalMatrix;
+        joint->GlobalAnimatedMatrix = joint->GlobalMatrix;
+
+        if (joint->GlobalInversedMatrix.isIdentity())//might be pre calculated
+        {
+          joint->GlobalInversedMatrix = joint->GlobalMatrix;
+          joint->GlobalInversedMatrix.makeInverse(); // slow
+        }
+
+        for (unsigned j = 0; j<joint->Children.size(); ++j)
+          calculateGlobalMatrices(joint->Children[j], joint);
+        SkinnedLastFrame = false;
+      }
+
       void buildAllLocalAnimatedMatrices()
       {
         for (SJoint *joint : AllJoints)
@@ -737,12 +930,7 @@ namespace irr
       /** E.g. used for bump mapping. */
 //      virtual void convertMeshToTangents() = 0;
 
-      //! Allows to enable hardware skinning.
-      /* This feature is not implementated in Irrlicht yet */
-//      virtual bool setHardwareSkinning(bool on) = 0;
-
     public:
-
       ISkinnedMesh() : HasAnimation(false)
       {
 
@@ -771,7 +959,212 @@ namespace irr
 //      virtual std::vector<SJoint*>& getAllJoints() const = 0;
 
       //! loaders should call this after populating the mesh
-//      virtual void finalize() = 0;
+      void finalize()
+      {
+        // Make sure we recalc the next frame
+        LastAnimatedFrame = -1;
+        SkinnedLastFrame = false;
+
+        if (AllJoints.size() || RootJoints.size())
+        {
+          // populate AllJoints or RootJoints, depending on which is empty
+          if (!RootJoints.size())
+          {
+
+            for (unsigned CheckingIdx = 0; CheckingIdx < AllJoints.size(); ++CheckingIdx)
+            {
+              bool foundParent = false;
+              for (unsigned i = 0; i < AllJoints.size(); ++i)
+              {
+                for (unsigned n = 0; n < AllJoints[i]->Children.size(); ++n)
+                {
+                  if (AllJoints[i]->Children[n] == AllJoints[CheckingIdx])
+                    foundParent = true;
+                }
+              }
+
+              if (!foundParent)
+                RootJoints.push_back(AllJoints[CheckingIdx]);
+            }
+          }
+          else
+          {
+            AllJoints = RootJoints;
+          }
+        }
+
+        for (unsigned i = 0; i < AllJoints.size(); ++i)
+        {
+          AllJoints[i]->UseAnimationFrom = AllJoints[i];
+        }
+
+        //Set array sizes...
+        for (unsigned i = 0; i<LocalBuffers.size(); ++i)
+        {
+          Vertices_Moved.push_back(std::vector<bool>());
+          Vertices_Moved[i].resize(LocalBuffers[i].first.getVertexCount());
+        }
+
+        //Todo: optimise keys here...
+        checkForAnimation();
+
+        if (HasAnimation)
+        {
+          //--- optimize and check keyframes ---
+          for (unsigned i = 0; i<AllJoints.size(); ++i)
+          {
+            std::vector<SPositionKey> &PositionKeys = AllJoints[i]->PositionKeys;
+            std::vector<SScaleKey> &ScaleKeys = AllJoints[i]->ScaleKeys;
+            std::vector<SRotationKey> &RotationKeys = AllJoints[i]->RotationKeys;
+
+            if (PositionKeys.size()>2)
+            {
+              for (unsigned j = 0; j<PositionKeys.size() - 2; ++j)
+              {
+                if (PositionKeys[j].position == PositionKeys[j + 1].position && PositionKeys[j + 1].position == PositionKeys[j + 2].position)
+                {
+                  //PositionKeys.erase(j + 1); //the middle key is unneeded
+                  --j;
+                }
+              }
+            }
+
+            if (PositionKeys.size()>1)
+            {
+              for (unsigned j = 0; j<PositionKeys.size() - 1; ++j)
+              {
+                if (PositionKeys[j].frame >= PositionKeys[j + 1].frame) //bad frame, unneed and may cause problems
+                {
+                  //PositionKeys.erase(j + 1);
+                  --j;
+                }
+              }
+            }
+
+            if (ScaleKeys.size()>2)
+            {
+              for (unsigned j = 0; j<ScaleKeys.size() - 2; ++j)
+              {
+                if (ScaleKeys[j].scale == ScaleKeys[j + 1].scale && ScaleKeys[j + 1].scale == ScaleKeys[j + 2].scale)
+                {
+                  //ScaleKeys.erase(j + 1); //the middle key is unneeded
+                  --j;
+                }
+              }
+            }
+
+            if (ScaleKeys.size()>1)
+            {
+              for (unsigned j = 0; j<ScaleKeys.size() - 1; ++j)
+              {
+                if (ScaleKeys[j].frame >= ScaleKeys[j + 1].frame) //bad frame, unneed and may cause problems
+                {
+                  //ScaleKeys.erase(j + 1);
+                  --j;
+                }
+              }
+            }
+
+            if (RotationKeys.size()>2)
+            {
+              for (unsigned j = 0; j < RotationKeys.size() - 2; ++j)
+              {
+                if (RotationKeys[j].rotation == RotationKeys[j + 1].rotation && RotationKeys[j + 1].rotation == RotationKeys[j + 2].rotation)
+                {
+                  //RotationKeys.erase(j + 1); //the middle key is unneeded
+                  --j;
+                }
+              }
+            }
+
+            if (RotationKeys.size()>1)
+            {
+              for (unsigned j = 0; j<RotationKeys.size() - 1; ++j)
+              {
+                if (RotationKeys[j].frame >= RotationKeys[j + 1].frame) //bad frame, unneed and may cause problems
+                {
+                  //RotationKeys.erase(j + 1);
+                  --j;
+                }
+              }
+            }
+
+            //Fill empty keyframe areas
+            if (PositionKeys.size())
+            {
+              SPositionKey *Key;
+              Key = &PositionKeys[0];//getFirst
+              if (Key->frame != 0)
+              {
+                //PositionKeys.push_front(*Key);
+                Key = &PositionKeys[0];//getFirst
+                Key->frame = 0;
+              }
+
+              Key = &PositionKeys.back();
+              if (Key->frame != AnimationFrames)
+              {
+                PositionKeys.push_back(*Key);
+                Key = &PositionKeys.back();
+                Key->frame = AnimationFrames;
+              }
+            }
+
+            if (ScaleKeys.size())
+            {
+              SScaleKey *Key;
+              Key = &ScaleKeys[0];//getFirst
+              if (Key->frame != 0)
+              {
+                //ScaleKeys.push_front(*Key);
+                Key = &ScaleKeys[0];//getFirst
+                Key->frame = 0;
+              }
+
+              Key = &ScaleKeys.back();
+              if (Key->frame != AnimationFrames)
+              {
+                ScaleKeys.push_back(*Key);
+                Key = &ScaleKeys.back();
+                Key->frame = AnimationFrames;
+              }
+            }
+
+            if (RotationKeys.size())
+            {
+              SRotationKey *Key;
+              Key = &RotationKeys[0];//getFirst
+              if (Key->frame != 0)
+              {
+                //RotationKeys.push_front(*Key);
+                Key = &RotationKeys[0];//getFirst
+                Key->frame = 0;
+              }
+
+              Key = &RotationKeys.back();
+              if (Key->frame != AnimationFrames)
+              {
+                RotationKeys.push_back(*Key);
+                Key = &RotationKeys.back();
+                Key->frame = AnimationFrames;
+              }
+            }
+          }
+        }
+
+        //Needed for animation and skinning...
+        calculateGlobalMatrices(0, 0);
+
+        //rigid animation for non animated meshes
+        for (unsigned i = 0; i<AllJoints.size(); ++i)
+        {
+          for (unsigned j = 0; j<AllJoints[i]->AttachedMeshes.size(); ++j)
+          {
+//            SSkinMeshBuffer* Buffer = (*SkinningBuffers)[AllJoints[i]->AttachedMeshes[j]];
+//            Buffer->Transformation = AllJoints[i]->GlobalAnimatedMatrix;
+          }
+        }
+      }
 
       //! Adds a new meshbuffer to the mesh, access it as last one
       std::pair<SMeshBufferLightMap, video::SMaterial>& addMeshBuffer()

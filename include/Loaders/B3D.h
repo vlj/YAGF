@@ -57,7 +57,7 @@ namespace irr
 
         if (load())
         {
-          //                    AnimatedMesh->finalize();
+          AnimatedMesh.finalize();
         }
         else
         {
