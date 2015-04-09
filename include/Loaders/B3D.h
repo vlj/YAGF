@@ -216,7 +216,7 @@ namespace irr
 
         joint->Animatedposition = core::vector3df(position[0], position[1], position[2]);
         joint->Animatedscale = core::vector3df(scale[0], scale[1], scale[2]);
-        //joint->Animatedrotation = core::quaternion(rotation[1], rotation[2], rotation[3], rotation[0]);
+        joint->Animatedrotation = core::quaternion(rotation[1], rotation[2], rotation[3], rotation[0]);
 
         //Build LocalMatrix:
 
@@ -225,7 +225,7 @@ namespace irr
         core::matrix4 scaleMatrix;
         scaleMatrix.setScale(joint->Animatedscale);
         core::matrix4 rotationMatrix;
-        //joint->Animatedrotation.getMatrix_transposed(rotationMatrix);
+        joint->Animatedrotation.getMatrix_transposed(rotationMatrix);
 
         joint->LocalMatrix = positionMatrix * rotationMatrix * scaleMatrix;
 
