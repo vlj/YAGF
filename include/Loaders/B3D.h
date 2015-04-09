@@ -455,7 +455,7 @@ namespace irr
           }
 
           float tu2 = 0.0f, tv2 = 0.0f;
-          if (tex_coord_sets>1 && tex_coord_set_size > 1)
+          if (tex_coord_sets > 1 && tex_coord_set_size > 1)
           {
             tu2 = tex_coords[1][0];
             tv2 = tex_coords[1][1];
@@ -649,178 +649,178 @@ namespace irr
 
       bool readChunkKEYS(ISkinnedMesh::SJoint* InJoint)
       {
-        /*#ifdef _B3D_READER_DEBUG
-                        // Only print first, that's just too much output otherwise
-                        if (!inJoint || (inJoint->PositionKeys.empty() && inJoint->ScaleKeys.empty() && inJoint->RotationKeys.empty()))
-                        {
-                        core::stringc logStr;
-                        for (unsigned i = 1; i < B3dStack.size(); ++i)
-                        logStr += "-";
-                        logStr += "read ChunkKEYS";
-                        os::Printer::log(logStr.c_str());
-                        }
-                        #endif
+#ifdef _B3D_READER_DEBUG
+        // Only print first, that's just too much output otherwise
+        if (!inJoint || (inJoint->PositionKeys.empty() && inJoint->ScaleKeys.empty() && inJoint->RotationKeys.empty()))
+        {
+          core::stringc logStr;
+          for (unsigned i = 1; i < B3dStack.size(); ++i)
+            logStr += "-";
+          logStr += "read ChunkKEYS";
+          os::Printer::log(logStr.c_str());
+        }
+#endif
 
-                        int flags;
-                        B3DFile->read(&flags, sizeof(flags));
-                        #ifdef __BIG_ENDIAN__
-                        flags = os::Byteswap::byteswap(flags);
-                        #endif
+        int flags;
+        B3DFile->read(&flags, sizeof(flags));
+#ifdef __BIG_ENDIAN__
+        flags = os::Byteswap::byteswap(flags);
+#endif
 
-                        CSkinnedMesh::SPositionKey *oldPosKey = 0;
-                        core::vector3df oldPos[2];
-                        CSkinnedMesh::SScaleKey *oldScaleKey = 0;
-                        core::vector3df oldScale[2];
-                        CSkinnedMesh::SRotationKey *oldRotKey = 0;
-                        core::quaternion oldRot[2];
-                        bool isFirst[3] = { true, true, true };
-                        while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) //this chunk repeats
-                        {
-                        int frame;
+        ISkinnedMesh::SPositionKey *oldPosKey = 0;
+        core::vector3df oldPos[2];
+        ISkinnedMesh::SScaleKey *oldScaleKey = 0;
+        core::vector3df oldScale[2];
+        ISkinnedMesh::SRotationKey *oldRotKey = 0;
+        core::quaternion oldRot[2];
+        bool isFirst[3] = { true, true, true };
+        while ((B3dStack.back().startposition + B3dStack.back().length) > B3DFile->getPos()) //this chunk repeats
+        {
+          int frame;
 
-                        B3DFile->read(&frame, sizeof(frame));
-                        #ifdef __BIG_ENDIAN__
-                        frame = os::Byteswap::byteswap(frame);
-                        #endif
+          B3DFile->read(&frame, sizeof(frame));
+#ifdef __BIG_ENDIAN__
+          frame = os::Byteswap::byteswap(frame);
+#endif
 
-                        // Add key frames, frames in Irrlicht are zero-based
-                        float data[4];
-                        if (flags & 1)
-                        {
-                        readFloats(data, 3);
-                        if ((oldPosKey != 0) && (oldPos[0] == oldPos[1]))
-                        {
-                        const core::vector3df pos(data[0], data[1], data[2]);
-                        if (oldPos[1] == pos)
-                        oldPosKey->frame = (float)frame - 1;
-                        else
-                        {
-                        oldPos[0] = oldPos[1];
-                        oldPosKey = AnimatedMesh->addPositionKey(inJoint);
-                        oldPosKey->frame = (float)frame - 1;
-                        oldPos[1].set(oldPosKey->position.set(pos));
-                        }
-                        }
-                        else if (oldPosKey == 0 && isFirst[0])
-                        {
-                        oldPosKey = AnimatedMesh->addPositionKey(inJoint);
-                        oldPosKey->frame = (float)frame - 1;
-                        oldPos[0].set(oldPosKey->position.set(data[0], data[1], data[2]));
-                        oldPosKey = 0;
-                        isFirst[0] = false;
-                        }
-                        else
-                        {
-                        if (oldPosKey != 0)
-                        oldPos[0] = oldPos[1];
-                        oldPosKey = AnimatedMesh->addPositionKey(inJoint);
-                        oldPosKey->frame = (float)frame - 1;
-                        oldPos[1].set(oldPosKey->position.set(data[0], data[1], data[2]));
-                        }
-                        }
-                        if (flags & 2)
-                        {
-                        readFloats(data, 3);
-                        if ((oldScaleKey != 0) && (oldScale[0] == oldScale[1]))
-                        {
-                        const core::vector3df scale(data[0], data[1], data[2]);
-                        if (oldScale[1] == scale)
-                        oldScaleKey->frame = (float)frame - 1;
-                        else
-                        {
-                        oldScale[0] = oldScale[1];
-                        oldScaleKey = AnimatedMesh->addScaleKey(inJoint);
-                        oldScaleKey->frame = (float)frame - 1;
-                        oldScale[1].set(oldScaleKey->scale.set(scale));
-                        }
-                        }
-                        else if (oldScaleKey == 0 && isFirst[1])
-                        {
-                        oldScaleKey = AnimatedMesh->addScaleKey(inJoint);
-                        oldScaleKey->frame = (float)frame - 1;
-                        oldScale[0].set(oldScaleKey->scale.set(data[0], data[1], data[2]));
-                        oldScaleKey = 0;
-                        isFirst[1] = false;
-                        }
-                        else
-                        {
-                        if (oldScaleKey != 0)
-                        oldScale[0] = oldScale[1];
-                        oldScaleKey = AnimatedMesh->addScaleKey(inJoint);
-                        oldScaleKey->frame = (float)frame - 1;
-                        oldScale[1].set(oldScaleKey->scale.set(data[0], data[1], data[2]));
-                        }
-                        }
-                        if (flags & 4)
-                        {
-                        readFloats(data, 4);
-                        if ((oldRotKey != 0) && (oldRot[0] == oldRot[1]))
-                        {
-                        // meant to be in this order since b3d stores W first
-                        const core::quaternion rot(data[1], data[2], data[3], data[0]);
-                        if (oldRot[1] == rot)
-                        oldRotKey->frame = (float)frame - 1;
-                        else
-                        {
-                        oldRot[0] = oldRot[1];
-                        oldRotKey = AnimatedMesh->addRotationKey(inJoint);
-                        oldRotKey->frame = (float)frame - 1;
-                        oldRot[1].set(oldRotKey->rotation.set(data[1], data[2], data[3], data[0]));
-                        }
-                        }
-                        else if (oldRotKey == 0 && isFirst[2])
-                        {
-                        oldRotKey = AnimatedMesh->addRotationKey(inJoint);
-                        oldRotKey->frame = (float)frame - 1;
-                        // meant to be in this order since b3d stores W first
-                        oldRot[0].set(oldRotKey->rotation.set(data[1], data[2], data[3], data[0]));
-                        oldRotKey = 0;
-                        isFirst[2] = false;
-                        }
-                        else
-                        {
-                        if (oldRotKey != 0)
-                        oldRot[0] = oldRot[1];
-                        oldRotKey = AnimatedMesh->addRotationKey(inJoint);
-                        oldRotKey->frame = (float)frame - 1;
-                        // meant to be in this order since b3d stores W first
-                        oldRot[1].set(oldRotKey->rotation.set(data[1], data[2], data[3], data[0]));
-                        }
-                        }
-                        }
+          // Add key frames, frames in Irrlicht are zero-based
+          float data[4];
+          if (flags & 1)
+          {
+            readFloats(data, 3);
+            if ((oldPosKey != 0) && (oldPos[0] == oldPos[1]))
+            {
+              const core::vector3df pos(data[0], data[1], data[2]);
+              if (oldPos[1] == pos)
+                oldPosKey->frame = (float)frame - 1;
+              else
+              {
+                oldPos[0] = oldPos[1];
+                oldPosKey = AnimatedMesh.addPositionKey(InJoint);
+                oldPosKey->frame = (float)frame - 1;
+                oldPos[1].set(oldPosKey->position.set(pos));
+              }
+            }
+            else if (oldPosKey == 0 && isFirst[0])
+            {
+              oldPosKey = AnimatedMesh.addPositionKey(InJoint);
+              oldPosKey->frame = (float)frame - 1;
+              oldPos[0].set(oldPosKey->position.set(data[0], data[1], data[2]));
+              oldPosKey = 0;
+              isFirst[0] = false;
+            }
+            else
+            {
+              if (oldPosKey != 0)
+                oldPos[0] = oldPos[1];
+              oldPosKey = AnimatedMesh.addPositionKey(InJoint);
+              oldPosKey->frame = (float)frame - 1;
+              oldPos[1].set(oldPosKey->position.set(data[0], data[1], data[2]));
+            }
+          }
+          if (flags & 2)
+          {
+            readFloats(data, 3);
+            if ((oldScaleKey != 0) && (oldScale[0] == oldScale[1]))
+            {
+              const core::vector3df scale(data[0], data[1], data[2]);
+              if (oldScale[1] == scale)
+                oldScaleKey->frame = (float)frame - 1;
+              else
+              {
+                oldScale[0] = oldScale[1];
+                oldScaleKey = AnimatedMesh.addScaleKey(InJoint);
+                oldScaleKey->frame = (float)frame - 1;
+                oldScale[1].set(oldScaleKey->scale.set(scale));
+              }
+            }
+            else if (oldScaleKey == 0 && isFirst[1])
+            {
+              oldScaleKey = AnimatedMesh.addScaleKey(InJoint);
+              oldScaleKey->frame = (float)frame - 1;
+              oldScale[0].set(oldScaleKey->scale.set(data[0], data[1], data[2]));
+              oldScaleKey = 0;
+              isFirst[1] = false;
+            }
+            else
+            {
+              if (oldScaleKey != 0)
+                oldScale[0] = oldScale[1];
+              oldScaleKey = AnimatedMesh.addScaleKey(InJoint);
+              oldScaleKey->frame = (float)frame - 1;
+              oldScale[1].set(oldScaleKey->scale.set(data[0], data[1], data[2]));
+            }
+          }
+          if (flags & 4)
+          {
+            readFloats(data, 4);
+            if ((oldRotKey != 0) && (oldRot[0] == oldRot[1]))
+            {
+              // meant to be in this order since b3d stores W first
+              const core::quaternion rot(data[1], data[2], data[3], data[0]);
+              if (oldRot[1] == rot)
+                oldRotKey->frame = (float)frame - 1;
+              else
+              {
+                oldRot[0] = oldRot[1];
+                oldRotKey = AnimatedMesh.addRotationKey(InJoint);
+                oldRotKey->frame = (float)frame - 1;
+                oldRot[1].set(oldRotKey->rotation.set(data[1], data[2], data[3], data[0]));
+              }
+            }
+            else if (oldRotKey == 0 && isFirst[2])
+            {
+              oldRotKey = AnimatedMesh.addRotationKey(InJoint);
+              oldRotKey->frame = (float)frame - 1;
+              // meant to be in this order since b3d stores W first
+              oldRot[0].set(oldRotKey->rotation.set(data[1], data[2], data[3], data[0]));
+              oldRotKey = 0;
+              isFirst[2] = false;
+            }
+            else
+            {
+              if (oldRotKey != 0)
+                oldRot[0] = oldRot[1];
+              oldRotKey = AnimatedMesh.addRotationKey(InJoint);
+              oldRotKey->frame = (float)frame - 1;
+              // meant to be in this order since b3d stores W first
+              oldRot[1].set(oldRotKey->rotation.set(data[1], data[2], data[3], data[0]));
+            }
+          }
+        }
 
-                        B3dStack.erase(B3dStack.size() - 1);*/
+        B3dStack.pop_back();
         return true;
       }
 
       bool readChunkANIM()
       {
-        /*#ifdef _B3D_READER_DEBUG
-                    core::stringc logStr;
-                    for (unsigned i = 1; i < B3dStack.size(); ++i)
-                    logStr += "-";
-                    logStr += "read ChunkANIM";
-                    os::Printer::log(logStr.c_str());
-                    #endif
+#ifdef _B3D_READER_DEBUG
+        core::stringc logStr;
+        for (unsigned i = 1; i < B3dStack.size(); ++i)
+          logStr += "-";
+        logStr += "read ChunkANIM";
+        os::Printer::log(logStr.c_str());
+#endif
 
-                    int animFlags; //not stored\used
-                    int animFrames;//not stored\used
-                    float animFPS; //not stored\used
+        int animFlags; //not stored\used
+        int animFrames;//not stored\used
+        float animFPS; //not stored\used
 
-                    B3DFile->read(&animFlags, sizeof(int));
-                    B3DFile->read(&animFrames, sizeof(int));
-                    readFloats(&animFPS, 1);
-                    if (animFPS > 0.f)
-                    AnimatedMesh->setAnimationSpeed(animFPS);
-                    printf("FPS", io::path((double)animFPS));
+        B3DFile->read(&animFlags, sizeof(int));
+        B3DFile->read(&animFrames, sizeof(int));
+        readFloats(&animFPS, 1);
+        if (animFPS > 0.f)
+          AnimatedMesh.setAnimationSpeed(animFPS);
+        //        printf("FPS", io::path((double)animFPS));
 
-                    #ifdef __BIG_ENDIAN__
-                    animFlags = os::Byteswap::byteswap(animFlags);
-                    animFrames = os::Byteswap::byteswap(animFrames);
-                    #endif
+#ifdef __BIG_ENDIAN__
+        animFlags = os::Byteswap::byteswap(animFlags);
+        animFrames = os::Byteswap::byteswap(animFrames);
+#endif
 
-                    //            B3dStack.erase(B3dStack.size() - 1);
-                    B3dStack.pop_back();*/
+        //            B3dStack.erase(B3dStack.size() - 1);
+        B3dStack.pop_back();
         return true;
       }
 
@@ -1132,7 +1132,7 @@ namespace irr
       {
         B3DFile->read(vec, count*sizeof(float));
 #ifdef __BIG_ENDIAN__
-        for (unsigned n = 0; n<count; ++n)
+        for (unsigned n = 0; n < count; ++n)
           vec[n] = os::Byteswap::byteswap(vec[n]);
 #endif
       }
