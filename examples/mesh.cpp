@@ -84,7 +84,7 @@ GLuint cbuf;
 void init()
 {
   DebugUtil::enableDebugOutput();
-  irr::io::CReadFile reader("..\\examples\\anchor.b3d");
+  irr::io::CReadFile reader("..\\examples\\xue.b3d");
   irr::scene::CB3DMeshFileLoader loader(&reader);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
 
@@ -95,7 +95,7 @@ void init()
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
   }
 
-  std::ifstream DDSFile("..\\examples\\anchorBC5.DDS", std::ifstream::binary);
+  std::ifstream DDSFile("..\\examples\\hc_bodyBC1.DDS", std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
   texture = new Texture(DDSPic.getLoadedImage());
@@ -114,6 +114,8 @@ void clean()
     glDeleteBuffers(1, &cbuf);
 }
 
+static float time = 0.;
+
 void draw()
 {
     glEnable(GL_FRAMEBUFFER_SRGB);
@@ -130,10 +132,12 @@ void draw()
     Matrixes cbufdata;
     irr::core::matrix4 Model, View;
     View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-    Model.setTranslation(irr::core::vector3df(0.f, 0.f, 8.f));
-    Model.setRotationDegrees(irr::core::vector3df(270.f, 0.f, 0.f));
+    Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
+    Model.setRotationDegrees(irr::core::vector3df(0.f, time / 360.f, 0.f));
     memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
     memcpy(cbufdata.ViewProj, View.pointer(), 16 * sizeof(float));
+
+    time += 1.f;
 
     glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Matrixes), &cbufdata, GL_STATIC_DRAW);
