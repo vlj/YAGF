@@ -7,7 +7,7 @@ struct PS_INPUT
 PS_INPUT main(float4 pos : POSITION, float2 texc : TEXCOORD0)
 {
   PS_INPUT result;
-  result.pos = float4(pos.x, pos.y, .5, 1.);
+  result.pos = float4(pos.x, pos.y, pos.z * .01 + .5, 1.);
   result.uv = texc;
   return result;
 }
