@@ -88,11 +88,11 @@ void init()
   irr::scene::CB3DMeshFileLoader loader(&reader);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
 
-  for (auto tmp : buffers)
+  for (const std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> &tmp : buffers)
   {
     const irr::scene::SMeshBufferLightMap &tmpbuf = tmp.first;
-    std::pair<size_t, size_t> BaseIndexVtx = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmpbuf);
-    CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseIndexVtx.first, BaseIndexVtx.second));
+    std::pair<size_t, size_t> BaseVtxIndex = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp.first);
+    CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseVtxIndex.second, BaseVtxIndex.first));
   }
 
   std::ifstream DDSFile("..\\examples\\hc_bodyBC1.DDS", std::ifstream::binary);
