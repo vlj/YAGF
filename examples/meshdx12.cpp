@@ -94,7 +94,7 @@ void Init(HWND hWnd)
 
   irr::io::CReadFile reader("..\\examples\\anchor.b3d");
   irr::scene::CB3DMeshFileLoader loader(&reader);
-  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh;
+  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
   std::vector<irr::scene::SMeshBufferLightMap> reorg;
 
   for (auto buf : buffers)

@@ -86,7 +86,7 @@ void init()
   DebugUtil::enableDebugOutput();
   irr::io::CReadFile reader("..\\examples\\anchor.b3d");
   irr::scene::CB3DMeshFileLoader loader(&reader);
-  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh;
+  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
 
   for (auto tmp : buffers)
   {
