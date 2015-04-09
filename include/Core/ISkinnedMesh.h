@@ -411,9 +411,15 @@ namespace irr
       };
     private:
       std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > LocalBuffers;
+      std::vector<SJoint *> AllJoints;
       float FramesPerSecond;
     public:
 
+      ~ISkinnedMesh()
+      {
+        for (SJoint *j : AllJoints)
+          delete j;
+      }
 
       //Interface for the mesh loaders (finalize should lock these functions, and they should have some prefix like loader_
 
@@ -444,10 +450,8 @@ namespace irr
       //! Adds a new joint to the mesh, access it as last one
       SJoint* addJoint(SJoint *parent = 0)
       {
-        SJoint *joint = new SJoint;
-
-        //AllJoints.push_back(joint);
-        return joint;
+        AllJoints.push_back(new SJoint);
+        return AllJoints.back();
       }
 
       //! Adds a new weight to the mesh, access it as last one
