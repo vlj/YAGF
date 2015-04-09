@@ -265,18 +265,18 @@ namespace irr
     public:
       //! Gets joint count.
       /** \return Amount of joints in the skeletal animated mesh. */
-//      virtual unsigned getJointCount() const = 0;
+      //virtual unsigned getJointCount() const = 0;
 
       //! Gets the name of a joint.
       /** \param number: Zero based index of joint. The last joint
       has the number getJointCount()-1;
       \return Name of joint and null if an error happened. */
-      //      virtual const char* getJointName(unsigned number) const = 0;
+      //virtual const char* getJointName(unsigned number) const = 0;
 
             //! Gets a joint number from its name
             /** \param name: Name of the joint.
             \return Number of the joint or -1 if not found. */
-            //      virtual int getJointNumber(const char* name) const = 0;
+            //virtual int getJointNumber(const char* name) const = 0;
 
                   //! Use animation from another mesh
                   /** The animation is linked (not copied) based on joint names
@@ -284,11 +284,11 @@ namespace irr
                   \return True if all joints in this mesh were
                   matched up (empty names will not be matched, and it's case
                   sensitive). Unmatched joints will not be animated. */
-                  //      virtual bool useAnimationFrom(const ISkinnedMesh *mesh) = 0;
+                  //virtual bool useAnimationFrom(const ISkinnedMesh *mesh) = 0;
 
-                  //! Gets the frame count of the animated mesh.
-                  /** \param fps Frames per second to play the animation with. If the amount is 0, it is not animated.
-                  The actual speed is set in the scene node the mesh is instantiated in.*/
+      //! Gets the frame count of the animated mesh.
+      /** \param fps Frames per second to play the animation with. If the amount is 0, it is not animated.
+      The actual speed is set in the scene node the mesh is instantiated in.*/
       void setAnimationSpeed(float fps)
       {
         FramesPerSecond = fps;
