@@ -15,6 +15,7 @@
 #include <vector>
 #include <Core/BasicVertexLayout.h>
 #include <Loaders/IReadFile.h>
+#include <Core/ISkinnedMesh.h>
 
 namespace irr
 {
