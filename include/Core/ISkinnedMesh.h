@@ -361,7 +361,7 @@ namespace irr
 
       struct WeightInfluence
       {
-        size_t Index;
+        int Index;
         float Weight;
       };
     private:
