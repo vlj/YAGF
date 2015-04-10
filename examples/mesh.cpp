@@ -88,10 +88,11 @@ void init()
   irr::scene::CB3DMeshFileLoader loader(&reader);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
 
-  for (const std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> &tmp : buffers)
+  for (unsigned i = 0; i < buffers.size(); i++)
   {
-    const irr::scene::SMeshBufferLightMap &tmpbuf = tmp.first;
-    std::pair<size_t, size_t> BaseVtxIndex = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(&tmp.first);
+    const irr::scene::SMeshBufferLightMap &tmpbuf = buffers[i].first;
+    const std::vector<irr::scene::ISkinnedMesh::WeightInfluence> &weigts = loader.AnimatedMesh.WeightBuffers[i];
+    std::pair<size_t, size_t> BaseVtxIndex = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getBase(&tmpbuf, weigts.data());
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseVtxIndex.second, BaseVtxIndex.first));
   }
 
@@ -146,7 +147,7 @@ void draw()
     glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Matrixes), &cbufdata, GL_STATIC_DRAW);
 
     glUseProgram(ObjectShader::getInstance()->Program);
-    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
+    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getVAO());
     ObjectShader::getInstance()->SetTextureUnits(cbuf, texture->Id, TrilinearSampler);
     for (auto tmp : CountBaseIndexVTX)
       glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));

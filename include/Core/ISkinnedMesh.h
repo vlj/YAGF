@@ -15,6 +15,7 @@
 #include <Maths/matrix4.h>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace irr
 {
@@ -357,6 +358,12 @@ namespace irr
         int scaleHint;
         int rotationHint;
       };
+
+      struct WeightInfluence
+      {
+        size_t Index;
+        float Weight;
+      };
     private:
       std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > LocalBuffers;
       std::vector<SJoint *> AllJoints;
@@ -364,6 +371,8 @@ namespace irr
 
       std::vector<std::vector<bool> > Vertices_Moved;
       std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > *SkinningBuffers;
+      std::vector<std::vector<std::vector<std::pair<size_t, float> > > > Weights;
+
       float FramesPerSecond;
       float AnimationFrames;
       bool HasAnimation;
@@ -854,7 +863,22 @@ namespace irr
           skinJoint(childjoint, joint, strength);
       }
 
+      void computeWeightInfluence(const SJoint *joint, size_t &index)
+      {
+        if (joint->Weights.size())
+        {
+          for (const SWeight &weight : joint->Weights)
+            Weights[weight.buffer_id][weight.vertex_id].push_back(std::make_pair(index, weight.strength));
+          index++;
+        }
+
+        for (const SJoint* childjoint : joint->Children)
+          computeWeightInfluence(childjoint, index);
+      }
+
     public:
+      std::vector<std::vector<WeightInfluence>> WeightBuffers;
+
       //! Gets joint count.
       /** \return Amount of joints in the skeletal animated mesh. */
       //virtual unsigned getJointCount() const = 0;
@@ -1225,6 +1249,46 @@ namespace irr
 //            SSkinMeshBuffer* Buffer = (*SkinningBuffers)[AllJoints[i]->AttachedMeshes[j]];
 //            Buffer->Transformation = AllJoints[i]->GlobalAnimatedMatrix;
           }
+        }
+
+        // Organise Weight by buffer
+        for (const std::pair<irr::scene::SMeshBufferLightMap, video::SMaterial> &LocalBuffer : LocalBuffers)
+        {
+
+          Weights.push_back(std::vector<std::vector<std::pair<size_t, float> > >());
+          Weights.back().resize(LocalBuffer.first.getVertexCount());
+        }
+
+        size_t idx = 0;
+        for (const SJoint *rootjoint : RootJoints)
+          computeWeightInfluence(rootjoint, idx);
+
+        // Only keep the 4 most significant weight
+        for (std::vector<std::vector<std::pair<size_t, float> > > &PerBufferWeights : Weights)
+        {
+          std::vector<WeightInfluence> BufferWeight;
+          for (std::vector<std::pair<size_t, float> > &PerVertexWeights : PerBufferWeights)
+          {
+            std::sort(PerVertexWeights.begin(), PerVertexWeights.end(), [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) {return a.second > b.second; });
+            float remaining_weight = 1.;
+            for (unsigned k = 0; k < 4; k++)
+            {
+              WeightInfluence influence;
+              if (PerVertexWeights.size() > k)
+              {
+                influence.Index = PerVertexWeights[k].first;
+                influence.Weight = PerVertexWeights[k].second;
+              }
+              else
+              {
+                influence.Index = -1;
+                influence.Weight = remaining_weight;
+              }
+              remaining_weight -= influence.Weight;
+              BufferWeight.push_back(influence);
+            }
+          }
+          WeightBuffers.push_back(BufferWeight);
         }
       }
 

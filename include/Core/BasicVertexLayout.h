@@ -268,6 +268,17 @@ namespace irr
       }
     }
 
+    struct SkinnedVertexData
+    {
+      int index0;
+      float weight0;
+      int index1;
+      float weight1;
+      int index2;
+      float weight2;
+      int index3;
+      float weight3;
+    };
 
   } // end namespace video
 } // end namespace irr
