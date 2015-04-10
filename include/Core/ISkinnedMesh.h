@@ -1304,6 +1304,8 @@ namespace irr
       SJoint* addJoint(SJoint *parent = 0)
       {
         AllJoints.push_back(new SJoint);
+        if (parent)
+          parent->Children.push_back(AllJoints.back());
         return AllJoints.back();
       }
 
