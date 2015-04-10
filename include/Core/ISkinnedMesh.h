@@ -1271,22 +1271,22 @@ namespace irr
           for (std::vector<std::pair<size_t, float> > &PerVertexWeights : PerBufferWeights)
           {
             std::sort(PerVertexWeights.begin(), PerVertexWeights.end(), [](const std::pair<size_t, float> &a, const std::pair<size_t, float> &b) {return a.second > b.second; });
-            float remaining_weight = 1.;
-            for (unsigned k = 0; k < 4; k++)
+            float current_weight = 0.;
+            WeightInfluence WeightForVertex[4] = {};
+            unsigned k;
+            unsigned bound = PerVertexWeights.size() > 4 ? 4 : PerVertexWeights.size();
+            for (k = 0; k < bound; k++)
             {
-              WeightInfluence influence;
-              if (PerVertexWeights.size() > k)
-              {
-                influence.Index = PerVertexWeights[k].first;
-                influence.Weight = PerVertexWeights[k].second;
-              }
-              else
-              {
-                influence.Index = -1;
-                influence.Weight = remaining_weight;
-              }
-              remaining_weight -= influence.Weight;
-              BufferWeight.push_back(influence);
+              WeightForVertex[k].Index = PerVertexWeights[k].first;
+              WeightForVertex[k].Weight = PerVertexWeights[k].second;
+              current_weight += PerVertexWeights[k].second;
+            }
+            for (; k < 4; k++)
+              WeightForVertex[k].Index = -1;
+            for (unsigned i = 0; i < 4; i++)
+            {
+              WeightForVertex[i].Weight /= current_weight;
+              BufferWeight.push_back(WeightForVertex[i]);
             }
           }
           WeightBuffers.push_back(BufferWeight);
