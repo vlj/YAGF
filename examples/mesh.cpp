@@ -167,17 +167,19 @@ struct Matrixes
 GLuint cbuf;
 GLuint jointsbuf;
 
+irr::scene::CB3DMeshFileLoader *loader;
+
 void init()
 {
   DebugUtil::enableDebugOutput();
   irr::io::CReadFile reader("..\\examples\\xue.b3d");
-  irr::scene::CB3DMeshFileLoader loader(&reader);
-  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
+  loader = new irr::scene::CB3DMeshFileLoader(&reader);
+  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
 
   for (unsigned i = 0; i < buffers.size(); i++)
   {
     const irr::scene::SMeshBufferLightMap &tmpbuf = buffers[i].first;
-    const std::vector<irr::scene::ISkinnedMesh::WeightInfluence> &weigts = loader.AnimatedMesh.WeightBuffers[i];
+    const std::vector<irr::scene::ISkinnedMesh::WeightInfluence> &weigts = loader->AnimatedMesh.WeightBuffers[i];
     std::pair<size_t, size_t> BaseVtxIndex = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getBase(&tmpbuf, weigts.data());
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseVtxIndex.second, BaseVtxIndex.first));
   }
@@ -187,13 +189,10 @@ void init()
 
   texture = new Texture(DDSPic.getLoadedImage());
 
-  loader.AnimatedMesh.animateMesh(1., 1.);
-  loader.AnimatedMesh.skinMesh(1.);
 
   glGenBuffers(1, &cbuf);
   glGenBuffers(1, &jointsbuf);
-  glBindBuffer(GL_UNIFORM_BUFFER, jointsbuf);
-  glBufferData(GL_UNIFORM_BUFFER, loader.AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float), loader.AnimatedMesh.JointMatrixes.data(), GL_STATIC_DRAW);
+
 
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
 
@@ -234,6 +233,15 @@ void draw()
 
     glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Matrixes), &cbufdata, GL_STATIC_DRAW);
+
+    double intpart;
+    float frame = (float)modf(time / 1000., &intpart);
+    frame *= 100.f;
+    loader->AnimatedMesh.animateMesh(frame, 1.f);
+    loader->AnimatedMesh.skinMesh(1.f);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, jointsbuf);
+    glBufferData(GL_UNIFORM_BUFFER, loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float), loader->AnimatedMesh.JointMatrixes.data(), GL_STATIC_DRAW);
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getVAO());
