@@ -15,27 +15,112 @@
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 
+#include <sstream>
+
 std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
 
 GLuint TrilinearSampler;
 
-const char *vtxshader =
-"#version 330\n"
-"layout(std140) uniform Matrices\n"
-"{\n"
-"mat4 ModelMatrix;\n"
-"mat4 ViewProjectionMatrix;\n"
-"};\n"
-"layout(location = 0) in vec3 Position;\n"
-"layout(location = 3) in vec2 Texcoord;\n"
-"out vec2 uv;\n"
-"out vec3 color;\n"
-"void main(void) {\n"
-"  gl_Position = ViewProjectionMatrix * ModelMatrix * vec4(Position, 1.);\n"
-"  uv = Texcoord;\n"
-"}\n";
+const char *vtxshader = TO_STRING(
+
+layout(std140) uniform Matrices
+{
+  mat4 ModelMatrix;
+  mat4 ViewProjectionMatrix;
+};
+
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec3 Normal;
+layout(location = 2) in vec4 Color;
+layout(location = 3) in vec2 Texcoord;
+layout(location = 4) in vec2 SecondTexcoord;
+layout(location = 5) in vec3 Tangent;
+layout(location = 6) in vec3 Bitangent;
+
+layout(location = 7) in int index0;
+layout(location = 8) in float weight0;
+layout(location = 9) in int index1;
+layout(location = 10) in float weight1;
+layout(location = 11) in int index2;
+layout(location = 12) in float weight2;
+layout(location = 13) in int index3;
+layout(location = 14) in float weight3;
+
+out vec3 nor;
+out vec3 tangent;
+out vec3 bitangent;
+out vec2 uv;
+out vec2 uv_bis;
+out vec4 color;
+
+layout(std140) uniform Joints
+{
+  uniform mat4 JointTransform[48];
+};
+
+void main()
+{
+  vec4 IdlePosition = vec4(Position, 1.);
+  vec4 SkinnedPosition = vec4(0.);
+
+  vec4 SingleBoneInfluencedPosition;
+  if (index0 >= 0)
+  {
+    SingleBoneInfluencedPosition = JointTransform[index0] * IdlePosition;
+    SingleBoneInfluencedPosition /= SingleBoneInfluencedPosition.w;
+  }
+  else
+  {
+    SingleBoneInfluencedPosition = IdlePosition;
+  }
+  SkinnedPosition += weight0 * SingleBoneInfluencedPosition;
+
+  if (index1 >= 0)
+  {
+    SingleBoneInfluencedPosition = JointTransform[index1] * IdlePosition;
+    SingleBoneInfluencedPosition /= SingleBoneInfluencedPosition.w;
+  }
+  else
+  {
+    SingleBoneInfluencedPosition = IdlePosition;
+  }
+  SkinnedPosition += weight1 * SingleBoneInfluencedPosition;
+
+  if (index2 >= 0)
+  {
+    SingleBoneInfluencedPosition = JointTransform[index2] * IdlePosition;
+    SingleBoneInfluencedPosition /= SingleBoneInfluencedPosition.w;
+  }
+  else
+  {
+    SingleBoneInfluencedPosition = IdlePosition;
+  }
+  SkinnedPosition += weight2 * SingleBoneInfluencedPosition;
+
+  if (index3 >= 0)
+  {
+    SingleBoneInfluencedPosition = JointTransform[index3] * IdlePosition;
+    SingleBoneInfluencedPosition /= SingleBoneInfluencedPosition.w;
+  }
+  else
+  {
+    SingleBoneInfluencedPosition = IdlePosition;
+  }
+  SkinnedPosition += weight3 * SingleBoneInfluencedPosition;
+
+  color = Color.zyxw;
+  mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
+//  mat4 TransposeInverseModelView = transpose(InverseModelMatrix * InverseViewMatrix);
+  gl_Position = ModelViewProjectionMatrix * vec4(SkinnedPosition.xyz, 1.);
+//  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
+//  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
+//  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
+  uv = vec4(Texcoord, 1., 1.).xy;
+//  uv_bis = SecondTexcoord;
+}
+);
 
 const char *fragshader =
 "#version 330\n"
@@ -58,16 +143,19 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
     return result;
 }
 
-class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0> >
+class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
     ObjectShader()
     {
+      std::stringstream tmpbuf;
+      tmpbuf << "#version 330" << std::endl;
+      tmpbuf << vtxshader;
         Program = ProgramShaderLoading::LoadProgram(
-            GL_VERTEX_SHADER, vtxshader,
+            GL_VERTEX_SHADER, tmpbuf.str().c_str(),
             GL_FRAGMENT_SHADER, fragshader);
 
-        AssignSamplerNames(Program, "Matrices", "tex");
+        AssignSamplerNames(Program, "Matrices", "Joints", "tex");
     }
 };
 
@@ -80,6 +168,7 @@ struct Matrixes
 };
 
 GLuint cbuf;
+GLuint jointsbuf;
 
 void init()
 {
@@ -105,6 +194,9 @@ void init()
   loader.AnimatedMesh.skinMesh(1.);
 
   glGenBuffers(1, &cbuf);
+  glGenBuffers(1, &jointsbuf);
+  glBindBuffer(GL_UNIFORM_BUFFER, jointsbuf);
+  glBufferData(GL_UNIFORM_BUFFER, loader.AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float), loader.AnimatedMesh.JointMatrixes.data(), GL_STATIC_DRAW);
 
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
 
@@ -148,7 +240,7 @@ void draw()
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getVAO());
-    ObjectShader::getInstance()->SetTextureUnits(cbuf, texture->Id, TrilinearSampler);
+    ObjectShader::getInstance()->SetTextureUnits(cbuf, jointsbuf, texture->Id, TrilinearSampler);
     for (auto tmp : CountBaseIndexVTX)
       glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
 }

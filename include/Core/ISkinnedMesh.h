@@ -585,10 +585,10 @@ namespace irr
         std::vector<std::vector<float> > verticesTotalWeight;
 
         verticesTotalWeight.reserve(LocalBuffers.size());
-        for (std::pair<SMeshBufferLightMap, video::SMaterial> LocalBuffers : LocalBuffers)
+        for (std::pair<SMeshBufferLightMap, video::SMaterial> LocalBuffer : LocalBuffers)
         {
           verticesTotalWeight.push_back(std::vector<float>());
-          verticesTotalWeight.back().resize(LocalBuffers.first.getVertexCount());
+          verticesTotalWeight.back().resize(LocalBuffer.first.getVertexCount());
         }
 
         for (unsigned i = 0; i < verticesTotalWeight.size(); ++i)
@@ -855,7 +855,7 @@ namespace irr
           core::vector3df thisVertexMove, thisNormalMove;
 
 //          core::array<scene::SSkinMeshBuffer*> &buffersUsed = *SkinningBuffers;
-//          JointMatrixes.push_back(jointVertexPull);
+          JointMatrixes.push_back(jointVertexPull);
         }
 
         //Skin all children
@@ -878,6 +878,7 @@ namespace irr
 
     public:
       std::vector<std::vector<WeightInfluence>> WeightBuffers;
+      std::vector<core::matrix4> JointMatrixes;
 
       //! Gets joint count.
       /** \return Amount of joints in the skeletal animated mesh. */
@@ -981,11 +982,10 @@ namespace irr
 
 /*        if (!areWeightGenerated)
           generateWeightInfluenceData();
-        areWeightGenerated = true;
-        JointMatrixes.clear();*/
+        areWeightGenerated = true;*/
+        JointMatrixes.clear();
 
-        if (!HardwareSkinning)
-        {
+
           //rigid animation
           for (unsigned i = 0; i<AllJoints.size(); ++i)
           {
@@ -1001,11 +1001,12 @@ namespace irr
             for (unsigned j = 0; j<Vertices_Moved[i].size(); ++j)
               Vertices_Moved[i][j] = false;
 
+
+
           //skin starting with the root joints
-          for (unsigned i = 0; i<RootJoints.size(); ++i)
-            skinJoint(RootJoints[i], 0, strength);
+          for (SJoint *rootjoint : RootJoints)
+            skinJoint(rootjoint, 0, strength);
         }
-      }
 
       //! converts the vertex type of all meshbuffers to tangents.
       /** E.g. used for bump mapping. */
@@ -1064,7 +1065,7 @@ namespace irr
               bool foundParent = false;
               for (SJoint *jointB : AllJoints)
               {
-                for (SJoint *jointBChild : AllJoints)
+                for (SJoint *jointBChild : jointB->Children)
                 {
                   if (jointBChild == jointA)
                     foundParent = true;
