@@ -445,15 +445,15 @@ namespace irr
     {
       float angle;
 
-      angle = x * 0.5;
+      angle = x * .5f;
       const float sr = sin(angle);
       const float cr = cos(angle);
 
-      angle = y * 0.5;
+      angle = y * .5f;
       const float sp = sin(angle);
       const float cp = cos(angle);
 
-      angle = z * 0.5;
+      angle = z * .5f;
       const float sy = sin(angle);
       const float cy = cos(angle);
 

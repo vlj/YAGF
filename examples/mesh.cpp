@@ -15,7 +15,6 @@
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 
-#include <sstream>
 
 std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
 FrameBuffer *MainFBO;
@@ -24,6 +23,7 @@ FrameBuffer *LinearDepthFBO;
 GLuint TrilinearSampler;
 
 const char *vtxshader = TO_STRING(
+\#version 330 \n
 
 layout(std140) uniform Matrices
 {
@@ -148,11 +148,8 @@ class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureR
 public:
     ObjectShader()
     {
-      std::stringstream tmpbuf;
-      tmpbuf << "#version 330" << std::endl;
-      tmpbuf << vtxshader;
         Program = ProgramShaderLoading::LoadProgram(
-            GL_VERTEX_SHADER, tmpbuf.str().c_str(),
+            GL_VERTEX_SHADER, vtxshader,
             GL_FRAGMENT_SHADER, fragshader);
 
         AssignSamplerNames(Program, "Matrices", "Joints", "tex");

@@ -1274,10 +1274,10 @@ namespace irr
             float current_weight = 0.;
             WeightInfluence WeightForVertex[4] = {};
             unsigned k;
-            unsigned bound = PerVertexWeights.size() > 4 ? 4 : PerVertexWeights.size();
+            size_t bound = PerVertexWeights.size() > 4 ? 4 : PerVertexWeights.size();
             for (k = 0; k < bound; k++)
             {
-              WeightForVertex[k].Index = PerVertexWeights[k].first;
+              WeightForVertex[k].Index = (int)PerVertexWeights[k].first;
               WeightForVertex[k].Weight = PerVertexWeights[k].second;
               current_weight += PerVertexWeights[k].second;
             }
