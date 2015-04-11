@@ -235,8 +235,8 @@ void draw()
     glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Matrixes), &cbufdata, GL_STATIC_DRAW);
 
     double intpart;
-    float frame = (float)modf(time / 1000., &intpart);
-    frame *= 100.f;
+    float frame = (float)modf(time / 10000., &intpart);
+    frame *= 300.f;
     loader->AnimatedMesh.animateMesh(frame, 1.f);
     loader->AnimatedMesh.skinMesh(1.f);
 
