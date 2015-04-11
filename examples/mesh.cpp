@@ -156,8 +156,6 @@ public:
     }
 };
 
-Texture *texture;
-
 struct Matrixes
 {
     float Model[16];
@@ -169,12 +167,14 @@ GLuint jointsbuf;
 
 irr::scene::CB3DMeshFileLoader *loader;
 
+std::unordered_map<std::string, Texture> textureSet;
+
 void init()
 {
   DebugUtil::enableDebugOutput();
   irr::io::CReadFile reader("..\\examples\\xue.b3d");
   loader = new irr::scene::CB3DMeshFileLoader(&reader);
-  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
+  const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = loader->AnimatedMesh.getMeshBuffers();
 
   for (unsigned i = 0; i < buffers.size(); i++)
   {
@@ -184,15 +184,16 @@ void init()
     CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseVtxIndex.second, BaseVtxIndex.first));
   }
 
-  std::ifstream DDSFile("..\\examples\\hc_bodyBC1.DDS", std::ifstream::binary);
-  irr::video::CImageLoaderDDS DDSPic(DDSFile);
-
-  texture = new Texture(DDSPic.getLoadedImage());
-
+  for (unsigned i = 0; i < loader->Textures.size(); i++)
+  {
+    const std::string &fixed = "..\\examples\\" + loader->Textures[i].TextureName.substr(0, loader->Textures[i].TextureName.find_last_of('.')) + ".DDS";
+    std::ifstream DDSFile(fixed, std::ifstream::binary);
+    irr::video::CImageLoaderDDS DDSPic(DDSFile);
+    textureSet.emplace(loader->Textures[i].TextureName, DDSPic.getLoadedImage());
+  }
 
   glGenBuffers(1, &cbuf);
   glGenBuffers(1, &jointsbuf);
-
 
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
 
@@ -202,8 +203,8 @@ void init()
 void clean()
 {
     glDeleteSamplers(1, &TrilinearSampler);
-    delete(texture);
     glDeleteBuffers(1, &cbuf);
+    delete loader;
 }
 
 static float time = 0.;
@@ -245,9 +246,13 @@ void draw()
 
     glUseProgram(ObjectShader::getInstance()->Program);
     glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getVAO());
-    ObjectShader::getInstance()->SetTextureUnits(cbuf, jointsbuf, texture->Id, TrilinearSampler);
-    for (auto tmp : CountBaseIndexVTX)
+    for (unsigned i = 0; i < CountBaseIndexVTX.size(); i++)
+    {
+      auto tmp = CountBaseIndexVTX[i];
+      const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = loader->AnimatedMesh.getMeshBuffers();
+      ObjectShader::getInstance()->SetTextureUnits(cbuf, jointsbuf, textureSet[buffers[i].second.TextureNames[0]].Id, TrilinearSampler);
       glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
+    }
 }
 
 int main()

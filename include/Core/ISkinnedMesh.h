@@ -241,6 +241,7 @@ namespace irr
       bool GouraudShading;
       bool BackfaceCulling;
       float Shininess;
+      std::string TextureNames[16];
     };
   }
 

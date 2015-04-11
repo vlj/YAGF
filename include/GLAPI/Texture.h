@@ -42,6 +42,7 @@ private:
     size_t Width, Height;
 public:
     GLuint Id;
+    Texture() {}
 
     Texture(const IImage& image)
     {
@@ -71,6 +72,7 @@ public:
 
     ~Texture()
     {
+      if (Id)
         glDeleteTextures(1, &Id);
     }
 };

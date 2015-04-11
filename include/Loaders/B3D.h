@@ -1068,6 +1068,12 @@ namespace irr
 
       void loadTextures(SB3dMaterial& material) const
       {
+        for (unsigned i = 0; i < 16; ++i)
+        {
+          SB3dTexture* B3dTexture = material.Textures[i];
+          if (B3dTexture)
+            material.Material.TextureNames[i] = B3dTexture->TextureName;
+        }
         return;
         /*        const bool previous32BitTextureFlag = SceneManager->getVideoDriver()->getTextureCreationFlag(video::ETCF_ALWAYS_32_BIT);
                 SceneManager->getVideoDriver()->setTextureCreationFlag(video::ETCF_ALWAYS_32_BIT, true);
