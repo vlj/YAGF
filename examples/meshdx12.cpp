@@ -24,7 +24,7 @@ HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
 ComPtr<ID3D12DescriptorHeap> TexResourceHeaps;
-ComPtr<ID3D12Resource> Tex;
+std::vector<ComPtr<ID3D12Resource> > Textures;
 ComPtr<ID3D12DescriptorHeap> Sampler;
 ComPtr<ID3D12Resource> DepthBuffer;
 ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
@@ -62,6 +62,7 @@ public:
 };
 
 irr::scene::CB3DMeshFileLoader *loader;
+std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> textureSet;
 
 void Init(HWND hWnd)
 {
@@ -130,32 +131,57 @@ void Init(HWND hWnd)
 
   vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
 
-  std::ifstream DDSFile("..\\examples\\anchorBC5.DDS", std::ifstream::binary);
-  irr::video::CImageLoaderDDS DDSPic(DDSFile);
-
   // Upload to gpudata
   {
     // Texture
-    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-    heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 1;
-    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&TexResourceHeaps));
+    std::vector<std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> > textureNamePairs;
+    for (unsigned i = 0; i < loader->Textures.size(); i++)
+    {
+      Textures.push_back(ComPtr<ID3D12Resource>());
+      const std::string &fixed = "..\\examples\\" + loader->Textures[i].TextureName.substr(0, loader->Textures[i].TextureName.find_last_of('.')) + ".DDS";
+      std::ifstream DDSFile(fixed, std::ifstream::binary);
+      irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-    Texture TextureInRam(DDSPic.getLoadedImage());
+      Texture TextureInRam(DDSPic.getLoadedImage());
 
-    hr = dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, 10),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&Tex)
-      );
+      hr = dev->CreateCommittedResource(
+        &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_MISC_NONE,
+        &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, DDSPic.getLoadedImage().MipMapData.size()),
+        D3D12_RESOURCE_USAGE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&Textures.back())
+        );
 
-    TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get());
+      TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Textures.back().Get());
+      textureNamePairs.push_back(std::make_tuple(loader->Textures[i].TextureName, Textures.back().Get(), TextureInRam.getResourceViewDesc()));
 
-    dev->CreateShaderResourceView(Tex.Get(), &TextureInRam.getResourceViewDesc(), TexResourceHeaps->GetCPUDescriptorHandleForHeapStart());
+      ComPtr<ID3D12Fence> datauploadfence;
+      hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&datauploadfence));
+      HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
+      datauploadfence->Signal(0);
+      datauploadfence->SetEventOnCompletion(1, cpudatauploadevent);
+      cmdlist->Close();
+      Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+      Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
+      WaitForSingleObject(cpudatauploadevent, INFINITE);
+      cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+    }
+
+    // Create Texture Heap
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+      heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+      heapdesc.NumDescriptors = textureNamePairs.size();
+      heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+      hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&TexResourceHeaps));
+      for (unsigned i = 0; i < textureNamePairs.size(); i++)
+      {
+        std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> texturedata = textureNamePairs[i];
+        dev->CreateShaderResourceView(std::get<1>(texturedata), &std::get<2>(texturedata), TexResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(i * dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+        textureSet[std::get<0>(texturedata)] = TexResourceHeaps->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(i * dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP));
+      }
+    }
 
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
@@ -240,7 +266,6 @@ void Draw()
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootDescriptorTable(1, TexResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -249,6 +274,7 @@ void Draw()
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
   for (unsigned i = 0; i < buffers.size(); i++)
   {
+    cmdlist->SetGraphicsRootDescriptorTable(1, textureSet[buffers[i].second.TextureNames[0]]);
     cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[i]), 1, (UINT)std::get<2>(vao->meshOffset[i]), (UINT)std::get<1>(vao->meshOffset[i]), 0);
   }
 
