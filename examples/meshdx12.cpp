@@ -34,6 +34,12 @@ FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
 
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>,DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
+struct Matrixes
+{
+  float Model[16];
+  float ViewProj[16];
+};
+
 class Object : public PipelineStateObject<Object, irr::video::S3DVertex2TCoords>
 {
 public:
@@ -55,6 +61,8 @@ public:
   }
 };
 
+irr::scene::CB3DMeshFileLoader *loader;
+
 void Init(HWND hWnd)
 {
   Context::getInstance()->InitD3D(hWnd);
@@ -73,12 +81,6 @@ void Init(HWND hWnd)
     D3D12_RESOURCE_USAGE_GENERIC_READ,
     nullptr,
     IID_PPV_ARGS(&cbuffer));
-
-  float *tmp;
-  cbuffer->Map(0, nullptr, (void**)&tmp);
-  float white[4] = { 1.f, 1.f, 1.f, 1.f };
-  memcpy(tmp, white, 4 * sizeof(float));
-  cbuffer->Unmap(0, nullptr);
 
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
@@ -118,9 +120,9 @@ void Init(HWND hWnd)
   // Define Root Signature
   rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
 
-  irr::io::CReadFile reader("..\\examples\\anchor.b3d");
-  irr::scene::CB3DMeshFileLoader loader(&reader);
-  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader.AnimatedMesh.getMeshBuffers();
+  irr::io::CReadFile reader("..\\examples\\xue.b3d");
+  loader = new irr::scene::CB3DMeshFileLoader(&reader);
+  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
   std::vector<irr::scene::SMeshBufferLightMap> reorg;
 
   for (auto buf : buffers)
@@ -183,6 +185,9 @@ void Init(HWND hWnd)
   }
 }
 
+
+static float timer = 0.;
+
 void Draw()
 {
   D3D12_RECT rect = {};
@@ -199,8 +204,32 @@ void Draw()
   view.MinDepth = 0;
   view.MaxDepth = 1.;
 
+  {
+    Matrixes cbufdata;
+    irr::core::matrix4 Model, View;
+    View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+    Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
+    Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
+
+    memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
+    memcpy(cbufdata.ViewProj, View.pointer(), 16 * sizeof(float));
+
+    void* cpubuffermap;
+    cbuffer->Map(0, nullptr, &cpubuffermap);
+    memcpy(cpubuffermap, &cbufdata, sizeof(Matrixes));
+    cbuffer->Unmap(0, nullptr);
+  }
+
+  timer += 10.f;
+
   cmdlist->RSSetViewports(1, &view);
   cmdlist->RSSetScissorRects(1, &rect);
+
+  ID3D12DescriptorHeap *descriptorlst[] =
+  {
+    ReadResourceHeaps.Get()
+  };
+  cmdlist->SetDescriptorHeaps(descriptorlst, 1);
 
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
 
@@ -217,7 +246,11 @@ void Draw()
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
-  cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[0]), 1, (UINT)std::get<1>(vao->meshOffset[0]), (UINT)std::get<2>(vao->meshOffset[0]), 0);
+  std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
+  for (unsigned i = 0; i < buffers.size(); i++)
+  {
+    cmdlist->DrawIndexedInstanced((UINT)std::get<0>(vao->meshOffset[i]), 1, (UINT)std::get<2>(vao->meshOffset[i]), (UINT)std::get<1>(vao->meshOffset[i]), 0);
+  }
 
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
   HRESULT hr = cmdlist->Close();
