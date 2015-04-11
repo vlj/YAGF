@@ -369,7 +369,6 @@ namespace irr
       std::vector<SJoint *> AllJoints;
       std::vector<SJoint*> RootJoints;
 
-      std::vector<std::vector<bool> > Vertices_Moved;
       std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> > *SkinningBuffers;
       std::vector<std::vector<std::vector<std::pair<size_t, float> > > > Weights;
 
@@ -700,26 +699,6 @@ namespace irr
             }
           }
 
-          //An array used in skinning
-          for (unsigned i = 0; i < Vertices_Moved.size(); ++i)
-            for (unsigned j = 0; j < Vertices_Moved[i].size(); ++j)
-              Vertices_Moved[i][j] = false;
-
-          // For skinning: cache weight values for speed
-          //          for (i = 0; i<AllJoints.size(); ++i)
-          //          {
-          //            SJoint *joint = AllJoints[i];
-          //            for (j = 0; j<joint->Weights.size(); ++j)
-          //            {
-          //              const unsigned short buffer_id = joint->Weights[j].buffer_id;
-          //              const unsigned vertex_id = joint->Weights[j].vertex_id;
-
-          //              joint->Weights[j].Moved = &Vertices_Moved[buffer_id][vertex_id];
-          //              joint->Weights[j].StaticPos = LocalBuffers[buffer_id].first->getVertex(vertex_id)->Pos;
-          //              joint->Weights[j].StaticNormal = LocalBuffers[buffer_id].first->getVertex(vertex_id)->Normal;
-          //            }
-          //          }
-
           // normalize weights
           normalizeWeights();
         }
@@ -852,9 +831,6 @@ namespace irr
           core::matrix4 jointVertexPull(core::matrix4::EM4CONST_NOTHING);
           jointVertexPull.setbyproduct(joint->GlobalAnimatedMatrix, joint->GlobalInversedMatrix);
 
-          core::vector3df thisVertexMove, thisNormalMove;
-
-//          core::array<scene::SSkinMeshBuffer*> &buffersUsed = *SkinningBuffers;
           JointMatrixes.push_back(jointVertexPull);
         }
 
@@ -876,24 +852,18 @@ namespace irr
           computeWeightInfluence(childjoint, index);
       }
 
+      bool hasParent(const SJoint *jointA) const
+      {
+        for (SJoint *jointB : AllJoints)
+          for (SJoint *jointBChild : jointB->Children)
+            if (jointBChild == jointA)
+              return true;
+        return false;
+      }
+
     public:
       std::vector<std::vector<WeightInfluence>> WeightBuffers;
       std::vector<core::matrix4> JointMatrixes;
-
-      //! Gets joint count.
-      /** \return Amount of joints in the skeletal animated mesh. */
-      //virtual unsigned getJointCount() const = 0;
-
-      //! Gets the name of a joint.
-      /** \param number: Zero based index of joint. The last joint
-      has the number getJointCount()-1;
-      \return Name of joint and null if an error happened. */
-      //virtual const char* getJointName(unsigned number) const = 0;
-
-            //! Gets a joint number from its name
-            /** \param name: Name of the joint.
-            \return Number of the joint or -1 if not found. */
-            //virtual int getJointNumber(const char* name) const = 0;
 
       //! Gets the frame count of the animated mesh.
       /** \param fps Frames per second to play the animation with. If the amount is 0, it is not animated.
@@ -902,12 +872,6 @@ namespace irr
       {
         FramesPerSecond = fps;
       }
-
-      //! Update Normals when Animating
-      /** \param on If false don't animate, which is faster.
-      Else update normals, which allows for proper lighting of
-      animated meshes. */
-      //      virtual void updateNormalsWhenAnimating(bool on) = 0;
 
       //! Animates this mesh's joints based on frame input
       //! blend: {0-old position, 1-New position}
@@ -979,12 +943,7 @@ namespace irr
         //-----------------
 
         SkinnedLastFrame = true;
-
-/*        if (!areWeightGenerated)
-          generateWeightInfluenceData();
-        areWeightGenerated = true;*/
         JointMatrixes.clear();
-
 
           //rigid animation
           for (unsigned i = 0; i<AllJoints.size(); ++i)
@@ -995,13 +954,6 @@ namespace irr
 //              Buffer->Transformation = AllJoints[i]->GlobalAnimatedMatrix;
             }
           }
-
-          //clear skinning helper array
-          for (unsigned i = 0; i<Vertices_Moved.size(); ++i)
-            for (unsigned j = 0; j<Vertices_Moved[i].size(); ++j)
-              Vertices_Moved[i][j] = false;
-
-
 
           //skin starting with the root joints
           for (SJoint *rootjoint : RootJoints)
@@ -1015,7 +967,6 @@ namespace irr
     public:
       ISkinnedMesh() : SkinningBuffers(0), AnimationFrames(0.f), FramesPerSecond(25.f),
         LastAnimatedFrame(-1), SkinnedLastFrame(false),
-        //InterpolationMode(EIM_LINEAR),
         HasAnimation(false), PreparedForSkinning(false),
         AnimateNormals(true), HardwareSkinning(false)
       {
@@ -1042,12 +993,6 @@ namespace irr
         return LocalBuffers;
       }
 
-      //! exposed for loaders: joints list
-//      virtual std::vector<SJoint*>& getAllJoints() = 0;
-
-      //! exposed for loaders: joints list
-//      virtual std::vector<SJoint*>& getAllJoints() const = 0;
-
       //! loaders should call this after populating the mesh
       void finalize()
       {
@@ -1061,36 +1006,15 @@ namespace irr
           if (RootJoints.empty())
           {
             for (SJoint *jointA : AllJoints)
-            {
-              bool foundParent = false;
-              for (SJoint *jointB : AllJoints)
-              {
-                for (SJoint *jointBChild : jointB->Children)
-                {
-                  if (jointBChild == jointA)
-                    foundParent = true;
-                }
-              }
-
-              if (!foundParent)
+              if (!hasParent(jointA))
                 RootJoints.push_back(jointA);
-            }
           }
           else
-          {
             AllJoints = RootJoints;
-          }
         }
 
         for (SJoint *joint : AllJoints)
           joint->UseAnimationFrom = joint;
-
-        //Set array sizes...
-        for (unsigned i = 0; i < LocalBuffers.size(); ++i)
-        {
-          Vertices_Moved.push_back(std::vector<bool>());
-          Vertices_Moved[i].resize(LocalBuffers[i].first.getVertexCount());
-        }
 
         //Todo: optimise keys here...
         checkForAnimation();
