@@ -22,6 +22,7 @@ ComPtr<ID3D12GraphicsCommandList> cmdlist;
 ComPtr<ID3D12Fence> fence;
 HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
+ComPtr<ID3D12Resource> jointbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
 ComPtr<ID3D12DescriptorHeap> TexResourceHeaps;
 std::vector<ComPtr<ID3D12Resource> > Textures;
@@ -30,9 +31,11 @@ ComPtr<ID3D12Resource> DepthBuffer;
 ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 
+ComPtr<ID3D12Resource> WeightBuffer;
+
 FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
 
-RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>,DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
+RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
 struct Matrixes
 {
@@ -58,11 +61,28 @@ public:
     psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
     psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+    static D3D12_INPUT_ELEMENT_DESC IAdesc[] =
+    {
+      { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 4, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 3, DXGI_FORMAT_R32_SINT, 1, 8, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 1, 12, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 5, DXGI_FORMAT_R32_SINT, 1, 16, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 6, DXGI_FORMAT_R32_FLOAT, 1, 20, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 7, DXGI_FORMAT_R32_SINT, 1, 24, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "TEXCOORD", 8, DXGI_FORMAT_R32_FLOAT, 1, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+    };
+
+    psodesc.InputLayout.pInputElementDescs = IAdesc;
+    psodesc.InputLayout.NumElements = 10;
   }
 };
 
 irr::scene::CB3DMeshFileLoader *loader;
 std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> textureSet;
+D3D12_VERTEX_BUFFER_VIEW weightbv = {};
 
 void Init(HWND hWnd)
 {
@@ -83,10 +103,18 @@ void Init(HWND hWnd)
     nullptr,
     IID_PPV_ARGS(&cbuffer));
 
+  hr = dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Buffer(48 * 16 * sizeof(float)),
+    D3D12_RESOURCE_USAGE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(&jointbuffer));
+
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
     heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 1;
+    heapdesc.NumDescriptors = 2;
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&ReadResourceHeaps));
 
@@ -94,6 +122,10 @@ void Init(HWND hWnd)
     bufdesc.BufferLocation = cbuffer->GetGPUVirtualAddress();
     bufdesc.SizeInBytes = 256;
     dev->CreateConstantBufferView(&bufdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart());
+
+    bufdesc.BufferLocation = jointbuffer->GetGPUVirtualAddress();
+    bufdesc.SizeInBytes = 48 * 16 * sizeof(float);
+    dev->CreateConstantBufferView(&bufdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
   }
 
   {
@@ -119,7 +151,7 @@ void Init(HWND hWnd)
   }
 
   // Define Root Signature
-  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
+  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
 
   irr::io::CReadFile reader("..\\examples\\xue.b3d");
   loader = new irr::scene::CB3DMeshFileLoader(&reader);
@@ -133,6 +165,47 @@ void Init(HWND hWnd)
 
   // Upload to gpudata
   {
+    // Upload weights
+    size_t total_vertex_cnt = 0;
+    for (auto mesh : reorg)
+      total_vertex_cnt += mesh.getVertexCount();
+
+    ID3D12Resource *cpuvertexdata;
+    hr = Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence)),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&cpuvertexdata));
+
+    hr = Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence)),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&WeightBuffer));
+
+    void *cpudata;
+    cpuvertexdata->Map(0, nullptr, &cpudata);
+    size_t offset = 0;
+    for (unsigned i = 0; i < buffers.size(); i++)
+    {
+      auto tmp = loader->AnimatedMesh.WeightBuffers[i];
+      memcpy((char*)cpudata + offset, tmp.data(), tmp.size() * sizeof(irr::scene::ISkinnedMesh::WeightInfluence));
+      offset += tmp.size() * sizeof(irr::scene::ISkinnedMesh::WeightInfluence);
+    }
+    cpuvertexdata->Unmap(0, nullptr);
+
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(WeightBuffer.Get(), D3D12_RESOURCE_USAGE_GENERIC_READ, D3D12_RESOURCE_USAGE_COPY_DEST));
+    cmdlist->CopyBufferRegion(WeightBuffer.Get(), 0, cpuvertexdata, 0, total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence), D3D12_COPY_NONE);
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(WeightBuffer.Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ));
+
+    weightbv.BufferLocation = WeightBuffer->GetGPUVirtualAddress();
+    weightbv.StrideInBytes = 4 * 2 * sizeof(float);
+    weightbv.SizeInBytes = total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence);
+
     // Texture
     std::vector<std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> > textureNamePairs;
     for (unsigned i = 0; i < loader->Textures.size(); i++)
@@ -208,6 +281,8 @@ void Init(HWND hWnd)
     Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
     WaitForSingleObject(cpudatauploadevent, INFINITE);
     cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+
+    cpuvertexdata->Release();
   }
 }
 
@@ -246,7 +321,20 @@ void Draw()
     cbuffer->Unmap(0, nullptr);
   }
 
-  timer += 10.f;
+  timer += 1.f;
+
+  {
+    double intpart;
+    float frame = (float)modf(timer / 10000., &intpart);
+    frame *= 300.f;
+    loader->AnimatedMesh.animateMesh(frame, 1.f);
+    loader->AnimatedMesh.skinMesh(1.f);
+
+    void *jointsdata;
+    jointbuffer->Map(0, nullptr, &jointsdata);
+    memcpy(jointsdata, loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));
+    jointbuffer->Unmap(0, nullptr);
+  }
 
   cmdlist->RSSetViewports(1, &view);
   cmdlist->RSSetScissorRects(1, &rect);
@@ -271,6 +359,7 @@ void Draw()
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
+  cmdlist->SetVertexBuffers(1, &weightbv, 1);
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
   for (unsigned i = 0; i < buffers.size(); i++)
   {
