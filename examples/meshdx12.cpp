@@ -281,16 +281,18 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
   Init(WindowUtil::Create(hInstance, hPrevInstance, lpCmdLine, nCmdShow));
   // this struct holds Windows event messages
-  MSG msg;
+  MSG msg = {};
 
-  // wait for the next message in the queue, store the result in 'msg'
-  while (GetMessage(&msg, NULL, 0, 0))
+  // Loop from https://msdn.microsoft.com/en-us/library/windows/apps/dn166880.aspx
+  while (WM_QUIT != msg.message)
   {
-    // translate keystroke messages into the right format
-    TranslateMessage(&msg);
+    bool bGotMsg = (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE) != 0);
 
-    // send the message to the WindowProc function
-    DispatchMessage(&msg);
+    if (bGotMsg)
+    {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
 
     Draw();
   }
