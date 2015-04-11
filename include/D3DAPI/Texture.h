@@ -61,7 +61,7 @@ public:
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
       D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(4 * sizeof(char) * Width * Height * 2),
+      &CD3D12_RESOURCE_DESC::Buffer(4 * sizeof(char) * Width * Height * 3), // 3 to have some extra room despite mipmaps
       D3D12_RESOURCE_USAGE_GENERIC_READ,
       nullptr,
       IID_PPV_ARGS(&texinram)
@@ -117,7 +117,7 @@ public:
       Mips.push_back(mml);
       for (unsigned row = 0; row < height_in_blocks; row++)
       {
-        memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, rowPitch);
+        memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
         offset_in_texram += rowPitch;
       }
     }
