@@ -1,6 +1,6 @@
 #include <MeshSceneNode.h>
 #include <MeshManager.h>
-
+#include <RenderTargets.h>
 
 #ifdef GLBUILD
 #include <GL/glew.h>
@@ -143,11 +143,11 @@ struct ViewBuffer
 #ifdef DXBUILD
 Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbufferDescriptorHeap;
 ConstantBuffer<ViewBuffer> *cbuffer;
+RenderTargets *rtts;
 
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
-Microsoft::WRL::ComPtr<ID3D12Resource> DepthBuffer;
-Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
+
 Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
 
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
@@ -199,6 +199,7 @@ void init()
 
 #ifdef DXBUILD
   {
+    rtts = new RenderTargets(1024, 1024);
     D3D12_DESCRIPTOR_HEAP_DESC cbuffheapdesc = {};
     cbuffheapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
     cbuffheapdesc.NumDescriptors = 1;
@@ -210,26 +211,6 @@ void init()
 
     hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
     hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
-
-    hr = Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, 1024, 1024, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
-      D3D12_RESOURCE_USAGE_DEPTH,
-      &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
-      IID_PPV_ARGS(&DepthBuffer));
-
-    D3D12_DESCRIPTOR_HEAP_DESC Depthdesc = {};
-    Depthdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
-    Depthdesc.NumDescriptors = 1;
-    Depthdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
-    hr = Context::getInstance()->dev->CreateDescriptorHeap(&Depthdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
-
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-    dsv.Format = DXGI_FORMAT_D32_FLOAT;
-    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsv.Texture2D.MipSlice = 0;
-    Context::getInstance()->dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
     sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
@@ -254,6 +235,7 @@ void clean()
 {
   TextureManager::getInstance()->kill();
   MeshManager::getInstance()->kill();
+  delete rtts;
   delete xue;
 #ifdef GLBUILD
   glDeleteSamplers(1, &TrilinearSampler);
@@ -338,20 +320,19 @@ void draw()
 
   float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
-  cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
+  cmdlist->ClearDepthStencilView(rtts->getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
   cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
   cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &rtts->getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&xue->getVAO()->getIndexBufferView());
   cmdlist->SetVertexBuffers(0, xue->getVAO()->getVertexBufferView().data(), 1);
 
   for (irr::video::DrawData drawdata : xue->getDrawDatas())
   {
-
     cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());
     cmdlist->SetGraphicsRootDescriptorTable(2, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
     cmdlist->SetGraphicsRootDescriptorTable(3, Sampler->GetGPUDescriptorHandleForHeapStart());
