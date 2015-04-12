@@ -146,6 +146,36 @@ ConstantBuffer<ViewBuffer> *cbuffer;
 
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
+Microsoft::WRL::ComPtr<ID3D12Resource> DepthBuffer;
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
+
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<1>>,
+  DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0>>,
+  DescriptorTable<SamplerResource<0>> > RS;
+
+
+class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords>>
+{
+public:
+  Object() : PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords>>(L"Debug\\object_pass_vtx.cso", L"Debug\\object_pass_pix.cso")
+  {}
+
+  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
+  {
+    psodesc.pRootSignature = RS::getInstance()->pRootSignature.Get();
+    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    psodesc.NumRenderTargets = 1;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+
+    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  }
+};
 #endif
 
 irr::scene::IMeshSceneNode *xue;
@@ -169,7 +199,7 @@ void init()
 #ifdef DXBUILD
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
   heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-  heapdesc.NumDescriptors = 2;
+  heapdesc.NumDescriptors = 1;
   heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
   HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&cbufferDescriptorHeap));
 
@@ -178,6 +208,45 @@ void init()
 
   hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
   hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
+
+
+  {
+    hr = Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, 1024, 1024, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
+      D3D12_RESOURCE_USAGE_DEPTH,
+      &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
+      IID_PPV_ARGS(&DepthBuffer));
+
+    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+    heapdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
+    heapdesc.NumDescriptors = 1;
+    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
+    hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+    dsv.Format = DXGI_FORMAT_D32_FLOAT;
+    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    dsv.Texture2D.MipSlice = 0;
+    Context::getInstance()->dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+    D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
+    sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
+    sampler_heap.NumDescriptors = 1;
+    sampler_heap.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+    hr = Context::getInstance()->dev->CreateDescriptorHeap(&sampler_heap, IID_PPV_ARGS(&Sampler));
+
+    D3D12_SAMPLER_DESC samplerdesc = {};
+    samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.MaxAnisotropy = 1;
+    samplerdesc.MinLOD = 0;
+    samplerdesc.MaxLOD = 10;
+    Context::getInstance()->dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
+  }
 #endif
 }
 
@@ -185,13 +254,15 @@ void clean()
 {
   TextureManager::getInstance()->kill();
   MeshManager::getInstance()->kill();
+  delete xue;
 #ifdef GLBUILD
   glDeleteSamplers(1, &TrilinearSampler);
   glDeleteBuffers(1, &cbuf);
 #endif
 #ifdef DXBUILD
-  Context::getInstance()->kill();
+  Object::getInstance()->kill();
   delete cbuffer;
+  Context::getInstance()->kill();
 #endif
 }
 
@@ -266,22 +337,23 @@ void draw()
 
   float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
-//  cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
+  cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
-//  cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
+  cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
+  cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-//  cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
-//  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-//  cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
-//  cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView()[0], 1);
-//  cmdlist->SetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
+  cmdlist->SetIndexBuffer(&xue->getVAO()->getIndexBufferView());
+  cmdlist->SetVertexBuffers(0, xue->getVAO()->getVertexBufferView().data(), 1);
 
   for (irr::video::DrawData drawdata : xue->getDrawDatas())
   {
-//    cmdlist->SetGraphicsRootDescriptorTable(1, textureSet[buffers[i].second.TextureNames[0]]);
-//    cmdlist->DrawIndexedInstanced((UINT)drawdata.IndexCount, 1, (UINT)drawdata.vaoOffset, (UINT)drawdata.vaoBaseVertex, 0);
+
+    cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());
+    cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
+    cmdlist->DrawIndexedInstanced((UINT)drawdata.IndexCount, 1, (UINT)drawdata.vaoOffset, (UINT)drawdata.vaoBaseVertex, 0);
   }
 
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
@@ -291,7 +363,7 @@ void draw()
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
   cmdalloc->Reset();
-//  cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+  cmdlist->Reset(cmdalloc.Get(), nullptr);
   Context::getInstance()->Swap();
 #endif
 }

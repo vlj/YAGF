@@ -139,6 +139,16 @@ public:
     return Height;
   }
 
+  DXGI_FORMAT getFormat() const
+  {
+    return getDXGIFormatFromColorFormat(Format);
+  }
+
+  size_t getMipLevelsCount() const
+  {
+    return Mips.size();
+  }
+
   void CreateUploadCommandToResourceInDefaultHeap(ID3D12GraphicsCommandList *cmdlist, ID3D12Resource *DestResource) const
   {
     for (unsigned i = 0; i < Mips.size(); i++)

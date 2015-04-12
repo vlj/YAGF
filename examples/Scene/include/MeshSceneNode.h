@@ -14,6 +14,8 @@
 
 #ifdef DXBUILD
 #include <D3DAPI/Texture.h>
+#include <D3DAPI/VAO.h>
+#include <D3DAPI/ConstantBuffer.h>
 #endif
 
 #include <Core/SColor.h>
@@ -44,6 +46,9 @@ namespace irr
       GLuint index_buffer;
       GLenum PrimitiveType;
 #endif
+#ifdef DXBUILD
+      Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptors;
+#endif
       const Texture *textures[8];
       size_t IndexCount;
       size_t Stride;
@@ -69,6 +74,12 @@ namespace irr
     private:
 #ifdef GLBUILD
       GLuint cbuffer;
+#endif
+
+#ifdef DXBUILD
+      ConstantBuffer<ObjectData> cbuffer;
+      FormattedVertexStorage<irr::video::S3DVertex2TCoords> *PackedVertexBuffer;
+      Microsoft::WRL::ComPtr<ID3D12Resource> Tex;
 #endif
 
       const ISkinnedMesh* Mesh;
@@ -128,12 +139,18 @@ namespace irr
 #ifdef GLBUILD
         glGenBuffers(1, &cbuffer);
 #endif
+#ifdef DXBUILD
+        PackedVertexBuffer = nullptr;
+#endif
       }
 
       ~IMeshSceneNode()
       {
 #ifdef GLBUILD
         glDeleteBuffers(1, &cbuffer);
+#endif
+#ifdef DXBUILD
+        delete PackedVertexBuffer;
 #endif
       }
 
@@ -150,17 +167,57 @@ namespace irr
 
         const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = Mesh->getMeshBuffers();
 
+#ifdef DXBUILD
+        std::vector<irr::scene::SMeshBufferLightMap> reorg;
+#endif
+
         for (const std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> &buffer: buffers)
         {
           const irr::scene::SMeshBufferLightMap* mb = &buffer.first;
           DrawDatas.push_back(allocateMeshBuffer(buffer.first, this));
 
-          DrawDatas.back().textures[0] = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
-
 #ifdef GLBUILD
+          DrawDatas.back().textures[0] = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
           std::pair<size_t, size_t> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
           DrawDatas.back().vaoBaseVertex = p.first;
           DrawDatas.back().vaoOffset = p.second;
+#endif
+
+#ifdef DXBUILD
+          reorg.push_back(buffer.first);
+
+          const Texture* TextureInRam = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
+
+          HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+            &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_MISC_NONE,
+            &CD3D12_RESOURCE_DESC::Tex2D(TextureInRam->getFormat(), (UINT)TextureInRam->getWidth(), (UINT)TextureInRam->getHeight(), 1, (UINT16)TextureInRam->getMipLevelsCount()),
+            D3D12_RESOURCE_USAGE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(&Tex)
+            );
+
+          D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+          heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+          heapdesc.NumDescriptors = 2;
+          heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+          hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DrawDatas.back().descriptors));
+
+          Context::getInstance()->dev->CreateConstantBufferView(&cbuffer.getDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart());
+          Context::getInstance()->dev->CreateShaderResourceView(Tex.Get(), &TextureInRam->getResourceViewDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+
+          Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
+          Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+          Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
+          Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
+
+          TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get());
+
+          cmdlist->Close();
+          Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+          HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
+          WaitForSingleObject(handle, INFINITE);
+          CloseHandle(handle);
 #endif
 
 
@@ -189,6 +246,16 @@ namespace irr
               MeshSolidMaterial[MatType].push_back(&mesh);
           }*/
         }
+#ifdef DXBUILD
+        PackedVertexBuffer = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
+        for (unsigned i = 0; i < DrawDatas.size(); i++)
+        {
+          irr::video::DrawData &drawdata = DrawDatas[i];
+          drawdata.IndexCount = std::get<0>(PackedVertexBuffer->meshOffset[i]);
+          drawdata.vaoOffset = std::get<2>(PackedVertexBuffer->meshOffset[i]);
+          drawdata.vaoBaseVertex = std::get<1>(PackedVertexBuffer->meshOffset[i]);
+        }
+#endif
       }
 
       //! Get the currently defined mesh for display.
@@ -210,12 +277,23 @@ namespace irr
         glBindBuffer(GL_UNIFORM_BUFFER, cbuffer);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(ObjectData), &objdt, GL_STATIC_DRAW);
 #endif
+#ifdef DXBUILD
+        memcpy(cbuffer.map(), &objdt, sizeof(ObjectData));
+        cbuffer.unmap();
+#endif
       }
 
 #ifdef GLBUILD
       GLuint getConstantBuffer() const
       {
         return cbuffer;
+      }
+#endif
+
+#ifdef DXBUILD
+      const FormattedVertexStorage<irr::video::S3DVertex2TCoords> * getVAO() const
+      {
+        return PackedVertexBuffer;
       }
 #endif
     };

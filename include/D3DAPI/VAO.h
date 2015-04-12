@@ -197,7 +197,16 @@ public:
     uploadcmdlist->Close();
     queue->ExecuteCommandLists(1, (ID3D12CommandList**)&uploadcmdlist);
 
-    std::thread t1([=]() {temporarycommandalloc->Release(); uploadcmdlist->Release(); cpuindexdata->Release(); for (unsigned i = 0; i < cpuresources.size(); i++) cpuresources[i]->Release(); });
+    std::thread t1([=]() {
+      HANDLE handle = getCPUSyncHandle(queue);
+      WaitForSingleObject(handle, INFINITE);
+      CloseHandle(handle);
+      temporarycommandalloc->Release();
+      uploadcmdlist->Release();
+      cpuindexdata->Release();
+      for (unsigned i = 0; i < cpuresources.size(); i++)
+        cpuresources[i]->Release();
+    });
     t1.detach();
 
     idxb.BufferLocation = indexbuffer->GetGPUVirtualAddress();

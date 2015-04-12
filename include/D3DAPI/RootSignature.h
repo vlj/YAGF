@@ -116,7 +116,7 @@ public:
     D3D12_ROOT_SIGNATURE RootSig = D3D12_ROOT_SIGNATURE((UINT)RootParameters.size(), RootParameters.data());
     RootSig.Flags = flags;
 
-    ComPtr<ID3DBlob> pSerializedRootSig;
+    Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSig;
     HRESULT hr = D3D12SerializeRootSignature(&RootSig, D3D_ROOT_SIGNATURE_V1, &pSerializedRootSig, nullptr);
 
     hr = Context::getInstance()->dev->CreateRootSignature(1,
