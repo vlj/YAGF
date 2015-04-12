@@ -264,7 +264,7 @@ void Draw()
   cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &depth_descriptors->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-  cmdlist->SetVertexBuffers(0, vao->getVertexBufferView().data(), vao->getVertexBufferView().size());
+  cmdlist->SetVertexBuffers(0, vao->getVertexBufferView().data(), (UINT)vao->getVertexBufferView().size());
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
 
   irr::core::matrix4 Model, View;
