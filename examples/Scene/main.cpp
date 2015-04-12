@@ -347,12 +347,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
   // return this part of the WM_QUIT message to Windows
   return (int)msg.wParam;
 }
+#endif
 
-#else
+#include <MeshSceneNode.h>
+#include <MeshManager.h>
 
+#define GLBUILD
+#ifdef GLBUILD
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <Util/GeometryCreator.h>
 #include <Core/VAO.h>
 #include <GLAPI/S3DVertex.h>
 #include <GLAPI/Texture.h>
@@ -363,13 +366,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 #include <Util/Samplers.h>
 #include <Util/Text.h>
 #include <Util/Debug.h>
+#endif
 
-#include <Loaders/B3D.h>
-#include <Loaders/DDS.h>
-
-#include <MeshSceneNode.h>
-#include <MeshManager.h>
-
+#ifdef GLBUILD
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
 
@@ -436,17 +435,6 @@ const char *fragshader =
 "  FragColor = texture(tex, uv);\n"
 "}\n";
 
-static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
-{
-  GLuint result;
-  glGenTextures(1, &result);
-  glBindTexture(GL_TEXTURE_2D, result);
-  /*    if (CVS->isARBTextureStorageUsable())
-  glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, Width, Height);
-  else*/
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, 0);
-  return result;
-}
 
 class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0> >
 {
@@ -461,18 +449,33 @@ public:
   }
 };
 
+#endif
+
+#ifdef GLBUILD
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
+{
+  GLuint result;
+  glGenTextures(1, &result);
+  glBindTexture(GL_TEXTURE_2D, result);
+  /*    if (CVS->isARBTextureStorageUsable())
+  glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, Width, Height);
+  else*/
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, 0);
+  return result;
+}
+
+GLuint cbuf;
+#endif
+
 struct ViewBuffer
 {
   float ViewProj[16];
 };
 
-GLuint cbuf;
-
 irr::scene::IMeshSceneNode *xue;
 
 void init()
 {
-  DebugUtil::enableDebugOutput();
   std::vector<std::string> xueB3Dname = { "..\\examples\\xue.b3d" };
 
   MeshManager::getInstance()->LoadMesh(xueB3Dname);
@@ -480,25 +483,40 @@ void init()
   xue = new irr::scene::IMeshSceneNode(nullptr, irr::core::vector3df(0.f, 0.f, 2.f));
   xue->setMesh(MeshManager::getInstance()->getMesh(xueB3Dname[0]));
 
+#ifdef GLBUILD
+  DebugUtil::enableDebugOutput();
   glGenBuffers(1, &cbuf);
-
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
-
   glDepthFunc(GL_LEQUAL);
+#endif
 }
 
 void clean()
 {
   TextureManager::getInstance()->kill();
   MeshManager::getInstance()->kill();
+#ifdef GLBUILD
   glDeleteSamplers(1, &TrilinearSampler);
   glDeleteBuffers(1, &cbuf);
+#endif
 }
 
 static float time = 0.;
 
 void draw()
 {
+  ViewBuffer cbufdata;
+  irr::core::matrix4 View;
+  View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+  memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
+
+  xue->setRotation(irr::core::vector3df(0.f, time / 360.f, 0.f));
+  xue->updateAbsolutePosition();
+  xue->render();
+
+  time += 1.f;
+
+#ifdef GLBUILD
   glEnable(GL_FRAMEBUFFER_SRGB);
   glDisable(GL_BLEND);
   glEnable(GL_DEPTH_TEST);
@@ -510,19 +528,8 @@ void draw()
   glClearDepth(1.);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  ViewBuffer cbufdata;
-  irr::core::matrix4 View;
-  View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-  memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
-
   glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
-
-  xue->setRotation(irr::core::vector3df(0.f, time / 360.f, 0.f));
-  xue->updateAbsolutePosition();
-  xue->render();
-
-  time += 1.f;
 
   glUseProgram(ObjectShader::getInstance()->Program);
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
@@ -531,8 +538,10 @@ void draw()
     ObjectShader::getInstance()->SetTextureUnits(xue->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)drawdata.IndexCount, GL_UNSIGNED_SHORT, (void *)drawdata.vaoOffset, (GLsizei)drawdata.vaoBaseVertex);
   }
+#endif
 }
 
+#ifdef GLBUILD
 int main()
 {
   glfwInit();
@@ -557,7 +566,4 @@ int main()
   glfwTerminate();
   return 0;
 }
-
-
-
 #endif
