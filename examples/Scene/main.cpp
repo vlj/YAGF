@@ -349,16 +349,17 @@ int WINAPI WinMain(HINSTANCE hInstance,
 }
 #endif
 
+#define DXBUILD
+
 #include <MeshSceneNode.h>
 #include <MeshManager.h>
 
-#define GLBUILD
+
 #ifdef GLBUILD
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Core/VAO.h>
 #include <GLAPI/S3DVertex.h>
-#include <GLAPI/Texture.h>
 
 #include <Core/Shaders.h>
 #include <Core/FBO.h>
@@ -366,6 +367,26 @@ int WINAPI WinMain(HINSTANCE hInstance,
 #include <Util/Samplers.h>
 #include <Util/Text.h>
 #include <Util/Debug.h>
+#endif
+
+#ifdef DXBUILD
+#include <D3DAPI/Context.h>
+#include <D3DAPI/RootSignature.h>
+
+#include <D3DAPI/Misc.h>
+#include <D3DAPI/VAO.h>
+#include <D3DAPI/S3DVertex.h>
+#include <Loaders/B3D.h>
+#include <Loaders/DDS.h>
+#include <tuple>
+#include <D3DAPI/PSO.h>
+#include <D3DAPI/Resource.h>
+#include <D3DAPI/ConstantBuffer.h>
+
+
+#pragma comment (lib, "d3d12.lib")
+#pragma comment (lib, "dxgi.lib")
+#pragma comment (lib, "d3dcompiler.lib")
 #endif
 
 #ifdef GLBUILD
@@ -499,9 +520,12 @@ void clean()
   glDeleteSamplers(1, &TrilinearSampler);
   glDeleteBuffers(1, &cbuf);
 #endif
+#ifdef DXBUILD
+  Context::getInstance()->kill();
+#endif
 }
 
-static float time = 0.;
+static float timer = 0.;
 
 void draw()
 {
@@ -510,11 +534,11 @@ void draw()
   View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
   memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
 
-  xue->setRotation(irr::core::vector3df(0.f, time / 360.f, 0.f));
+  xue->setRotation(irr::core::vector3df(0.f, timer / 360.f, 0.f));
   xue->updateAbsolutePosition();
   xue->render();
 
-  time += 1.f;
+  timer += 1.f;
 
 #ifdef GLBUILD
   glEnable(GL_FRAMEBUFFER_SRGB);
@@ -565,5 +589,36 @@ int main()
   clean();
   glfwTerminate();
   return 0;
+}
+#endif
+
+#ifdef DXBUILD
+int WINAPI WinMain(HINSTANCE hInstance,
+HINSTANCE hPrevInstance,
+LPSTR lpCmdLine,
+int nCmdShow)
+{
+  Context::getInstance()->InitD3D(WindowUtil::Create(hInstance, hPrevInstance, lpCmdLine, nCmdShow));
+  init();
+  // this struct holds Windows event messages
+  MSG msg = {};
+
+  // Loop from https://msdn.microsoft.com/en-us/library/windows/apps/dn166880.aspx
+  while (WM_QUIT != msg.message)
+  {
+    bool bGotMsg = (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE) != 0);
+
+    if (bGotMsg)
+    {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+
+    draw();
+  }
+
+  clean();
+  // return this part of the WM_QUIT message to Windows
+  return (int)msg.wParam;
 }
 #endif

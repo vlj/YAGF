@@ -6,16 +6,24 @@
 #ifndef MESHSCENENODE_H
 #define MESHSCENENODE_H
 
+#ifdef GLBUILD
 #include <GL/glew.h>
+#include <Core/VAO.h>
+#include <GLAPI/Texture.h>
+#endif
+
+#ifdef DXBUILD
+#include <D3DAPI/Texture.h>
+#endif
+
 #include <Core/SColor.h>
 #include <Maths/matrix4.h>
 #include <Core/ISkinnedMesh.h>
 #include <ISceneNode.h>
 
 #include <Core/BasicVertexLayout.h>
-#include <Core/VAO.h>
-#include <GLAPI/Texture.h>
 #include <TextureManager.h>
+
 
 namespace irr
 {
@@ -30,11 +38,13 @@ namespace irr
   namespace video
   {
     struct DrawData {
+#ifdef GLBUILD
       GLuint vao;
       GLuint vertex_buffer;
       GLuint index_buffer;
-      const Texture *textures[8];
       GLenum PrimitiveType;
+#endif
+      const Texture *textures[8];
       size_t IndexCount;
       size_t Stride;
       core::matrix4 TextureMatrix;
@@ -43,9 +53,6 @@ namespace irr
 //      video::E_VERTEX_TYPE VAOType;
       uint64_t TextureHandles[6];
       const irr::scene::IMeshSceneNode *object;
-#ifdef DEBUG
-      std::string debug_name;
-#endif
     };
   }
 
@@ -60,7 +67,10 @@ namespace irr
     class IMeshSceneNode : public ISceneNode
     {
     private:
+#ifdef GLBUILD
       GLuint cbuffer;
+#endif
+
       const ISkinnedMesh* Mesh;
       std::vector<irr::video::DrawData> DrawDatas;
 
@@ -115,12 +125,16 @@ namespace irr
         const core::vector3df& rotation = core::vector3df(0, 0, 0),
         const core::vector3df& scale = core::vector3df(1.f, 1.f, 1.f))
         : ISceneNode(parent, position, rotation, scale) {
+#ifdef GLBUILD
         glGenBuffers(1, &cbuffer);
+#endif
       }
 
       ~IMeshSceneNode()
       {
+#ifdef GLBUILD
         glDeleteBuffers(1, &cbuffer);
+#endif
       }
 
       const std::vector<irr::video::DrawData> getDrawDatas() const
@@ -143,9 +157,11 @@ namespace irr
 
           DrawDatas.back().textures[0] = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
 
+#ifdef GLBUILD
           std::pair<size_t, size_t> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
           DrawDatas.back().vaoBaseVertex = p.first;
           DrawDatas.back().vaoOffset = p.second;
+#endif
 
 
 //          video::E_MATERIAL_TYPE type = mb->getMaterial().MaterialType;
@@ -190,14 +206,18 @@ namespace irr
         memcpy(objdt.Model, AbsoluteTransformation.pointer(), 16 * sizeof(float));
         memcpy(objdt.InverseModel, invmodel.pointer(), 16 * sizeof(float));
 
+#ifdef GLBUILD
         glBindBuffer(GL_UNIFORM_BUFFER, cbuffer);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(ObjectData), &objdt, GL_STATIC_DRAW);
+#endif
       }
 
+#ifdef GLBUILD
       GLuint getConstantBuffer() const
       {
         return cbuffer;
       }
+#endif
     };
 
   } // end namespace scene

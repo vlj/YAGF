@@ -8,9 +8,15 @@
 #include <list>
 #include <string>
 #include <Loaders/DDS.h>
+#include <unordered_map>
 
+#ifdef GLBUILD
 #include <GLAPI/Texture.h>
+#endif
 
+#ifdef DXBUILD
+#include <D3DAPI/Texture.h>
+#endif
 class TextureManager : public Singleton<TextureManager>
 {
 private:
