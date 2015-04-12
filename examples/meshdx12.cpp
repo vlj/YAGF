@@ -10,6 +10,7 @@
 #include <tuple>
 #include <D3DAPI/PSO.h>
 #include <D3DAPI/Resource.h>
+#include <D3DAPI/ConstantBuffer.h>
 
 
 #pragma comment (lib, "d3d12.lib")
@@ -19,8 +20,6 @@
 using namespace Microsoft::WRL; // For ComPtr
 
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
-ComPtr<ID3D12Resource> cbuffer;
-ComPtr<ID3D12Resource> jointbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
 ComPtr<ID3D12DescriptorHeap> TexResourceHeaps;
 std::vector<ComPtr<ID3D12Resource> > Textures;
@@ -38,6 +37,14 @@ struct Matrixes
   float Model[16];
   float ViewProj[16];
 };
+
+struct JointTransform
+{
+  float Model[16 * 48];
+};
+
+ConstantBuffer<Matrixes> *cbuffer;
+ConstantBuffer<JointTransform> *jointbuffer;
 
 class Object : public PipelineStateObject<Object, irr::video::S3DVertex2TCoords>
 {
@@ -87,22 +94,6 @@ void Init(HWND hWnd)
   HRESULT hr = dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
   hr = dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), 0, IID_PPV_ARGS(&cmdlist));
 
-  hr = dev->CreateCommittedResource(
-    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-    D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Buffer(256),
-    D3D12_RESOURCE_USAGE_GENERIC_READ,
-    nullptr,
-    IID_PPV_ARGS(&cbuffer));
-
-  hr = dev->CreateCommittedResource(
-    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-    D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Buffer(48 * 16 * sizeof(float)),
-    D3D12_RESOURCE_USAGE_GENERIC_READ,
-    nullptr,
-    IID_PPV_ARGS(&jointbuffer));
-
   {
     D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
     heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
@@ -110,14 +101,11 @@ void Init(HWND hWnd)
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&ReadResourceHeaps));
 
-    D3D12_CONSTANT_BUFFER_VIEW_DESC bufdesc = {};
-    bufdesc.BufferLocation = cbuffer->GetGPUVirtualAddress();
-    bufdesc.SizeInBytes = 256;
-    dev->CreateConstantBufferView(&bufdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart());
+    cbuffer = new ConstantBuffer<Matrixes>();
+    jointbuffer = new ConstantBuffer<JointTransform>();
 
-    bufdesc.BufferLocation = jointbuffer->GetGPUVirtualAddress();
-    bufdesc.SizeInBytes = 48 * 16 * sizeof(float);
-    dev->CreateConstantBufferView(&bufdesc, ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+    dev->CreateConstantBufferView(&cbuffer->getDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart());
+    dev->CreateConstantBufferView(&jointbuffer->getDesc(), ReadResourceHeaps->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
   }
 
   {
@@ -268,19 +256,15 @@ void Draw()
   view.MaxDepth = 1.;
 
   {
-    Matrixes cbufdata;
+    Matrixes *cbufdata = cbuffer->map();
     irr::core::matrix4 Model, View;
     View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
     Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
     Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
 
-    memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
-    memcpy(cbufdata.ViewProj, View.pointer(), 16 * sizeof(float));
-
-    void* cpubuffermap;
-    cbuffer->Map(0, nullptr, &cpubuffermap);
-    memcpy(cpubuffermap, &cbufdata, sizeof(Matrixes));
-    cbuffer->Unmap(0, nullptr);
+    memcpy(cbufdata->Model, Model.pointer(), 16 * sizeof(float));
+    memcpy(cbufdata->ViewProj, View.pointer(), 16 * sizeof(float));
+    cbuffer->unmap();
   }
 
   timer += 16.f;
@@ -292,10 +276,8 @@ void Draw()
     loader->AnimatedMesh.animateMesh(frame, 1.f);
     loader->AnimatedMesh.skinMesh(1.f);
 
-    void *jointsdata;
-    jointbuffer->Map(0, nullptr, &jointsdata);
-    memcpy(jointsdata, loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));
-    jointbuffer->Unmap(0, nullptr);
+    memcpy(jointbuffer->map(), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));
+    jointbuffer->unmap();
   }
 
   cmdlist->RSSetViewports(1, &view);
@@ -347,6 +329,8 @@ void Clean()
   Object::getInstance()->kill();
   delete rs;
   delete vao;
+  delete cbuffer;
+  delete jointbuffer;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,
