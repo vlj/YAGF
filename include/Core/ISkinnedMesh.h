@@ -9,6 +9,7 @@
 //#include <SceneNodes/IBoneSceneNode.h>
 //#include <Core/IAnimatedMesh.h>
 //#include "SSkinMeshBuffer.h"
+#include <Core/BasicVertexLayout.h>
 #include <Core/IMeshBuffer.h>
 #include <Maths/quaternion.h>
 #include <Maths/vector3d.h>
