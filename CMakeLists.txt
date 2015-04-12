@@ -84,3 +84,13 @@ if(BUILD_DX12)
   set_target_properties(ssaodx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   target_link_libraries(ssaodx12 ${PROJECT_NAME})
 endif()
+
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples/Scene/include")
+add_executable(scene examples/Scene/main.cpp)
+target_link_libraries(scene ${PROJECT_NAME})
+
+if(BUILD_DX12)
+  add_executable(scenedx12 examples/Scene/main.cpp)
+  set_target_properties(scenedx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+  target_link_libraries(scenedx12 ${PROJECT_NAME})
+endif()

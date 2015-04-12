@@ -994,6 +994,11 @@ namespace irr
         return LocalBuffers;
       }
 
+      const std::vector<std::pair<SMeshBufferLightMap, video::SMaterial> >& getMeshBuffers() const
+      {
+        return LocalBuffers;
+      }
+
       //! loaders should call this after populating the mesh
       void finalize()
       {
