@@ -489,6 +489,8 @@ void init()
 
 void clean()
 {
+  TextureManager::getInstance()->kill();
+  MeshManager::getInstance()->kill();
   glDeleteSamplers(1, &TrilinearSampler);
   glDeleteBuffers(1, &cbuf);
 }
