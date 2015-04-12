@@ -140,6 +140,14 @@ struct ViewBuffer
   float ViewProj[16];
 };
 
+#ifdef DXBUILD
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbufferDescriptorHeap;
+ConstantBuffer<ViewBuffer> *cbuffer;
+
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
+#endif
+
 irr::scene::IMeshSceneNode *xue;
 
 void init()
@@ -157,6 +165,20 @@ void init()
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
   glDepthFunc(GL_LEQUAL);
 #endif
+
+#ifdef DXBUILD
+  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+  heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+  heapdesc.NumDescriptors = 2;
+  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&cbufferDescriptorHeap));
+
+  cbuffer = new ConstantBuffer<ViewBuffer>();
+  Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->getDesc(), cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+  hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
+#endif
 }
 
 void clean()
@@ -169,6 +191,7 @@ void clean()
 #endif
 #ifdef DXBUILD
   Context::getInstance()->kill();
+  delete cbuffer;
 #endif
 }
 
@@ -209,6 +232,67 @@ void draw()
     ObjectShader::getInstance()->SetTextureUnits(xue->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)drawdata.IndexCount, GL_UNSIGNED_SHORT, (void *)drawdata.vaoOffset, (GLsizei)drawdata.vaoBaseVertex);
   }
+#endif
+
+#ifdef DXBUILD
+
+  D3D12_RECT rect = {};
+  rect.left = 0;
+  rect.top = 0;
+  rect.bottom = 1024;
+  rect.right = 1024;
+
+  D3D12_VIEWPORT view = {};
+  view.Height = 1024;
+  view.Width = 1024;
+  view.TopLeftX = 0;
+  view.TopLeftY = 0;
+  view.MinDepth = 0;
+  view.MaxDepth = 1.;
+
+  memcpy(cbuffer->map(), &cbufdata, sizeof(ViewBuffer));
+  cbuffer->unmap();
+
+  cmdlist->RSSetViewports(1, &view);
+  cmdlist->RSSetScissorRects(1, &rect);
+
+  ID3D12DescriptorHeap *descriptorlst[] =
+  {
+    cbufferDescriptorHeap.Get()
+  };
+  cmdlist->SetDescriptorHeaps(descriptorlst, 1);
+
+  cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
+
+  float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
+  cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
+//  cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
+
+//  cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
+  float c[] = { 1., 1., 1., 1. };
+  cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+//  cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
+//  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+  cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+//  cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
+//  cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView()[0], 1);
+//  cmdlist->SetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
+
+  for (irr::video::DrawData drawdata : xue->getDrawDatas())
+  {
+//    cmdlist->SetGraphicsRootDescriptorTable(1, textureSet[buffers[i].second.TextureNames[0]]);
+//    cmdlist->DrawIndexedInstanced((UINT)drawdata.IndexCount, 1, (UINT)drawdata.vaoOffset, (UINT)drawdata.vaoBaseVertex, 0);
+  }
+
+  cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
+  HRESULT hr = cmdlist->Close();
+  Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+  HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
+  WaitForSingleObject(handle, INFINITE);
+  CloseHandle(handle);
+  cmdalloc->Reset();
+//  cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+  Context::getInstance()->Swap();
 #endif
 }
 
