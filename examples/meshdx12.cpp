@@ -49,10 +49,10 @@ struct JointTransform
 ConstantBuffer<Matrixes> *cbuffer;
 ConstantBuffer<JointTransform> *jointbuffer;
 
-class Object : public PipelineStateObject<Object, irr::video::S3DVertex2TCoords>
+class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>
 {
 public:
-  Object() : PipelineStateObject<Object, irr::video::S3DVertex2TCoords>(L"Debug\\vtx.cso", L"Debug\\pix.cso")
+  Object() : PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>(L"Debug\\vtx.cso", L"Debug\\pix.cso")
   {}
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
@@ -67,22 +67,6 @@ public:
     psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
     psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-    static D3D12_INPUT_ELEMENT_DESC IAdesc[] =
-    {
-      { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 4, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 3, DXGI_FORMAT_R32_SINT, 1, 8, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 1, 12, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 5, DXGI_FORMAT_R32_SINT, 1, 16, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 6, DXGI_FORMAT_R32_FLOAT, 1, 20, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 7, DXGI_FORMAT_R32_SINT, 1, 24, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 8, DXGI_FORMAT_R32_FLOAT, 1, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
-    };
-
-    psodesc.InputLayout.pInputElementDescs = IAdesc;
-    psodesc.InputLayout.NumElements = 10;
   }
 };
 

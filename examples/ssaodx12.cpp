@@ -10,10 +10,10 @@
 #pragma comment (lib, "dxgi.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
-class Object : public PipelineStateObject<Object, irr::video::S3DVertex2TCoords>
+class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords>>
 {
 public:
-  Object() : PipelineStateObject<Object, irr::video::S3DVertex2TCoords>(L"Debug\\ssao_vtx.cso", L"Debug\\ssao_pix.cso")
+  Object() : PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords> >(L"Debug\\ssao_vtx.cso", L"Debug\\ssao_pix.cso")
   {}
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
@@ -35,10 +35,10 @@ typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ShaderResource<0> >,
   DescriptorTable<SamplerResource<0>> > RS;
 
-class LinearizeDepthShader : public PipelineStateObject<LinearizeDepthShader, ScreenQuadVertex>
+class LinearizeDepthShader : public PipelineStateObject<LinearizeDepthShader, VertexLayout<ScreenQuadVertex>>
 {
 public:
-  LinearizeDepthShader() : PipelineStateObject<LinearizeDepthShader, ScreenQuadVertex>(L"Debug\\screenquad.cso", L"Debug\\linearize.cso")
+  LinearizeDepthShader() : PipelineStateObject<LinearizeDepthShader, VertexLayout<ScreenQuadVertex> >(L"Debug\\screenquad.cso", L"Debug\\linearize.cso")
   {}
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)

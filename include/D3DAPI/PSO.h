@@ -32,8 +32,8 @@ public:
       psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
       psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
     }
-    psodesc.InputLayout.pInputElementDescs = VertexLayout<VTXLayout>::getInputAssemblyLayout();
-    psodesc.InputLayout.NumElements = (UINT) VertexLayout<VTXLayout>::getInputAssemblySize();
+    psodesc.InputLayout.pInputElementDescs = VTXLayout::getInputAssemblyLayout();
+    psodesc.InputLayout.NumElements = (UINT)VTXLayout::getInputAssemblySize();
     psodesc.SampleDesc.Count = 1;
     psodesc.SampleMask = UINT_MAX;
     psodesc.NodeMask = 1;
