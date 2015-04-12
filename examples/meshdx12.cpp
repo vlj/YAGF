@@ -31,9 +31,7 @@ ComPtr<ID3D12Resource> DepthBuffer;
 ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 
-ComPtr<ID3D12Resource> WeightBuffer;
-
-FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
+FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> *vao;
 
 RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
 
@@ -82,7 +80,6 @@ public:
 
 irr::scene::CB3DMeshFileLoader *loader;
 std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> textureSet;
-D3D12_VERTEX_BUFFER_VIEW weightbv = {};
 
 void Init(HWND hWnd)
 {
@@ -161,51 +158,29 @@ void Init(HWND hWnd)
   for (auto buf : buffers)
     reorg.push_back(buf.first);
 
-  vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
+  // Format Weight
+
+  std::vector<std::vector<irr::video::SkinnedVertexData> > weightsList;
+  for (auto weightbuffer : loader->AnimatedMesh.WeightBuffers)
+  {
+    std::vector<irr::video::SkinnedVertexData> weights;
+    for (unsigned j = 0; j < weightbuffer.size(); j += 4)
+    {
+      irr::video::SkinnedVertexData tmp = {
+        weightbuffer[j].Index, weightbuffer[j].Weight,
+        weightbuffer[j + 1].Index, weightbuffer[j + 1].Weight,
+        weightbuffer[j + 2].Index, weightbuffer[j + 2].Weight,
+        weightbuffer[j + 3].Index, weightbuffer[j + 3].Weight,
+      };
+      weights.push_back(tmp);
+    }
+    weightsList.push_back(weights);
+  }
+
+  vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
 
   // Upload to gpudata
   {
-    // Upload weights
-    size_t total_vertex_cnt = 0;
-    for (auto mesh : reorg)
-      total_vertex_cnt += mesh.getVertexCount();
-
-    ID3D12Resource *cpuvertexdata;
-    hr = Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence)),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&cpuvertexdata));
-
-    hr = Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence)),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&WeightBuffer));
-
-    void *cpudata;
-    cpuvertexdata->Map(0, nullptr, &cpudata);
-    size_t offset = 0;
-    for (unsigned i = 0; i < buffers.size(); i++)
-    {
-      auto tmp = loader->AnimatedMesh.WeightBuffers[i];
-      memcpy((char*)cpudata + offset, tmp.data(), tmp.size() * sizeof(irr::scene::ISkinnedMesh::WeightInfluence));
-      offset += tmp.size() * sizeof(irr::scene::ISkinnedMesh::WeightInfluence);
-    }
-    cpuvertexdata->Unmap(0, nullptr);
-
-    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(WeightBuffer.Get(), D3D12_RESOURCE_USAGE_GENERIC_READ, D3D12_RESOURCE_USAGE_COPY_DEST));
-    cmdlist->CopyBufferRegion(WeightBuffer.Get(), 0, cpuvertexdata, 0, total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence), D3D12_COPY_NONE);
-    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(WeightBuffer.Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ));
-
-    weightbv.BufferLocation = WeightBuffer->GetGPUVirtualAddress();
-    weightbv.StrideInBytes = 4 * 2 * sizeof(float);
-    weightbv.SizeInBytes = total_vertex_cnt * 4 * sizeof(irr::scene::ISkinnedMesh::WeightInfluence);
-
     // Texture
     std::vector<std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> > textureNamePairs;
     for (unsigned i = 0; i < loader->Textures.size(); i++)
@@ -220,7 +195,7 @@ void Init(HWND hWnd)
       hr = dev->CreateCommittedResource(
         &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_MISC_NONE,
-        &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, DDSPic.getLoadedImage().MipMapData.size()),
+        &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)TextureInRam.getWidth(), (UINT)TextureInRam.getHeight(), 1, (UINT16)DDSPic.getLoadedImage().MipMapData.size()),
         D3D12_RESOURCE_USAGE_GENERIC_READ,
         nullptr,
         IID_PPV_ARGS(&Textures.back())
@@ -245,7 +220,7 @@ void Init(HWND hWnd)
     {
       D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
       heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-      heapdesc.NumDescriptors = textureNamePairs.size();
+      heapdesc.NumDescriptors = (UINT)textureNamePairs.size();
       heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
       hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&TexResourceHeaps));
       for (unsigned i = 0; i < textureNamePairs.size(); i++)
@@ -281,8 +256,6 @@ void Init(HWND hWnd)
     Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
     WaitForSingleObject(cpudatauploadevent, INFINITE);
     cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
-
-    cpuvertexdata->Release();
   }
 }
 
@@ -321,7 +294,7 @@ void Draw()
     cbuffer->Unmap(0, nullptr);
   }
 
-  timer += 1.f;
+  timer += 16.f;
 
   {
     double intpart;
@@ -358,8 +331,9 @@ void Draw()
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
-  cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView(), 1);
-  cmdlist->SetVertexBuffers(1, &weightbv, 1);
+  cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView()[0], 1);
+  cmdlist->SetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
+
   std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
   for (unsigned i = 0; i < buffers.size(); i++)
   {
