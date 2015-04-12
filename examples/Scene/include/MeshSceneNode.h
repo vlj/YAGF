@@ -143,7 +143,7 @@ namespace irr
 
           DrawDatas.back().textures[0] = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
 
-          std::pair<unsigned, unsigned> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
+          std::pair<size_t, size_t> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
           DrawDatas.back().vaoBaseVertex = p.first;
           DrawDatas.back().vaoOffset = p.second;
 
