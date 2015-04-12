@@ -262,6 +262,7 @@ void clean()
 #endif
 #ifdef DXBUILD
   Object::getInstance()->kill();
+  RS::getInstance()->kill();
   delete cbuffer;
   Context::getInstance()->kill();
 #endif
