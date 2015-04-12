@@ -73,7 +73,7 @@ public:
     Initialised = true;
     {
       Microsoft::WRL::ComPtr<ID3D12Debug> pDebug;
-      HRESULT hr = dev.Get()->QueryInterface(IID_PPV_ARGS(&pDebug));
+      hr = dev.Get()->QueryInterface(IID_PPV_ARGS(&pDebug));
       pDebug->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
     }
   }

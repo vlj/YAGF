@@ -198,20 +198,19 @@ void init()
 #endif
 
 #ifdef DXBUILD
-  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-  heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-  heapdesc.NumDescriptors = 1;
-  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-  HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&cbufferDescriptorHeap));
-
-  cbuffer = new ConstantBuffer<ViewBuffer>();
-  Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->getDesc(), cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-  hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
-  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
-
-
   {
+    D3D12_DESCRIPTOR_HEAP_DESC cbuffheapdesc = {};
+    cbuffheapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+    cbuffheapdesc.NumDescriptors = 1;
+    cbuffheapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+    HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&cbuffheapdesc, IID_PPV_ARGS(&cbufferDescriptorHeap));
+
+    cbuffer = new ConstantBuffer<ViewBuffer>();
+    Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->getDesc(), cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+    hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
+
     hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
       D3D12_HEAP_MISC_NONE,
@@ -220,11 +219,11 @@ void init()
       &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
       IID_PPV_ARGS(&DepthBuffer));
 
-    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-    heapdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 1;
-    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
-    hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
+    D3D12_DESCRIPTOR_HEAP_DESC Depthdesc = {};
+    Depthdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
+    Depthdesc.NumDescriptors = 1;
+    Depthdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
+    hr = Context::getInstance()->dev->CreateDescriptorHeap(&Depthdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
     dsv.Format = DXGI_FORMAT_D32_FLOAT;
