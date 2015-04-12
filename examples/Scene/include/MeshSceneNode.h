@@ -141,7 +141,7 @@ namespace irr
           const irr::scene::SMeshBufferLightMap* mb = &buffer.first;
           DrawDatas.push_back(allocateMeshBuffer(buffer.first, this));
 
-          DrawDatas.back().textures[0] = &TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
+          DrawDatas.back().textures[0] = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
 
           std::pair<unsigned, unsigned> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
           DrawDatas.back().vaoBaseVertex = p.first;

@@ -368,6 +368,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 #include <Loaders/DDS.h>
 
 #include <MeshSceneNode.h>
+#include <MeshManager.h>
 
 FrameBuffer *MainFBO;
 FrameBuffer *LinearDepthFBO;
@@ -467,23 +468,17 @@ struct ViewBuffer
 
 GLuint cbuf;
 
-irr::scene::CB3DMeshFileLoader *loader;
-
 irr::scene::IMeshSceneNode *xue;
 
 void init()
 {
   DebugUtil::enableDebugOutput();
-  irr::io::CReadFile reader("..\\examples\\xue.b3d");
-  loader = new irr::scene::CB3DMeshFileLoader(&reader);
-  const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = loader->AnimatedMesh.getMeshBuffers();
-  xue = new irr::scene::IMeshSceneNode(nullptr, irr::core::vector3df(0.f, 0.f, 2.f));
-  std::vector<std::string> TextureNames;
-  for (auto tmp : loader->Textures)
-    TextureNames.push_back(tmp.TextureName);
-  TextureManager::getInstance()->LoadTextures(TextureNames);
+  std::vector<std::string> xueB3Dname = { "..\\examples\\xue.b3d" };
 
-  xue->setMesh(&loader->AnimatedMesh);
+  MeshManager::getInstance()->LoadMesh(xueB3Dname);
+
+  xue = new irr::scene::IMeshSceneNode(nullptr, irr::core::vector3df(0.f, 0.f, 2.f));
+  xue->setMesh(MeshManager::getInstance()->getMesh(xueB3Dname[0]));
 
   glGenBuffers(1, &cbuf);
 
@@ -496,7 +491,6 @@ void clean()
 {
   glDeleteSamplers(1, &TrilinearSampler);
   glDeleteBuffers(1, &cbuf);
-  delete loader;
 }
 
 static float time = 0.;
