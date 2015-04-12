@@ -51,10 +51,16 @@ namespace irr
 
   namespace scene
   {
+    struct ObjectData
+    {
+      float Model[16];
+      float InverseModel[16];
+    };
     //! A scene node displaying a static mesh
     class IMeshSceneNode : public ISceneNode
     {
     private:
+      GLuint cbuffer;
       const ISkinnedMesh* Mesh;
       std::vector<irr::video::DrawData> DrawDatas;
 
@@ -108,10 +114,13 @@ namespace irr
         const core::vector3df& position = core::vector3df(0, 0, 0),
         const core::vector3df& rotation = core::vector3df(0, 0, 0),
         const core::vector3df& scale = core::vector3df(1.f, 1.f, 1.f))
-        : ISceneNode(parent, position, rotation, scale) {}
+        : ISceneNode(parent, position, rotation, scale) {
+        glGenBuffers(1, &cbuffer);
+      }
 
       ~IMeshSceneNode()
       {
+        glDeleteBuffers(1, &cbuffer);
       }
 
       const std::vector<irr::video::DrawData> getDrawDatas() const
@@ -175,7 +184,19 @@ namespace irr
 
       void render()
       {
+        core::matrix4 invmodel;
+        AbsoluteTransformation.getInverse(invmodel);
+        ObjectData objdt;
+        memcpy(objdt.Model, AbsoluteTransformation.pointer(), 16 * sizeof(float));
+        memcpy(objdt.InverseModel, invmodel.pointer(), 16 * sizeof(float));
 
+        glBindBuffer(GL_UNIFORM_BUFFER, cbuffer);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(ObjectData), &objdt, GL_STATIC_DRAW);
+      }
+
+      GLuint getConstantBuffer() const
+      {
+        return cbuffer;
       }
     };
 

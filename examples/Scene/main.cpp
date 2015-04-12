@@ -377,9 +377,14 @@ GLuint TrilinearSampler;
 const char *vtxshader = TO_STRING(
   \#version 330 \n
 
-  layout(std140) uniform Matrices
+layout(std140) uniform ObjectData
 {
   mat4 ModelMatrix;
+  mat4 InverseModelMatrix;
+};
+
+layout(std140) uniform ViewMatrices
+{
   mat4 ViewProjectionMatrix;
 };
 
@@ -406,11 +411,6 @@ out vec3 bitangent;
 out vec2 uv;
 out vec2 uv_bis;
 out vec4 color;
-
-layout(std140) uniform Joints
-{
-  uniform mat4 JointTransform[48];
-};
 
 void main()
 {
@@ -447,7 +447,7 @@ static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, G
   return result;
 }
 
-class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0> >
+class ObjectShader : public ShaderHelperSingleton<ObjectShader>, public TextureRead<UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0> >
 {
 public:
   ObjectShader()
@@ -456,18 +456,16 @@ public:
       GL_VERTEX_SHADER, vtxshader,
       GL_FRAGMENT_SHADER, fragshader);
 
-    AssignSamplerNames(Program, "Matrices", "tex");
+    AssignSamplerNames(Program, "ObjectData", "ViewMatrices", "tex");
   }
 };
 
-struct Matrixes
+struct ViewBuffer
 {
-  float Model[16];
   float ViewProj[16];
 };
 
 GLuint cbuf;
-GLuint jointsbuf;
 
 irr::scene::CB3DMeshFileLoader *loader;
 
@@ -488,7 +486,6 @@ void init()
   xue->setMesh(&loader->AnimatedMesh);
 
   glGenBuffers(1, &cbuf);
-  glGenBuffers(1, &jointsbuf);
 
   TrilinearSampler = SamplerHelper::createTrilinearSampler();
 
@@ -517,24 +514,25 @@ void draw()
   glClearDepth(1.);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  Matrixes cbufdata;
-  irr::core::matrix4 Model, View;
+  ViewBuffer cbufdata;
+  irr::core::matrix4 View;
   View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-  Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
-  Model.setRotationDegrees(irr::core::vector3df(0.f, time / 360.f, 0.f));
-  memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
-  memcpy(cbufdata.ViewProj, View.pointer(), 16 * sizeof(float));
-
-  time += 1.f;
+  memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
 
   glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Matrixes), &cbufdata, GL_STATIC_DRAW);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
+
+  xue->setRotation(irr::core::vector3df(0.f, time / 360.f, 0.f));
+  xue->updateAbsolutePosition();
+  xue->render();
+
+  time += 1.f;
 
   glUseProgram(ObjectShader::getInstance()->Program);
   glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
   for (const irr::video::DrawData &drawdata : xue->getDrawDatas())
   {
-    ObjectShader::getInstance()->SetTextureUnits(cbuf, drawdata.textures[0]->Id, TrilinearSampler);
+    ObjectShader::getInstance()->SetTextureUnits(xue->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)drawdata.IndexCount, GL_UNSIGNED_SHORT, (void *)drawdata.vaoOffset, (GLsizei)drawdata.vaoBaseVertex);
   }
 }
