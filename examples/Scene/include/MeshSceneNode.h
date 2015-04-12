@@ -79,7 +79,7 @@ namespace irr
 #ifdef DXBUILD
       ConstantBuffer<ObjectData> cbuffer;
       FormattedVertexStorage<irr::video::S3DVertex2TCoords> *PackedVertexBuffer;
-      Microsoft::WRL::ComPtr<ID3D12Resource> Tex;
+      std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > Tex;
 #endif
 
       const ISkinnedMesh* Mesh;
@@ -188,13 +188,15 @@ namespace irr
 
           const Texture* TextureInRam = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
 
+          Tex.emplace_back();
+
           HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
             &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_MISC_NONE,
             &CD3D12_RESOURCE_DESC::Tex2D(TextureInRam->getFormat(), (UINT)TextureInRam->getWidth(), (UINT)TextureInRam->getHeight(), 1, (UINT16)TextureInRam->getMipLevelsCount()),
             D3D12_RESOURCE_USAGE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&Tex)
+            IID_PPV_ARGS(&Tex.back())
             );
 
           D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
@@ -204,14 +206,14 @@ namespace irr
           hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DrawDatas.back().descriptors));
 
           Context::getInstance()->dev->CreateConstantBufferView(&cbuffer.getDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart());
-          Context::getInstance()->dev->CreateShaderResourceView(Tex.Get(), &TextureInRam->getResourceViewDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+          Context::getInstance()->dev->CreateShaderResourceView(Tex.back().Get(), &TextureInRam->getResourceViewDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 
           Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
           Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
           Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
           Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
 
-          TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.Get());
+          TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.back().Get());
 
           cmdlist->Close();
           Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());

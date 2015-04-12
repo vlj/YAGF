@@ -124,6 +124,11 @@ public:
     texinram->Unmap(0, nullptr);
   }
 
+  Texture(const Texture &)
+  {
+
+  }
+
   ~Texture()
   {
 
