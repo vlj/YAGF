@@ -19,8 +19,6 @@
 using namespace Microsoft::WRL; // For ComPtr
 
 ComPtr<ID3D12GraphicsCommandList> cmdlist;
-ComPtr<ID3D12Fence> fence;
-HANDLE handle;
 ComPtr<ID3D12Resource> cbuffer;
 ComPtr<ID3D12Resource> jointbuffer;
 ComPtr<ID3D12DescriptorHeap> ReadResourceHeaps;
@@ -88,9 +86,6 @@ void Init(HWND hWnd)
 
   HRESULT hr = dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
   hr = dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), 0, IID_PPV_ARGS(&cmdlist));
-
-  handle = CreateEvent(0, FALSE, FALSE, 0);
-  hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&fence));
 
   hr = dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -204,15 +199,11 @@ void Init(HWND hWnd)
       TextureInRam.CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Textures.back().Get());
       textureNamePairs.push_back(std::make_tuple(loader->Textures[i].TextureName, Textures.back().Get(), TextureInRam.getResourceViewDesc()));
 
-      ComPtr<ID3D12Fence> datauploadfence;
-      hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&datauploadfence));
-      HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
-      datauploadfence->Signal(0);
-      datauploadfence->SetEventOnCompletion(1, cpudatauploadevent);
       cmdlist->Close();
       Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
-      Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
-      WaitForSingleObject(cpudatauploadevent, INFINITE);
+      HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
+      WaitForSingleObject(handle, INFINITE);
+      CloseHandle(handle);
       cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
     }
 
@@ -247,14 +238,12 @@ void Init(HWND hWnd)
     samplerdesc.MaxLOD = 10;
     dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
 
-    ComPtr<ID3D12Fence> datauploadfence;
-    hr = dev->CreateFence(0, D3D12_FENCE_MISC_NONE, IID_PPV_ARGS(&datauploadfence));
-    HANDLE cpudatauploadevent = CreateEvent(0, FALSE, FALSE, 0);
-    datauploadfence->SetEventOnCompletion(1, cpudatauploadevent);
     cmdlist->Close();
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
-    Context::getInstance()->cmdqueue->Signal(datauploadfence.Get(), 1);
-    WaitForSingleObject(cpudatauploadevent, INFINITE);
+
+    HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
+    WaitForSingleObject(handle, INFINITE);
+    CloseHandle(handle);
     cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
   }
 }
@@ -344,11 +333,9 @@ void Draw()
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
   HRESULT hr = cmdlist->Close();
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
-
-  hr = fence->Signal(0);
-  hr = fence->SetEventOnCompletion(1, handle);
-  hr = Context::getInstance()->cmdqueue->Signal(fence.Get(), 1);
+  HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
+  CloseHandle(handle);
   cmdalloc->Reset();
   cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
   Context::getInstance()->Swap();
