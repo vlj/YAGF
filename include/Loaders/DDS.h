@@ -446,7 +446,8 @@ namespace irr
 
       CImageLoaderDDS(std::ifstream &file) : format(ECF_UNKNOWN), mipMapCount(0)
       {
-        assert(isALoadableFileFormat(file));
+        if (!isALoadableFileFormat(file))
+          abort();
 
         // Load DDS headers
         file.read((char*)&header, sizeof(ddsHeader));
