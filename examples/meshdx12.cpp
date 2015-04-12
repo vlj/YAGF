@@ -30,7 +30,10 @@ Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
 
 FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> *vao;
 
-RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>,
+  DescriptorTable<ShaderResource<0> >,
+  DescriptorTable<SamplerResource<0>> > RS;
 
 struct Matrixes
 {
@@ -54,7 +57,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
-    psodesc.pRootSignature = rs->pRootSignature.Get();
+    psodesc.pRootSignature = RS::getInstance()->pRootSignature.Get();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -129,9 +132,6 @@ void Init(HWND hWnd)
     dsv.Texture2D.MipSlice = 0;
     dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   }
-
-  // Define Root Signature
-  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
 
   irr::io::CReadFile reader("..\\examples\\xue.b3d");
   loader = new irr::scene::CB3DMeshFileLoader(&reader);
@@ -295,7 +295,7 @@ void Draw()
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
   cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
-  cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
+  cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
@@ -327,7 +327,7 @@ void Clean()
 {
   Context::getInstance()->kill();
   Object::getInstance()->kill();
-  delete rs;
+  RS::getInstance()->kill();
   delete vao;
   delete cbuffer;
   delete jointbuffer;

@@ -6,6 +6,7 @@
 #include <d3d12.h>
 #include <vector>
 #include <wrl/client.h>
+#include <Core/Singleton.h>
 
 template <size_t BindingPoint>
 struct ConstantsBufferResource
@@ -88,7 +89,7 @@ struct DescriptorTableBuilder<T, Args...>
 };
 
 template<D3D12_ROOT_SIGNATURE_FLAGS flags, typename... T>
-class RootSignature
+class RootSignature : public Singleton<RootSignature<flags, T...>>
 {
 private:
   std::vector<std::vector<D3D12_DESCRIPTOR_RANGE> > getDescriptorRanges() const

@@ -30,7 +30,10 @@ public:
   }
 };
 
-RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0>>, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> > *rs;
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<0>>,
+  DescriptorTable<ShaderResource<0> >,
+  DescriptorTable<SamplerResource<0>> > RS;
 
 class LinearizeDepthShader : public PipelineStateObject<LinearizeDepthShader, ScreenQuadVertex>
 {
@@ -40,7 +43,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
-    psodesc.pRootSignature = rs->pRootSignature.Get();
+    psodesc.pRootSignature = RS::getInstance()->pRootSignature.Get();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -209,8 +212,6 @@ void Init(HWND hWnd)
   srv_view.Texture2D.MipLevels = 1;
   Context::getInstance()->dev->CreateShaderResourceView(DepthTexture.Get(), &srv_view, depth_tex_descriptors->GetCPUDescriptorHandleForHeapStart());
 
-  rs = new RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, DescriptorTable<ConstantsBufferResource<0> >, DescriptorTable<ShaderResource<0> >, DescriptorTable<SamplerResource<0>> >();
-
   heapdesc.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
   heapdesc.NumDescriptors = 1;
   heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
@@ -261,7 +262,7 @@ void Draw()
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1.f, 0, nullptr, 0);
 
-  cmdlist->SetGraphicsRootSignature(rs->pRootSignature.Get());
+  cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
   cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &depth_descriptors->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetVertexBuffers(0, vao->getVertexBufferView().data(), (UINT)vao->getVertexBufferView().size());
@@ -350,7 +351,7 @@ void Clean()
   Object::getInstance()->kill();
   LinearizeDepthShader::getInstance()->kill();
   delete vao;
-  delete rs;
+  RS::getInstance()->kill();
 }
 
 
