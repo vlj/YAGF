@@ -1,16 +1,16 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
-#include <Core/VAO.h>
+#include <GLAPI/VAO.h>
 #include <GLAPI/S3DVertex.h>
 #include <GLAPI/Texture.h>
 
-#include <Core/Shaders.h>
-#include <Core/FBO.h>
-#include <Util/Misc.h>
-#include <Util/Samplers.h>
-#include <Util/Text.h>
-#include <Util/Debug.h>
+#include <GLAPI/Shaders.h>
+#include <GLAPI/FBO.h>
+#include <GLAPI/Misc.h>
+#include <GLAPI/Samplers.h>
+#include <GLAPI/Text.h>
+#include <GLAPI/Debug.h>
 
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>

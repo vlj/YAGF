@@ -8,7 +8,7 @@
 
 #ifdef GLBUILD
 #include <GL/glew.h>
-#include <Core/VAO.h>
+#include <GLAPI/VAO.h>
 #include <GLAPI/Texture.h>
 #endif
 

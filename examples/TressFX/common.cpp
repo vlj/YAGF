@@ -2,11 +2,11 @@
 
 #include "common.hpp"
 
-#include <Core/Shaders.h>
-#include <Util/Misc.h>
-#include <Core/FBO.h>
-#include <Util/Samplers.h>
-#include <Util/Text.h>
+#include <GLAPI/Shaders.h>
+#include <GLAPI/Misc.h>
+#include <GLAPI/FBO.h>
+#include <GLAPI/Samplers.h>
+#include <GLAPI/Text.h>
 
 #include <fstream>
 #include <sstream>

@@ -8,7 +8,7 @@
 // Pango could do that but it's unfortunatly hard to use...
 
 #include <GL/glew.h>
-#include <Core/Shaders.h>
+#include <GLAPI/Shaders.h>
 
 extern "C" {
 #include <ft2build.h>

@@ -1,8 +1,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <Core/Shaders.h>
-#include <Util/Debug.h>
+#include <GLAPI/Shaders.h>
+#include <GLAPI/Debug.h>
 
 #include <fstream>
 #include "common.hpp"
