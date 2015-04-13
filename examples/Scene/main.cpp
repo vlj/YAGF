@@ -34,21 +34,6 @@
 #pragma comment (lib, "d3dcompiler.lib")
 #endif
 
-#ifdef GLBUILD
-static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
-{
-  GLuint result;
-  glGenTextures(1, &result);
-  glBindTexture(GL_TEXTURE_2D, result);
-  /*    if (CVS->isARBTextureStorageUsable())
-  glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, Width, Height);
-  else*/
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, 0);
-  return result;
-}
-
-#endif
-
 RenderTargets *rtts;
 
 Scene *scnmgr;
@@ -63,13 +48,11 @@ void init()
   MeshManager::getInstance()->LoadMesh(xueB3Dname);
   xue = scnmgr->addMeshSceneNode(MeshManager::getInstance()->getMesh(xueB3Dname[0]), nullptr, irr::core::vector3df(0.f, 0.f, 2.f));
 
+  rtts = new RenderTargets(1024, 1024);
+
 #ifdef GLBUILD
   DebugUtil::enableDebugOutput();
   glDepthFunc(GL_LEQUAL);
-#endif
-
-#ifdef DXBUILD
-  rtts = new RenderTargets(1024, 1024);
 #endif
 }
 
