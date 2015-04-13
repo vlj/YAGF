@@ -130,8 +130,9 @@ public:
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
-    psodesc.NumRenderTargets = 1;
-    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psodesc.NumRenderTargets = 2;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 

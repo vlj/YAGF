@@ -160,17 +160,21 @@ public:
     };
     cmdlist->SetDescriptorHeaps(descriptorlst, 1);
 
-    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
-
-    float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
-    cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
+    float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
+    cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), clearColor, 0, 0);
+    cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR), clearColor, 0, 0);
     cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
     cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
     float c[] = { 1., 1., 1., 1. };
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
+    D3D12_CPU_DESCRIPTOR_HANDLE rendertargets[] =
+    {
+      rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR ),
+      rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH),
+    };
+    cmdlist->SetRenderTargets(rendertargets, false, 2, &rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
@@ -187,7 +191,17 @@ public:
       }
     }
 
-    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(rtts.getRTTResource(RenderTargets::GBUFFER_BASE_COLOR), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_COPY_SOURCE));
+    D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
+    src.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
+    src.pResource = rtts.getRTTResource(RenderTargets::GBUFFER_BASE_COLOR);
+    dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
+    dst.pResource = Context::getInstance()->getCurrentBackBuffer();
+    D3D12_BOX box = {0, 0, 0, 1008, 985, 1};
+    cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, &box, D3D12_COPY_NONE);
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(rtts.getRTTResource(RenderTargets::GBUFFER_BASE_COLOR), D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_RENDER_TARGET));
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_PRESENT));
     HRESULT hr = cmdlist->Close();
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
     HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
