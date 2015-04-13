@@ -128,6 +128,8 @@ public:
         glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)drawdata.IndexCount, GL_UNSIGNED_SHORT, (void *)drawdata.vaoOffset, (GLsizei)drawdata.vaoBaseVertex);
       }
     }
+
+    rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).BlitToDefault(0, 0, 1024, 1024);
 #endif
 
 #ifdef DXBUILD

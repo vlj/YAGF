@@ -9,9 +9,6 @@
 #include <GLAPI/Shaders.h>
 #include <GLAPI/FBO.h>
 
-FrameBuffer *MainFBO;
-FrameBuffer *LinearDepthFBO;
-
 const char *vtxshader = TO_STRING(
   \#version 330 \n
 
@@ -54,9 +51,9 @@ void main()
 {
   color = Color.zyxw;
   mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
-  //  mat4 TransposeInverseModelView = transpose(InverseModelMatrix * InverseViewMatrix);
+  mat4 TransposeInverseModelView = transpose(InverseModelMatrix);// *InverseViewMatrix);
   gl_Position = ModelViewProjectionMatrix * vec4(Position.xyz, 1.);
-  //  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
+  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
   //  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
   //  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
   uv = vec4(Texcoord, 1., 1.).xy;

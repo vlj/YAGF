@@ -6,11 +6,7 @@
 #ifdef GLBUILD
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <GLAPI/VAO.h>
-#include <GLAPI/S3DVertex.h>
 
-#include <GLAPI/Misc.h>
-#include <GLAPI/Text.h>
 #include <GLAPI/Debug.h>
 #endif
 
