@@ -109,8 +109,7 @@ public:
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, 1024, 1024);
+    rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).Bind();
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClearDepth(1.);

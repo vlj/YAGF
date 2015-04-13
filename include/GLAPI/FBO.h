@@ -60,9 +60,17 @@ public:
       glGenFramebuffers(1, &fbolayer);
   }
 
+  FrameBuffer(FrameBuffer &&framebuffer) :
+    fbo(framebuffer.fbo), DepthTexture(framebuffer.DepthTexture), RenderTargets(std::move(framebuffer.RenderTargets)),
+    width(framebuffer.width), height(framebuffer.height)
+  {
+    framebuffer.fbo = 0;
+  }
+
   ~FrameBuffer()
   {
-    glDeleteFramebuffers(1, &fbo);
+    if (fbo)
+      glDeleteFramebuffers(1, &fbo);
     if (fbolayer)
       glDeleteFramebuffers(1, &fbolayer);
   }
