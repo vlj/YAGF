@@ -105,8 +105,10 @@ public:
 
   ~RenderTargets()
   {
+#ifdef GLBUILD
     glDeleteTextures(1, &DepthStencilTexture);
     glDeleteTextures(RTT_COUNT, RenderTargetTextures);
+#endif
   }
 
 
