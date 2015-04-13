@@ -11,6 +11,7 @@
 #include <D3DAPI/PSO.h>
 #include <D3DAPI/Resource.h>
 #include <D3DAPI/ConstantBuffer.h>
+#include <D3DAPI/Sampler.h>
 
 
 #pragma comment (lib, "d3d12.lib")
@@ -200,15 +201,7 @@ void Init(HWND hWnd)
     sampler_heap.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
     hr = dev->CreateDescriptorHeap(&sampler_heap, IID_PPV_ARGS(&Sampler));
 
-    D3D12_SAMPLER_DESC samplerdesc = {};
-    samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_WRAP;
-    samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_WRAP;
-    samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
-    samplerdesc.MaxAnisotropy = 1;
-    samplerdesc.MinLOD = 0;
-    samplerdesc.MaxLOD = 10;
-    dev->CreateSampler(&samplerdesc, Sampler->GetCPUDescriptorHandleForHeapStart());
+    dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), Sampler->GetCPUDescriptorHandleForHeapStart());
 
     cmdlist->Close();
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
