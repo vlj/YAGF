@@ -61,6 +61,14 @@ public:
     cmdlist->SetRenderTargets(&DescriptorHeap->GetCPUDescriptorHandleForHeapStart(), true, (UINT)NumRTT, nullptr);
   }
 
+  void Clear(ID3D12GraphicsCommandList *cmdlist, float clearColor[4])
+  {
+    for (unsigned i = 0; i < NumRTT; i++)
+    {
+      cmdlist->ClearRenderTargetView(DescriptorHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP)), clearColor, 0, 0);
+    }
+  }
+
   void Bind(ID3D12GraphicsCommandList *cmdlist, D3D12_CPU_DESCRIPTOR_HANDLE DepthDescriptor)
   {
     D3D12_RECT rect = {};

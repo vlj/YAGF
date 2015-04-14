@@ -27,6 +27,37 @@ public:
   D3DRTTSet RttSet;
 };
 
+template <typename T>
+struct TypeUnwrap;
+
+template <typename T>
+typename TypeUnwrap<T>::Type& unwrap(T *ptr)
+{
+  return TypeUnwrap<T>::get(ptr);
+}
+
+template <>
+struct TypeUnwrap<WrapperRTT>
+{
+  typedef Microsoft::WRL::ComPtr<ID3D12Resource> Type;
+
+  static Type& get(WrapperRTT *ptr)
+  {
+    return dynamic_cast<WrapperD3DRTT *>(ptr)->Texture;
+  }
+};
+
+template <>
+struct TypeUnwrap<WrapperRTTSet>
+{
+  typedef D3DRTTSet Type;
+
+  static Type& get(WrapperRTTSet *ptr)
+  {
+    return dynamic_cast<WrapperD3DRTTSet *>(ptr)->RttSet;
+  }
+};
+
 class D3DAPI : public GFXAPI
 {
 public:

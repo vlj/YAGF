@@ -137,15 +137,13 @@ public:
 
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
 
-    //cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), clearColor, 0, 0);
-    //cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR), clearColor, 0, 0);
+    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Clear(cmdlist.Get(), clearColor);
     cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
     cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
-    float c[] = { 1., 1., 1., 1. };
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    dynamic_cast<WrapperD3DRTTSet*>(rtts.getRTTSet(RenderTargets::FBO_GBUFFER))->RttSet.Bind(cmdlist.Get(), rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
+    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Bind(cmdlist.Get(), rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
