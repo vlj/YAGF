@@ -171,7 +171,7 @@ public:
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     D3D12_CPU_DESCRIPTOR_HANDLE rendertargets[] =
     {
-      rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR ),
+      rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR),
       rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH),
     };
     cmdlist->SetRenderTargets(rendertargets, false, 2, &rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
