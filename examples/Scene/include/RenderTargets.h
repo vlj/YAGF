@@ -5,7 +5,7 @@
 #define __RENDER_TARGETS_H__
 
 #ifdef GLBUILD
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 #endif
 
 #ifdef DXBUILD
@@ -39,7 +39,7 @@ private:
 #ifdef GLBUILD
   GLuint DepthStencilTexture;
   GLuint RenderTargetTextures[RTT_COUNT];
-  std::vector<FrameBuffer >FrameBuffers;
+  std::vector<GLRTTSet >FrameBuffers;
 
   static GLuint generateRTT(size_t w, size_t h, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
   {
@@ -72,9 +72,9 @@ public:
     RenderTargetTextures[GBUFFER_BASE_COLOR] = generateRTT(w, h, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
     RenderTargetTextures[COLORS] = generateRTT(w, h, GL_RGBA16F, GL_BGRA, GL_FLOAT);
 
-    FrameBuffers.push_back(FrameBuffer({ RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH], RenderTargetTextures[GBUFFER_BASE_COLOR]}, DepthStencilTexture, w, h));
-    FrameBuffers.push_back(FrameBuffer({ RenderTargetTextures[COLORS], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
-    FrameBuffers.push_back(FrameBuffer({ RenderTargetTextures[LINEAR_DEPTH], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
+    FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH], RenderTargetTextures[GBUFFER_BASE_COLOR]}, DepthStencilTexture, w, h));
+    FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[COLORS], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
+    FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[LINEAR_DEPTH], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
 #endif
 #ifdef DXBUILD
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
@@ -163,7 +163,7 @@ public:
   }
 
 #ifdef GLBUILD
-  FrameBuffer& getFrameBuffer(enum FBOType tp)
+  GLRTTSet& getFrameBuffer(enum FBOType tp)
   {
     return FrameBuffers[tp];
   }

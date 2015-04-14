@@ -4,7 +4,7 @@
 
 #include <GLAPI/Shaders.h>
 #include <GLAPI/Misc.h>
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 #include <GLAPI/Samplers.h>
 #include <GLAPI/Text.h>
 
@@ -223,15 +223,15 @@ void cleanTFXAssetContent(const TressFXAsset &tfxassets)
 }
 
 
-static FrameBuffer *MainFBO;
-static FrameBuffer *PerPixelLinkedListHeadFBO; // For clearing
+static GLRTTSet *MainFBO;
+static GLRTTSet *PerPixelLinkedListHeadFBO; // For clearing
 
 static GLuint DepthStencilTexture;
 static GLuint MainTexture;
 
 static GLuint HairShadowMapTexture;
 static GLuint HairShadowMapDepth;
-static FrameBuffer *HairSMFBO;
+static GLRTTSet *HairSMFBO;
 
 static GLuint PerPixelLinkedListHeadTexture;
 static GLuint PerPixelLinkedListSSBO;
@@ -298,10 +298,10 @@ void initCommon(const TressFXAsset& tfxassets)
   glBindTexture(GL_TEXTURE_2D, HairShadowMapDepth);
   glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 640, 640);
 
-  HairSMFBO = new FrameBuffer({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
+  HairSMFBO = new GLRTTSet({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
 
-  MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
-  PerPixelLinkedListHeadFBO = new FrameBuffer({ PerPixelLinkedListHeadTexture }, 1024, 1024);
+  MainFBO = new GLRTTSet({ MainTexture }, DepthStencilTexture, 1024, 1024);
+  PerPixelLinkedListHeadFBO = new GLRTTSet({ PerPixelLinkedListHeadTexture }, 1024, 1024);
 
   glGenBuffers(1, &PerPixelLinkedListSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);

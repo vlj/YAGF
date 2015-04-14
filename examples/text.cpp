@@ -4,7 +4,7 @@
 #include <GLAPI/VAO.h>
 
 #include <GLAPI/Shaders.h>
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 #include <GLAPI/Misc.h>
 #include <GLAPI/Samplers.h>
 #include <GLAPI/Debug.h>

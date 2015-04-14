@@ -158,7 +158,7 @@ public:
     cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
-    cmdlist->SetGraphicsRootSignature(RS::getInstance()->pRootSignature.Get());
+    cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
     float c[] = { 1., 1., 1., 1. };
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     D3D12_CPU_DESCRIPTOR_HANDLE rendertargets[] =

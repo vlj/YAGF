@@ -5,7 +5,7 @@
 #include <GLAPI/S3DVertex.h>
 
 #include <GLAPI/Shaders.h>
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 #include <GLAPI/Misc.h>
 #include <GLAPI/Samplers.h>
 #include <GLAPI/Text.h>
@@ -13,8 +13,8 @@
 #include <sstream>
 
 irr::scene::IMeshBuffer<irr::video::S3DVertex> *buffer;
-FrameBuffer *MainFBO;
-FrameBuffer *LinearDepthFBO;
+GLRTTSet *MainFBO;
+GLRTTSet *LinearDepthFBO;
 
 GLuint DepthStencilTexture;
 GLuint MainTexture;
@@ -199,8 +199,8 @@ void init()
   MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
   LinearTexture = generateRTT(1024, 1024, GL_R32F, GL_RED, GL_FLOAT);
 
-  MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
-  LinearDepthFBO = new FrameBuffer({ LinearTexture }, 1024, 1024);
+  MainFBO = new GLRTTSet({ MainTexture }, DepthStencilTexture, 1024, 1024);
+  LinearDepthFBO = new GLRTTSet({ LinearTexture }, 1024, 1024);
 
   NearestSampler = SamplerHelper::createNearestSampler();
   TrilinearSampler = SamplerHelper::createBilinearSampler();

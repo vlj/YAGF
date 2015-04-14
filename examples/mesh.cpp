@@ -6,7 +6,7 @@
 #include <GLAPI/Texture.h>
 
 #include <GLAPI/Shaders.h>
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 #include <GLAPI/Misc.h>
 #include <GLAPI/Samplers.h>
 #include <GLAPI/Text.h>
@@ -17,8 +17,6 @@
 
 
 std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
-FrameBuffer *MainFBO;
-FrameBuffer *LinearDepthFBO;
 
 GLuint TrilinearSampler;
 

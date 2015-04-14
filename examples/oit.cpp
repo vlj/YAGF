@@ -5,16 +5,16 @@
 #include <GLAPI/S3DVertex.h>
 
 #include <GLAPI/Shaders.h>
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 #include <GLAPI/Misc.h>
 #include <GLAPI/Samplers.h>
 #include <GLAPI/Debug.h>
 #include <GLAPI/Text.h>
 
 irr::scene::IMeshBuffer<irr::video::S3DVertex> *buffer;
-FrameBuffer *MainFBO;
+GLRTTSet *MainFBO;
 // For clearing
-FrameBuffer *PerPixelLinkedListHeadFBO;
+GLRTTSet *PerPixelLinkedListHeadFBO;
 
 GLuint DepthStencilTexture;
 GLuint MainTexture;
@@ -192,8 +192,8 @@ void init()
     glBindTexture(GL_TEXTURE_2D, PerPixelLinkedListHeadTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32UI, 1024, 1024);
 
-    MainFBO = new FrameBuffer({ MainTexture }, DepthStencilTexture, 1024, 1024);
-    PerPixelLinkedListHeadFBO = new FrameBuffer({ PerPixelLinkedListHeadTexture }, 1024, 1024);
+    MainFBO = new GLRTTSet({ MainTexture }, DepthStencilTexture, 1024, 1024);
+    PerPixelLinkedListHeadFBO = new GLRTTSet({ PerPixelLinkedListHeadTexture }, 1024, 1024);
 
     glGenBuffers(1, &PerPixelLinkedListSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);

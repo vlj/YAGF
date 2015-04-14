@@ -3,10 +3,11 @@
 #ifndef FBO_HPP
 #define FBO_HPP
 
+#include <GL/glew.h>
 #include <vector>
 #include <assert.h>
 
-class FrameBuffer
+class GLRTTSet
 {
 private:
   GLuint fbo, fbolayer;
@@ -14,9 +15,9 @@ private:
   GLuint DepthTexture;
   size_t width, height;
 public:
-  FrameBuffer() {}
+  GLRTTSet() {}
 
-  FrameBuffer(const std::vector <GLuint> &RTTs, size_t w, size_t h)
+  GLRTTSet(const std::vector <GLuint> &RTTs, size_t w, size_t h)
     : fbolayer(0), RenderTargets(RTTs), DepthTexture(0),
     width(w), height(h)
   {
@@ -36,7 +37,7 @@ public:
     assert(result == GL_FRAMEBUFFER_COMPLETE_EXT);
   }
 
-  FrameBuffer(const std::vector <GLuint> &RTTs, GLuint DS, size_t w, size_t h)
+  GLRTTSet(const std::vector <GLuint> &RTTs, GLuint DS, size_t w, size_t h)
     : fbolayer(0), RenderTargets(RTTs), DepthTexture(DS), width(w),
     height(h)
   {
@@ -60,14 +61,14 @@ public:
       glGenFramebuffers(1, &fbolayer);
   }
 
-  FrameBuffer(FrameBuffer &&framebuffer) :
+  GLRTTSet(GLRTTSet &&framebuffer) :
     fbo(framebuffer.fbo), DepthTexture(framebuffer.DepthTexture), RenderTargets(std::move(framebuffer.RenderTargets)),
     width(framebuffer.width), height(framebuffer.height)
   {
     framebuffer.fbo = 0;
   }
 
-  ~FrameBuffer()
+  ~GLRTTSet()
   {
     if (fbo)
       glDeleteFramebuffers(1, &fbo);
@@ -114,7 +115,7 @@ public:
     return height;
   }
 
-  static void Blit(const FrameBuffer &Src, FrameBuffer &Dst, GLbitfield mask = GL_COLOR_BUFFER_BIT, GLenum filter = GL_NEAREST)
+  static void Blit(const GLRTTSet &Src, GLRTTSet &Dst, GLbitfield mask = GL_COLOR_BUFFER_BIT, GLenum filter = GL_NEAREST)
   {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, Src.fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, Dst.fbo);

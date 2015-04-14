@@ -7,7 +7,7 @@
 
 #ifdef GLBUILD
 #include <GLAPI/Shaders.h>
-#include <GLAPI/FBO.h>
+#include <GLAPI/GLRTTSet.h>
 
 const char *vtxshader = TO_STRING(
   \#version 330 \n
@@ -126,7 +126,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
-    psodesc.pRootSignature = RS::getInstance()->pRootSignature.Get();
+    psodesc.pRootSignature = (*RS::getInstance())();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
