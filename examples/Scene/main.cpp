@@ -38,7 +38,7 @@ irr::scene::ISceneNode *xue;
 
 void init()
 {
-  std::vector<std::string> xueB3Dname = { "..\\examples\\xue.b3d" };
+  std::vector<std::string> xueB3Dname = { "..\\examples\\assets\\xue.b3d" };
 
   scnmgr = new Scene();
 

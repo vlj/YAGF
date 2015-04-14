@@ -172,7 +172,7 @@ std::unordered_map<std::string, Texture> textureSet;
 void init()
 {
   DebugUtil::enableDebugOutput();
-  irr::io::CReadFile reader("..\\examples\\xue.b3d");
+  irr::io::CReadFile reader("..\\examples\\assets\\xue.b3d");
   loader = new irr::scene::CB3DMeshFileLoader(&reader);
   const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = loader->AnimatedMesh.getMeshBuffers();
 
@@ -186,7 +186,7 @@ void init()
 
   for (unsigned i = 0; i < loader->Textures.size(); i++)
   {
-    const std::string &fixed = "..\\examples\\" + loader->Textures[i].TextureName.substr(0, loader->Textures[i].TextureName.find_last_of('.')) + ".DDS";
+    const std::string &fixed = "..\\examples\\assets\\" + loader->Textures[i].TextureName.substr(0, loader->Textures[i].TextureName.find_last_of('.')) + ".DDS";
     std::ifstream DDSFile(fixed, std::ifstream::binary);
     irr::video::CImageLoaderDDS DDSPic(DDSFile);
     textureSet.emplace(loader->Textures[i].TextureName, DDSPic.getLoadedImage());

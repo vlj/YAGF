@@ -29,7 +29,7 @@ public:
   {
     for (std::string TextureLoc : TexturesLocation)
     {
-      const std::string &fixed = "..\\examples\\" + TextureLoc.substr(0, TextureLoc.find_last_of('.')) + ".DDS";
+      const std::string &fixed = "..\\examples\\assets\\" + TextureLoc.substr(0, TextureLoc.find_last_of('.')) + ".DDS";
       std::ifstream DDSFile(fixed, std::ifstream::binary);
       irr::video::CImageLoaderDDS DDSPic(DDSFile);
       TextureStore.emplace_back(DDSPic.getLoadedImage());
