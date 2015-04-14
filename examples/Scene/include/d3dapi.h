@@ -12,51 +12,62 @@
 class WrapperD3DRTT : public WrapperRTT
 {
 public:
+  Microsoft::WRL::ComPtr<ID3D12Resource> Texture;
   virtual void nothing() override
   {}
-  Microsoft::WRL::ComPtr<ID3D12Resource> Texture;
   DXGI_FORMAT Format;
+  Microsoft::WRL::ComPtr<ID3D12Resource> &operator()(void)
+  {
+    return Texture;
+  }
 };
 
 // Wrapper around RTTSet
 class WrapperD3DRTTSet : public WrapperRTTSet
 {
 public:
+  D3DRTTSet RttSet;
   virtual void nothing() override
   {}
-  D3DRTTSet RttSet;
+  D3DRTTSet &operator()(void)
+  {
+    return RttSet;
+  }
 };
 
 template <typename T>
-struct TypeUnwrap;
+struct TypeWrapTrait;
+
+template <>
+struct TypeWrapTrait<WrapperRTT>
+{
+  typedef WrapperD3DRTT D3DWrappingType;
+};
+
+template <>
+struct TypeWrapTrait<WrapperRTTSet>
+{
+  typedef WrapperD3DRTTSet D3DWrappingType;
+};
 
 template <typename T>
-typename TypeUnwrap<T>::Type& unwrap(T *ptr)
+struct TypeUnwrap
+{
+  typedef typename decltype(TypeWrapTrait<T>::D3DWrappingType()()) Type;
+
+  static Type& get(T *ptr)
+  {
+    return (*dynamic_cast<TypeWrapTrait<T>::D3DWrappingType *>(ptr))();
+  }
+};
+
+template <typename T>
+typename TypeUnwrap<T>::Type unwrap(T *ptr)
 {
   return TypeUnwrap<T>::get(ptr);
 }
 
-template <>
-struct TypeUnwrap<WrapperRTT>
-{
-  typedef Microsoft::WRL::ComPtr<ID3D12Resource> Type;
 
-  static Type& get(WrapperRTT *ptr)
-  {
-    return dynamic_cast<WrapperD3DRTT *>(ptr)->Texture;
-  }
-};
-
-template <>
-struct TypeUnwrap<WrapperRTTSet>
-{
-  typedef D3DRTTSet Type;
-
-  static Type& get(WrapperRTTSet *ptr)
-  {
-    return dynamic_cast<WrapperD3DRTTSet *>(ptr)->RttSet;
-  }
-};
 
 class D3DAPI : public GFXAPI
 {

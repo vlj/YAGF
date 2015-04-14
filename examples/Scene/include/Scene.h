@@ -160,8 +160,7 @@ public:
       }
     }
 
-    WrapperD3DRTT *casted = dynamic_cast<WrapperD3DRTT *>(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR));
-    ID3D12Resource *gbuffer_base_color = casted->Texture.Get();
+    ID3D12Resource *gbuffer_base_color = unwrap(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)).Get();
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(gbuffer_base_color, D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_COPY_SOURCE));
     D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
