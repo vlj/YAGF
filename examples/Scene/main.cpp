@@ -24,7 +24,7 @@
 #include <D3DAPI/PSO.h>
 #include <D3DAPI/Resource.h>
 #include <D3DAPI/ConstantBuffer.h>
-
+#include <d3dapi.h>
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
@@ -35,6 +35,10 @@ RenderTargets *rtts;
 
 Scene *scnmgr;
 irr::scene::ISceneNode *xue;
+
+#ifdef DXBUILD
+GFXAPI *GlobalGFXAPI = new D3DAPI();
+#endif
 
 void init()
 {

@@ -30,6 +30,7 @@ namespace irr
 
       //! Default 32 bit color format. 8 bits are used for every component: red, green, blue and alpha.
       ECF_A8R8G8B8,
+      ECF_R8G8B8A8_UNORM_SRGB,
 
       //! The normalized non-float formats from the _rg extension
       ECF_R8,
@@ -46,7 +47,7 @@ namespace irr
       ECF_G16R16F,
 
       //! 64 bit floating point format 16 bits are used for the red, green, blue and alpha channels.
-      ECF_A16B16G16R16F,
+      ECF_R16G16B16A16F,
 
       //! 32 bit floating point format using 32 bits for the red channel.
       ECF_R32F,

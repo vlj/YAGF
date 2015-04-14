@@ -15,6 +15,7 @@
 #endif
 
 #ifdef DXBUILD
+#include <d3dapi.h>
 #include <D3DAPI/Sampler.h>
 #endif
 
@@ -125,26 +126,8 @@ public:
 #endif
 
 #ifdef DXBUILD
-
-    D3D12_RECT rect = {};
-    rect.left = 0;
-    rect.top = 0;
-    rect.bottom = 1024;
-    rect.right = 1024;
-
-    D3D12_VIEWPORT view = {};
-    view.Height = 1024;
-    view.Width = 1024;
-    view.TopLeftX = 0;
-    view.TopLeftY = 0;
-    view.MinDepth = 0;
-    view.MaxDepth = 1.;
-
     memcpy(cbuffer.map(), &cbufdata, sizeof(ViewBuffer));
     cbuffer.unmap();
-
-    cmdlist->RSSetViewports(1, &view);
-    cmdlist->RSSetScissorRects(1, &rect);
 
     ID3D12DescriptorHeap *descriptorlst[] =
     {
@@ -153,20 +136,16 @@ public:
     cmdlist->SetDescriptorHeaps(descriptorlst, 1);
 
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
-    cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), clearColor, 0, 0);
-    cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR), clearColor, 0, 0);
+
+    //cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), clearColor, 0, 0);
+    //cmdlist->ClearRenderTargetView(rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR), clearColor, 0, 0);
     cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
     cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
     float c[] = { 1., 1., 1., 1. };
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    D3D12_CPU_DESCRIPTOR_HANDLE rendertargets[] =
-    {
-      rtts.getRTTHandle(RenderTargets::GBUFFER_BASE_COLOR),
-      rtts.getRTTHandle(RenderTargets::GBUFFER_NORMAL_AND_DEPTH),
-    };
-    cmdlist->SetRenderTargets(rendertargets, false, 2, &rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
+    dynamic_cast<WrapperD3DRTTSet*>(rtts.getRTTSet(RenderTargets::FBO_GBUFFER))->RttSet.Bind(cmdlist.Get(), rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
@@ -183,16 +162,18 @@ public:
       }
     }
 
+    WrapperD3DRTT *casted = dynamic_cast<WrapperD3DRTT *>(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR));
+    ID3D12Resource *gbuffer_base_color = casted->Texture.Get();
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
-    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(rtts.getRTTResource(RenderTargets::GBUFFER_BASE_COLOR), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_COPY_SOURCE));
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(gbuffer_base_color, D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_COPY_SOURCE));
     D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
     src.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
-    src.pResource = rtts.getRTTResource(RenderTargets::GBUFFER_BASE_COLOR);
+    src.pResource = gbuffer_base_color;
     dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
     dst.pResource = Context::getInstance()->getCurrentBackBuffer();
     D3D12_BOX box = {0, 0, 0, 1008, 985, 1};
     cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, &box, D3D12_COPY_NONE);
-    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(rtts.getRTTResource(RenderTargets::GBUFFER_BASE_COLOR), D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_RENDER_TARGET));
+    cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(gbuffer_base_color, D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_RENDER_TARGET));
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_PRESENT));
     HRESULT hr = cmdlist->Close();
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());

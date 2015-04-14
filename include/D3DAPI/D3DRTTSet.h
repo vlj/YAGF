@@ -6,6 +6,8 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <D3DAPI/Misc.h>
+#include <vector>
+#include <D3DAPI/Context.h>
 
 class D3DRTTSet
 {
