@@ -2,6 +2,7 @@
 #include <MeshManager.h>
 #include <RenderTargets.h>
 #include <Scene.h>
+#include <FullscreenPass.h>
 
 #ifdef GLBUILD
 #include <GL/glew.h>
