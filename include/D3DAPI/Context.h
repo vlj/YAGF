@@ -10,6 +10,7 @@
 #include <dxgi1_4.h>
 #include <wrl/client.h>
 #include <cassert>
+#include <D3DAPI/Misc.h>
 
 class Context : public Singleton<Context>
 {
@@ -49,10 +50,7 @@ public:
     hr = CreateDXGIFactory(IID_PPV_ARGS(&fact));
     hr = fact->CreateSwapChain(cmdqueue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf());
 
-    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-    heapdesc.NumDescriptors = 2;
-    heapdesc.Type = D3D12_RTV_DESCRIPTOR_HEAP;
-    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&BackBufferDescriptorsHeap));
+    BackBufferDescriptorsHeap = createDescriptorHeap(dev.Get(), 2, D3D12_RTV_DESCRIPTOR_HEAP, false);
 
     BackBufferDescriptors[0] = BackBufferDescriptorsHeap->GetCPUDescriptorHandleForHeapStart();
     BackBufferDescriptors[1] = BackBufferDescriptorsHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP));

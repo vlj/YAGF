@@ -4,6 +4,20 @@
 #pragma once
 #include <windows.h>
 #include <windowsx.h>
+#include <d3d12.h>
+#include <wrl/client.h>
+
+inline Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> createDescriptorHeap(ID3D12Device* dev, size_t NumDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE Type, bool ShaderVisible)
+{
+  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> result;
+  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+  heapdesc.NumDescriptors = NumDescriptor;
+  heapdesc.Type = Type;
+  if (ShaderVisible)
+    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  HRESULT hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result));
+  return result;
+}
 
 class WindowUtil
 {
