@@ -92,16 +92,15 @@ template<D3D12_ROOT_SIGNATURE_FLAGS flags, typename... T>
 class RootSignature : public Singleton<RootSignature<flags, T...>>
 {
 private:
+  Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
+
   std::vector<std::vector<D3D12_DESCRIPTOR_RANGE> > getDescriptorRanges() const
   {
     std::vector<std::vector<D3D12_DESCRIPTOR_RANGE> > result;
     DescriptorTableBuilder<T...>::build(result);
     return result;
   }
-
 public:
-  Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
-
   RootSignature()
   {
     std::vector<D3D12_ROOT_PARAMETER> RootParameters;
@@ -122,5 +121,10 @@ public:
     hr = Context::getInstance()->dev->CreateRootSignature(1,
       pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
       IID_PPV_ARGS(&pRootSignature));
+  }
+
+  ID3D12RootSignature* operator()(void)
+  {
+    return pRootSignature.Get();
   }
 };
