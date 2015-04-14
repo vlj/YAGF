@@ -76,6 +76,17 @@ public:
     }
   }
 
+  ID3D12Resource *getBackBuffer(size_t idx)
+  {
+    assert(Initialised);
+    return buffer[idx].Get();
+  }
+
+  size_t getCurrentBackBufferIndex() const
+  {
+    return chain->GetCurrentBackBufferIndex();
+  }
+
   ID3D12Resource *getCurrentBackBuffer() const
   {
     assert(Initialised);

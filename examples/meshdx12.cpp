@@ -12,6 +12,7 @@
 #include <D3DAPI/Resource.h>
 #include <D3DAPI/ConstantBuffer.h>
 #include <D3DAPI/Sampler.h>
+#include <D3DAPI/D3DRTTSet.h>
 
 
 #pragma comment (lib, "d3d12.lib")
@@ -49,6 +50,7 @@ struct JointTransform
 
 ConstantBuffer<Matrixes> *cbuffer;
 ConstantBuffer<JointTransform> *jointbuffer;
+D3DRTTSet *fbo[2];
 
 class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>
 {
@@ -108,6 +110,9 @@ void Init(HWND hWnd)
     dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv.Texture2D.MipSlice = 0;
     dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+    fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024);
+    fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024);
   }
 
   irr::io::CReadFile reader("..\\examples\\assets\\xue.b3d");
@@ -202,19 +207,6 @@ static float timer = 0.;
 
 void Draw()
 {
-  D3D12_RECT rect = {};
-  rect.left = 0;
-  rect.top = 0;
-  rect.bottom = 1024;
-  rect.right = 1024;
-
-  D3D12_VIEWPORT view = {};
-  view.Height = 1024;
-  view.Width = 1024;
-  view.TopLeftX = 0;
-  view.TopLeftY = 0;
-  view.MinDepth = 0;
-  view.MaxDepth = 1.;
 
   {
     Matrixes *cbufdata = cbuffer->map();
@@ -241,8 +233,6 @@ void Draw()
     jointbuffer->unmap();
   }
 
-  cmdlist->RSSetViewports(1, &view);
-  cmdlist->RSSetScissorRects(1, &rect);
 
   ID3D12DescriptorHeap *descriptorlst[] =
   {
@@ -256,11 +246,12 @@ void Draw()
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), clearColor, 0, 0);
   cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
+  fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(cmdlist.Get(), DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
-  cmdlist->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());
   cmdlist->SetVertexBuffers(0, &vao->getVertexBufferView()[0], 1);
@@ -292,6 +283,8 @@ void Clean()
   delete vao;
   delete cbuffer;
   delete jointbuffer;
+  delete fbo[0];
+  delete fbo[1];
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,
