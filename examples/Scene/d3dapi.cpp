@@ -5,7 +5,7 @@
 #include <D3DAPI/Texture.h>
 #include <D3DAPI/Resource.h>
 
-std::shared_ptr<WrapperRTT> D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
+std::shared_ptr<WrapperResource> D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
 {
   DXGI_FORMAT Fmt = getDXGIFormatFromColorFormat(Format);
   Microsoft::WRL::ComPtr<ID3D12Resource> Resource;
@@ -17,28 +17,40 @@ std::shared_ptr<WrapperRTT> D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, 
     &CD3D12_CLEAR_VALUE(Fmt, fastColor),
     IID_PPV_ARGS(&Resource));
 
-  WrapperD3DRTT *result = new WrapperD3DRTT();
+  WrapperD3DResource *result = new WrapperD3DResource();
   result->Texture = Resource;
-  result->Format = Fmt;
 
-  std::shared_ptr<WrapperRTT> wrappedresult(result);
+  std::shared_ptr<WrapperResource> wrappedresult(result);
   return wrappedresult;
 }
 
-std::shared_ptr<WrapperRTTSet> D3DAPI::createRTTSet(std::vector<WrapperRTT*> RTTs, size_t Width, size_t Height)
+std::shared_ptr<WrapperRTTSet> D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height)
 {
   WrapperD3DRTTSet *result = new WrapperD3DRTTSet();
   std::vector<ID3D12Resource *> resources;
-  std::vector<DXGI_FORMAT> formats;
-  for (WrapperRTT* wrappedrtt : RTTs)
-  {
-    WrapperD3DRTT *unwrappedrtt = dynamic_cast<WrapperD3DRTT*>(wrappedrtt);
-    resources.push_back(unwrappedrtt->Texture.Get());
-    formats.push_back(unwrappedrtt->Format);
+  std::vector<DXGI_FORMAT> dxgi_formats;
+  for (unsigned i = 0; i < RTTs.size(); i++) {
+    resources.push_back(unwrap(RTTs[i]).Get());
+    dxgi_formats.push_back(getDXGIFormatFromColorFormat(formats[i]));
   }
-  result->RttSet = D3DRTTSet(resources, formats, Width, Height);
+  result->RttSet = D3DRTTSet(resources, dxgi_formats, Width, Height);
   std::shared_ptr<WrapperRTTSet> wrappedresult(result);
   return wrappedresult;
+}
+
+static D3D12_RESOURCE_USAGE convertResourceUsage(enum GFXAPI::RESOURCE_USAGE ru)
+{
+  switch (ru)
+  {
+  case GFXAPI::COPY_DEST:
+    return D3D12_RESOURCE_USAGE_COPY_DEST;
+  case GFXAPI::COPY_SRC:
+    return D3D12_RESOURCE_USAGE_COPY_SOURCE;
+  case GFXAPI::PRESENT:
+    return D3D12_RESOURCE_USAGE_PRESENT;
+  case GFXAPI::RENDER_TARGET:
+    return D3D12_RESOURCE_USAGE_RENDER_TARGET;
+  }
 }
 
 void D3DAPI::writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers)
@@ -48,9 +60,9 @@ void D3DAPI::writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList,
   for (auto barrier : barriers)
   {
     ID3D12Resource* unwrappedResource = unwrap(std::get<0>(barrier)).Get();
-    barriersDesc.push_back(setResourceTransitionBarrier(unwrappedResource, std::get<1>(barrier), std::get<2>(barrier)));
+    barriersDesc.push_back(setResourceTransitionBarrier(unwrappedResource, convertResourceUsage(std::get<1>(barrier)), convertResourceUsage(std::get<2>(barrier))));
   }
-  CmdList->ResourceBarrier(barriersDesc.size(), barriersDesc.data());
+  CmdList->ResourceBarrier((UINT)barriersDesc.size(), barriersDesc.data());
 }
 
 std::shared_ptr<WrapperCommandList> D3DAPI::createCommandList()

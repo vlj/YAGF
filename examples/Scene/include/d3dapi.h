@@ -8,21 +8,6 @@
 #include <d3d12.h>
 #include <D3DAPI/D3DRTTSet.h>
 
-// Wrapper around RTT
-class WrapperD3DRTT : public WrapperRTT
-{
-public:
-  Microsoft::WRL::ComPtr<ID3D12Resource> Texture;
-  virtual void nothing() override
-  {}
-  DXGI_FORMAT Format;
-  Microsoft::WRL::ComPtr<ID3D12Resource> &operator()(void)
-  {
-    return Texture;
-  }
-};
-
-// Wrapper around RTTSet
 class WrapperD3DRTTSet : public WrapperRTTSet
 {
 public:
@@ -64,21 +49,15 @@ template <typename T>
 struct TypeWrapTrait;
 
 template <>
-struct TypeWrapTrait<WrapperRTT>
+struct TypeWrapTrait<WrapperResource>
 {
-  typedef WrapperD3DRTT D3DWrappingType;
+  typedef WrapperD3DResource D3DWrappingType;
 };
 
 template <>
 struct TypeWrapTrait<WrapperRTTSet>
 {
   typedef WrapperD3DRTTSet D3DWrappingType;
-};
-
-template<>
-struct TypeWrapTrait<WrapperResource>
-{
-  typedef WrapperD3DResource D3DWrappingType;
 };
 
 template<>
@@ -109,8 +88,8 @@ typename TypeUnwrap<T>::Type unwrap(T *ptr)
 class D3DAPI : public GFXAPI
 {
 public:
-  virtual std::shared_ptr<WrapperRTT> createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
-  virtual std::shared_ptr<WrapperRTTSet> createRTTSet(std::vector<WrapperRTT*> RTTs, size_t Width, size_t Height) override;
+  virtual std::shared_ptr<WrapperResource> createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
+  virtual std::shared_ptr<WrapperRTTSet> createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
   virtual void writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers) override;
   virtual std::shared_ptr<WrapperCommandList> createCommandList() override;
 };
