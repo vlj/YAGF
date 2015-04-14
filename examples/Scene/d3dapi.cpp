@@ -3,6 +3,7 @@
 
 #include <d3dapi.h>
 #include <D3DAPI/Texture.h>
+#include <D3DAPI/Resource.h>
 
 std::shared_ptr<WrapperRTT> D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
 {
@@ -38,4 +39,29 @@ std::shared_ptr<WrapperRTTSet> D3DAPI::createRTTSet(std::vector<WrapperRTT*> RTT
   result->RttSet = D3DRTTSet(resources, formats, Width, Height);
   std::shared_ptr<WrapperRTTSet> wrappedresult(result);
   return wrappedresult;
+}
+
+void D3DAPI::writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers)
+{
+  std::vector<D3D12_RESOURCE_BARRIER_DESC> barriersDesc;
+  ID3D12GraphicsCommandList *CmdList = unwrap(wrappedCmdList).Get();
+  for (auto barrier : barriers)
+  {
+    ID3D12Resource* unwrappedResource = unwrap(std::get<0>(barrier)).Get();
+    barriersDesc.push_back(setResourceTransitionBarrier(unwrappedResource, std::get<1>(barrier), std::get<2>(barrier)));
+  }
+  CmdList->ResourceBarrier(barriersDesc.size(), barriersDesc.data());
+}
+
+std::shared_ptr<WrapperCommandList> D3DAPI::createCommandList()
+{
+  Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
+  HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
+  WrapperD3DCommandList *wrappedResult = new WrapperD3DCommandList();
+  wrappedResult->CommandAllocator = cmdalloc;
+  wrappedResult->CommandList = cmdlist;
+  std::shared_ptr<WrapperCommandList> result(wrappedResult);
+  return result;
 }

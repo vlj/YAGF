@@ -28,13 +28,12 @@ class Scene
 {
 private:
   std::list<irr::scene::IMeshSceneNode*> Meshes;
+  std::shared_ptr<WrapperCommandList> cmdList;
 #ifdef DXBUILD
   // Should be tied to view rather than scene
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbufferDescriptorHeap;
   ConstantBuffer<ViewBuffer> cbuffer;
 
-  Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
-  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
 #endif
 #ifdef GLBUILD
@@ -44,6 +43,7 @@ private:
 public:
   Scene()
   {
+    cmdList = GlobalGFXAPI->createCommandList();
 #ifdef GLBUILD
     glGenBuffers(1, &cbuf);
     TrilinearSampler = SamplerHelper::createTrilinearSampler();
@@ -51,9 +51,6 @@ public:
 #ifdef DXBUILD
     cbufferDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
     Context::getInstance()->dev->CreateConstantBufferView(&cbuffer.getDesc(), cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
-    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
 
     Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
@@ -133,17 +130,18 @@ public:
     {
       cbufferDescriptorHeap.Get()
     };
+    ID3D12GraphicsCommandList *cmdlist = unwrap(cmdList.get()).Get();
     cmdlist->SetDescriptorHeaps(descriptorlst, 1);
 
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
 
-    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Clear(cmdlist.Get(), clearColor);
+    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Clear(cmdlist, clearColor);
     cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
     cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Bind(cmdlist.Get(), rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
+    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Bind(cmdlist, rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
@@ -173,12 +171,12 @@ public:
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(gbuffer_base_color, D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_RENDER_TARGET));
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_PRESENT));
     HRESULT hr = cmdlist->Close();
-    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&cmdlist);
     HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
     WaitForSingleObject(handle, INFINITE);
     CloseHandle(handle);
-    cmdalloc->Reset();
-    cmdlist->Reset(cmdalloc.Get(), nullptr);
+    dynamic_cast<WrapperD3DCommandList*>(cmdList.get())->CommandAllocator->Reset();
+    cmdlist->Reset(dynamic_cast<WrapperD3DCommandList*>(cmdList.get())->CommandAllocator.Get(), nullptr);
     Context::getInstance()->Swap();
 #endif
 
