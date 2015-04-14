@@ -146,12 +146,7 @@ void Init(HWND hWnd)
     IID_PPV_ARGS(&DepthBuffer)
     );
 
-  D3D12_DESCRIPTOR_HEAP_DESC heapdesc_depth = {};
-  heapdesc_depth.Type = D3D12_DSV_DESCRIPTOR_HEAP;
-  heapdesc_depth.NumDescriptors = 1;
-  heapdesc_depth.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
-  heapdesc_depth.NodeMask = 1;
-  HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc_depth, IID_PPV_ARGS(&depth_descriptors));
+  depth_descriptors = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_DSV_DESCRIPTOR_HEAP, false);
 
   D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
   depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
@@ -177,11 +172,7 @@ void Init(HWND hWnd)
     IID_PPV_ARGS(&cbufferdata[1])
     );
 
-  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-  heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-  heapdesc.NumDescriptors = 2;
-  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-  hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&descriptors));
+  descriptors = createDescriptorHeap(Context::getInstance()->dev.Get(), 2, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
 
   D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdesc = {};
   cbvdesc.BufferLocation = cbufferdata[0]->GetGPUVirtualAddress();
@@ -200,10 +191,7 @@ void Init(HWND hWnd)
     IID_PPV_ARGS(&DepthTexture)
     );
 
-  heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-  heapdesc.NumDescriptors = 1;
-  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-  hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&depth_tex_descriptors));
+  depth_tex_descriptors = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
   srv_view.Format = DXGI_FORMAT_R32_FLOAT;
@@ -212,10 +200,7 @@ void Init(HWND hWnd)
   srv_view.Texture2D.MipLevels = 1;
   Context::getInstance()->dev->CreateShaderResourceView(DepthTexture.Get(), &srv_view, depth_tex_descriptors->GetCPUDescriptorHandleForHeapStart());
 
-  heapdesc.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
-  heapdesc.NumDescriptors = 1;
-  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-  hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&SamplerHeap));
+  SamplerHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
   D3D12_SAMPLER_DESC samplerdesc = {};
   samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;

@@ -48,21 +48,13 @@ public:
     TrilinearSampler = SamplerHelper::createTrilinearSampler();
 #endif
 #ifdef DXBUILD
-    D3D12_DESCRIPTOR_HEAP_DESC cbuffheapdesc = {};
-    cbuffheapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    cbuffheapdesc.NumDescriptors = 1;
-    cbuffheapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&cbuffheapdesc, IID_PPV_ARGS(&cbufferDescriptorHeap));
+    cbufferDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
     Context::getInstance()->dev->CreateConstantBufferView(&cbuffer.getDesc(), cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-    hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
     hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
 
-    D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
-    sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
-    sampler_heap.NumDescriptors = 1;
-    sampler_heap.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    hr = Context::getInstance()->dev->CreateDescriptorHeap(&sampler_heap, IID_PPV_ARGS(&Sampler));
+    Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
     Context::getInstance()->dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), Sampler->GetCPUDescriptorHandleForHeapStart());
 #endif

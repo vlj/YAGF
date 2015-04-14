@@ -11,7 +11,7 @@ inline Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> createDescriptorHeap(ID3D12D
 {
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> result;
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-  heapdesc.NumDescriptors = NumDescriptor;
+  heapdesc.NumDescriptors = (UINT)NumDescriptor;
   heapdesc.Type = Type;
   if (ShaderVisible)
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;

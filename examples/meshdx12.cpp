@@ -83,11 +83,7 @@ void Init(HWND hWnd)
   hr = dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), 0, IID_PPV_ARGS(&cmdlist));
 
   {
-    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-    heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 2;
-    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&ReadResourceHeaps));
+    ReadResourceHeaps = createDescriptorHeap(dev, 2, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
 
     cbuffer = new ConstantBuffer<Matrixes>();
     jointbuffer = new ConstantBuffer<JointTransform>();
@@ -105,11 +101,7 @@ void Init(HWND hWnd)
       &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
       IID_PPV_ARGS(&DepthBuffer));
 
-    D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-    heapdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
-    heapdesc.NumDescriptors = 1;
-    heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
-    hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
+    DepthDescriptorHeap = createDescriptorHeap(dev, 1, D3D12_DSV_DESCRIPTOR_HEAP, false);
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
     dsv.Format = DXGI_FORMAT_D32_FLOAT;
@@ -182,11 +174,7 @@ void Init(HWND hWnd)
 
     // Create Texture Heap
     {
-      D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-      heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-      heapdesc.NumDescriptors = (UINT)textureNamePairs.size();
-      heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-      hr = dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&TexResourceHeaps));
+      TexResourceHeaps = createDescriptorHeap(dev, (UINT)textureNamePairs.size(), D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
       for (unsigned i = 0; i < textureNamePairs.size(); i++)
       {
         std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> texturedata = textureNamePairs[i];
@@ -195,11 +183,7 @@ void Init(HWND hWnd)
       }
     }
 
-    D3D12_DESCRIPTOR_HEAP_DESC sampler_heap = {};
-    sampler_heap.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
-    sampler_heap.NumDescriptors = 1;
-    sampler_heap.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-    hr = dev->CreateDescriptorHeap(&sampler_heap, IID_PPV_ARGS(&Sampler));
+    Sampler = createDescriptorHeap(dev, 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
     dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), Sampler->GetCPUDescriptorHandleForHeapStart());
 
