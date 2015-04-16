@@ -162,9 +162,12 @@ void GLAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmd
 {
 }
 
+// Not to call after bind !
 void GLAPI::clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet* RTTSet, float color[4])
 {
-  //  RTTSet->GLValue.Clear(wrappedCmdList->D3DValue.CommandList, color);
+  glClearColor(color[0], color[1], color[2], color[3]);
+  RTTSet->GLValue.Bind();
+  glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void GLAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet)
@@ -192,5 +195,5 @@ void GLAPI::closeCommandList(union WrapperCommandList *wrappedCmdList)
 
 void GLAPI::drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
 {
-  glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void *)(indexOffset * sizeof(unsigned short)), (GLsizei)vertexOffset);
+  glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void *)indexOffset, (GLsizei)vertexOffset);
 }
