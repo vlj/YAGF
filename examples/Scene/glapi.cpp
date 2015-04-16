@@ -180,6 +180,11 @@ void GLAPI::setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, W
   glBindVertexArray(wrappedVAO->GLValue);
 }
 
+void GLAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* wrappedPipelineState)
+{
+  glUseProgram(wrappedPipelineState->GLValue.Program);
+}
+
 WrapperResource *GLAPI::createConstantsBuffer(size_t)
 {
   return nullptr;

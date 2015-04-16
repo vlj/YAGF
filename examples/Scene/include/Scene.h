@@ -115,11 +115,11 @@ public:
     glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
 
-//    glUseProgram(ObjectShader::getInstance()->Program);
+    WrapperPipelineState *object = (WrapperPipelineState*) &ObjectShader::getInstance()->Program;
     const GLuint& tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
     WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet*) &tmp;
 #endif
-
+    GlobalGFXAPI->setPipelineState(cmdList, object);
 #ifdef DXBUILD
     memcpy(cbuffer.map(), &cbufdata, sizeof(ViewBuffer));
     cbuffer.unmap();

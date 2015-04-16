@@ -60,6 +60,15 @@ union WrapperIndexVertexBuffersSet
 #endif
 };
 
+union WrapperPipelineState
+{
+#ifdef GLBUILD
+  struct {
+    GLuint Program;
+  } GLValue;
+#endif
+};
+
 class GFXAPI
 {
 public:
@@ -74,6 +83,7 @@ public:
   virtual union WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) = 0;
   virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float color[4]) = 0;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*) = 0;
+  virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
   virtual union WrapperResource *createConstantsBuffer(size_t) = 0;
   virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &) = 0;

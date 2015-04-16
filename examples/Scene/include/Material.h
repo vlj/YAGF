@@ -52,7 +52,7 @@ void main()
   color = Color.zyxw;
   mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
   mat4 TransposeInverseModelView = transpose(InverseModelMatrix);// *InverseViewMatrix);
-  gl_Position = ModelViewProjectionMatrix * vec4(Position.xyz, 1.);
+  gl_Position = vec4(Position.xyz, 1.);
   nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
   //  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
   //  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
