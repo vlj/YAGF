@@ -12,6 +12,7 @@
 
 #ifdef GLBUILD
 #include <GLAPI/Samplers.h>
+#include <GLAPI/VAO.h>
 #endif
 
 #ifdef DXBUILD
@@ -115,7 +116,8 @@ public:
     glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
 
 //    glUseProgram(ObjectShader::getInstance()->Program);
-    WrapperIndexVertexBuffersSet *vao;
+    const GLuint& tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
+    WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet*) &tmp;
 #endif
 
 #ifdef DXBUILD

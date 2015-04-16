@@ -47,6 +47,10 @@ GFXAPI *GlobalGFXAPI = new GLAPI();
 
 void init()
 {
+#ifdef GLBUILD
+  DebugUtil::enableDebugOutput();
+  glDepthFunc(GL_LEQUAL);
+#endif
   std::vector<std::string> xueB3Dname = { "..\\examples\\assets\\xue.b3d" };
 
   scnmgr = new Scene();
@@ -56,10 +60,7 @@ void init()
 
   rtts = new RenderTargets(1024, 1024);
 
-#ifdef GLBUILD
-  DebugUtil::enableDebugOutput();
-  glDepthFunc(GL_LEQUAL);
-#endif
+
 }
 
 void clean()
