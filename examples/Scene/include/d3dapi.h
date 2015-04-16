@@ -7,6 +7,8 @@
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <D3DAPI/D3DRTTSet.h>
+#include <D3DAPI/VAO.h>
+#include <Core/BasicVertexLayout.h>
 
 class WrapperD3DRTTSet : public WrapperRTTSet
 {
@@ -45,6 +47,18 @@ public:
   }
 };
 
+class WrapperD3DIndexVertexBuffersSet : public WrapperIndexVertexBuffersSet
+{
+public:
+  virtual void nothing() override
+  {}
+  FormattedVertexStorage<irr::video::S3DVertex2TCoords> *vao;
+  FormattedVertexStorage<irr::video::S3DVertex2TCoords> &operator()(void)
+  {
+    return *vao;
+  }
+};
+
 template <typename T>
 struct TypeWrapTrait;
 
@@ -66,6 +80,12 @@ struct TypeWrapTrait<WrapperCommandList>
   typedef WrapperD3DCommandList D3DWrappingType;
 };
 
+template<>
+struct TypeWrapTrait<WrapperIndexVertexBuffersSet>
+{
+  typedef WrapperD3DIndexVertexBuffersSet D3DWrappingType;
+};
+
 template <typename T>
 struct TypeUnwrap
 {
@@ -85,6 +105,8 @@ typename TypeUnwrap<T>::Type unwrap(T *ptr)
 
 
 
+
+
 class D3DAPI : public GFXAPI
 {
 public:
@@ -92,6 +114,7 @@ public:
   virtual std::shared_ptr<WrapperRTTSet> createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
   virtual void clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
   virtual void setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
+  virtual void setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) override;
   virtual void writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers) override;
   virtual std::shared_ptr<WrapperCommandList> createCommandList() override;
   virtual void closeCommandList(WrapperCommandList* wrappedCmdList) override;

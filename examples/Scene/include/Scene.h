@@ -94,6 +94,17 @@ public:
     irr::core::matrix4 View;
     View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
     memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
+
+    float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
+    GlobalGFXAPI->clearRTTSet(cmdList.get(), rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
+#ifdef GLBUILD
+    glClearDepth(1.);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#endif
+#ifdef DXBUILD
+    unwrap(cmdList.get())->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
+#endif
+    GlobalGFXAPI->setRTTSet(cmdList.get(), rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
 #ifdef GLBUILD
     glEnable(GL_FRAMEBUFFER_SRGB);
     glDisable(GL_BLEND);
@@ -102,24 +113,12 @@ public:
     rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).Bind();
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClearDepth(1.);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
 
     glUseProgram(ObjectShader::getInstance()->Program);
-    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO());
-    for (const irr::scene::IMeshSceneNode* node : Meshes)
-    {
-      for (const irr::video::DrawData &drawdata : node->getDrawDatas())
-      {
-        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
-        glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)drawdata.IndexCount, GL_UNSIGNED_SHORT, (void *)drawdata.vaoOffset, (GLsizei)drawdata.vaoBaseVertex);
-      }
-    }
 
-    rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).BlitToDefault(0, 0, 1024, 1024);
 #endif
 
 #ifdef DXBUILD
@@ -133,31 +132,40 @@ public:
     ID3D12GraphicsCommandList *cmdlist = unwrap(cmdList.get()).Get();
     cmdlist->SetDescriptorHeaps(descriptorlst, 1);
 
-    float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
-
-    GlobalGFXAPI->clearRTTSet(cmdList.get(), rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
-    cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
-
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
     cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    GlobalGFXAPI->setRTTSet(cmdList.get(), rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
+
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    WrapperIndexVertexBuffersSet *vao = new WrapperD3DIndexVertexBuffersSet();
+#endif
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
     {
-      cmdlist->SetIndexBuffer(&node->getVAO()->getIndexBufferView());
-      cmdlist->SetVertexBuffers(0, node->getVAO()->getVertexBufferView().data(), 1);
+#ifdef DXBUILD
+      ((WrapperD3DIndexVertexBuffersSet*)vao)->vao = const_cast<FormattedVertexStorage<irr::video::S3DVertex2TCoords> *>(node->getVAO());
+#endif
+      GlobalGFXAPI->setIndexVertexBuffersSet(cmdList.get(), vao);
 
       for (irr::video::DrawData drawdata : node->getDrawDatas())
       {
+#ifdef GLBUILD
+        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
+#endif
+#ifdef DXBUILD
         cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());
         cmdlist->SetGraphicsRootDescriptorTable(2, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
         cmdlist->SetGraphicsRootDescriptorTable(3, Sampler->GetGPUDescriptorHandleForHeapStart());
+#endif
         GlobalGFXAPI->drawIndexedInstanced(cmdList.get(), drawdata.IndexCount, 1, drawdata.vaoOffset, drawdata.vaoBaseVertex, 0);
       }
     }
 
+#ifdef GLBUILD
+    rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).BlitToDefault(0, 0, 1024, 1024);
+#endif
+#ifdef DXBUILD
     ID3D12Resource *gbuffer_base_color = unwrap(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)).Get();
     GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList.get(), { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::RENDER_TARGET, GFXAPI::COPY_SRC) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));

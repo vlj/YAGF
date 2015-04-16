@@ -75,6 +75,12 @@ void D3DAPI::setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*RTTSet)
   unwrap(RTTSet).Bind(unwrap(wrappedCmdList).Get());
 }
 
+void D3DAPI::setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet* wrappedVAO)
+{
+  unwrap(wrappedCmdList)->SetVertexBuffers(0, unwrap(wrappedVAO).getVertexBufferView().data(), unwrap(wrappedVAO).getVertexBufferView().size());
+  unwrap(wrappedCmdList)->SetIndexBuffer(&unwrap(wrappedVAO).getIndexBufferView());
+}
+
 std::shared_ptr<WrapperCommandList> D3DAPI::createCommandList()
 {
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
