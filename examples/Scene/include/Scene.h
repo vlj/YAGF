@@ -98,6 +98,8 @@ public:
     void *mappedCBuffer = GlobalGFXAPI->mapConstantsBuffer(cbuffer);
     memcpy(mappedCBuffer, &cbufdata, sizeof(ViewBuffer));
     GlobalGFXAPI->unmapConstantsBuffers(cbuffer);
+
+    WrapperPipelineState *object = createObjectShader();
 #ifdef GLBUILD
     glClearDepth(1.);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -107,12 +109,6 @@ public:
 #endif
     GlobalGFXAPI->setRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
 #ifdef GLBUILD
-    glEnable(GL_FRAMEBUFFER_SRGB);
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-
-    WrapperPipelineState *object = (WrapperPipelineState*) &ObjectShader::getInstance()->Program;
     const GLuint& tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
     WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet*) &tmp;
 #endif

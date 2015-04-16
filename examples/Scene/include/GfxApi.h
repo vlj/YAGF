@@ -65,6 +65,7 @@ union WrapperPipelineState
 #ifdef GLBUILD
   struct {
     GLuint Program;
+    void (*StateSetter)(void);
   } GLValue;
 #endif
 };

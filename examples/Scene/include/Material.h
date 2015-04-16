@@ -4,10 +4,10 @@
 #ifndef __MATERIAL_H__
 #define __MATERIAL_H__
 
+#include <GfxApi.h>
 
 #ifdef GLBUILD
 #include <GLAPI/Shaders.h>
-#include <GLAPI/GLRTTSet.h>
 
 const char *vtxshader = TO_STRING(
   \#version 330 \n
@@ -105,6 +105,22 @@ public:
     AssignSamplerNames(Program, "ObjectData", "ViewMatrices", "tex");
   }
 };
+
+static void ObjectStateSetter()
+{
+  glEnable(GL_FRAMEBUFFER_SRGB);
+  glDisable(GL_BLEND);
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
+}
+
+inline WrapperPipelineState *createObjectShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*) malloc(sizeof(WrapperPipelineState));
+  result->GLValue.Program = ObjectShader::getInstance()->Program;
+  result->GLValue.StateSetter = ObjectStateSetter;
+  return result;
+}
 
 #endif
 

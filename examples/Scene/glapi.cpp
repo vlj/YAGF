@@ -183,6 +183,7 @@ void GLAPI::setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, W
 void GLAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* wrappedPipelineState)
 {
   glUseProgram(wrappedPipelineState->GLValue.Program);
+  wrappedPipelineState->GLValue.StateSetter();
 }
 
 WrapperResource *GLAPI::createConstantsBuffer(size_t sizeInByte)
