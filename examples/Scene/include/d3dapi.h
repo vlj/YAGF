@@ -12,7 +12,10 @@ public:
   virtual WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
   virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
+  virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) override;
   virtual union WrapperResource *createConstantsBuffer(size_t) override;
+  virtual void *mapConstantsBuffer(union WrapperResource *) override;
+  virtual void unmapConstantsBuffers(union WrapperResource *wrappedConstantsBuffer) override;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) override;
   virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers) override;
   virtual union WrapperCommandList* createCommandList() override;

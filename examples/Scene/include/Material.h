@@ -155,6 +155,14 @@ public:
     psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
   }
 };
+
+inline WrapperPipelineState *createObjectShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->D3DValue.pipelineStateObject = Object::getInstance()->pso.Get();
+  result->D3DValue.rootSignature = (*RS::getInstance())();
+  return result;
+}
 #endif
 
 #endif

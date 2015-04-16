@@ -43,7 +43,10 @@ union WrapperCommandList
 union WrapperResource
 {
 #ifdef DXBUILD
-  ID3D12Resource* D3DValue;
+  struct {
+    ID3D12Resource *resource;
+    D3D12_CONSTANT_BUFFER_VIEW_DESC description;
+  } D3DValue;
 #endif
 #ifdef GLBUILD
   GLuint GLValue;
@@ -62,6 +65,12 @@ union WrapperIndexVertexBuffersSet
 
 union WrapperPipelineState
 {
+#ifdef DXBUILD
+  struct {
+    ID3D12PipelineState *pipelineStateObject;
+    ID3D12RootSignature *rootSignature;
+  } D3DValue;
+#endif
 #ifdef GLBUILD
   struct {
     GLuint Program;

@@ -121,9 +121,6 @@ public:
     };
     ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
     cmdlist->SetDescriptorHeaps(descriptorlst, 1);
-
-    cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
-    cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -154,7 +151,7 @@ public:
     rtts.getRTTSet(RenderTargets::FBO_GBUFFER)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
 #ifdef DXBUILD
-    ID3D12Resource *gbuffer_base_color = rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)->D3DValue;
+    ID3D12Resource *gbuffer_base_color = rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)->D3DValue.resource;
     GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::RENDER_TARGET, GFXAPI::COPY_SRC) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
     D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
