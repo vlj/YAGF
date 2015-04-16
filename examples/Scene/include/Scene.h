@@ -135,13 +135,13 @@ public:
 
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
 
-    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Clear(cmdlist, clearColor);
+    GlobalGFXAPI->clearRTTSet(cmdList.get(), rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
     cmdlist->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
     cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    unwrap(rtts.getRTTSet(RenderTargets::FBO_GBUFFER)).Bind(cmdlist, rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart());
+    GlobalGFXAPI->setRTTSet(cmdList.get(), rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
@@ -154,7 +154,7 @@ public:
         cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());
         cmdlist->SetGraphicsRootDescriptorTable(2, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
         cmdlist->SetGraphicsRootDescriptorTable(3, Sampler->GetGPUDescriptorHandleForHeapStart());
-        cmdlist->DrawIndexedInstanced((UINT)drawdata.IndexCount, 1, (UINT)drawdata.vaoOffset, (UINT)drawdata.vaoBaseVertex, 0);
+        GlobalGFXAPI->drawIndexedInstanced(cmdList.get(), drawdata.IndexCount, 1, drawdata.vaoOffset, drawdata.vaoBaseVertex, 0);
       }
     }
 
@@ -170,7 +170,7 @@ public:
     cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, &box, D3D12_COPY_NONE);
     GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList.get(), { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::COPY_SRC, GFXAPI::RENDER_TARGET) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_PRESENT));
-    HRESULT hr = cmdlist->Close();
+    GlobalGFXAPI->closeCommandList(cmdList.get());
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&cmdlist);
     HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
     WaitForSingleObject(handle, INFINITE);

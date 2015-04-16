@@ -65,6 +65,16 @@ void D3DAPI::writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList,
   CmdList->ResourceBarrier((UINT)barriersDesc.size(), barriersDesc.data());
 }
 
+void D3DAPI::clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet* RTTSet, float color[4])
+{
+  unwrap(RTTSet).Clear(unwrap(wrappedCmdList).Get(), color);
+}
+
+void D3DAPI::setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*RTTSet)
+{
+  unwrap(RTTSet).Bind(unwrap(wrappedCmdList).Get());
+}
+
 std::shared_ptr<WrapperCommandList> D3DAPI::createCommandList()
 {
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
@@ -76,4 +86,14 @@ std::shared_ptr<WrapperCommandList> D3DAPI::createCommandList()
   wrappedResult->CommandList = cmdlist;
   std::shared_ptr<WrapperCommandList> result(wrappedResult);
   return result;
+}
+
+void D3DAPI::closeCommandList(WrapperCommandList *wrappedCmdList)
+{
+  unwrap(wrappedCmdList)->Close();
+}
+
+void D3DAPI::drawIndexedInstanced(WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
+{
+  unwrap(wrappedCmdList)->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
 }
