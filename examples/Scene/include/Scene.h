@@ -50,6 +50,7 @@ public:
 #endif
 #ifdef DXBUILD
     cbufferDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
+    Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description, cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
