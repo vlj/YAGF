@@ -47,6 +47,7 @@ public:
   virtual void clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) = 0;
   virtual void setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*) = 0;
   virtual void setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
+  virtual WrapperResource *createConstantsBuffer(size_t) = 0;
   virtual void writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &) = 0;
   virtual std::shared_ptr<WrapperCommandList> createCommandList() = 0;
   virtual void closeCommandList(WrapperCommandList* wrappedCmdList) = 0;

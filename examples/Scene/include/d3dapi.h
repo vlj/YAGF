@@ -114,6 +114,7 @@ public:
   virtual std::shared_ptr<WrapperRTTSet> createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
   virtual void clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
   virtual void setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
+  virtual WrapperResource *createConstantsBuffer(size_t) override;
   virtual void setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) override;
   virtual void writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers) override;
   virtual std::shared_ptr<WrapperCommandList> createCommandList() override;

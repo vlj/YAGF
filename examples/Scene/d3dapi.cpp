@@ -81,6 +81,11 @@ void D3DAPI::setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, Wrappe
   unwrap(wrappedCmdList)->SetIndexBuffer(&unwrap(wrappedVAO).getIndexBufferView());
 }
 
+WrapperResource *D3DAPI::createConstantsBuffer(size_t)
+{
+
+}
+
 std::shared_ptr<WrapperCommandList> D3DAPI::createCommandList()
 {
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
