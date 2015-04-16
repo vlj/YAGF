@@ -39,8 +39,8 @@ public:
 
 private:
   size_t Width, Height;
-  std::shared_ptr<WrapperResource> RenderTargetTextures[RTT_COUNT];
-  std::shared_ptr<WrapperRTTSet> RTTSets[FBO_COUNT];
+  WrapperResource* RenderTargetTextures[RTT_COUNT];
+  WrapperRTTSet* RTTSets[FBO_COUNT];
 #ifdef GLBUILD
   GLuint DepthStencilTexture;
   std::vector<GLRTTSet >FrameBuffers;
@@ -71,7 +71,7 @@ public:
     RenderTargetTextures[COLORS] = GlobalGFXAPI->createRTT(irr::video::ECF_R16G16B16A16F, Width, Height, color);
 
     RTTSets[FBO_GBUFFER] = GlobalGFXAPI->createRTTSet(
-    { RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH].get() , RenderTargetTextures[GBUFFER_BASE_COLOR].get() },
+    { RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] , RenderTargetTextures[GBUFFER_BASE_COLOR] },
     { irr::video::ECF_R16G16B16A16F, irr::video::ECF_R8G8B8A8_UNORM_SRGB },
     Width, Height);
 #ifdef GLBUILD
@@ -135,12 +135,12 @@ public:
 
   WrapperResource* getRTT(enum RTT tp)
   {
-    return RenderTargetTextures[tp].get();
+    return RenderTargetTextures[tp];
   }
 
   WrapperRTTSet* getRTTSet(enum RTTSet tp)
   {
-    return RTTSets[tp].get();
+    return RTTSets[tp];
   }
 
 };

@@ -110,14 +110,14 @@ typename TypeUnwrap<T>::Type unwrap(T *ptr)
 class D3DAPI : public GFXAPI
 {
 public:
-  virtual std::shared_ptr<WrapperResource> createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
-  virtual std::shared_ptr<WrapperRTTSet> createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
+  virtual WrapperResource* createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
+  virtual WrapperRTTSet* createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
   virtual void clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
   virtual void setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
   virtual WrapperResource *createConstantsBuffer(size_t) override;
   virtual void setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) override;
   virtual void writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers) override;
-  virtual std::shared_ptr<WrapperCommandList> createCommandList() override;
+  virtual WrapperCommandList* createCommandList() override;
   virtual void closeCommandList(WrapperCommandList* wrappedCmdList) override;
   virtual void drawIndexedInstanced(WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) override;
 };
