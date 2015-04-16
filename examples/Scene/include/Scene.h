@@ -115,16 +115,8 @@ public:
 #endif
     GlobalGFXAPI->setPipelineState(cmdList, object);
 #ifdef DXBUILD
-
-    ID3D12DescriptorHeap *descriptorlst[] =
-    {
-      cbufferDescriptorHeap.Get()
-    };
     ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
-    cmdlist->SetDescriptorHeaps(descriptorlst, 1);
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-    cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #endif
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
