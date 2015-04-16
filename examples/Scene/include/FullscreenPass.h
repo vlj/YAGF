@@ -16,7 +16,7 @@ public:
 
 #endif
 
-#if GLBUILD
+#ifdef GLBUILD
 
 #endif
 

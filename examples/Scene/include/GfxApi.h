@@ -7,6 +7,11 @@
 #include <vector>
 #include <tuple>
 
+#ifdef GLBUILD
+#include <GL/glew.h>
+#include <GLAPI/GLRTTSet.h>
+#endif
+
 #ifdef DXBUILD
 #include <D3DAPI/D3DRTTSet.h>
 #include <D3DAPI/VAO.h>
@@ -18,6 +23,9 @@ union WrapperRTTSet
 #ifdef DXBUILD
   D3DRTTSet D3DValue;
 #endif
+#ifdef GLBUILD
+  GLRTTSet GLValue;
+#endif
 };
 
 union WrapperCommandList
@@ -28,6 +36,8 @@ union WrapperCommandList
     ID3D12GraphicsCommandList* CommandList;
   } D3DValue;
 #endif
+#ifdef GLBUILD
+#endif
 };
 
 union WrapperResource
@@ -35,12 +45,18 @@ union WrapperResource
 #ifdef DXBUILD
   ID3D12Resource* D3DValue;
 #endif
+#ifdef GLBUILD
+  GLuint GLValue;
+#endif
 };
 
 union WrapperIndexVertexBuffersSet
 {
 #ifdef DXBUILD
   FormattedVertexStorage<irr::video::S3DVertex2TCoords> D3DValue;
+#endif
+#ifdef GLBUILD
+  GLuint GLValue;
 #endif
 };
 

@@ -5,7 +5,7 @@
 #define __RENDER_TARGETS_H__
 
 #include <GfxApi.h>
-#include <memory>
+#define GLBUILD
 
 #ifdef GLBUILD
 #include <GLAPI/GLRTTSet.h>
@@ -43,19 +43,6 @@ private:
   WrapperRTTSet* RTTSets[FBO_COUNT];
 #ifdef GLBUILD
   GLuint DepthStencilTexture;
-  std::vector<GLRTTSet >FrameBuffers;
-
-  static GLuint generateRTT(size_t w, size_t h, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
-  {
-    GLuint result;
-    glGenTextures(1, &result);
-    glBindTexture(GL_TEXTURE_2D, result);
-//    if (CVS->isARBTextureStorageUsable())
-//      glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, res.Width, res.Height);
-//    else
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei)w, (GLsizei)h, 0, format, type, 0);
-    return result;
-}
 #endif
 #ifdef DXBUILD
   Microsoft::WRL::ComPtr<ID3D12Resource> DepthBuffer;
@@ -76,16 +63,17 @@ public:
     Width, Height);
 #ifdef GLBUILD
     glGenTextures(1, &DepthStencilTexture);
-    DepthStencilTexture = generateRTT(w, h, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+    glBindTexture(GL_TEXTURE_2D, DepthStencilTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, (GLsizei)Width, (GLsizei)Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
 
-    glGenTextures(RTT_COUNT, RenderTargetTextures);
+/*glGenTextures(RTT_COUNT, RenderTargetTextures);
     RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] = generateRTT(w, h , GL_RGBA16F, GL_RGBA, GL_FLOAT);
     RenderTargetTextures[GBUFFER_BASE_COLOR] = generateRTT(w, h, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
     RenderTargetTextures[COLORS] = generateRTT(w, h, GL_RGBA16F, GL_BGRA, GL_FLOAT);
 
     FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH], RenderTargetTextures[GBUFFER_BASE_COLOR]}, DepthStencilTexture, w, h));
     FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[COLORS], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
-    FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[LINEAR_DEPTH], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
+    FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[LINEAR_DEPTH], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));*/
 #endif
 #ifdef DXBUILD
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
@@ -114,7 +102,6 @@ public:
   {
 #ifdef GLBUILD
     glDeleteTextures(1, &DepthStencilTexture);
-    glDeleteTextures(RTT_COUNT, RenderTargetTextures);
 #endif
   }
 
@@ -124,14 +111,6 @@ public:
     return DepthDescriptorHeap.Get();
   }
 #endif
-
-#ifdef GLBUILD
-  GLRTTSet& getFrameBuffer(enum FBOType tp)
-  {
-    return FrameBuffers[tp];
-  }
-#endif
-
 
   WrapperResource* getRTT(enum RTT tp)
   {

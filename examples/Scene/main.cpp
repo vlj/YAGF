@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include <GLAPI/Debug.h>
+#include <glapi.h>
 #endif
 
 #ifdef DXBUILD
@@ -38,6 +39,10 @@ irr::scene::ISceneNode *xue;
 
 #ifdef DXBUILD
 GFXAPI *GlobalGFXAPI = new D3DAPI();
+#endif
+
+#ifdef GLBUILD
+GFXAPI *GlobalGFXAPI = new GLAPI();
 #endif
 
 void init()

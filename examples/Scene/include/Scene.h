@@ -110,15 +110,12 @@ public:
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
-    rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).Bind();
-
-    glClearColor(0.f, 0.f, 0.f, 1.f);
 
     glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
 
-    glUseProgram(ObjectShader::getInstance()->Program);
-
+//    glUseProgram(ObjectShader::getInstance()->Program);
+    WrapperIndexVertexBuffersSet *vao;
 #endif
 
 #ifdef DXBUILD
@@ -149,7 +146,7 @@ public:
       for (irr::video::DrawData drawdata : node->getDrawDatas())
       {
 #ifdef GLBUILD
-        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
+//        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
 #endif
 #ifdef DXBUILD
         cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());
@@ -161,7 +158,7 @@ public:
     }
 
 #ifdef GLBUILD
-    rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).BlitToDefault(0, 0, 1024, 1024);
+    rtts.getRTTSet(RenderTargets::FBO_GBUFFER)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
 #ifdef DXBUILD
     ID3D12Resource *gbuffer_base_color = rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)->D3DValue;

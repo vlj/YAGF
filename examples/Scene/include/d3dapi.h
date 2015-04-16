@@ -4,12 +4,6 @@
 #pragma once
 
 #include <GfxApi.h>
-#include <wrl/client.h>
-#include <d3d12.h>
-#include <D3DAPI/D3DRTTSet.h>
-#include <D3DAPI/VAO.h>
-#include <Core/BasicVertexLayout.h>
-
 
 class D3DAPI : public GFXAPI
 {
