@@ -38,7 +38,6 @@ private:
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
 #endif
 #ifdef GLBUILD
-  GLuint cbuf;
   GLuint TrilinearSampler;
 #endif
 public:
@@ -47,7 +46,6 @@ public:
     cmdList = GlobalGFXAPI->createCommandList();
     cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
 #ifdef GLBUILD
-    glGenBuffers(1, &cbuf);
     TrilinearSampler = SamplerHelper::createTrilinearSampler();
 #endif
 #ifdef DXBUILD
@@ -65,7 +63,6 @@ public:
       delete node;
 #ifdef GLBUILD
     glDeleteSamplers(1, &TrilinearSampler);
-    glDeleteBuffers(1, &cbuf);
 #endif
   }
 
@@ -115,9 +112,6 @@ public:
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
-    glBindBuffer(GL_UNIFORM_BUFFER, cbuf);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(ViewBuffer), &cbufdata, GL_STATIC_DRAW);
-
     WrapperPipelineState *object = (WrapperPipelineState*) &ObjectShader::getInstance()->Program;
     const GLuint& tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
     WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet*) &tmp;
@@ -149,7 +143,7 @@ public:
       for (irr::video::DrawData drawdata : node->getDrawDatas())
       {
 #ifdef GLBUILD
-        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
+        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer()->GLValue, cbuffer->GLValue, drawdata.textures[0]->Id, TrilinearSampler);
 #endif
 #ifdef DXBUILD
         cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());

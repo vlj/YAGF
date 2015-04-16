@@ -6,6 +6,8 @@
 #ifndef MESHSCENENODE_H
 #define MESHSCENENODE_H
 
+#include <GfxApi.h>
+
 #ifdef GLBUILD
 #include <GL/glew.h>
 #include <GLAPI/VAO.h>
@@ -73,12 +75,9 @@ namespace irr
     class IMeshSceneNode : public ISceneNode
     {
     private:
-#ifdef GLBUILD
-      GLuint cbuffer;
-#endif
+      WrapperResource *cbuffer;
 
 #ifdef DXBUILD
-      ConstantBuffer<ObjectData> cbuffer;
       FormattedVertexStorage<irr::video::S3DVertex2TCoords> *PackedVertexBuffer;
       std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > Tex;
 #endif
@@ -137,9 +136,7 @@ namespace irr
         const core::vector3df& rotation = core::vector3df(0, 0, 0),
         const core::vector3df& scale = core::vector3df(1.f, 1.f, 1.f))
         : ISceneNode(parent, position, rotation, scale) {
-#ifdef GLBUILD
-        glGenBuffers(1, &cbuffer);
-#endif
+        cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ObjectData));
 #ifdef DXBUILD
         PackedVertexBuffer = nullptr;
 #endif
@@ -147,9 +144,6 @@ namespace irr
 
       ~IMeshSceneNode()
       {
-#ifdef GLBUILD
-        glDeleteBuffers(1, &cbuffer);
-#endif
 #ifdef DXBUILD
         delete PackedVertexBuffer;
 #endif
@@ -275,23 +269,16 @@ namespace irr
         ObjectData objdt;
         memcpy(objdt.Model, AbsoluteTransformation.pointer(), 16 * sizeof(float));
         memcpy(objdt.InverseModel, invmodel.pointer(), 16 * sizeof(float));
-
-#ifdef GLBUILD
-        glBindBuffer(GL_UNIFORM_BUFFER, cbuffer);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(ObjectData), &objdt, GL_STATIC_DRAW);
-#endif
-#ifdef DXBUILD
-        memcpy(cbuffer.map(), &objdt, sizeof(ObjectData));
-        cbuffer.unmap();
-#endif
+        void *ptr = GlobalGFXAPI->mapConstantsBuffer(cbuffer);
+        memcpy(ptr, &objdt, sizeof(ObjectData));
+        GlobalGFXAPI->unmapConstantsBuffers(cbuffer);
       }
 
-#ifdef GLBUILD
-      GLuint getConstantBuffer() const
+
+      WrapperResource *getConstantBuffer() const
       {
         return cbuffer;
       }
-#endif
 
 #ifdef DXBUILD
       const FormattedVertexStorage<irr::video::S3DVertex2TCoords> * getVAO() const

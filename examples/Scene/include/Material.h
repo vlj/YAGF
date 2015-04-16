@@ -50,7 +50,7 @@ out vec4 color;
 void main()
 {
   color = Color.zyxw;
-  mat4 ModelViewProjectionMatrix = ViewProjectionMatrix;// *ModelMatrix;
+  mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
   mat4 TransposeInverseModelView = transpose(InverseModelMatrix);// *InverseViewMatrix);
   gl_Position = ModelViewProjectionMatrix * vec4(Position.xyz, 1.);
   nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
