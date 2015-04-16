@@ -102,7 +102,7 @@ public:
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 #endif
 #ifdef DXBUILD
-    unwrap(cmdList)->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
+    cmdList->D3DValue.CommandList->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 #endif
     GlobalGFXAPI->setRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
 #ifdef GLBUILD
@@ -129,7 +129,7 @@ public:
     {
       cbufferDescriptorHeap.Get()
     };
-    ID3D12GraphicsCommandList *cmdlist = unwrap(cmdList).Get();
+    ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
     cmdlist->SetDescriptorHeaps(descriptorlst, 1);
 
     cmdlist->SetPipelineState(Object::getInstance()->pso.Get());
@@ -137,14 +137,12 @@ public:
     cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
     cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    WrapperIndexVertexBuffersSet *vao = new WrapperD3DIndexVertexBuffersSet();
 #endif
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
     {
 #ifdef DXBUILD
-      ((WrapperD3DIndexVertexBuffersSet*)vao)->vao = const_cast<FormattedVertexStorage<irr::video::S3DVertex2TCoords> *>(node->getVAO());
+      WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet *)(node->getVAO());
 #endif
       GlobalGFXAPI->setIndexVertexBuffersSet(cmdList, vao);
 
@@ -166,7 +164,7 @@ public:
     rtts.getFrameBuffer(RenderTargets::FBO_GBUFFER).BlitToDefault(0, 0, 1024, 1024);
 #endif
 #ifdef DXBUILD
-    ID3D12Resource *gbuffer_base_color = unwrap(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)).Get();
+    ID3D12Resource *gbuffer_base_color = rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)->D3DValue;
     GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::RENDER_TARGET, GFXAPI::COPY_SRC) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
     D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
@@ -183,8 +181,8 @@ public:
     HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
     WaitForSingleObject(handle, INFINITE);
     CloseHandle(handle);
-    dynamic_cast<WrapperD3DCommandList*>(cmdList)->CommandAllocator->Reset();
-    cmdlist->Reset(dynamic_cast<WrapperD3DCommandList*>(cmdList)->CommandAllocator.Get(), nullptr);
+    cmdList->D3DValue.CommandAllocator->Reset();
+    cmdlist->Reset(cmdList->D3DValue.CommandAllocator, nullptr);
     Context::getInstance()->Swap();
 #endif
 

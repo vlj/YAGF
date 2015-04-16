@@ -7,6 +7,7 @@
 
 WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
 {
+  WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
   DXGI_FORMAT Fmt = getDXGIFormatFromColorFormat(Format);
   Microsoft::WRL::ComPtr<ID3D12Resource> Resource;
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
@@ -15,24 +16,21 @@ WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Widt
     &CD3D12_RESOURCE_DESC::Tex2D(Fmt, (UINT)Width, (UINT)Height, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_RENDER_TARGET),
     D3D12_RESOURCE_USAGE_RENDER_TARGET,
     &CD3D12_CLEAR_VALUE(Fmt, fastColor),
-    IID_PPV_ARGS(&Resource));
-
-  WrapperD3DResource *result = new WrapperD3DResource();
-  result->Texture = Resource;
+    IID_PPV_ARGS(&result->D3DValue));
 
   return result;
 }
 
-WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height)
+union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height)
 {
-  WrapperD3DRTTSet *result = new WrapperD3DRTTSet();
+  WrapperRTTSet *result = (WrapperRTTSet*) malloc(sizeof(WrapperRTTSet));
   std::vector<ID3D12Resource *> resources;
   std::vector<DXGI_FORMAT> dxgi_formats;
   for (unsigned i = 0; i < RTTs.size(); i++) {
-    resources.push_back(unwrap(RTTs[i]).Get());
+    resources.push_back(RTTs[i]->D3DValue);
     dxgi_formats.push_back(getDXGIFormatFromColorFormat(formats[i]));
   }
-  result->RttSet = D3DRTTSet(resources, dxgi_formats, Width, Height);
+  new(result) D3DRTTSet(resources, dxgi_formats, Width, Height);
 
   return result;
 }
@@ -52,32 +50,32 @@ static D3D12_RESOURCE_USAGE convertResourceUsage(enum GFXAPI::RESOURCE_USAGE ru)
   }
 }
 
-void D3DAPI::writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers)
+void D3DAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers)
 {
   std::vector<D3D12_RESOURCE_BARRIER_DESC> barriersDesc;
-  ID3D12GraphicsCommandList *CmdList = unwrap(wrappedCmdList).Get();
+  ID3D12GraphicsCommandList *CmdList = wrappedCmdList->D3DValue.CommandList;
   for (auto barrier : barriers)
   {
-    ID3D12Resource* unwrappedResource = unwrap(std::get<0>(barrier)).Get();
+    ID3D12Resource* unwrappedResource = std::get<0>(barrier)->D3DValue;
     barriersDesc.push_back(setResourceTransitionBarrier(unwrappedResource, convertResourceUsage(std::get<1>(barrier)), convertResourceUsage(std::get<2>(barrier))));
   }
   CmdList->ResourceBarrier((UINT)barriersDesc.size(), barriersDesc.data());
 }
 
-void D3DAPI::clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet* RTTSet, float color[4])
+void D3DAPI::clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet* RTTSet, float color[4])
 {
-  unwrap(RTTSet).Clear(unwrap(wrappedCmdList).Get(), color);
+  RTTSet->D3DValue.Clear(wrappedCmdList->D3DValue.CommandList, color);
 }
 
-void D3DAPI::setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*RTTSet)
+void D3DAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet)
 {
-  unwrap(RTTSet).Bind(unwrap(wrappedCmdList).Get());
+  RTTSet->D3DValue.Bind(wrappedCmdList->D3DValue.CommandList);
 }
 
-void D3DAPI::setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet* wrappedVAO)
+void D3DAPI::setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet* wrappedVAO)
 {
-  unwrap(wrappedCmdList)->SetVertexBuffers(0, unwrap(wrappedVAO).getVertexBufferView().data(), unwrap(wrappedVAO).getVertexBufferView().size());
-  unwrap(wrappedCmdList)->SetIndexBuffer(&unwrap(wrappedVAO).getIndexBufferView());
+  wrappedCmdList->D3DValue.CommandList->SetVertexBuffers(0, wrappedVAO->D3DValue.getVertexBufferView().data(), wrappedVAO->D3DValue.getVertexBufferView().size());
+  wrappedCmdList->D3DValue.CommandList->SetIndexBuffer(&wrappedVAO->D3DValue.getIndexBufferView());
 }
 
 WrapperResource *D3DAPI::createConstantsBuffer(size_t)
@@ -87,23 +85,19 @@ WrapperResource *D3DAPI::createConstantsBuffer(size_t)
 
 WrapperCommandList* D3DAPI::createCommandList()
 {
-  Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
-  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
-  HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
-  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
-  WrapperD3DCommandList *result = new WrapperD3DCommandList();
-  result->CommandAllocator = cmdalloc;
-  result->CommandList = cmdlist;
+  WrapperCommandList *result = (WrapperCommandList*)malloc(sizeof(WrapperCommandList));
+  HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&result->D3DValue.CommandAllocator));
+  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, result->D3DValue.CommandAllocator, nullptr, IID_PPV_ARGS(&result->D3DValue.CommandList));
 
   return result;
 }
 
-void D3DAPI::closeCommandList(WrapperCommandList *wrappedCmdList)
+void D3DAPI::closeCommandList(union WrapperCommandList *wrappedCmdList)
 {
-  unwrap(wrappedCmdList)->Close();
+  wrappedCmdList->D3DValue.CommandList->Close();
 }
 
-void D3DAPI::drawIndexedInstanced(WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
+void D3DAPI::drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
 {
-  unwrap(wrappedCmdList)->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
+  wrappedCmdList->D3DValue.CommandList->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
 }

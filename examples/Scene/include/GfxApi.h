@@ -7,28 +7,41 @@
 #include <vector>
 #include <tuple>
 
-class WrapperRTTSet
+#ifdef DXBUILD
+#include <D3DAPI/D3DRTTSet.h>
+#include <D3DAPI/VAO.h>
+#include <Core/BasicVertexLayout.h>
+#endif
+
+union WrapperRTTSet
 {
-public:
-  virtual void nothing() = 0;
+#ifdef DXBUILD
+  D3DRTTSet D3DValue;
+#endif
 };
 
-class WrapperCommandList
+union WrapperCommandList
 {
-public:
-  virtual void nothing() = 0;
+#ifdef DXBUILD
+  struct {
+    ID3D12CommandAllocator* CommandAllocator;
+    ID3D12GraphicsCommandList* CommandList;
+  } D3DValue;
+#endif
 };
 
-class WrapperResource
+union WrapperResource
 {
-public:
-  virtual void nothing() = 0;
+#ifdef DXBUILD
+  ID3D12Resource* D3DValue;
+#endif
 };
 
-class WrapperIndexVertexBuffersSet
+union WrapperIndexVertexBuffersSet
 {
-public:
-  virtual void nothing() = 0;
+#ifdef DXBUILD
+  FormattedVertexStorage<irr::video::S3DVertex2TCoords> D3DValue;
+#endif
 };
 
 class GFXAPI
@@ -41,16 +54,16 @@ public:
     COPY_SRC,
     RENDER_TARGET,
   };
-  virtual WrapperResource* createRTT(irr::video::ECOLOR_FORMAT, size_t Width, size_t Height, float fastColor[4]) = 0;
-  virtual WrapperRTTSet* createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) = 0;
-  virtual void clearRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) = 0;
-  virtual void setRTTSet(WrapperCommandList* wrappedCmdList, WrapperRTTSet*) = 0;
-  virtual void setIndexVertexBuffersSet(WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
-  virtual WrapperResource *createConstantsBuffer(size_t) = 0;
-  virtual void writeResourcesTransitionBarrier(WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &) = 0;
-  virtual WrapperCommandList* createCommandList() = 0;
-  virtual void closeCommandList(WrapperCommandList* wrappedCmdList) = 0;
-  virtual void drawIndexedInstanced(WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
+  virtual union WrapperResource* createRTT(irr::video::ECOLOR_FORMAT, size_t Width, size_t Height, float fastColor[4]) = 0;
+  virtual union WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) = 0;
+  virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float color[4]) = 0;
+  virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*) = 0;
+  virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
+  virtual union WrapperResource *createConstantsBuffer(size_t) = 0;
+  virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &) = 0;
+  virtual union WrapperCommandList* createCommandList() = 0;
+  virtual void closeCommandList(union WrapperCommandList* wrappedCmdList) = 0;
+  virtual void drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
 };
 
 //Global
