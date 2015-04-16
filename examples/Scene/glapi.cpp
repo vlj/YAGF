@@ -185,9 +185,24 @@ void GLAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union Wra
   glUseProgram(wrappedPipelineState->GLValue.Program);
 }
 
-WrapperResource *GLAPI::createConstantsBuffer(size_t)
+WrapperResource *GLAPI::createConstantsBuffer(size_t sizeInByte)
 {
-  return nullptr;
+  WrapperResource* result = (WrapperResource *)malloc(sizeof(WrapperResource));
+  glGenBuffers(1, &result->GLValue);
+  glBindBuffer(GL_UNIFORM_BUFFER, result->GLValue);
+  glBufferData(GL_UNIFORM_BUFFER, sizeInByte, nullptr, GL_STATIC_DRAW);
+  return result;
+}
+
+void *GLAPI::mapConstantsBuffer(union WrapperResource *wrappedConstantsBuffer)
+{
+  glBindBuffer(GL_UNIFORM_BUFFER, wrappedConstantsBuffer->GLValue);
+  return glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+}
+
+void GLAPI::unmapConstantsBuffers(union WrapperResource *wrappedConstantsBuffer)
+{
+  glUnmapBuffer(GL_UNIFORM_BUFFER);
 }
 
 WrapperCommandList* GLAPI::createCommandList()

@@ -5,7 +5,6 @@
 #define __RENDER_TARGETS_H__
 
 #include <GfxApi.h>
-#define GLBUILD
 
 #ifdef GLBUILD
 #include <GLAPI/GLRTTSet.h>

@@ -86,6 +86,8 @@ public:
   virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
   virtual union WrapperResource *createConstantsBuffer(size_t) = 0;
+  virtual void *mapConstantsBuffer(union WrapperResource *) = 0;
+  virtual void unmapConstantsBuffers(union WrapperResource *wrappedConstantsBuffer) = 0;
   virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &) = 0;
   virtual union WrapperCommandList* createCommandList() = 0;
   virtual void closeCommandList(union WrapperCommandList* wrappedCmdList) = 0;

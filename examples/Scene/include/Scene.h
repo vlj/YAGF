@@ -30,10 +30,10 @@ class Scene
 private:
   std::list<irr::scene::IMeshSceneNode*> Meshes;
   WrapperCommandList* cmdList;
+  WrapperResource *cbuffer;
 #ifdef DXBUILD
   // Should be tied to view rather than scene
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbufferDescriptorHeap;
-  ConstantBuffer<ViewBuffer> cbuffer;
 
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
 #endif
@@ -45,13 +45,13 @@ public:
   Scene()
   {
     cmdList = GlobalGFXAPI->createCommandList();
+    cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
 #ifdef GLBUILD
     glGenBuffers(1, &cbuf);
     TrilinearSampler = SamplerHelper::createTrilinearSampler();
 #endif
 #ifdef DXBUILD
     cbufferDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
-    Context::getInstance()->dev->CreateConstantBufferView(&cbuffer.getDesc(), cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
@@ -98,6 +98,9 @@ public:
 
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
     GlobalGFXAPI->clearRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
+    void *mappedCBuffer = GlobalGFXAPI->mapConstantsBuffer(cbuffer);
+    memcpy(mappedCBuffer, &cbufdata, sizeof(ViewBuffer));
+    GlobalGFXAPI->unmapConstantsBuffers(cbuffer);
 #ifdef GLBUILD
     glClearDepth(1.);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -121,8 +124,6 @@ public:
 #endif
     GlobalGFXAPI->setPipelineState(cmdList, object);
 #ifdef DXBUILD
-    memcpy(cbuffer.map(), &cbufdata, sizeof(ViewBuffer));
-    cbuffer.unmap();
 
     ID3D12DescriptorHeap *descriptorlst[] =
     {
@@ -148,7 +149,7 @@ public:
       for (irr::video::DrawData drawdata : node->getDrawDatas())
       {
 #ifdef GLBUILD
-//        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
+        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer(), cbuf, drawdata.textures[0]->Id, TrilinearSampler);
 #endif
 #ifdef DXBUILD
         cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());

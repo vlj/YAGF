@@ -50,9 +50,9 @@ out vec4 color;
 void main()
 {
   color = Color.zyxw;
-  mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
+  mat4 ModelViewProjectionMatrix = ViewProjectionMatrix;// *ModelMatrix;
   mat4 TransposeInverseModelView = transpose(InverseModelMatrix);// *InverseViewMatrix);
-  gl_Position = vec4(Position.xyz, 1.);
+  gl_Position = ModelViewProjectionMatrix * vec4(Position.xyz, 1.);
   nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
   //  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
   //  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
@@ -71,8 +71,8 @@ in vec3 nor;
 in vec2 uv;
 in vec4 color;
 
-layout(location = 0) out vec4 EncodedNormal_Roughness_Metalness;
-layout(location = 1) out vec4 Colors;
+layout(location = 1) out vec4 EncodedNormal_Roughness_Metalness;
+layout(location = 0) out vec4 Colors;
 layout(location = 2) out float EmitMap;
 
 // from Crytek "a bit more deferred CryEngine"
