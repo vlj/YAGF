@@ -21,7 +21,26 @@ WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Widt
   return result;
 }
 
-union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height)
+union WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t Height)
+{
+  WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
+  HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, (UINT)Width, (UINT)Height, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
+    D3D12_RESOURCE_USAGE_DEPTH,
+    &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
+    IID_PPV_ARGS(&result->D3DValue.resource));
+
+  D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+  dsv.Format = DXGI_FORMAT_D32_FLOAT;
+  dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  dsv.Texture2D.MipSlice = 0;
+  result->D3DValue.description.DSV = dsv;
+  return result;
+}
+
+union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil)
 {
   WrapperRTTSet *result = (WrapperRTTSet*) malloc(sizeof(WrapperRTTSet));
   std::vector<ID3D12Resource *> resources;
@@ -30,7 +49,7 @@ union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &R
     resources.push_back(RTTs[i]->D3DValue.resource);
     dxgi_formats.push_back(getDXGIFormatFromColorFormat(formats[i]));
   }
-  new(result) D3DRTTSet(resources, dxgi_formats, Width, Height);
+  new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, DepthStencil->D3DValue.resource, DepthStencil->D3DValue.description.DSV);
 
   return result;
 }
@@ -67,6 +86,11 @@ void D3DAPI::clearRTTSet(union WrapperCommandList* wrappedCmdList, union Wrapper
   RTTSet->D3DValue.Clear(wrappedCmdList->D3DValue.CommandList, color);
 }
 
+void D3DAPI::clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet* RTTSet, float Depth, unsigned Stencil)
+{
+  RTTSet->D3DValue.ClearDepthStencil(wrappedCmdList->D3DValue.CommandList, Depth, Stencil);
+}
+
 void D3DAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet)
 {
   RTTSet->D3DValue.Bind(wrappedCmdList->D3DValue.CommandList);
@@ -99,7 +123,7 @@ WrapperResource *D3DAPI::createConstantsBuffer(size_t sizeInByte)
   D3D12_CONSTANT_BUFFER_VIEW_DESC bufdesc = {};
   bufdesc.BufferLocation = result->D3DValue.resource->GetGPUVirtualAddress();
   bufdesc.SizeInBytes = (UINT)sizeInByte;
-  result->D3DValue.description = bufdesc;
+  result->D3DValue.description.CBV = bufdesc;
   return result;
 }
 

@@ -40,17 +40,16 @@ private:
   size_t Width, Height;
   WrapperResource* RenderTargetTextures[RTT_COUNT];
   WrapperRTTSet* RTTSets[FBO_COUNT];
+  WrapperResource *depthbuffer;
 #ifdef GLBUILD
   GLuint DepthStencilTexture;
-#endif
-#ifdef DXBUILD
-  Microsoft::WRL::ComPtr<ID3D12Resource> DepthBuffer;
-  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DepthDescriptorHeap;
 #endif
 
 public:
   RenderTargets(size_t w, size_t h): Width(w), Height(h)
   {
+    WrapperResource *depthbuffer = GlobalGFXAPI->createDepthStencilTexture(Width, Height);
+
     float color[] = { 0., 0., 0., 0. };
     RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] = GlobalGFXAPI->createRTT(irr::video::ECF_R16G16B16A16F, Width, Height, color);
     RenderTargetTextures[GBUFFER_BASE_COLOR] = GlobalGFXAPI->createRTT(irr::video::ECF_R8G8B8A8_UNORM_SRGB, Width, Height, color);
@@ -59,7 +58,10 @@ public:
     RTTSets[FBO_GBUFFER] = GlobalGFXAPI->createRTTSet(
     { RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] , RenderTargetTextures[GBUFFER_BASE_COLOR] },
     { irr::video::ECF_R16G16B16A16F, irr::video::ECF_R8G8B8A8_UNORM_SRGB },
-    Width, Height);
+    Width, Height,
+    depthbuffer);
+
+
 #ifdef GLBUILD
     glGenTextures(1, &DepthStencilTexture);
     glBindTexture(GL_TEXTURE_2D, DepthStencilTexture);
@@ -74,27 +76,6 @@ public:
     FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[COLORS], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));
     FrameBuffers.push_back(GLRTTSet({ RenderTargetTextures[LINEAR_DEPTH], RenderTargetTextures[GBUFFER_NORMAL_AND_DEPTH] }, DepthStencilTexture, w, h));*/
 #endif
-#ifdef DXBUILD
-    HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, (UINT)Width, (UINT)Height, 1, 0, 1, 0, D3D12_RESOURCE_MISC_ALLOW_DEPTH_STENCIL),
-      D3D12_RESOURCE_USAGE_DEPTH,
-      &CD3D12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 1., 0),
-      IID_PPV_ARGS(&DepthBuffer));
-
-    D3D12_DESCRIPTOR_HEAP_DESC Depthdesc = {};
-    Depthdesc.Type = D3D12_DSV_DESCRIPTOR_HEAP;
-    Depthdesc.NumDescriptors = 1;
-    Depthdesc.Flags = D3D12_DESCRIPTOR_HEAP_NONE;
-    hr = Context::getInstance()->dev->CreateDescriptorHeap(&Depthdesc, IID_PPV_ARGS(&DepthDescriptorHeap));
-
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-    dsv.Format = DXGI_FORMAT_D32_FLOAT;
-    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsv.Texture2D.MipSlice = 0;
-    Context::getInstance()->dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-#endif
   }
 
   ~RenderTargets()
@@ -103,13 +84,6 @@ public:
     glDeleteTextures(1, &DepthStencilTexture);
 #endif
   }
-
-#ifdef DXBUILD
-  ID3D12DescriptorHeap* getDepthDescriptorHeap() const
-  {
-    return DepthDescriptorHeap.Get();
-  }
-#endif
 
   WrapperResource* getRTT(enum RTT tp)
   {

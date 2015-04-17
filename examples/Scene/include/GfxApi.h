@@ -45,7 +45,10 @@ union WrapperResource
 #ifdef DXBUILD
   struct {
     ID3D12Resource *resource;
-    D3D12_CONSTANT_BUFFER_VIEW_DESC description;
+    union {
+      D3D12_CONSTANT_BUFFER_VIEW_DESC CBV;
+      D3D12_DEPTH_STENCIL_VIEW_DESC DSV;
+    }description;
   } D3DValue;
 #endif
 #ifdef GLBUILD
@@ -90,8 +93,10 @@ public:
     RENDER_TARGET,
   };
   virtual union WrapperResource* createRTT(irr::video::ECOLOR_FORMAT, size_t Width, size_t Height, float fastColor[4]) = 0;
-  virtual union WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) = 0;
+  virtual union WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) = 0;
+  virtual union WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil) = 0;
   virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float color[4]) = 0;
+  virtual void clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*) = 0;
   virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;

@@ -200,7 +200,7 @@ namespace irr
           heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
           hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DrawDatas.back().descriptors));
 
-          Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description, DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart());
+          Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description.CBV, DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart());
           Context::getInstance()->dev->CreateShaderResourceView(Tex.back().Get(), &TextureInRam->getResourceViewDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
 
           Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;

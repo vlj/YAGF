@@ -50,7 +50,7 @@ public:
 #endif
 #ifdef DXBUILD
     cbufferDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
-    Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description, cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description.CBV, cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
@@ -96,18 +96,12 @@ public:
 
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
     GlobalGFXAPI->clearRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
+    GlobalGFXAPI->clearDepthStencilFromRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), 1., 0);
     void *mappedCBuffer = GlobalGFXAPI->mapConstantsBuffer(cbuffer);
     memcpy(mappedCBuffer, &cbufdata, sizeof(ViewBuffer));
     GlobalGFXAPI->unmapConstantsBuffers(cbuffer);
 
     WrapperPipelineState *object = createObjectShader();
-#ifdef GLBUILD
-    glClearDepth(1.);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#endif
-#ifdef DXBUILD
-    cmdList->D3DValue.CommandList->ClearDepthStencilView(rtts.getDepthDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
-#endif
     GlobalGFXAPI->setRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
 #ifdef GLBUILD
     const GLuint& tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
