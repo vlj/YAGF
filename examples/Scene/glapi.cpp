@@ -146,7 +146,7 @@ WrapperResource* GLAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width
   return result;
 }
 
-union WrapperRTTSet* GLAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height)
+union WrapperRTTSet* GLAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil)
 {
   WrapperRTTSet *result = (WrapperRTTSet*)malloc(sizeof(WrapperRTTSet));
   std::vector<GLuint> unwrappedRTTs;
@@ -154,7 +154,19 @@ union WrapperRTTSet* GLAPI::createRTTSet(const std::vector<WrapperResource*> &RT
   {
     unwrappedRTTs.push_back(RTT->GLValue);
   }
-  new(result) GLRTTSet(unwrappedRTTs, Width, Height);
+  if (DepthStencil)
+    new(result) GLRTTSet(unwrappedRTTs, DepthStencil->GLValue, Width, Height);
+  else
+    new(result) GLRTTSet(unwrappedRTTs, Width, Height);
+  return result;
+}
+
+union WrapperResource* GLAPI::createDepthStencilTexture(size_t Width, size_t Height)
+{
+  WrapperResource* result = (WrapperResource *)malloc(sizeof(WrapperResource));
+  glGenTextures(1, &result->GLValue);
+  glBindTexture(GL_TEXTURE_2D, result->GLValue);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, (GLsizei)Width, (GLsizei)Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
   return result;
 }
 
@@ -168,6 +180,13 @@ void GLAPI::clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperR
   glClearColor(color[0], color[1], color[2], color[3]);
   RTTSet->GLValue.Bind();
   glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void GLAPI::clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet, float Depth, unsigned stencil)
+{
+  RTTSet->GLValue.Bind();
+  glClearDepth(Depth);
+  glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void GLAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet)

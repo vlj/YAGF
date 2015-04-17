@@ -10,8 +10,10 @@ class GLAPI : public GFXAPI
 {
 public:
   virtual WrapperResource* createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
-  virtual WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height) override;
+  virtual union WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) override;
+  virtual WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil) override;
   virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
+  virtual void clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float Depth, unsigned stencil) override;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
   virtual union WrapperResource *createConstantsBuffer(size_t) override;
   virtual void *mapConstantsBuffer(union WrapperResource *) override;
