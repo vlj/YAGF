@@ -54,22 +54,22 @@ union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &R
   return result;
 }
 
-static D3D12_RESOURCE_USAGE convertResourceUsage(enum GFXAPI::RESOURCE_USAGE ru)
+static D3D12_RESOURCE_USAGE convertResourceUsage(enum class GFXAPI::RESOURCE_USAGE ru)
 {
   switch (ru)
   {
-  case GFXAPI::COPY_DEST:
+  case GFXAPI::RESOURCE_USAGE::COPY_DEST:
     return D3D12_RESOURCE_USAGE_COPY_DEST;
-  case GFXAPI::COPY_SRC:
+  case GFXAPI::RESOURCE_USAGE::COPY_SRC:
     return D3D12_RESOURCE_USAGE_COPY_SOURCE;
-  case GFXAPI::PRESENT:
+  case GFXAPI::RESOURCE_USAGE::PRESENT:
     return D3D12_RESOURCE_USAGE_PRESENT;
-  case GFXAPI::RENDER_TARGET:
+  case GFXAPI::RESOURCE_USAGE::RENDER_TARGET:
     return D3D12_RESOURCE_USAGE_RENDER_TARGET;
   }
 }
 
-void D3DAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers)
+void D3DAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers)
 {
   std::vector<D3D12_RESOURCE_BARRIER_DESC> barriersDesc;
   ID3D12GraphicsCommandList *CmdList = wrappedCmdList->D3DValue.CommandList;
@@ -106,12 +106,12 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result->D3DValue));
   size_t Index = 0, Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP);
 
-  for (const std::pair<union WrapperResource *, RESOURCE_VIEW> &Resource : Resources)
+  for (const std::pair<union WrapperResource *, enum class RESOURCE_VIEW> &Resource : Resources)
   {
     D3D12_CPU_DESCRIPTOR_HANDLE Handle = result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT) (Index * Increment));
     switch (Resource.second)
     {
-    case GFXAPI::CONSTANTS_BUFFER:
+    case GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER:
       Context::getInstance()->dev->CreateConstantBufferView(&Resource.first->D3DValue.description.CBV, Handle);
       break;
     }

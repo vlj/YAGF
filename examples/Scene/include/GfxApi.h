@@ -95,14 +95,14 @@ union WrapperDescriptorHeap
 class GFXAPI
 {
 public:
-  enum RESOURCE_USAGE
+  enum class RESOURCE_USAGE
   {
     PRESENT,
     COPY_DEST,
     COPY_SRC,
     RENDER_TARGET,
   };
-  enum RESOURCE_VIEW
+  enum class RESOURCE_VIEW
   {
     CONSTANTS_BUFFER,
     SHADER_RESOURCE,
@@ -114,13 +114,13 @@ public:
   virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float color[4]) = 0;
   virtual void clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*) = 0;
-  virtual union WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::pair<union WrapperResource *, RESOURCE_VIEW> > &Resources) = 0;
+  virtual union WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::pair<union WrapperResource *, enum class RESOURCE_VIEW> > &Resources) = 0;
   virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
   virtual union WrapperResource *createConstantsBuffer(size_t) = 0;
   virtual void *mapConstantsBuffer(union WrapperResource *) = 0;
   virtual void unmapConstantsBuffers(union WrapperResource *wrappedConstantsBuffer) = 0;
-  virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &) = 0;
+  virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &) = 0;
   virtual union WrapperCommandList* createCommandList() = 0;
   virtual void closeCommandList(union WrapperCommandList* wrappedCmdList) = 0;
   virtual void drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
