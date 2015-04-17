@@ -96,6 +96,30 @@ void D3DAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRT
   RTTSet->D3DValue.Bind(wrappedCmdList->D3DValue.CommandList);
 }
 
+union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::pair<union WrapperResource *, RESOURCE_VIEW> > &Resources)
+{
+  WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
+  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+  heapdesc.NumDescriptors = (UINT)Resources.size();
+  heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result->D3DValue));
+  size_t Index = 0, Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP);
+
+  for (const std::pair<union WrapperResource *, RESOURCE_VIEW> &Resource : Resources)
+  {
+    D3D12_CPU_DESCRIPTOR_HANDLE Handle = result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT) (Index * Increment));
+    switch (Resource.second)
+    {
+    case GFXAPI::CONSTANTS_BUFFER:
+      Context::getInstance()->dev->CreateConstantBufferView(&Resource.first->D3DValue.description.CBV, Handle);
+      break;
+    }
+    Index++;
+  }
+  return result;
+}
+
 void D3DAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* wrappedPipelineState)
 {
   wrappedCmdList->D3DValue.CommandList->SetPipelineState(wrappedPipelineState->D3DValue.pipelineStateObject);
