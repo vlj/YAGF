@@ -20,7 +20,7 @@ private:
 public:
   D3DRTTSet() {}
 
-  D3DRTTSet(const std::vector<ID3D12Resource*> &RTTs, const std::vector<DXGI_FORMAT> &format, size_t w, size_t h, ID3D12Resource *DepthStencil, D3D12_DEPTH_STENCIL_VIEW_DESC DSVDescription)
+  D3DRTTSet(const std::vector<ID3D12Resource*> &RTTs, const std::vector<DXGI_FORMAT> &format, size_t w, size_t h, ID3D12Resource *DepthStencil, D3D12_DEPTH_STENCIL_VIEW_DESC *DSVDescription)
     : width(w), height(h), NumRTT(RTTs.size()), hasDepthStencil(DepthStencil != nullptr)
   {
     DescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), RTTs.size(), D3D12_RTV_DESCRIPTOR_HEAP, false);
@@ -37,7 +37,7 @@ public:
     {
       DepthDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_DSV_DESCRIPTOR_HEAP, false);
 
-      Context::getInstance()->dev->CreateDepthStencilView(DepthStencil, &DSVDescription, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+      Context::getInstance()->dev->CreateDepthStencilView(DepthStencil, DSVDescription, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
     }
   }
 

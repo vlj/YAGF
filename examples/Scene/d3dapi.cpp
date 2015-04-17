@@ -49,7 +49,7 @@ union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &R
     resources.push_back(RTTs[i]->D3DValue.resource);
     dxgi_formats.push_back(getDXGIFormatFromColorFormat(formats[i]));
   }
-  new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, DepthStencil->D3DValue.resource, DepthStencil->D3DValue.description.DSV);
+  new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, DepthStencil->D3DValue.resource, &DepthStencil->D3DValue.description.DSV);
 
   return result;
 }

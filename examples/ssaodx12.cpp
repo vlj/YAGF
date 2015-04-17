@@ -216,9 +216,9 @@ void Init(HWND hWnd)
   samplerdesc.MaxLOD = 0;
   Context::getInstance()->dev->CreateSampler(&samplerdesc, SamplerHeap->GetCPUDescriptorHandleForHeapStart());
 
-  emptyfbo = new D3DRTTSet({}, {}, 1024, 1024);
-  fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024);
-  fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024);
+  emptyfbo = new D3DRTTSet({}, {}, 1024, 1024, nullptr, nullptr);
+  fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
+  fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
 
   delete buffer;
 }
