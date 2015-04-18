@@ -6,7 +6,6 @@
 
 #include <GfxApi.h>
 #include <list>
-#include <ISceneNode.h>
 #include <MeshSceneNode.h>
 #include <RenderTargets.h>
 

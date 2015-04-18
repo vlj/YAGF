@@ -6,13 +6,11 @@
 #include <RenderTargets.h>
 
 #ifdef GLBUILD
-#include <GLAPI/Samplers.h>
 #include <GLAPI/VAO.h>
 #endif
 
 #ifdef DXBUILD
 #include <d3dapi.h>
-#include <D3DAPI/Sampler.h>
 #endif
 
 struct ViewBuffer
