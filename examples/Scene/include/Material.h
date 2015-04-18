@@ -130,8 +130,7 @@ inline WrapperPipelineState *createObjectShader()
 
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ConstantsBufferResource<1>>,
-  DescriptorTable<ConstantsBufferResource<0>>,
-  DescriptorTable<ShaderResource<0>>,
+  DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0>>,
   DescriptorTable<SamplerResource<0>> > RS;
 
 class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords>>

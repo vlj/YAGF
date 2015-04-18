@@ -48,6 +48,7 @@ union WrapperResource
     union {
       D3D12_CONSTANT_BUFFER_VIEW_DESC CBV;
       D3D12_DEPTH_STENCIL_VIEW_DESC DSV;
+      D3D12_SHADER_RESOURCE_VIEW_DESC SRV;
     }description;
   } D3DValue;
 #endif

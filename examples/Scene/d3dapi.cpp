@@ -114,6 +114,9 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
     case GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER:
       Context::getInstance()->dev->CreateConstantBufferView(&Resource.first->D3DValue.description.CBV, Handle);
       break;
+    case GFXAPI::RESOURCE_VIEW::SHADER_RESOURCE:
+      Context::getInstance()->dev->CreateShaderResourceView(Resource.first->D3DValue.resource, &Resource.first->D3DValue.description.SRV, Handle);
+      break;
     }
     Index++;
   }

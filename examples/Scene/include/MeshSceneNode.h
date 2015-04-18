@@ -49,9 +49,7 @@ namespace irr
       GLuint index_buffer;
       GLenum PrimitiveType;
 #endif
-#ifdef DXBUILD
-      Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptors;
-#endif
+      union WrapperDescriptorHeap *descriptors;
       const Texture *textures[8];
       size_t IndexCount;
       size_t Stride;
@@ -194,14 +192,16 @@ namespace irr
             IID_PPV_ARGS(&Tex.back())
             );
 
-          D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-          heapdesc.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-          heapdesc.NumDescriptors = 2;
-          heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-          hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&DrawDatas.back().descriptors));
+          WrapperResource *WrapperTexture = (WrapperResource*)malloc(sizeof(WrapperResource));
+          WrapperTexture->D3DValue.resource = Tex.back().Get();
+          WrapperTexture->D3DValue.description.SRV = TextureInRam->getResourceViewDesc();
 
-          Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description.CBV, DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart());
-          Context::getInstance()->dev->CreateShaderResourceView(Tex.back().Get(), &TextureInRam->getResourceViewDesc(), DrawDatas.back().descriptors->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
+          DrawDatas.back().descriptors = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
+          {
+            std::make_pair(cbuffer, GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER),
+            std::make_pair(WrapperTexture, GFXAPI::RESOURCE_VIEW::SHADER_RESOURCE)
+          }
+          );
 
           Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
           Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
