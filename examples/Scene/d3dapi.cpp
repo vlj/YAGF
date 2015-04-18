@@ -58,6 +58,8 @@ static D3D12_RESOURCE_USAGE convertResourceUsage(enum class RESOURCE_USAGE ru)
 {
   switch (ru)
   {
+  default:
+    abort();
   case RESOURCE_USAGE::COPY_DEST:
     return D3D12_RESOURCE_USAGE_COPY_DEST;
   case RESOURCE_USAGE::COPY_SRC:
@@ -125,7 +127,7 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
 
 void D3DAPI::setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap)
 {
-  wrappedCmdList->D3DValue.CommandList->SetGraphicsRootDescriptorTable(slot, DescriptorHeap->D3DValue->GetGPUDescriptorHandleForHeapStart());
+  wrappedCmdList->D3DValue.CommandList->SetGraphicsRootDescriptorTable((UINT)slot, DescriptorHeap->D3DValue->GetGPUDescriptorHandleForHeapStart());
 }
 
 void D3DAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* wrappedPipelineState)
