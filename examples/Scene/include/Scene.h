@@ -44,7 +44,7 @@ public:
   {
     cmdList = GlobalGFXAPI->createCommandList();
     cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
-    cbufferDescriptorHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_pair(cbuffer, GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER) });
+    cbufferDescriptorHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuffer, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
 #ifdef GLBUILD
     TrilinearSampler = SamplerHelper::createTrilinearSampler();
 #endif
@@ -118,7 +118,8 @@ public:
       {
         GlobalGFXAPI->setDescriptorHeap(cmdList, 1, drawdata.descriptors);
 #ifdef GLBUILD
-        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer()->GLValue, cbuffer->GLValue, drawdata.textures[0]->Id, TrilinearSampler);
+//        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer()->GLValue, cbuffer->GLValue, drawdata.textures[0]->Id, TrilinearSampler);
+        glBindSampler(TrilinearSampler, 0);
 #endif
 #ifdef DXBUILD
         ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
@@ -134,7 +135,7 @@ public:
 #ifdef DXBUILD
     ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
     ID3D12Resource *gbuffer_base_color = rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)->D3DValue.resource;
-    GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::RESOURCE_USAGE::RENDER_TARGET, GFXAPI::RESOURCE_USAGE::COPY_SRC) });
+    GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::COPY_SRC) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
     D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
     src.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
@@ -143,7 +144,7 @@ public:
     dst.pResource = Context::getInstance()->getCurrentBackBuffer();
     D3D12_BOX box = {0, 0, 0, 1008, 985, 1};
     cmdlist->CopyTextureRegion(&dst, 0, 0, 0, &src, &box, D3D12_COPY_NONE);
-    GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::RESOURCE_USAGE::COPY_SRC, GFXAPI::RESOURCE_USAGE::RENDER_TARGET) });
+    GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::COPY_SRC, RESOURCE_USAGE::RENDER_TARGET) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_PRESENT));
     GlobalGFXAPI->closeCommandList(cmdList);
     Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&cmdlist);

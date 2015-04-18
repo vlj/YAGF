@@ -102,7 +102,7 @@ public:
       GL_VERTEX_SHADER, vtxshader,
       GL_FRAGMENT_SHADER, fragshader);
 
-    AssignSamplerNames(Program, "ObjectData", "ViewMatrices", "tex");
+    AssignSamplerNames(Program, "ViewMatrices", "ObjectData", "tex");
   }
 };
 

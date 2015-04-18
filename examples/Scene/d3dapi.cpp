@@ -54,17 +54,17 @@ union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &R
   return result;
 }
 
-static D3D12_RESOURCE_USAGE convertResourceUsage(enum class GFXAPI::RESOURCE_USAGE ru)
+static D3D12_RESOURCE_USAGE convertResourceUsage(enum class RESOURCE_USAGE ru)
 {
   switch (ru)
   {
-  case GFXAPI::RESOURCE_USAGE::COPY_DEST:
+  case RESOURCE_USAGE::COPY_DEST:
     return D3D12_RESOURCE_USAGE_COPY_DEST;
-  case GFXAPI::RESOURCE_USAGE::COPY_SRC:
+  case RESOURCE_USAGE::COPY_SRC:
     return D3D12_RESOURCE_USAGE_COPY_SOURCE;
-  case GFXAPI::RESOURCE_USAGE::PRESENT:
+  case RESOURCE_USAGE::PRESENT:
     return D3D12_RESOURCE_USAGE_PRESENT;
-  case GFXAPI::RESOURCE_USAGE::RENDER_TARGET:
+  case RESOURCE_USAGE::RENDER_TARGET:
     return D3D12_RESOURCE_USAGE_RENDER_TARGET;
   }
 }
@@ -96,7 +96,7 @@ void D3DAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRT
   RTTSet->D3DValue.Bind(wrappedCmdList->D3DValue.CommandList);
 }
 
-union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::pair<union WrapperResource *, RESOURCE_VIEW> > &Resources)
+union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<union WrapperResource *, RESOURCE_VIEW, size_t> > &Resources)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
@@ -106,16 +106,16 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result->D3DValue));
   size_t Index = 0, Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP);
 
-  for (const std::pair<union WrapperResource *, enum class RESOURCE_VIEW> &Resource : Resources)
+  for (const std::tuple<union WrapperResource *, enum class RESOURCE_VIEW, size_t> &Resource : Resources)
   {
     D3D12_CPU_DESCRIPTOR_HANDLE Handle = result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT) (Index * Increment));
-    switch (Resource.second)
+    switch (std::get<1>(Resource))
     {
-    case GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER:
-      Context::getInstance()->dev->CreateConstantBufferView(&Resource.first->D3DValue.description.CBV, Handle);
+    case RESOURCE_VIEW::CONSTANTS_BUFFER:
+      Context::getInstance()->dev->CreateConstantBufferView(&std::get<0>(Resource)->D3DValue.description.CBV, Handle);
       break;
-    case GFXAPI::RESOURCE_VIEW::SHADER_RESOURCE:
-      Context::getInstance()->dev->CreateShaderResourceView(Resource.first->D3DValue.resource, &Resource.first->D3DValue.description.SRV, Handle);
+    case RESOURCE_VIEW::SHADER_RESOURCE:
+      Context::getInstance()->dev->CreateShaderResourceView(std::get<0>(Resource)->D3DValue.resource, &std::get<0>(Resource)->D3DValue.description.SRV, Handle);
       break;
     }
     Index++;

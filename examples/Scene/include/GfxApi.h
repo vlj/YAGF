@@ -18,6 +18,20 @@
 #include <Core/BasicVertexLayout.h>
 #endif
 
+enum class RESOURCE_USAGE
+{
+  PRESENT,
+  COPY_DEST,
+  COPY_SRC,
+  RENDER_TARGET,
+};
+enum class RESOURCE_VIEW
+{
+  CONSTANTS_BUFFER,
+  SHADER_RESOURCE,
+  UAV,
+};
+
 union WrapperRTTSet
 {
 #ifdef DXBUILD
@@ -89,33 +103,20 @@ union WrapperDescriptorHeap
   ID3D12DescriptorHeap *D3DValue;
 #endif
 #ifdef GLBUILD
-  std::vector<GLuint> GLValue;
+  std::vector<std::tuple<GLuint, RESOURCE_VIEW, unsigned>> GLValue;
 #endif
 };
 
 class GFXAPI
 {
 public:
-  enum class RESOURCE_USAGE
-  {
-    PRESENT,
-    COPY_DEST,
-    COPY_SRC,
-    RENDER_TARGET,
-  };
-  enum class RESOURCE_VIEW
-  {
-    CONSTANTS_BUFFER,
-    SHADER_RESOURCE,
-    UAV,
-  };
   virtual union WrapperResource* createRTT(irr::video::ECOLOR_FORMAT, size_t Width, size_t Height, float fastColor[4]) = 0;
   virtual union WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) = 0;
   virtual union WrapperRTTSet* createRTTSet(const std::vector<union WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil) = 0;
   virtual void clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float color[4]) = 0;
   virtual void clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*) = 0;
-  virtual union WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::pair<union WrapperResource *, enum class RESOURCE_VIEW> > &Resources) = 0;
+  virtual union WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<union WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources) = 0;
   virtual void setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap) = 0;
   virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;

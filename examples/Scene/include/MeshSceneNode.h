@@ -50,7 +50,6 @@ namespace irr
       GLenum PrimitiveType;
 #endif
       union WrapperDescriptorHeap *descriptors;
-      const Texture *textures[8];
       size_t IndexCount;
       size_t Stride;
       core::matrix4 TextureMatrix;
@@ -168,12 +167,12 @@ namespace irr
         {
           const irr::scene::SMeshBufferLightMap* mb = &buffer.first;
           DrawDatas.push_back(allocateMeshBuffer(buffer.first, this));
-
+          WrapperResource *WrapperTexture = (WrapperResource*)malloc(sizeof(WrapperResource));
 #ifdef GLBUILD
-          DrawDatas.back().textures[0] = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
           std::pair<size_t, size_t> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
           DrawDatas.back().vaoBaseVertex = p.first;
           DrawDatas.back().vaoOffset = p.second;
+          WrapperTexture->GLValue = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0])->Id;
 #endif
 
 #ifdef DXBUILD
@@ -192,16 +191,9 @@ namespace irr
             IID_PPV_ARGS(&Tex.back())
             );
 
-          WrapperResource *WrapperTexture = (WrapperResource*)malloc(sizeof(WrapperResource));
+
           WrapperTexture->D3DValue.resource = Tex.back().Get();
           WrapperTexture->D3DValue.description.SRV = TextureInRam->getResourceViewDesc();
-
-          DrawDatas.back().descriptors = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
-          {
-            std::make_pair(cbuffer, GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER),
-            std::make_pair(WrapperTexture, GFXAPI::RESOURCE_VIEW::SHADER_RESOURCE)
-          }
-          );
 
           Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
           Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
@@ -216,7 +208,12 @@ namespace irr
           WaitForSingleObject(handle, INFINITE);
           CloseHandle(handle);
 #endif
-
+          DrawDatas.back().descriptors = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
+          {
+            std::make_tuple(cbuffer, RESOURCE_VIEW::CONSTANTS_BUFFER, 1),
+            std::make_tuple(WrapperTexture, RESOURCE_VIEW::SHADER_RESOURCE, 0)
+          }
+          );
 
 //          video::E_MATERIAL_TYPE type = mb->getMaterial().MaterialType;
 //          f32 MaterialTypeParam = mb->getMaterial().MaterialTypeParam;

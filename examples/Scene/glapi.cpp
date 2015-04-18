@@ -170,7 +170,7 @@ union WrapperResource* GLAPI::createDepthStencilTexture(size_t Width, size_t Hei
   return result;
 }
 
-void GLAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum RESOURCE_USAGE, enum RESOURCE_USAGE> > &barriers)
+void GLAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers)
 {
 }
 
@@ -192,6 +192,35 @@ void GLAPI::clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList
 void GLAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet)
 {
   RTTSet->GLValue.Bind();
+}
+
+union WrapperDescriptorHeap* GLAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<union WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources)
+{
+  WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
+  new (&result->GLValue) std::vector<std::tuple<GLuint, RESOURCE_VIEW, unsigned>>();
+
+  for (const std::tuple<union WrapperResource *, enum class RESOURCE_VIEW, size_t> &Resource : Resources)
+  {
+    result->GLValue.push_back(std::make_tuple(std::get<0>(Resource)->GLValue, std::get<1>(Resource), std::get<2>(Resource)));
+  }
+  return result;
+}
+
+void GLAPI::setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap)
+{
+  for (std::tuple<GLuint, RESOURCE_VIEW, unsigned> Resource : DescriptorHeap->GLValue)
+  {
+    switch (std::get<1>(Resource))
+    {
+    case RESOURCE_VIEW::CONSTANTS_BUFFER:
+      glBindBufferBase(GL_UNIFORM_BUFFER, std::get<2>(Resource), std::get<0>(Resource));
+      break;
+    case RESOURCE_VIEW::SHADER_RESOURCE:
+      glActiveTexture(GL_TEXTURE0 + std::get<2>(Resource));
+      glBindTexture(GL_TEXTURE_2D, std::get<0>(Resource));
+      break;
+    }
+  }
 }
 
 void GLAPI::setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet* wrappedVAO)
