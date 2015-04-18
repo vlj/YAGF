@@ -9,7 +9,7 @@
 #include <RenderTargets.h>
 
 #ifdef GLBUILD
-#include <GLAPI/Samplers.h>
+#include <GL/glew.h>
 #endif
 
 #ifdef DXBUILD
