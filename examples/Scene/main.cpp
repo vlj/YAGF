@@ -18,7 +18,7 @@
 
 #include <D3DAPI/Misc.h>
 #include <D3DAPI/VAO.h>
-#include <D3DAPI/S3DVertex.h>
+#include <D3DAPI/D3DS3DVertex.h>
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 #include <tuple>

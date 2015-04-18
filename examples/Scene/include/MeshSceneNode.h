@@ -12,7 +12,7 @@
 #include <GL/glew.h>
 #include <GLAPI/VAO.h>
 #include <GLAPI/Texture.h>
-#include <GLAPI/S3DVertex.h>
+#include <GLAPI/GLS3DVertex.h>
 #endif
 
 #ifdef DXBUILD

@@ -7,7 +7,7 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <D3DAPI/Context.h>
-#include <D3DAPI/S3DVertex.h>
+#include <D3DAPI/D3DS3DVertex.h>
 
 template<typename T, typename VTXLayout>
 class PipelineStateObject : public Singleton<T>
