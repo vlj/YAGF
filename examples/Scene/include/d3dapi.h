@@ -15,6 +15,7 @@ public:
   virtual void clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float Depth, unsigned stencil) override;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
   virtual union WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::pair<union WrapperResource *, enum class RESOURCE_VIEW> > &Resources) override;
+  virtual void setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap) override;
   virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) override;
   virtual union WrapperResource *createConstantsBuffer(size_t) override;
   virtual void *mapConstantsBuffer(union WrapperResource *) override;

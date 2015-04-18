@@ -120,6 +120,11 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   return result;
 }
 
+void D3DAPI::setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap)
+{
+  wrappedCmdList->D3DValue.CommandList->SetGraphicsRootDescriptorTable(slot, DescriptorHeap->D3DValue->GetGPUDescriptorHandleForHeapStart());
+}
+
 void D3DAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* wrappedPipelineState)
 {
   wrappedCmdList->D3DValue.CommandList->SetPipelineState(wrappedPipelineState->D3DValue.pipelineStateObject);

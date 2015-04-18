@@ -31,10 +31,9 @@ private:
   std::list<irr::scene::IMeshSceneNode*> Meshes;
   WrapperCommandList* cmdList;
   WrapperResource *cbuffer;
-#ifdef DXBUILD
   // Should be tied to view rather than scene
-  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbufferDescriptorHeap;
-
+  WrapperDescriptorHeap *cbufferDescriptorHeap;
+#ifdef DXBUILD
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
 #endif
 #ifdef GLBUILD
@@ -45,13 +44,11 @@ public:
   {
     cmdList = GlobalGFXAPI->createCommandList();
     cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
+    cbufferDescriptorHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_pair(cbuffer, GFXAPI::RESOURCE_VIEW::CONSTANTS_BUFFER) });
 #ifdef GLBUILD
     TrilinearSampler = SamplerHelper::createTrilinearSampler();
 #endif
 #ifdef DXBUILD
-    cbufferDescriptorHeap = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP, true);
-    Context::getInstance()->dev->CreateConstantBufferView(&cbuffer->D3DValue.description.CBV, cbufferDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
     Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
 
     Context::getInstance()->dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), Sampler->GetCPUDescriptorHandleForHeapStart());
@@ -108,10 +105,7 @@ public:
     WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet*) &tmp;
 #endif
     GlobalGFXAPI->setPipelineState(cmdList, object);
-#ifdef DXBUILD
-    ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
-    cmdlist->SetGraphicsRootDescriptorTable(0, cbufferDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-#endif
+    GlobalGFXAPI->setDescriptorHeap(cmdList, 0, cbufferDescriptorHeap);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
     {
@@ -126,6 +120,7 @@ public:
         ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer()->GLValue, cbuffer->GLValue, drawdata.textures[0]->Id, TrilinearSampler);
 #endif
 #ifdef DXBUILD
+        ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
         cmdlist->SetGraphicsRootDescriptorTable(1, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart());
         cmdlist->SetGraphicsRootDescriptorTable(2, drawdata.descriptors->GetGPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP)));
         cmdlist->SetGraphicsRootDescriptorTable(3, Sampler->GetGPUDescriptorHandleForHeapStart());
@@ -138,6 +133,7 @@ public:
     rtts.getRTTSet(RenderTargets::FBO_GBUFFER)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
 #ifdef DXBUILD
+    ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
     ID3D12Resource *gbuffer_base_color = rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR)->D3DValue.resource;
     GlobalGFXAPI->writeResourcesTransitionBarrier(cmdList, { std::make_tuple(rtts.getRTT(RenderTargets::GBUFFER_BASE_COLOR), GFXAPI::RESOURCE_USAGE::RENDER_TARGET, GFXAPI::RESOURCE_USAGE::COPY_SRC) });
     cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_COPY_DEST));
