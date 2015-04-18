@@ -5,10 +5,6 @@
 #include <Material.h>
 #include <RenderTargets.h>
 
-#ifdef GLBUILD
-#include <GLAPI/VAO.h>
-#endif
-
 #ifdef DXBUILD
 #include <d3dapi.h>
 #endif
@@ -69,20 +65,13 @@ Scene::~Scene()
 
     WrapperPipelineState *object = createObjectShader();
     GlobalGFXAPI->setRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
-#ifdef GLBUILD
-    const GLuint& tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
-    WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet*)&tmp;
-#endif
     GlobalGFXAPI->setPipelineState(cmdList, object);
     GlobalGFXAPI->setDescriptorHeap(cmdList, 0, cbufferDescriptorHeap);
     GlobalGFXAPI->setDescriptorHeap(cmdList, 2, SamplersHeap);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
     {
-#ifdef DXBUILD
-      WrapperIndexVertexBuffersSet *vao = (WrapperIndexVertexBuffersSet *)(node->getVAO());
-#endif
-      GlobalGFXAPI->setIndexVertexBuffersSet(cmdList, vao);
+      GlobalGFXAPI->setIndexVertexBuffersSet(cmdList, node->getVAO());
 
       for (irr::video::DrawData drawdata : node->getDrawDatas())
       {

@@ -66,9 +66,7 @@ namespace irr
 
     IMeshSceneNode::~IMeshSceneNode()
     {
-#ifdef DXBUILD
-      delete PackedVertexBuffer;
-#endif
+
     }
 
     void IMeshSceneNode::setMesh(const irr::scene::ISkinnedMesh* mesh)
@@ -158,14 +156,19 @@ namespace irr
         MeshSolidMaterial[MatType].push_back(&mesh);
         }*/
       }
+#ifdef GLBUILD
+      PackedVertexBuffer = (WrapperIndexVertexBuffersSet*)malloc(sizeof(WrapperIndexVertexBuffersSet));
+      PackedVertexBuffer->GLValue = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
+#endif
 #ifdef DXBUILD
-      PackedVertexBuffer = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
+      auto tmp = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
+      PackedVertexBuffer = (WrapperIndexVertexBuffersSet *)tmp;
       for (unsigned i = 0; i < DrawDatas.size(); i++)
       {
         irr::video::DrawData &drawdata = DrawDatas[i];
-        drawdata.IndexCount = std::get<0>(PackedVertexBuffer->meshOffset[i]);
-        drawdata.vaoOffset = std::get<2>(PackedVertexBuffer->meshOffset[i]);
-        drawdata.vaoBaseVertex = std::get<1>(PackedVertexBuffer->meshOffset[i]);
+        drawdata.IndexCount = std::get<0>(tmp->meshOffset[i]);
+        drawdata.vaoOffset = std::get<2>(tmp->meshOffset[i]);
+        drawdata.vaoBaseVertex = std::get<1>(tmp->meshOffset[i]);
       }
 #endif
     }

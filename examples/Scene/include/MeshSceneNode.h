@@ -75,8 +75,8 @@ namespace irr
       const ISkinnedMesh* Mesh;
       std::vector<irr::video::DrawData> DrawDatas;
       WrapperResource *cbuffer;
+      WrapperIndexVertexBuffersSet *PackedVertexBuffer;
 #ifdef DXBUILD
-      FormattedVertexStorage<irr::video::S3DVertex2TCoords> *PackedVertexBuffer;
       std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > Tex;
 #endif
 
@@ -116,12 +116,10 @@ namespace irr
         return cbuffer;
       }
 
-#ifdef DXBUILD
-      const FormattedVertexStorage<irr::video::S3DVertex2TCoords> * getVAO() const
+      WrapperIndexVertexBuffersSet * getVAO()
       {
         return PackedVertexBuffer;
       }
-#endif
     };
 
   } // end namespace scene
