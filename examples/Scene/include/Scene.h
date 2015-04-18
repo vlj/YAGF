@@ -3,18 +3,12 @@
 
 #ifndef __SCENE_H__
 #define __SCENE_H__
+
+#include <GfxApi.h>
 #include <list>
 #include <ISceneNode.h>
 #include <MeshSceneNode.h>
 #include <RenderTargets.h>
-
-#ifdef GLBUILD
-#include <GL/glew.h>
-#endif
-
-#ifdef DXBUILD
-#include <d3dapi.h>
-#endif
 
 class Scene
 {
@@ -24,12 +18,7 @@ private:
   WrapperResource *cbuffer;
   // Should be tied to view rather than scene
   WrapperDescriptorHeap *cbufferDescriptorHeap;
-#ifdef DXBUILD
-  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Sampler;
-#endif
-#ifdef GLBUILD
-  GLuint TrilinearSampler;
-#endif
+  WrapperDescriptorHeap *SamplersHeap;
 public:
   Scene();
   ~Scene();

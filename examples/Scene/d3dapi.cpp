@@ -4,6 +4,7 @@
 #include <d3dapi.h>
 #include <D3DAPI/Texture.h>
 #include <D3DAPI/Resource.h>
+#include <D3DAPI/Sampler.h>
 
 WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
 {
@@ -120,6 +121,24 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
       Context::getInstance()->dev->CreateShaderResourceView(std::get<0>(Resource)->D3DValue.resource, &std::get<0>(Resource)->D3DValue.description.SRV, Handle);
       break;
     }
+    Index++;
+  }
+  return result;
+}
+
+union WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<size_t> &SamplersDesc)
+{
+  WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
+  D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
+  heapdesc.NumDescriptors = (UINT)SamplersDesc.size();
+  heapdesc.Type = D3D12_SAMPLER_DESCRIPTOR_HEAP;
+  heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+  HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result->D3DValue));
+  size_t Index = 0, Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_SAMPLER_DESCRIPTOR_HEAP);
+
+  for (auto tmp : SamplersDesc)
+  {
+    Context::getInstance()->dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(Index * Increment)));
     Index++;
   }
   return result;

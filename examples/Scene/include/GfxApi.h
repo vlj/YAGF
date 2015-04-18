@@ -29,6 +29,7 @@ enum class RESOURCE_VIEW
 {
   CONSTANTS_BUFFER,
   SHADER_RESOURCE,
+  SAMPLER,
   UAV,
 };
 
@@ -117,6 +118,7 @@ public:
   virtual void clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*) = 0;
   virtual union WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<union WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources) = 0;
+  virtual union WrapperDescriptorHeap* createSamplerHeap(const std::vector<size_t> &SamplersDesc) = 0;
   virtual void setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap) = 0;
   virtual void setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;

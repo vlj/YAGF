@@ -25,23 +25,13 @@ Scene::Scene()
     cmdList = GlobalGFXAPI->createCommandList();
     cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
     cbufferDescriptorHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuffer, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
-#ifdef GLBUILD
-    TrilinearSampler = SamplerHelper::createTrilinearSampler();
-#endif
-#ifdef DXBUILD
-    Sampler = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_SAMPLER_DESCRIPTOR_HEAP, true);
-
-    Context::getInstance()->dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), Sampler->GetCPUDescriptorHandleForHeapStart());
-#endif
+    SamplersHeap = GlobalGFXAPI->createSamplerHeap({ 0 });
   }
 
 Scene::~Scene()
   {
     for (irr::scene::IMeshSceneNode* node : Meshes)
       delete node;
-#ifdef GLBUILD
-    glDeleteSamplers(1, &TrilinearSampler);
-#endif
   }
 
   void Scene:: update()
@@ -87,6 +77,7 @@ Scene::~Scene()
 #endif
     GlobalGFXAPI->setPipelineState(cmdList, object);
     GlobalGFXAPI->setDescriptorHeap(cmdList, 0, cbufferDescriptorHeap);
+    GlobalGFXAPI->setDescriptorHeap(cmdList, 2, SamplersHeap);
 
     for (irr::scene::IMeshSceneNode* node : Meshes)
     {
@@ -98,14 +89,6 @@ Scene::~Scene()
       for (irr::video::DrawData drawdata : node->getDrawDatas())
       {
         GlobalGFXAPI->setDescriptorHeap(cmdList, 1, drawdata.descriptors);
-#ifdef GLBUILD
-        //        ObjectShader::getInstance()->SetTextureUnits(node->getConstantBuffer()->GLValue, cbuffer->GLValue, drawdata.textures[0]->Id, TrilinearSampler);
-        glBindSampler(TrilinearSampler, 0);
-#endif
-#ifdef DXBUILD
-        ID3D12GraphicsCommandList *cmdlist = cmdList->D3DValue.CommandList;
-        cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
-#endif
         GlobalGFXAPI->drawIndexedInstanced(cmdList, drawdata.IndexCount, 1, drawdata.vaoOffset, drawdata.vaoBaseVertex, 0);
       }
     }

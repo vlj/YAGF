@@ -2,8 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <glapi.h>
-#include <D3DAPI/Texture.h>
-#include <D3DAPI/Resource.h>
+#include <GLAPI/Samplers.h>
 
 static GLenum getOpenGLFormatAndParametersFromColorFormat(irr::video::ECOLOR_FORMAT format,
   //  GLint& filtering,
@@ -206,6 +205,18 @@ union WrapperDescriptorHeap* GLAPI::createCBVSRVUAVDescriptorHeap(const std::vec
   return result;
 }
 
+union WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<size_t> &SamplersDesc)
+{
+  WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
+  new (&result->GLValue) std::vector<std::tuple<GLuint, RESOURCE_VIEW, unsigned>>();
+  for (size_t Unit : SamplersDesc)
+  {
+    GLuint Sampler = SamplerHelper::createTrilinearSampler();
+    result->GLValue.push_back(std::make_tuple(Sampler, RESOURCE_VIEW::SAMPLER, Unit));
+  }
+  return result;
+}
+
 void GLAPI::setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap)
 {
   for (std::tuple<GLuint, RESOURCE_VIEW, unsigned> Resource : DescriptorHeap->GLValue)
@@ -218,6 +229,9 @@ void GLAPI::setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t s
     case RESOURCE_VIEW::SHADER_RESOURCE:
       glActiveTexture(GL_TEXTURE0 + std::get<2>(Resource));
       glBindTexture(GL_TEXTURE_2D, std::get<0>(Resource));
+      break;
+    case RESOURCE_VIEW::SAMPLER:
+      glBindSampler(std::get<2>(Resource), std::get<0>(Resource));
       break;
     }
   }
