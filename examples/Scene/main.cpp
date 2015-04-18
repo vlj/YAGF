@@ -14,17 +14,7 @@
 
 #ifdef DXBUILD
 #include <D3DAPI/Context.h>
-#include <D3DAPI/RootSignature.h>
-
 #include <D3DAPI/Misc.h>
-#include <D3DAPI/VAO.h>
-#include <D3DAPI/D3DS3DVertex.h>
-#include <Loaders/B3D.h>
-#include <Loaders/DDS.h>
-#include <tuple>
-#include <D3DAPI/PSO.h>
-#include <D3DAPI/Resource.h>
-#include <D3DAPI/ConstantBuffer.h>
 #include <d3dapi.h>
 
 #pragma comment (lib, "d3d12.lib")
@@ -70,8 +60,6 @@ void clean()
   delete rtts;
   delete scnmgr;
 #ifdef DXBUILD
-  Object::getInstance()->kill();
-  RS::getInstance()->kill();
   Context::getInstance()->kill();
 #endif
 }
