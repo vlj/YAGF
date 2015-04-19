@@ -37,7 +37,7 @@ public:
   ~RenderTargets();
   WrapperResource* getRTT(enum RTT tp);
   WrapperRTTSet* getRTTSet(enum RTTSet tp);
-
+  WrapperResource *getDepthBuffer();
 };
 
 #endif

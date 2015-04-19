@@ -32,3 +32,8 @@ WrapperRTTSet* RenderTargets::getRTTSet(enum RTTSet tp)
 {
   return RTTSets[tp];
 }
+
+WrapperResource *RenderTargets::getDepthBuffer()
+{
+  return depthbuffer;
+}
