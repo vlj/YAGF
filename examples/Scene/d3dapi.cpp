@@ -19,6 +19,14 @@ WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Widt
     &CD3D12_CLEAR_VALUE(Fmt, fastColor),
     IID_PPV_ARGS(&result->D3DValue.resource));
 
+  D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+  srv.Format = Fmt;
+  srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  srv.Texture2D.MipLevels = 1;
+
+  result->D3DValue.description.SRV = srv;
+
   return result;
 }
 
@@ -38,6 +46,7 @@ union WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t He
   dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
   dsv.Texture2D.MipSlice = 0;
   result->D3DValue.description.DSV = dsv;
+
   return result;
 }
 

@@ -79,9 +79,14 @@ Scene::~Scene()
         GlobalGFXAPI->drawIndexedInstanced(cmdList, drawdata.IndexCount, 1, drawdata.vaoOffset, drawdata.vaoBaseVertex, 0);
       }
     }
+    GlobalGFXAPI->closeCommandList(cmdList);
 
 #ifdef GLBUILD
     rtts.getRTTSet(RenderTargets::FBO_GBUFFER)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
-
+#ifdef DXBUILD
+    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&cmdList->D3DValue.CommandList);
+//    cmdList->D3DValue.CommandAllocator->Reset();
+    cmdList->D3DValue.CommandList->Reset(cmdList->D3DValue.CommandAllocator, nullptr);
+#endif
   }

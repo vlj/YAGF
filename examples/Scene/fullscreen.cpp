@@ -26,6 +26,8 @@ public:
     psodesc.NumRenderTargets = 1;
     psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    psodesc.DepthStencilState.DepthEnable = false;
+    psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
     psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
   }
@@ -129,7 +131,6 @@ void FullscreenPassManager::renderSunlight()
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
-  CommandList->D3DValue.CommandAllocator->Reset();
   CommandList->D3DValue.CommandList->Reset(CommandList->D3DValue.CommandAllocator, nullptr);
   Context::getInstance()->Swap();
 }

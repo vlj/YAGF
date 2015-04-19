@@ -14,5 +14,5 @@ struct PS_INPUT
 
 float4 main(PS_INPUT In) : SV_TARGET
 {
-  return NormalTex.Sample(NearestSampler, In.uv);
+  return ColorTex.Sample(NearestSampler, In.uv);
 }
