@@ -25,6 +25,7 @@
 RenderTargets *rtts;
 
 Scene *scnmgr;
+FullscreenPassManager *fspassmgr;
 irr::scene::ISceneNode *xue;
 
 #ifdef DXBUILD
@@ -49,7 +50,7 @@ void init()
   xue = scnmgr->addMeshSceneNode(MeshManager::getInstance()->getMesh(xueB3Dname[0]), nullptr, irr::core::vector3df(0.f, 0.f, 2.f));
 
   rtts = new RenderTargets(1024, 1024);
-
+  fspassmgr = new FullscreenPassManager(*rtts);
 
 }
 
@@ -71,6 +72,8 @@ void draw()
   xue->setRotation(irr::core::vector3df(0.f, timer / 360.f, 0.f));
   scnmgr->update();
   scnmgr->renderGBuffer(nullptr, *rtts);
+  fspassmgr->renderSunlight();
+
   timer += 16.f;
 }
 

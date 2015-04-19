@@ -61,6 +61,8 @@ static D3D12_RESOURCE_USAGE convertResourceUsage(enum class RESOURCE_USAGE ru)
   {
   default:
     abort();
+  case RESOURCE_USAGE::READ_GENERIC:
+    return D3D12_RESOURCE_USAGE_GENERIC_READ;
   case RESOURCE_USAGE::COPY_DEST:
     return D3D12_RESOURCE_USAGE_COPY_DEST;
   case RESOURCE_USAGE::COPY_SRC:

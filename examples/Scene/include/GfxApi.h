@@ -24,6 +24,7 @@ enum class RESOURCE_USAGE
   COPY_DEST,
   COPY_SRC,
   RENDER_TARGET,
+  READ_GENERIC,
 };
 enum class RESOURCE_VIEW
 {
