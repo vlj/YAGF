@@ -130,6 +130,8 @@ public:
   virtual union WrapperCommandList* createCommandList() = 0;
   virtual void closeCommandList(union WrapperCommandList* wrappedCmdList) = 0;
   virtual void drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
+  virtual void drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) = 0;
+  virtual void submitToQueue(union WrapperCommandList *wrappedCmdList) = 0;
 };
 
 //Global

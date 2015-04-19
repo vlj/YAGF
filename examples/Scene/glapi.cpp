@@ -280,3 +280,13 @@ void GLAPI::drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_
 {
   glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void *)indexOffset, (GLsizei)vertexOffset);
 }
+
+void GLAPI::drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset)
+{
+  glDrawArrays(GL_TRIANGLES, (GLsizei)vertexOffset, (GLsizei)indexCount);
+}
+
+void GLAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
+{
+
+}

@@ -118,7 +118,7 @@ void FullscreenPassManager::renderSunlight()
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
 //  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
   CommandList->D3DValue.CommandList->SetVertexBuffers(0, &ScreenQuadView, (UINT)1);
-  CommandList->D3DValue.CommandList->DrawInstanced(3, 1, 0, 0);
+  GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
 
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
   {
@@ -127,10 +127,9 @@ void FullscreenPassManager::renderSunlight()
   });
   GlobalGFXAPI->closeCommandList(CommandList);
 
-  Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&CommandList->D3DValue.CommandList);
+  GlobalGFXAPI->submitToQueue(CommandList);
+  Context::getInstance()->Swap();
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
-  CommandList->D3DValue.CommandList->Reset(CommandList->D3DValue.CommandAllocator, nullptr);
-  Context::getInstance()->Swap();
 }

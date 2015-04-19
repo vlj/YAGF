@@ -221,3 +221,14 @@ void D3DAPI::drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size
 {
   wrappedCmdList->D3DValue.CommandList->DrawIndexedInstanced((UINT)indexCount, (UINT)instanceCount, (UINT)indexOffset, (UINT)vertexOffset, (UINT)instanceOffset);
 }
+
+void D3DAPI::drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset)
+{
+  wrappedCmdList->D3DValue.CommandList->DrawInstanced((UINT)indexCount, (UINT)instanceCount, (UINT)vertexOffset, (UINT)instanceOffset);
+}
+
+void D3DAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
+{
+  Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&wrappedCmdList->D3DValue.CommandList);
+  wrappedCmdList->D3DValue.CommandList->Reset(wrappedCmdList->D3DValue.CommandAllocator, nullptr);
+}
