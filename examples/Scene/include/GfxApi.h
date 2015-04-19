@@ -128,6 +128,7 @@ public:
   virtual void unmapConstantsBuffers(union WrapperResource *wrappedConstantsBuffer) = 0;
   virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &) = 0;
   virtual union WrapperCommandList* createCommandList() = 0;
+  virtual void openCommandList(union WrapperCommandList* wrappedCmdList) = 0;
   virtual void closeCommandList(union WrapperCommandList* wrappedCmdList) = 0;
   virtual void drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
   virtual void drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) = 0;

@@ -208,8 +208,14 @@ WrapperCommandList* D3DAPI::createCommandList()
   WrapperCommandList *result = (WrapperCommandList*)malloc(sizeof(WrapperCommandList));
   HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&result->D3DValue.CommandAllocator));
   hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, result->D3DValue.CommandAllocator, nullptr, IID_PPV_ARGS(&result->D3DValue.CommandList));
-
+  result->D3DValue.CommandList->Close();
   return result;
+}
+
+void D3DAPI::openCommandList(union WrapperCommandList* wrappedCmdList)
+{
+  wrappedCmdList->D3DValue.CommandAllocator->Reset();
+  wrappedCmdList->D3DValue.CommandList->Reset(wrappedCmdList->D3DValue.CommandAllocator, nullptr);
 }
 
 void D3DAPI::closeCommandList(union WrapperCommandList *wrappedCmdList)
@@ -230,5 +236,4 @@ void D3DAPI::drawInstanced(union WrapperCommandList *wrappedCmdList, size_t inde
 void D3DAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
 {
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&wrappedCmdList->D3DValue.CommandList);
-  wrappedCmdList->D3DValue.CommandList->Reset(wrappedCmdList->D3DValue.CommandAllocator, nullptr);
 }

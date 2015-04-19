@@ -20,6 +20,7 @@ Scene::Scene()
     cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
     cbufferDescriptorHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuffer, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
     SamplersHeap = GlobalGFXAPI->createSamplerHeap({ 0 });
+    object = createObjectShader();
   }
 
 Scene::~Scene()
@@ -56,6 +57,7 @@ Scene::~Scene()
     View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
     memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
 
+    GlobalGFXAPI->openCommandList(cmdList);
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
     GlobalGFXAPI->clearRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
     GlobalGFXAPI->clearDepthStencilFromRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), 1., 0);
@@ -63,7 +65,7 @@ Scene::~Scene()
     memcpy(mappedCBuffer, &cbufdata, sizeof(ViewBuffer));
     GlobalGFXAPI->unmapConstantsBuffers(cbuffer);
 
-    WrapperPipelineState *object = createObjectShader();
+
     GlobalGFXAPI->setRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
     GlobalGFXAPI->setPipelineState(cmdList, object);
     GlobalGFXAPI->setDescriptorHeap(cmdList, 0, cbufferDescriptorHeap);
@@ -84,9 +86,5 @@ Scene::~Scene()
 #ifdef GLBUILD
     rtts.getRTTSet(RenderTargets::FBO_GBUFFER)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
-#ifdef DXBUILD
-    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&cmdList->D3DValue.CommandList);
-//    cmdList->D3DValue.CommandAllocator->Reset();
-    cmdList->D3DValue.CommandList->Reset(cmdList->D3DValue.CommandAllocator, nullptr);
-#endif
+    GlobalGFXAPI->submitToQueue(cmdList);
   }

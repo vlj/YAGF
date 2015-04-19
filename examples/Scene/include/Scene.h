@@ -18,6 +18,7 @@ private:
   // Should be tied to view rather than scene
   WrapperDescriptorHeap *cbufferDescriptorHeap;
   WrapperDescriptorHeap *SamplersHeap;
+  WrapperPipelineState *object;
 public:
   Scene();
   ~Scene();

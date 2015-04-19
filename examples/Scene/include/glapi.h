@@ -26,6 +26,7 @@ public:
   virtual void writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<union WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers) override;
   virtual union WrapperCommandList* createCommandList() override;
   virtual void closeCommandList(union WrapperCommandList* wrappedCmdList) override;
+  virtual void openCommandList(union WrapperCommandList* wrappedCmdList) override;
   virtual void drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) override;
   virtual void drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) override;
   virtual void submitToQueue(union WrapperCommandList *wrappedCmdList) override;

@@ -107,6 +107,7 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 
 void FullscreenPassManager::renderSunlight()
 {
+  GlobalGFXAPI->openCommandList(CommandList);
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
   {
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
