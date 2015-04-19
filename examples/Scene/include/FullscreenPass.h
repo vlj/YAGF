@@ -15,6 +15,9 @@ private:
   WrapperDescriptorHeap *SunlightInputs;
   WrapperDescriptorHeap *Samplers;
   WrapperCommandList *CommandList;
+  // should be param of rendersunlight
+  WrapperResource *viewdata;
+  WrapperResource *lightdata;
 public:
   FullscreenPassManager(RenderTargets &);
 

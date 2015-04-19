@@ -8,7 +8,7 @@
 #include <D3DAPI/D3DRTTSet.h>
 
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
-  DescriptorTable<ShaderResource<0>, ShaderResource<1>, ShaderResource<2>>,
+  DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>, ShaderResource<0>, ShaderResource<1>, ShaderResource<2>>,
   DescriptorTable<SamplerResource<0>> > RS;
 
 class Sunlight : public PipelineStateObject<Sunlight, VertexLayout<ScreenQuadVertex>>
@@ -47,6 +47,19 @@ D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
 D3DRTTSet *fbo[2];
 Microsoft::WRL::ComPtr<ID3D12Resource> DepthTextureCopyDest;
 WrapperResource *depthtexturecopy;
+
+struct ViewData
+{
+  float InverseViewMatrix[16];
+  float InverseProjectionMatrix[16];
+};
+
+struct LightData
+{
+  float sun_direction[3];
+  float sun_angle;
+  float sun_col[3];
+};
 
 FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 {
@@ -115,8 +128,13 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
     srv_view.Texture2D.MipLevels = 1;
     depthtexturecopy->D3DValue.description.SRV = srv_view;
 
+    viewdata = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewData));
+    lightdata = GlobalGFXAPI->createConstantsBuffer(sizeof(LightData));
+
     SunlightInputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
     {
+      std::make_tuple(viewdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 0),
+      std::make_tuple(lightdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 1),
       std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_VIEW::SHADER_RESOURCE, 0),
       std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_VIEW::SHADER_RESOURCE, 1),
       std::make_tuple(depthtexturecopy, RESOURCE_VIEW::SHADER_RESOURCE, 2),
@@ -130,6 +148,9 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 
 void FullscreenPassManager::renderSunlight()
 {
+  LightData *data = (LightData*)GlobalGFXAPI->mapConstantsBuffer(lightdata);
+  data->sun_col[0] = 1.;
+  GlobalGFXAPI->unmapConstantsBuffers(lightdata);
   GlobalGFXAPI->openCommandList(CommandList);
 
   // Copy depth (until crash is fixed ?)
