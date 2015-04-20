@@ -17,6 +17,10 @@ RenderTargets::RenderTargets(size_t w, size_t h) : Width(w), Height(h)
   { irr::video::ECF_R16G16B16A16F, irr::video::ECF_R8G8B8A8_UNORM_SRGB },
   Width, Height,
   depthbuffer);
+  RTTSets[FBO_COLORS] = GlobalGFXAPI->createRTTSet(
+  { RenderTargetTextures[COLORS] },
+  { irr::video::ECF_R16G16B16A16F },
+  Width, Height, nullptr);
 }
 
 RenderTargets::~RenderTargets()

@@ -67,8 +67,8 @@ in vec3 nor;
 in vec2 uv;
 in vec4 color;
 
-layout(location = 1) out vec4 EncodedNormal_Roughness_Metalness;
-layout(location = 0) out vec4 Colors;
+layout(location = 0) out vec4 EncodedNormal_Roughness_Metalness;
+layout(location = 1) out vec4 Colors;
 layout(location = 2) out float EmitMap;
 
 // from Crytek "a bit more deferred CryEngine"

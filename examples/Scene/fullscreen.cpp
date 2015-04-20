@@ -126,13 +126,11 @@ void FullscreenPassManager::renderSunlight()
 #ifdef DXBUILD
   fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(CommandList->D3DValue.CommandList);
 #endif
-#ifdef GLBUILD
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glViewport(0, 0, 1024, 1024);
-#endif
   GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
-//  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
+#ifdef GLBUILD
+  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
+#endif
   GlobalGFXAPI->fullscreenSetVertexBufferAndDraw(CommandList);
 
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
@@ -148,5 +146,8 @@ void FullscreenPassManager::renderSunlight()
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
+#endif
+#ifdef GLBUILD
+  RTT.getRTTSet(RenderTargets::FBO_COLORS)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
 }

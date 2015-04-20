@@ -73,6 +73,7 @@ static void sunlightStateSetter()
 {
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
+  glDisable(GL_BLEND);
 }
 
 union WrapperPipelineState *createSunlightShader()
