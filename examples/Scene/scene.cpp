@@ -58,6 +58,7 @@ Scene::~Scene()
     memcpy(&cbufdata, View.pointer(), 16 * sizeof(float));
 
     GlobalGFXAPI->openCommandList(cmdList);
+    GlobalGFXAPI->setPipelineState(cmdList, object);
     float clearColor[] = { 0.f, 0.f, 0.f, 0.f };
     GlobalGFXAPI->clearRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), clearColor);
     GlobalGFXAPI->clearDepthStencilFromRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER), 1., 0);
@@ -67,7 +68,6 @@ Scene::~Scene()
 
 
     GlobalGFXAPI->setRTTSet(cmdList, rtts.getRTTSet(RenderTargets::FBO_GBUFFER));
-    GlobalGFXAPI->setPipelineState(cmdList, object);
     GlobalGFXAPI->setDescriptorHeap(cmdList, 0, cbufferDescriptorHeap);
     GlobalGFXAPI->setDescriptorHeap(cmdList, 2, SamplersHeap);
 
