@@ -114,7 +114,7 @@ float3 SpecularBRDF(float3 normal, float3 eyedir, float3 lightdir, float3 color,
 float4 main(PS_INPUT In) : SV_TARGET
 {
   float z = DepthTex.Sample(NearestSampler, In.uv).x;
-  float3 projectedPos= float3(In.uv * float2(1., -1.), z);
+  float3 projectedPos= float3(In.uv, z);
   float4 xpos = getPosFromUVDepth(projectedPos, InverseProjectionMatrix);
 
   float3 norm = normalize(DecodeNormal(2. * NormalTex.Sample(NearestSampler, In.uv).xy - 1.));
