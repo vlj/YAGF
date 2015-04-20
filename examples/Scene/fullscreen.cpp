@@ -4,6 +4,10 @@
 #include <Maths/matrix4.h>
 #include <Shaders.h>
 
+#ifdef GLBUILD
+#include <glapi.h>
+#endif
+
 struct ViewData
 {
   float InverseViewMatrix[16];

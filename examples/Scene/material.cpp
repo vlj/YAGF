@@ -4,6 +4,7 @@
 
 #ifdef GLBUILD
 #include <GLAPI/Shaders.h>
+#include <glapi.h>
 
 const char *vtxshader = TO_STRING(
   \#version 330 \n
@@ -110,7 +111,7 @@ static void ObjectStateSetter()
   glDepthMask(GL_TRUE);
 }
 
-union WrapperPipelineState *createObjectShader()
+struct WrapperPipelineState *createObjectShader()
 {
   WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
   result->GLValue.Program = ObjectShader::getInstance()->Program;

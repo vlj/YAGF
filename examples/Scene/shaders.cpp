@@ -49,6 +49,7 @@ union WrapperPipelineState *createSunlightShader()
 #include <GLAPI/Misc.h>
 #include <fstream>
 #include <GfxApi.h>
+#include <glapi.h>
 
 class Sunlight : public ShaderHelperSingleton<Sunlight>, TextureRead<UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0>, TextureResource<GL_TEXTURE_2D, 1>, TextureResource<GL_TEXTURE_2D, 2>>
 {
@@ -77,7 +78,7 @@ static void sunlightStateSetter()
   glDisable(GL_BLEND);
 }
 
-union WrapperPipelineState *createSunlightShader()
+struct WrapperPipelineState *createSunlightShader()
 {
   WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
   result->GLValue.Program = Sunlight::getInstance()->Program;

@@ -49,7 +49,7 @@ namespace irr
       GLuint index_buffer;
       GLenum PrimitiveType;
 #endif
-      union WrapperDescriptorHeap *descriptors;
+      struct WrapperDescriptorHeap *descriptors;
       size_t IndexCount;
       size_t Stride;
       core::matrix4 TextureMatrix;

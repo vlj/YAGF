@@ -2,6 +2,10 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include <MeshSceneNode.h>
 
+#ifdef GLBUILD
+#include <glapi.h>
+#endif
+
 static irr::video::DrawData allocateMeshBuffer(
   const irr::scene::SMeshBufferLightMap& mb,
   const irr::scene::IMeshSceneNode *Object)

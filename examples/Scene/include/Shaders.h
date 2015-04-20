@@ -4,6 +4,6 @@
 #ifndef __SHADERS_H__
 #define __SHADERS_H__
 
-union WrapperPipelineState *createSunlightShader();
+struct WrapperPipelineState *createSunlightShader();
 
 #endif
