@@ -119,6 +119,11 @@ static GLenum getOpenGLFormatAndParametersFromColorFormat(irr::video::ECOLOR_FOR
     internalformat = GL_RG32F;
     type = GL_FLOAT;
     break;
+  case irr::video::ECF_R16G16B16A16F:
+    colorformat = GL_RGBA;
+    internalformat = GL_RGBA16F;
+    type = GL_FLOAT;
+    break;
   case irr::video::ECF_A32B32G32R32F:
     //      filtering = GL_NEAREST;
     colorformat = GL_RGBA;
