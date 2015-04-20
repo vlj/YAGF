@@ -277,6 +277,9 @@ WrapperCommandList* GLAPI::createCommandList()
 void GLAPI::closeCommandList(union WrapperCommandList *wrappedCmdList)
 {}
 
+void GLAPI::openCommandList(union WrapperCommandList* wrappedCmdList)
+{}
+
 void GLAPI::drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
 {
   glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_SHORT, (void *)indexOffset, (GLsizei)vertexOffset);

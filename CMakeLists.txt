@@ -93,6 +93,7 @@ add_executable(scene
   examples/Scene/meshscenenode.cpp
   examples/Scene/rendertargets.cpp
   examples/Scene/fullscreen.cpp
+  examples/Scene/shaders.cpp
   examples/Scene/glapi.cpp)
 set_target_properties(scene PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
 target_link_libraries(scene ${PROJECT_NAME})
@@ -110,6 +111,7 @@ if(BUILD_DX12)
     examples/Scene/fullscreen.cpp
     examples/Scene/d3dapi.cpp
     examples/shaders/sunlight.hlsl
+    examples/Scene/shaders.cpp
     examples/shaders/object_pass_pix.hlsl
     examples/shaders/object_pass_vtx.hlsl)
   set_target_properties(scenedx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
