@@ -206,14 +206,29 @@ struct WrapperDescriptorHeap* GLAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   return result;
 }
 
-struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<size_t> &SamplersDesc)
+struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
   new (&result->GLValue) std::vector<std::tuple<GLuint, RESOURCE_VIEW, unsigned>>();
-  for (size_t Unit : SamplersDesc)
+  for (const std::pair<enum class SAMPLER_TYPE, size_t> &Sampler : SamplersDesc)
   {
-    GLuint Sampler = SamplerHelper::createTrilinearSampler();
-    result->GLValue.push_back(std::make_tuple(Sampler, RESOURCE_VIEW::SAMPLER, Unit));
+    GLuint SamplerObject;
+    switch (Sampler.first)
+    {
+    case SAMPLER_TYPE::ANISOTROPIC:
+      SamplerObject = SamplerHelper::createTrilinearAnisotropicSampler(16);
+      break;
+    case SAMPLER_TYPE::TRILINEAR:
+      SamplerObject = SamplerHelper::createTrilinearSampler();
+      break;
+    case SAMPLER_TYPE::BILINEAR:
+      SamplerObject = SamplerHelper::createBilinearSampler();
+      break;
+    case SAMPLER_TYPE::NEAREST:
+      SamplerObject = SamplerHelper::createNearestSampler();
+      break;
+    }
+    result->GLValue.push_back(std::make_tuple(SamplerObject, RESOURCE_VIEW::SAMPLER, Sampler.second));
   }
   return result;
 }

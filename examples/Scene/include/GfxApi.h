@@ -34,6 +34,14 @@ enum class RESOURCE_VIEW
   UAV,
 };
 
+enum class SAMPLER_TYPE
+{
+  NEAREST,
+  BILINEAR,
+  TRILINEAR,
+  ANISOTROPIC,
+};
+
 struct WrapperRTTSet;
 
 struct WrapperCommandList;
@@ -56,7 +64,7 @@ public:
   virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*) = 0;
   virtual struct WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources) = 0;
-  virtual struct WrapperDescriptorHeap* createSamplerHeap(const std::vector<size_t> &SamplersDesc) = 0;
+  virtual struct WrapperDescriptorHeap* createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc) = 0;
   virtual void setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap) = 0;
   virtual void setPipelineState(struct WrapperCommandList* wrappedCmdList, struct WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(struct WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;

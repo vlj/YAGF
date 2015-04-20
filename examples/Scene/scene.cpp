@@ -19,7 +19,7 @@ Scene::Scene()
     cmdList = GlobalGFXAPI->createCommandList();
     cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewBuffer));
     cbufferDescriptorHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuffer, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
-    SamplersHeap = GlobalGFXAPI->createSamplerHeap({ 0 });
+    SamplersHeap = GlobalGFXAPI->createSamplerHeap({ {SAMPLER_TYPE::ANISOTROPIC, 0 } });
     object = createObjectShader();
   }
 

@@ -71,7 +71,7 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_VIEW::SHADER_RESOURCE, 1),
     std::make_tuple(depthtexturecopy, RESOURCE_VIEW::SHADER_RESOURCE, 2),
   });
-  Samplers = GlobalGFXAPI->createSamplerHeap({ 0 });
+  Samplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::NEAREST, 1 }, { SAMPLER_TYPE::NEAREST, 2 } });
 }
 
 void FullscreenPassManager::renderSunlight()
@@ -130,11 +130,12 @@ void FullscreenPassManager::renderSunlight()
 #ifdef DXBUILD
   fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(CommandList->D3DValue.CommandList);
 #endif
-  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
-  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
+
 #ifdef GLBUILD
   GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
 #endif
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
   GlobalGFXAPI->fullscreenSetVertexBufferAndDraw(CommandList);
 
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,

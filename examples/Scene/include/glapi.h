@@ -44,7 +44,7 @@ public:
   virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) override;
   virtual void setRTTSet(struct WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
   virtual struct WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources) override;
-  virtual struct WrapperDescriptorHeap* createSamplerHeap(const std::vector<size_t> &SamplersDesc) override;
+  virtual struct WrapperDescriptorHeap* createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc) override;
   virtual void setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap) override;
   virtual struct WrapperResource *createConstantsBuffer(size_t) override;
   virtual void *mapConstantsBuffer(struct WrapperResource *) override;
