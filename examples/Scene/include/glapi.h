@@ -30,6 +30,7 @@ public:
   virtual void drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) override;
   virtual void drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) override;
   virtual void submitToQueue(union WrapperCommandList *wrappedCmdList) override;
+  virtual void fullscreenSetVertexBufferAndDraw(union WrapperCommandList *wrappedCmdList) override;
 };
 
 #endif

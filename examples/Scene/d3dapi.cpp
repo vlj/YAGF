@@ -237,3 +237,60 @@ void D3DAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
 {
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&wrappedCmdList->D3DValue.CommandList);
 }
+
+// TODO: Improve this mess
+static Microsoft::WRL::ComPtr<ID3D12Resource> ScreenQuad;
+static D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
+
+void D3DAPI::fullscreenSetVertexBufferAndDraw(union WrapperCommandList *wrappedCmdList)
+{
+  if (ScreenQuad.Get() == nullptr)
+  {
+    // Create Screenquad
+    Microsoft::WRL::ComPtr<ID3D12Resource> ScreenQuadCPU;
+    Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(3 * 4 * sizeof(float)),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&ScreenQuadCPU)
+      );
+
+    const float tri_vertex[] = {
+      -1., -1., 0., 2.,
+      -1., 3., 0., 0.,
+      3., -1., 2., 2.
+    };
+    void *tmp;
+    ScreenQuadCPU->Map(0, nullptr, &tmp);
+    memcpy(tmp, tri_vertex, 3 * 4 * sizeof(float));
+    ScreenQuadCPU->Unmap(0, nullptr);
+
+    Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(3 * 4 * sizeof(float)),
+      D3D12_RESOURCE_USAGE_COPY_DEST,
+      nullptr,
+      IID_PPV_ARGS(&ScreenQuad)
+      );
+
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
+    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
+    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
+
+    cmdlist->CopyBufferRegion(ScreenQuad.Get(), 0, ScreenQuadCPU.Get(), 0, 3 * 4 * sizeof(float), D3D12_COPY_NONE);
+    cmdlist->Close();
+    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+    // TODO: wait
+
+    ScreenQuadView.BufferLocation = ScreenQuad->GetGPUVirtualAddress();
+    ScreenQuadView.StrideInBytes = 4 * sizeof(float);
+    ScreenQuadView.SizeInBytes = 3 * 4 * sizeof(float);
+  }
+
+  wrappedCmdList->D3DValue.CommandList->SetVertexBuffers(0, &ScreenQuadView, (UINT)1);
+  wrappedCmdList->D3DValue.CommandList->DrawInstanced(3, 1, 0, 0);
+}

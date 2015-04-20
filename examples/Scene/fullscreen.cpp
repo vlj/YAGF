@@ -43,12 +43,6 @@ static union WrapperPipelineState *createSunlightShader()
 }
 #endif
 
-Microsoft::WRL::ComPtr<ID3D12Resource> ScreenQuad;
-D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
-D3DRTTSet *fbo[2];
-Microsoft::WRL::ComPtr<ID3D12Resource> DepthTextureCopyDest;
-WrapperResource *depthtexturecopy;
-
 struct ViewData
 {
   float InverseViewMatrix[16];
@@ -62,89 +56,57 @@ struct LightData
   float sun_col[3];
 };
 
+#ifdef DXBUILD
+D3DRTTSet *fbo[2];
+Microsoft::WRL::ComPtr<ID3D12Resource> DepthTextureCopyDest;
+#endif
+
 FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 {
   SunlightPSO = createSunlightShader();
   CommandList = GlobalGFXAPI->createCommandList();
 
-  // Create Screenquad
-    Microsoft::WRL::ComPtr<ID3D12Resource> ScreenQuadCPU;
-    Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(3 * 4 * sizeof(float)),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&ScreenQuadCPU)
-      );
+  viewdata = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewData));
+  lightdata = GlobalGFXAPI->createConstantsBuffer(sizeof(LightData));
 
-    const float tri_vertex[] = {
-      -1., -1., 0., 2.,
-      -1., 3., 0., 0.,
-      3., -1., 2., 2.
-    };
-    void *tmp;
-    ScreenQuadCPU->Map(0, nullptr, &tmp);
-    memcpy(tmp, tri_vertex, 3 * 4 * sizeof(float));
-    ScreenQuadCPU->Unmap(0, nullptr);
+#ifdef DXBUILD
+  // temp depth texture
+  Context::getInstance()->dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, 1024, 1024),
+    D3D12_RESOURCE_USAGE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(&DepthTextureCopyDest)
+    );
 
-    Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Buffer(3 * 4 * sizeof(float)),
-      D3D12_RESOURCE_USAGE_COPY_DEST,
-      nullptr,
-      IID_PPV_ARGS(&ScreenQuad)
-      );
+  depthtexturecopy = (WrapperResource*)malloc(sizeof(WrapperResource));
+  depthtexturecopy->D3DValue.resource = DepthTextureCopyDest.Get();
+  D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
+  srv_view.Format = DXGI_FORMAT_R32_FLOAT;
+  srv_view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  srv_view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  srv_view.Texture2D.MipLevels = 1;
+  depthtexturecopy->D3DValue.description.SRV = srv_view;
 
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
-    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
-    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), Sunlight::getInstance()->pso.Get(), IID_PPV_ARGS(&cmdlist));
+  // FBO
+  fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
+  fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
+#endif
 
-    cmdlist->CopyBufferRegion(ScreenQuad.Get(), 0, ScreenQuadCPU.Get(), 0, 3 * 4 * sizeof(float), D3D12_COPY_NONE);
-    cmdlist->Close();
-    Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
+#ifdef GLBUILD
+  depthtexturecopy = RTT.getDepthBuffer();
+#endif
 
-    ScreenQuadView.BufferLocation = ScreenQuad->GetGPUVirtualAddress();
-    ScreenQuadView.StrideInBytes = 4 * sizeof(float);
-    ScreenQuadView.SizeInBytes = 3 * 4 * sizeof(float);
-
-    // temp depth texture
-    Context::getInstance()->dev->CreateCommittedResource(
-      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_MISC_NONE,
-      &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, 1024, 1024),
-      D3D12_RESOURCE_USAGE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(&DepthTextureCopyDest)
-      );
-
-    depthtexturecopy = (WrapperResource*)malloc(sizeof(WrapperResource));
-    depthtexturecopy->D3DValue.resource = DepthTextureCopyDest.Get();
-    D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
-    srv_view.Format = DXGI_FORMAT_R32_FLOAT;
-    srv_view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srv_view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srv_view.Texture2D.MipLevels = 1;
-    depthtexturecopy->D3DValue.description.SRV = srv_view;
-
-    viewdata = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewData));
-    lightdata = GlobalGFXAPI->createConstantsBuffer(sizeof(LightData));
-
-    SunlightInputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
-    {
-      std::make_tuple(viewdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 0),
-      std::make_tuple(lightdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 1),
-      std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_VIEW::SHADER_RESOURCE, 0),
-      std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_VIEW::SHADER_RESOURCE, 1),
-      std::make_tuple(depthtexturecopy, RESOURCE_VIEW::SHADER_RESOURCE, 2),
-    });
-    Samplers = GlobalGFXAPI->createSamplerHeap({ 0 });
-
-    // FBO
-    fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
-    fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
+  SunlightInputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
+  {
+    std::make_tuple(viewdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 0),
+    std::make_tuple(lightdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 1),
+    std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_VIEW::SHADER_RESOURCE, 0),
+    std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_VIEW::SHADER_RESOURCE, 1),
+    std::make_tuple(depthtexturecopy, RESOURCE_VIEW::SHADER_RESOURCE, 2),
+  });
+  Samplers = GlobalGFXAPI->createSamplerHeap({ 0 });
 }
 
 void FullscreenPassManager::renderSunlight()
@@ -167,6 +129,7 @@ void FullscreenPassManager::renderSunlight()
   GlobalGFXAPI->unmapConstantsBuffers(lightdata);
   GlobalGFXAPI->openCommandList(CommandList);
 
+#ifdef DXBUILD
   // Copy depth (until crash is fixed ?)
   {
     D3D12_RESOURCE_BARRIER_DESC barriers[2] = {
@@ -191,6 +154,7 @@ void FullscreenPassManager::renderSunlight()
     };
     CommandList->D3DValue.CommandList->ResourceBarrier(2, barriers_back);
   }
+#endif
 
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
   {
@@ -198,12 +162,17 @@ void FullscreenPassManager::renderSunlight()
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
   });
   GlobalGFXAPI->setPipelineState(CommandList, SunlightPSO);
+#ifdef DXBUILD
   fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(CommandList->D3DValue.CommandList);
+#endif
+#ifdef GLBUILD
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0, 0, 1024, 1024);
+#endif
   GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
 //  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
-  CommandList->D3DValue.CommandList->SetVertexBuffers(0, &ScreenQuadView, (UINT)1);
-  GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
+  GlobalGFXAPI->fullscreenSetVertexBufferAndDraw(CommandList);
 
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
   {
@@ -213,8 +182,10 @@ void FullscreenPassManager::renderSunlight()
   GlobalGFXAPI->closeCommandList(CommandList);
 
   GlobalGFXAPI->submitToQueue(CommandList);
+#ifdef DXBUILD
   Context::getInstance()->Swap();
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
+#endif
 }

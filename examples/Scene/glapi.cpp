@@ -3,6 +3,7 @@
 
 #include <glapi.h>
 #include <GLAPI/Samplers.h>
+#include <GLAPI/Misc.h>
 
 static GLenum getOpenGLFormatAndParametersFromColorFormat(irr::video::ECOLOR_FORMAT format,
   //  GLint& filtering,
@@ -289,4 +290,10 @@ void GLAPI::drawInstanced(union WrapperCommandList *wrappedCmdList, size_t index
 void GLAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
 {
 
+}
+
+void GLAPI::fullscreenSetVertexBufferAndDraw(union WrapperCommandList *wrappedCmdList)
+{
+  glBindVertexArray(SharedObject::getInstance()->FullScreenQuadVAO);
+  glDrawArrays(GL_TRIANGLES, 0, 3);
 }

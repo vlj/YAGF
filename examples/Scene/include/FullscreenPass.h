@@ -18,6 +18,8 @@ private:
   // should be param of rendersunlight
   WrapperResource *viewdata;
   WrapperResource *lightdata;
+  // Fix for D3D
+  WrapperResource *depthtexturecopy;
 public:
   FullscreenPassManager(RenderTargets &);
 
