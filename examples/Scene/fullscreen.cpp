@@ -1,6 +1,7 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
 #include <FullscreenPass.h>
+#include <Maths/matrix4.h>
 
 #ifdef DXBUILD
 #include <D3DAPI/RootSignature.h>
@@ -148,8 +149,18 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 
 void FullscreenPassManager::renderSunlight()
 {
+  irr::core::matrix4 View, Proj, InvView, invProj;
+  Proj.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+  Proj.getInverse(invProj);
+  ViewData * vdata = (ViewData *)GlobalGFXAPI->mapConstantsBuffer(viewdata);
+  memcpy(&vdata->InverseViewMatrix, InvView.pointer(), 16 * sizeof(float));
+  memcpy(&vdata->InverseProjectionMatrix, invProj.pointer(), 16 * sizeof(float));
+
   LightData *data = (LightData*)GlobalGFXAPI->mapConstantsBuffer(lightdata);
   data->sun_col[0] = 1.;
+  data->sun_col[1] = 1.;
+  data->sun_col[2] = 1.;
+  data->sun_direction[1] = 1.;
   GlobalGFXAPI->unmapConstantsBuffers(lightdata);
   GlobalGFXAPI->openCommandList(CommandList);
 

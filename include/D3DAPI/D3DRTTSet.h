@@ -73,9 +73,10 @@ public:
 
   void Clear(ID3D12GraphicsCommandList *cmdlist, float clearColor[4])
   {
+    UINT Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP);
     for (unsigned i = 0; i < NumRTT; i++)
     {
-      cmdlist->ClearRenderTargetView(DescriptorHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP)), clearColor, 0, 0);
+      cmdlist->ClearRenderTargetView(DescriptorHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(i * Increment), clearColor, 0, 0);
     }
   }
 

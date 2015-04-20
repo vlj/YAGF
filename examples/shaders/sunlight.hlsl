@@ -129,7 +129,5 @@ float4 main(PS_INPUT In) : SV_TARGET
 
   float3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, float3(.04, .04, .04), roughness);
   float3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
-  //return float4(NdotL * sun_col * lerp(Dielectric, Metal, metalness), 1.);
-  if (z >= 1.) discard;
-  return float4(sun_col, 1.);
+  return float4(NdotL * sun_col * lerp(Dielectric, Metal, metalness), 1.);
 }
