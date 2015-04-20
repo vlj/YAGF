@@ -54,12 +54,16 @@ class Sunlight : public ShaderHelperSingleton<Sunlight>, TextureRead<UniformBuff
 public:
   Sunlight()
   {
-    std::ifstream in("../examples/shaders/sunlight.fs", std::ios::in);
+    std::ifstream vsin("../examples/shaders/screenquad.vs", std::ios::in);
 
-    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    const std::string &vs = std::string((std::istreambuf_iterator<char>(vsin)), std::istreambuf_iterator<char>());
+
+    std::ifstream fsin("../examples/shaders/sunlight.fs", std::ios::in);
+
+    const std::string &fs = std::string((std::istreambuf_iterator<char>(fsin)), std::istreambuf_iterator<char>());
     Program = ProgramShaderLoading::LoadProgram(
-      GL_VERTEX_SHADER, screenquadshader,
-      GL_FRAGMENT_SHADER, shader.c_str());
+      GL_VERTEX_SHADER, vs.c_str(),
+      GL_FRAGMENT_SHADER, fs.c_str());
 
     AssignSamplerNames(Program, "VIEWDATA", "LIGHTDATA", "ntex", "ctex", "dtex");
   }
