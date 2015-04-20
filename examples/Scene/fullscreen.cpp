@@ -155,12 +155,15 @@ void FullscreenPassManager::renderSunlight()
   ViewData * vdata = (ViewData *)GlobalGFXAPI->mapConstantsBuffer(viewdata);
   memcpy(&vdata->InverseViewMatrix, InvView.pointer(), 16 * sizeof(float));
   memcpy(&vdata->InverseProjectionMatrix, invProj.pointer(), 16 * sizeof(float));
+  GlobalGFXAPI->unmapConstantsBuffers(viewdata);
 
   LightData *data = (LightData*)GlobalGFXAPI->mapConstantsBuffer(lightdata);
   data->sun_col[0] = 1.;
   data->sun_col[1] = 1.;
   data->sun_col[2] = 1.;
+  data->sun_direction[0] = 0.;
   data->sun_direction[1] = 1.;
+  data->sun_direction[2] = 0.;
   GlobalGFXAPI->unmapConstantsBuffers(lightdata);
   GlobalGFXAPI->openCommandList(CommandList);
 
