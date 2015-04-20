@@ -82,9 +82,5 @@ Scene::~Scene()
       }
     }
     GlobalGFXAPI->closeCommandList(cmdList);
-
-#ifdef GLBUILD
-    rtts.getRTTSet(RenderTargets::FBO_GBUFFER)->GLValue.BlitToDefault(0, 0, 1024, 1024);
-#endif
     GlobalGFXAPI->submitToQueue(cmdList);
   }
