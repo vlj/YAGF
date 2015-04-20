@@ -6,6 +6,10 @@
 #include <glapi.h>
 #endif
 
+#ifdef DXBUILD
+#include <d3dapi.h>
+#endif
+
 static irr::video::DrawData allocateMeshBuffer(
   const irr::scene::SMeshBufferLightMap& mb,
   const irr::scene::IMeshSceneNode *Object)

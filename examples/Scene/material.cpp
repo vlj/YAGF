@@ -124,6 +124,7 @@ struct WrapperPipelineState *createObjectShader()
 #ifdef DXBUILD
 #include <D3DAPI/RootSignature.h>
 #include <D3DAPI/PSO.h>
+#include <d3dapi.h>
 
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ConstantsBufferResource<1>>,
@@ -152,7 +153,7 @@ public:
   }
 };
 
-union WrapperPipelineState *createObjectShader()
+struct WrapperPipelineState *createObjectShader()
 {
   WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
   result->D3DValue.pipelineStateObject = Object::getInstance()->pso.Get();

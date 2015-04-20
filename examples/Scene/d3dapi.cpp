@@ -6,7 +6,7 @@
 #include <D3DAPI/Resource.h>
 #include <D3DAPI/Sampler.h>
 
-WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
+struct WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
 {
   WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
   DXGI_FORMAT Fmt = getDXGIFormatFromColorFormat(Format);
@@ -30,7 +30,7 @@ WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Widt
   return result;
 }
 
-union WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t Height)
+struct WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t Height)
 {
   WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
@@ -50,7 +50,7 @@ union WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t He
   return result;
 }
 
-union WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil)
+struct WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil)
 {
   WrapperRTTSet *result = (WrapperRTTSet*) malloc(sizeof(WrapperRTTSet));
   std::vector<ID3D12Resource *> resources;
@@ -86,7 +86,7 @@ static D3D12_RESOURCE_USAGE convertResourceUsage(enum class RESOURCE_USAGE ru)
   }
 }
 
-void D3DAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers)
+void D3DAPI::writeResourcesTransitionBarrier(struct WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers)
 {
   std::vector<D3D12_RESOURCE_BARRIER_DESC> barriersDesc;
   ID3D12GraphicsCommandList *CmdList = wrappedCmdList->D3DValue.CommandList;
@@ -98,22 +98,22 @@ void D3DAPI::writeResourcesTransitionBarrier(union WrapperCommandList* wrappedCm
   CmdList->ResourceBarrier((UINT)barriersDesc.size(), barriersDesc.data());
 }
 
-void D3DAPI::clearRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet* RTTSet, float color[4])
+void D3DAPI::clearRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet* RTTSet, float color[4])
 {
   RTTSet->D3DValue.Clear(wrappedCmdList->D3DValue.CommandList, color);
 }
 
-void D3DAPI::clearDepthStencilFromRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet* RTTSet, float Depth, unsigned Stencil)
+void D3DAPI::clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet* RTTSet, float Depth, unsigned Stencil)
 {
   RTTSet->D3DValue.ClearDepthStencil(wrappedCmdList->D3DValue.CommandList, Depth, Stencil);
 }
 
-void D3DAPI::setRTTSet(union WrapperCommandList* wrappedCmdList, union WrapperRTTSet*RTTSet)
+void D3DAPI::setRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*RTTSet)
 {
   RTTSet->D3DValue.Bind(wrappedCmdList->D3DValue.CommandList);
 }
 
-union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<union WrapperResource *, RESOURCE_VIEW, size_t> > &Resources)
+struct WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, RESOURCE_VIEW, size_t> > &Resources)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
@@ -123,7 +123,7 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   HRESULT hr = Context::getInstance()->dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result->D3DValue));
   size_t Index = 0, Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP);
 
-  for (const std::tuple<union WrapperResource *, enum class RESOURCE_VIEW, size_t> &Resource : Resources)
+  for (const std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> &Resource : Resources)
   {
     D3D12_CPU_DESCRIPTOR_HANDLE Handle = result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT) (Index * Increment));
     switch (std::get<1>(Resource))
@@ -140,7 +140,7 @@ union WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   return result;
 }
 
-union WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<size_t> &SamplersDesc)
+struct WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
   D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
@@ -158,19 +158,19 @@ union WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<size_t>
   return result;
 }
 
-void D3DAPI::setDescriptorHeap(union WrapperCommandList* wrappedCmdList, size_t slot, union WrapperDescriptorHeap *DescriptorHeap)
+void D3DAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap)
 {
   wrappedCmdList->D3DValue.CommandList->SetGraphicsRootDescriptorTable((UINT)slot, DescriptorHeap->D3DValue->GetGPUDescriptorHandleForHeapStart());
 }
 
-void D3DAPI::setPipelineState(union WrapperCommandList* wrappedCmdList, union WrapperPipelineState* wrappedPipelineState)
+void D3DAPI::setPipelineState(struct WrapperCommandList* wrappedCmdList, struct WrapperPipelineState* wrappedPipelineState)
 {
   wrappedCmdList->D3DValue.CommandList->SetPipelineState(wrappedPipelineState->D3DValue.pipelineStateObject);
   wrappedCmdList->D3DValue.CommandList->SetGraphicsRootSignature(wrappedPipelineState->D3DValue.rootSignature);
   wrappedCmdList->D3DValue.CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-void D3DAPI::setIndexVertexBuffersSet(union WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet* wrappedVAO)
+void D3DAPI::setIndexVertexBuffersSet(struct WrapperCommandList* wrappedCmdList, struct WrapperIndexVertexBuffersSet* wrappedVAO)
 {
   wrappedCmdList->D3DValue.CommandList->SetVertexBuffers(0, wrappedVAO->D3DValue.getVertexBufferView().data(), (UINT)wrappedVAO->D3DValue.getVertexBufferView().size());
   wrappedCmdList->D3DValue.CommandList->SetIndexBuffer(&wrappedVAO->D3DValue.getIndexBufferView());
@@ -194,14 +194,14 @@ WrapperResource *D3DAPI::createConstantsBuffer(size_t sizeInByte)
   return result;
 }
 
-void *D3DAPI::mapConstantsBuffer(union WrapperResource *wrappedConstantBuffer)
+void *D3DAPI::mapConstantsBuffer(struct WrapperResource *wrappedConstantBuffer)
 {
   void *ptr;
   wrappedConstantBuffer->D3DValue.resource->Map(0, nullptr, &ptr);
   return ptr;
 }
 
-void D3DAPI::unmapConstantsBuffers(union WrapperResource *wrappedConstantsBuffer)
+void D3DAPI::unmapConstantsBuffers(struct WrapperResource *wrappedConstantsBuffer)
 {
   wrappedConstantsBuffer->D3DValue.resource->Unmap(0, nullptr);
 }
@@ -215,28 +215,28 @@ WrapperCommandList* D3DAPI::createCommandList()
   return result;
 }
 
-void D3DAPI::openCommandList(union WrapperCommandList* wrappedCmdList)
+void D3DAPI::openCommandList(struct WrapperCommandList* wrappedCmdList)
 {
   wrappedCmdList->D3DValue.CommandAllocator->Reset();
   wrappedCmdList->D3DValue.CommandList->Reset(wrappedCmdList->D3DValue.CommandAllocator, nullptr);
 }
 
-void D3DAPI::closeCommandList(union WrapperCommandList *wrappedCmdList)
+void D3DAPI::closeCommandList(struct WrapperCommandList *wrappedCmdList)
 {
   wrappedCmdList->D3DValue.CommandList->Close();
 }
 
-void D3DAPI::drawIndexedInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
+void D3DAPI::drawIndexedInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset)
 {
   wrappedCmdList->D3DValue.CommandList->DrawIndexedInstanced((UINT)indexCount, (UINT)instanceCount, (UINT)indexOffset, (UINT)vertexOffset, (UINT)instanceOffset);
 }
 
-void D3DAPI::drawInstanced(union WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset)
+void D3DAPI::drawInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset)
 {
   wrappedCmdList->D3DValue.CommandList->DrawInstanced((UINT)indexCount, (UINT)instanceCount, (UINT)vertexOffset, (UINT)instanceOffset);
 }
 
-void D3DAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
+void D3DAPI::submitToQueue(struct WrapperCommandList *wrappedCmdList)
 {
   Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)&wrappedCmdList->D3DValue.CommandList);
 }
@@ -245,7 +245,7 @@ void D3DAPI::submitToQueue(union WrapperCommandList *wrappedCmdList)
 static Microsoft::WRL::ComPtr<ID3D12Resource> ScreenQuad;
 static D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
 
-void D3DAPI::fullscreenSetVertexBufferAndDraw(union WrapperCommandList *wrappedCmdList)
+void D3DAPI::fullscreenSetVertexBufferAndDraw(struct WrapperCommandList *wrappedCmdList)
 {
   if (ScreenQuad.Get() == nullptr)
   {

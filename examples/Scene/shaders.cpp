@@ -6,7 +6,7 @@
 #include <D3DAPI/RootSignature.h>
 #include <D3DAPI/PSO.h>
 #include <D3DAPI/D3DRTTSet.h>
-#include <GfxApi.h>
+#include <d3dapi.h>
 
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>, ShaderResource<0>, ShaderResource<1>, ShaderResource<2>>,
@@ -34,7 +34,7 @@ public:
   }
 };
 
-union WrapperPipelineState *createSunlightShader()
+struct WrapperPipelineState *createSunlightShader()
 {
   WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
   result->D3DValue.pipelineStateObject = Sunlight::getInstance()->pso.Get();

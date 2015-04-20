@@ -7,6 +7,9 @@
 #ifdef GLBUILD
 #include <glapi.h>
 #endif
+#ifdef DXBUILD
+#include <d3dapi.h>
+#endif
 
 struct ViewData
 {
