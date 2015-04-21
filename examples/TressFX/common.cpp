@@ -294,9 +294,7 @@ void initCommon(const TressFXAsset& tfxassets)
   glGenTextures(1, &HairShadowMapTexture);
   glBindTexture(GL_TEXTURE_2D, HairShadowMapTexture);
   glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 640, 640);
-  glGenTextures(1, &HairShadowMapDepth);
-  glBindTexture(GL_TEXTURE_2D, HairShadowMapDepth);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, 640, 640);
+  HairShadowMapDepth = generateRTT(640, 640, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
 
   HairSMFBO = new GLRTTSet({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
 
