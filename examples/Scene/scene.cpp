@@ -29,6 +29,8 @@ Scene::~Scene()
       delete node;
     GlobalGFXAPI->releasePSO(object);
     GlobalGFXAPI->releaseCommandList(cmdList);
+    GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(cbufferDescriptorHeap);
+    GlobalGFXAPI->releaseSamplerHeap(SamplersHeap);
   }
 
   void Scene:: update()

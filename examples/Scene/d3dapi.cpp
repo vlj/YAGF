@@ -147,6 +147,12 @@ struct WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::v
   return result;
 }
 
+void D3DAPI::releaseCBVSRVUAVDescriptorHeap(struct WrapperDescriptorHeap* Heap)
+{
+  Heap->D3DValue->Release();
+  free(Heap);
+}
+
 struct WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
@@ -189,6 +195,12 @@ struct WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<std::p
     Index++;
   }
   return result;
+}
+
+void D3DAPI::releaseSamplerHeap(struct WrapperDescriptorHeap* Heap)
+{
+  Heap->D3DValue->Release();
+  free(Heap);
 }
 
 void D3DAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap)

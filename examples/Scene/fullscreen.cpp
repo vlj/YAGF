@@ -81,6 +81,8 @@ FullscreenPassManager::~FullscreenPassManager()
 {
   GlobalGFXAPI->releasePSO(SunlightPSO);
   GlobalGFXAPI->releaseCommandList(CommandList);
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SunlightInputs);
+  GlobalGFXAPI->releaseSamplerHeap(Samplers);
 }
 
 void FullscreenPassManager::renderSunlight()
