@@ -2,7 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include <FullscreenPass.h>
 #include <Maths/matrix4.h>
-#include <Shaders.h>
+#include <Scene/Shaders.h>
 
 #ifdef GLBUILD
 #include <API/glapi.h>

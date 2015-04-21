@@ -2,7 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include <Scene.h>
 
-#include <Shaders.h>
+#include <Scene/Shaders.h>
 #include <RenderTargets.h>
 
 #ifdef DXBUILD

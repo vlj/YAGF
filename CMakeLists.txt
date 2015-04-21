@@ -70,16 +70,23 @@ if(BUILD_OPENCL)
 endif()
 
 if(BUILD_DX12)
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-  add_executable(meshdx12 examples/meshdx12.cpp examples/shaders/vtx.hlsl examples/shaders/pix.hlsl)
-  set_target_properties(meshdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
-  target_link_libraries(meshdx12 ${PROJECT_NAME})
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/object.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/skinnedobject.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/object_gbuffer.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/screenquad.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/sunlight.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/linearize.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
 
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/ssao_vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/ssao_pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/screenquad.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/linearize.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+endif()
+
+if(BUILD_DX12)
+  add_executable(meshdx12 examples/meshdx12.cpp examples/shaders/skinnedobject.hlsl examples/shaders/object_gbuffer.hlsl)
+  set_target_properties(meshdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+  target_link_libraries(meshdx12 ${PROJECT_NAME})
   add_executable(ssaodx12 examples/ssaodx12.cpp examples/shaders/ssao_vtx.hlsl examples/shaders/ssao_pix.hlsl examples/shaders/screenquad.hlsl examples/shaders/linearize.hlsl)
   set_target_properties(ssaodx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   target_link_libraries(ssaodx12 ${PROJECT_NAME})
@@ -93,15 +100,13 @@ add_executable(scene
   examples/Scene/meshscenenode.cpp
   examples/Scene/rendertargets.cpp
   examples/Scene/fullscreen.cpp
-  examples/Scene/shaders.cpp
+  glshaders.cpp
   examples/Scene/glapi.cpp)
 set_target_properties(scene PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
 target_link_libraries(scene ${PROJECT_NAME})
 
 if(BUILD_DX12)
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/object_pass_vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/object_pass_pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-  SET_SOURCE_FILES_PROPERTIES(examples/shaders/sunlight.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+
   add_executable(scenedx12
     examples/Scene/main.cpp
     examples/Scene/scene.cpp
@@ -111,9 +116,9 @@ if(BUILD_DX12)
     examples/Scene/fullscreen.cpp
     examples/Scene/d3dapi.cpp
     examples/shaders/sunlight.hlsl
-    examples/Scene/shaders.cpp
-    examples/shaders/object_pass_pix.hlsl
-    examples/shaders/object_pass_vtx.hlsl)
+    d3dshaders.cpp
+    examples/shaders/object.hlsl
+    examples/shaders/object_gbuffer.hlsl)
   set_target_properties(scenedx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   set_target_properties(scenedx12 PROPERTIES COMPILE_DEFINITIONS "DXBUILD")
   target_link_libraries(scenedx12 ${PROJECT_NAME})
