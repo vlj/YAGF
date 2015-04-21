@@ -67,6 +67,13 @@ struct WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &
   return result;
 }
 
+void D3DAPI::releasePSO(struct WrapperPipelineState *pso)
+{
+  pso->D3DValue.rootSignature->Release();
+  pso->D3DValue.pipelineStateObject->Release();
+  free(pso);
+}
+
 static D3D12_RESOURCE_USAGE convertResourceUsage(enum class RESOURCE_USAGE ru)
 {
   switch (ru)
@@ -245,6 +252,13 @@ void D3DAPI::openCommandList(struct WrapperCommandList* wrappedCmdList)
 {
   wrappedCmdList->D3DValue.CommandAllocator->Reset();
   wrappedCmdList->D3DValue.CommandList->Reset(wrappedCmdList->D3DValue.CommandAllocator, nullptr);
+}
+
+void D3DAPI::releaseCommandList(struct WrapperCommandList* wrappedCmdList)
+{
+  wrappedCmdList->D3DValue.CommandList->Release();
+  wrappedCmdList->D3DValue.CommandAllocator->Release();
+  free(wrappedCmdList);
 }
 
 void D3DAPI::closeCommandList(struct WrapperCommandList *wrappedCmdList)

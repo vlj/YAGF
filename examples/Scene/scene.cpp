@@ -2,7 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include <Scene.h>
 
-#include <Material.h>
+#include <Shaders.h>
 #include <RenderTargets.h>
 
 #ifdef DXBUILD
@@ -27,6 +27,8 @@ Scene::~Scene()
   {
     for (irr::scene::IMeshSceneNode* node : Meshes)
       delete node;
+    GlobalGFXAPI->releasePSO(object);
+    GlobalGFXAPI->releaseCommandList(cmdList);
   }
 
   void Scene:: update()

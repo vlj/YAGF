@@ -9,37 +9,33 @@
 #include <D3DAPI/Context.h>
 #include <D3DAPI/D3DS3DVertex.h>
 
-template<typename T, typename VTXLayout>
-class PipelineStateObject : public Singleton<T>
+template<typename VTXLayout>
+struct PipelineStateObject
 {
-public:
-  Microsoft::WRL::ComPtr<ID3D12PipelineState> pso;
-
-  PipelineStateObject(const wchar_t *VertexShaderCSO, const wchar_t *PixelShaderCSO)
+  static ID3D12PipelineState *get(D3D12_GRAPHICS_PIPELINE_STATE_DESC prefilledPSODesc, const wchar_t *VertexShaderCSO, const wchar_t *PixelShaderCSO)
   {
+    ID3D12PipelineState *pso;
     Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
     HRESULT hr;
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
     if (VertexShaderCSO)
     {
       hr = D3DReadFileToBlob(VertexShaderCSO, &vtxshaderblob);
-      psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
-      psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
+      prefilledPSODesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
+      prefilledPSODesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
     }
     if (PixelShaderCSO)
     {
       hr = D3DReadFileToBlob(PixelShaderCSO, &pxshaderblob);
-      psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
-      psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
+      prefilledPSODesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
+      prefilledPSODesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
     }
-    psodesc.InputLayout.pInputElementDescs = VTXLayout::getInputAssemblyLayout();
-    psodesc.InputLayout.NumElements = (UINT)VTXLayout::getInputAssemblySize();
-    psodesc.SampleDesc.Count = 1;
-    psodesc.SampleMask = UINT_MAX;
-    psodesc.NodeMask = 1;
+    prefilledPSODesc.InputLayout.pInputElementDescs = VTXLayout::getInputAssemblyLayout();
+    prefilledPSODesc.InputLayout.NumElements = (UINT)VTXLayout::getInputAssemblySize();
+    prefilledPSODesc.SampleDesc.Count = 1;
+    prefilledPSODesc.SampleMask = UINT_MAX;
+    prefilledPSODesc.NodeMask = 1;
 
-    T::SetRasterizerAndBlendStates(psodesc);
-
-    hr = Context::getInstance()->dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(&pso));
+    hr = Context::getInstance()->dev->CreateGraphicsPipelineState(&prefilledPSODesc, IID_PPV_ARGS(&pso));
+    return pso;
   }
 };

@@ -22,6 +22,7 @@ private:
   WrapperResource *depthtexturecopy;
 public:
   FullscreenPassManager(RenderTargets &);
+  ~FullscreenPassManager();
 
   void renderSunlight();
 };

@@ -5,5 +5,6 @@
 #define __SHADERS_H__
 
 struct WrapperPipelineState *createSunlightShader();
+struct WrapperPipelineState *createObjectShader();
 
 #endif

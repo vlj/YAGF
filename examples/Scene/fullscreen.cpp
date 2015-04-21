@@ -77,6 +77,12 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   Samplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::NEAREST, 1 }, { SAMPLER_TYPE::NEAREST, 2 } });
 }
 
+FullscreenPassManager::~FullscreenPassManager()
+{
+  GlobalGFXAPI->releasePSO(SunlightPSO);
+  GlobalGFXAPI->releaseCommandList(CommandList);
+}
+
 void FullscreenPassManager::renderSunlight()
 {
   irr::core::matrix4 View, Proj, InvView, invProj;

@@ -5,6 +5,6 @@
 #define __MATERIAL_H__
 
 #include <GfxApi.h>
-struct WrapperPipelineState *createObjectShader();
+
 
 #endif

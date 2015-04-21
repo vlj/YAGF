@@ -60,6 +60,7 @@ public:
   virtual struct WrapperResource* createRTT(irr::video::ECOLOR_FORMAT, size_t Width, size_t Height, float fastColor[4]) = 0;
   virtual struct WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) = 0;
   virtual struct WrapperRTTSet* createRTTSet(const std::vector<struct WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil) = 0;
+  virtual void releasePSO(struct WrapperPipelineState *pso) = 0;
   virtual void clearRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float color[4]) = 0;
   virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*) = 0;
@@ -75,6 +76,7 @@ public:
   virtual struct WrapperCommandList* createCommandList() = 0;
   virtual void openCommandList(struct WrapperCommandList* wrappedCmdList) = 0;
   virtual void closeCommandList(struct WrapperCommandList* wrappedCmdList) = 0;
+  virtual void releaseCommandList(struct WrapperCommandList* wrappedCmdList) = 0;
   virtual void drawIndexedInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
   virtual void drawInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) = 0;
   virtual void submitToQueue(struct WrapperCommandList *wrappedCmdList) = 0;
