@@ -74,6 +74,9 @@ namespace irr
 
     IMeshSceneNode::~IMeshSceneNode()
     {
+#ifdef DXBUILD
+      delete PackedVertexBuffer;
+#endif
       GlobalGFXAPI->releaseConstantsBuffers(cbuffer);
       for (irr::video::DrawData &drawdata : DrawDatas)
         GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(drawdata.descriptors);

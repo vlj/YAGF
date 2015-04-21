@@ -79,6 +79,10 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 
 FullscreenPassManager::~FullscreenPassManager()
 {
+#ifdef DXBUILD
+  delete fbo[0];
+  delete fbo[1];
+#endif
   GlobalGFXAPI->releasePSO(SunlightPSO);
   GlobalGFXAPI->releaseCommandList(CommandList);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SunlightInputs);
