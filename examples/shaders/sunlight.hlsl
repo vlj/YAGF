@@ -24,9 +24,9 @@ struct PS_INPUT
 
 float4 getPosFromUVDepth(float3 uvDepth, float4x4 InverseProjectionMatrix)
 {
-  float4 pos = 2.0 * float4(uvDepth, 1.0) - 1.0f;
+  float4 pos = float4(2. * uvDepth.xy - 1., uvDepth.z, 1.0);
   pos.xy *= float2(InverseProjectionMatrix[0][0], InverseProjectionMatrix[1][1]);
-  pos.zw = float2(pos.z * InverseProjectionMatrix[2][2] + pos.w, pos.z * InverseProjectionMatrix[2][3] + pos.w);
+  pos.zw = float2(pos.z * InverseProjectionMatrix[2][2] + pos.w, pos.z * InverseProjectionMatrix[3][2] + pos.w);
   pos /= pos.w;
   return pos;
 }

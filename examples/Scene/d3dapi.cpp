@@ -287,9 +287,9 @@ void D3DAPI::fullscreenSetVertexBufferAndDraw(struct WrapperCommandList *wrapped
       );
 
     const float tri_vertex[] = {
-      -1., -1., 0., 2.,
-      -1., 3., 0., 0.,
-      3., -1., 2., 2.
+      -1., -1., 0., 0.,
+      -1., 3., 0., 2.,
+      3., -1., 2., 0.
     };
     void *tmp;
     ScreenQuadCPU->Map(0, nullptr, &tmp);
