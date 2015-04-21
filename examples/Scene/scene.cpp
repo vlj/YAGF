@@ -31,6 +31,7 @@ Scene::~Scene()
     GlobalGFXAPI->releaseCommandList(cmdList);
     GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(cbufferDescriptorHeap);
     GlobalGFXAPI->releaseSamplerHeap(SamplersHeap);
+    GlobalGFXAPI->releaseConstantsBuffers(cbuffer);
   }
 
   void Scene:: update()
