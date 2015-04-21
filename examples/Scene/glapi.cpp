@@ -166,6 +166,18 @@ struct WrapperRTTSet* GLAPI::createRTTSet(const std::vector<struct WrapperResour
   return result;
 }
 
+void GLAPI::releaseRTTSet(WrapperRTTSet * RTTSet)
+{
+  RTTSet->GLValue.~GLRTTSet();
+  free(RTTSet);
+}
+
+void GLAPI::releasePSO(WrapperPipelineState * pso)
+{
+  glDeleteProgram(pso->GLValue.Program);
+  free(pso);
+}
+
 struct WrapperResource* GLAPI::createDepthStencilTexture(size_t Width, size_t Height)
 {
   WrapperResource* result = (WrapperResource *)malloc(sizeof(WrapperResource));
@@ -173,6 +185,12 @@ struct WrapperResource* GLAPI::createDepthStencilTexture(size_t Width, size_t He
   glBindTexture(GL_TEXTURE_2D, result->GLValue);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, (GLsizei)Width, (GLsizei)Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
   return result;
+}
+
+void GLAPI::releaseRTTOrDepthStencilTexture(WrapperResource * res)
+{
+  glDeleteTextures(1, &res->GLValue);
+  free(res);
 }
 
 void GLAPI::writeResourcesTransitionBarrier(struct WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers)
@@ -211,6 +229,12 @@ struct WrapperDescriptorHeap* GLAPI::createCBVSRVUAVDescriptorHeap(const std::ve
   return result;
 }
 
+void GLAPI::releaseCBVSRVUAVDescriptorHeap(WrapperDescriptorHeap * Heap)
+{
+  Heap->GLValue.~vector();
+  free(Heap);
+}
+
 struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));
@@ -236,6 +260,14 @@ struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<std::pa
     result->GLValue.push_back(std::make_tuple(SamplerObject, RESOURCE_VIEW::SAMPLER, Sampler.second));
   }
   return result;
+}
+
+void GLAPI::releaseSamplerHeap(WrapperDescriptorHeap * Heap)
+{
+  for (std::tuple<GLuint, RESOURCE_VIEW, unsigned> Resource : Heap->GLValue)
+    glDeleteSamplers(1, &std::get<0>(Resource));
+  Heap->GLValue.~vector();
+  free(Heap);
 }
 
 void GLAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap)
@@ -278,6 +310,12 @@ WrapperResource *GLAPI::createConstantsBuffer(size_t sizeInByte)
   return result;
 }
 
+void GLAPI::releaseConstantsBuffers(WrapperResource * cbuf)
+{
+  glDeleteBuffers(1, &cbuf->GLValue);
+  free(cbuf);
+}
+
 void *GLAPI::mapConstantsBuffer(struct WrapperResource *wrappedConstantsBuffer)
 {
   glBindBuffer(GL_UNIFORM_BUFFER, wrappedConstantsBuffer->GLValue);
@@ -292,6 +330,10 @@ void GLAPI::unmapConstantsBuffers(struct WrapperResource *wrappedConstantsBuffer
 WrapperCommandList* GLAPI::createCommandList()
 {
   return nullptr;
+}
+
+void GLAPI::releaseCommandList(WrapperCommandList * wrappedCmdList)
+{
 }
 
 void GLAPI::closeCommandList(struct WrapperCommandList *wrappedCmdList)
