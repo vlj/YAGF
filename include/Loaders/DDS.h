@@ -189,11 +189,11 @@ namespace irr
 
 #else /*__BIG_ENDIAN__*/
 
-    int   DDSLittleLong(int src) { return src; }
-    short int DDSLittleShort(short int src) { return src; }
-    float DDSLittleFloat(float src) { return src; }
+    inline int   DDSLittleLong(int src) { return src; }
+    inline short int DDSLittleShort(short int src) { return src; }
+    inline float DDSLittleFloat(float src) { return src; }
 
-    int DDSBigLong(int src)
+    inline int DDSBigLong(int src)
     {
       return ((src & 0xFF000000) >> 24) |
         ((src & 0x00FF0000) >> 8) |
@@ -201,13 +201,13 @@ namespace irr
         ((src & 0x000000FF) << 24);
     }
 
-    short int DDSBigShort(short int src)
+    inline short int DDSBigShort(short int src)
     {
       return ((src & 0xFF00) >> 8) |
         ((src & 0x00FF) << 8);
     }
 
-    float DDSBigFloat(float src)
+    inline float DDSBigFloat(float src)
     {
       floatSwapUnion in, out;
       in.f = src;

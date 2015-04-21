@@ -4,7 +4,7 @@
 
 #include <D3DAPI/Misc.h>
 #include <D3DAPI/VAO.h>
-#include <D3DAPI/S3DVertex.h>
+#include <D3DAPI/D3DS3DVertex.h>
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 #include <tuple>
@@ -52,29 +52,27 @@ ConstantBuffer<Matrixes> *cbuffer;
 ConstantBuffer<JointTransform> *jointbuffer;
 D3DRTTSet *fbo[2];
 
-class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>
+std::pair<ID3D12PipelineState *, ID3D12RootSignature*> createObjectShader()
 {
-public:
-  Object() : PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>(L"Debug\\vtx.cso", L"Debug\\pix.cso")
-  {}
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+  psodesc.pRootSignature = RS::get();
+  psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
-  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
-  {
-    psodesc.pRootSignature = (*RS::getInstance())();
-    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  psodesc.NumRenderTargets = 1;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+  psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
-    psodesc.NumRenderTargets = 1;
-    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-    psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-    psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  ID3D12PipelineState *pso = PipelineStateObject<VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>::get(psodesc, L"Debug\\vtx.cso", L"Debug\\pix.cso");
+  return std::make_pair(pso, psodesc.pRootSignature);
+}
 
-    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-  }
-};
 
 irr::scene::CB3DMeshFileLoader *loader;
 std::unordered_map<std::string, D3D12_GPU_DESCRIPTOR_HANDLE> textureSet;
+std::pair<ID3D12PipelineState *, ID3D12RootSignature*> ObjectShaderHandle;
 
 void Init(HWND hWnd)
 {
@@ -111,8 +109,8 @@ void Init(HWND hWnd)
     dsv.Texture2D.MipSlice = 0;
     dev->CreateDepthStencilView(DepthBuffer.Get(), &dsv, DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-    fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024);
-    fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024);
+    fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
+    fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
   }
 
   irr::io::CReadFile reader("..\\examples\\assets\\xue.b3d");
@@ -174,7 +172,7 @@ void Init(HWND hWnd)
       HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
       WaitForSingleObject(handle, INFINITE);
       CloseHandle(handle);
-      cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+      cmdlist->Reset(cmdalloc.Get(), nullptr);
     }
 
     // Create Texture Heap
@@ -198,7 +196,8 @@ void Init(HWND hWnd)
     HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
     WaitForSingleObject(handle, INFINITE);
     CloseHandle(handle);
-    cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+    cmdlist->Reset(cmdalloc.Get(), nullptr);
+    ObjectShaderHandle = createObjectShader();
   }
 }
 
@@ -247,7 +246,8 @@ void Draw()
   cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
   fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(cmdlist.Get(), DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
+  cmdlist->SetPipelineState(ObjectShaderHandle.first);
+  cmdlist->SetGraphicsRootSignature(ObjectShaderHandle.second);
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
@@ -271,15 +271,15 @@ void Draw()
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
   cmdalloc->Reset();
-  cmdlist->Reset(cmdalloc.Get(), Object::getInstance()->pso.Get());
+  cmdlist->Reset(cmdalloc.Get(), nullptr);
   Context::getInstance()->Swap();
 }
 
 void Clean()
 {
   Context::getInstance()->kill();
-  Object::getInstance()->kill();
-  RS::getInstance()->kill();
+  ObjectShaderHandle.first->Release();
+  ObjectShaderHandle.second->Release();
   delete vao;
   delete cbuffer;
   delete jointbuffer;

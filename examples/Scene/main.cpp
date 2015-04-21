@@ -9,22 +9,13 @@
 #include <GLFW/glfw3.h>
 
 #include <GLAPI/Debug.h>
+#include <glapi.h>
 #endif
 
 #ifdef DXBUILD
 #include <D3DAPI/Context.h>
-#include <D3DAPI/RootSignature.h>
-
 #include <D3DAPI/Misc.h>
-#include <D3DAPI/VAO.h>
-#include <D3DAPI/S3DVertex.h>
-#include <Loaders/B3D.h>
-#include <Loaders/DDS.h>
-#include <tuple>
-#include <D3DAPI/PSO.h>
-#include <D3DAPI/Resource.h>
-#include <D3DAPI/ConstantBuffer.h>
-
+#include <d3dapi.h>
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
@@ -34,10 +25,23 @@
 RenderTargets *rtts;
 
 Scene *scnmgr;
+FullscreenPassManager *fspassmgr;
 irr::scene::ISceneNode *xue;
+
+#ifdef DXBUILD
+GFXAPI *GlobalGFXAPI = new D3DAPI();
+#endif
+
+#ifdef GLBUILD
+GFXAPI *GlobalGFXAPI = new GLAPI();
+#endif
 
 void init()
 {
+#ifdef GLBUILD
+  DebugUtil::enableDebugOutput();
+  glDepthFunc(GL_LEQUAL);
+#endif
   std::vector<std::string> xueB3Dname = { "..\\examples\\assets\\xue.b3d" };
 
   scnmgr = new Scene();
@@ -46,11 +50,8 @@ void init()
   xue = scnmgr->addMeshSceneNode(MeshManager::getInstance()->getMesh(xueB3Dname[0]), nullptr, irr::core::vector3df(0.f, 0.f, 2.f));
 
   rtts = new RenderTargets(1024, 1024);
+  fspassmgr = new FullscreenPassManager(*rtts);
 
-#ifdef GLBUILD
-  DebugUtil::enableDebugOutput();
-  glDepthFunc(GL_LEQUAL);
-#endif
 }
 
 void clean()
@@ -59,9 +60,8 @@ void clean()
   MeshManager::getInstance()->kill();
   delete rtts;
   delete scnmgr;
+  delete fspassmgr;
 #ifdef DXBUILD
-  Object::getInstance()->kill();
-  RS::getInstance()->kill();
   Context::getInstance()->kill();
 #endif
 }
@@ -73,6 +73,8 @@ void draw()
   xue->setRotation(irr::core::vector3df(0.f, timer / 360.f, 0.f));
   scnmgr->update();
   scnmgr->renderGBuffer(nullptr, *rtts);
+  fspassmgr->renderSunlight();
+
   timer += 16.f;
 }
 

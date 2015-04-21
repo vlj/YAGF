@@ -1,32 +1,30 @@
+// Copyright (C) 2015 Vincent Lejeune
+// For conditions of distribution and use, see copyright notice in License.txt
 
+#ifndef __FULLSCREEN_PASS_H__
+#define __FULLSCREEN_PASS_H__
 
-#if DXBUILD
-#include <D3DAPI/PSO.h>
+#include <RenderTargets.h>
+#include <GfxApi.h>
 
-class SunLight : public PipelineStateObject<SunLight, VertexLayout<ScreenQuadVertex>>
+class FullscreenPassManager
 {
+private:
+  RenderTargets &RTT;
+  WrapperPipelineState *SunlightPSO;
+  WrapperDescriptorHeap *SunlightInputs;
+  WrapperDescriptorHeap *Samplers;
+  WrapperCommandList *CommandList;
+  // should be param of rendersunlight
+  WrapperResource *viewdata;
+  WrapperResource *lightdata;
+  // Fix for D3D
+  WrapperResource *depthtexturecopy;
 public:
-  SunLight() : PipelineStateObject<SunLight, VertexLayout<ScreenQuadVertex>>(L"", L"")
-  { }
+  FullscreenPassManager(RenderTargets &);
+  ~FullscreenPassManager();
 
-  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
-  {
-  }
+  void renderSunlight();
 };
 
-#endif
-
-#if GLBUILD
-
-#endif
-
-#ifdef DXBUILD
-class FullScreen
-{
-public:
-  static void applySunLightPass(ID3D12GraphicsCommandList *cmdlist)
-  {
-
-  }
-};
 #endif

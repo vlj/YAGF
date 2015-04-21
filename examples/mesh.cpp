@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
 #include <GLAPI/VAO.h>
-#include <GLAPI/S3DVertex.h>
+#include <GLAPI/GLS3DVertex.h>
 #include <GLAPI/Texture.h>
 
 #include <GLAPI/Shaders.h>

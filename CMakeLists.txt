@@ -86,14 +86,34 @@ if(BUILD_DX12)
 endif()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples/Scene/include")
-add_executable(scene examples/Scene/main.cpp)
+add_executable(scene
+  examples/Scene/main.cpp
+  examples/Scene/scene.cpp
+  examples/Scene/material.cpp
+  examples/Scene/meshscenenode.cpp
+  examples/Scene/rendertargets.cpp
+  examples/Scene/fullscreen.cpp
+  examples/Scene/shaders.cpp
+  examples/Scene/glapi.cpp)
 set_target_properties(scene PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
 target_link_libraries(scene ${PROJECT_NAME})
 
 if(BUILD_DX12)
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/object_pass_vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/object_pass_pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
-    add_executable(scenedx12 examples/Scene/main.cpp examples/shaders/object_pass_pix.hlsl examples/shaders/object_pass_vtx.hlsl)
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/sunlight.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  add_executable(scenedx12
+    examples/Scene/main.cpp
+    examples/Scene/scene.cpp
+    examples/Scene/material.cpp
+    examples/Scene/meshscenenode.cpp
+    examples/Scene/rendertargets.cpp
+    examples/Scene/fullscreen.cpp
+    examples/Scene/d3dapi.cpp
+    examples/shaders/sunlight.hlsl
+    examples/Scene/shaders.cpp
+    examples/shaders/object_pass_pix.hlsl
+    examples/shaders/object_pass_vtx.hlsl)
   set_target_properties(scenedx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   set_target_properties(scenedx12 PROPERTIES COMPILE_DEFINITIONS "DXBUILD")
   target_link_libraries(scenedx12 ${PROJECT_NAME})

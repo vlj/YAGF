@@ -1,8 +1,3 @@
-#define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
-                         "DescriptorTable(CBV(b0))," \
-                         "DescriptorTable(SRV(t0)), " \
-                         "DescriptorTable(sampler(s0))"
-
 cbuffer CONSTANT_BUF : register(b0)
 {
   float4x4 ModelMatrix;
@@ -20,7 +15,6 @@ struct PS_INPUT
 };
 
 
-[RootSignature(MyRS1)]
 PS_INPUT main(float4 pos : POSITION, float2 texc : TEXCOORD0)
 {
   PS_INPUT result;
