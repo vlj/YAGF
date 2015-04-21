@@ -74,7 +74,9 @@ namespace irr
 
     IMeshSceneNode::~IMeshSceneNode()
     {
-
+      GlobalGFXAPI->releaseConstantsBuffers(cbuffer);
+      for (irr::video::DrawData &drawdata : DrawDatas)
+        GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(drawdata.descriptors);
     }
 
     void IMeshSceneNode::setMesh(const irr::scene::ISkinnedMesh* mesh)

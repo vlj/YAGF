@@ -25,6 +25,11 @@ RenderTargets::RenderTargets(size_t w, size_t h) : Width(w), Height(h)
 
 RenderTargets::~RenderTargets()
 {
+  for (unsigned i = 0; i < FBO_COUNT; i++)
+    GlobalGFXAPI->releaseRTTSet(RTTSets[i]);
+  for (unsigned i = 0; i < RTT_COUNT; i++)
+    GlobalGFXAPI->releaseRTTOrDepthStencilTexture(RenderTargetTextures[i]);
+  GlobalGFXAPI->releaseRTTOrDepthStencilTexture(depthbuffer);
 }
 
 WrapperResource* RenderTargets::getRTT(enum RTT tp)

@@ -50,6 +50,12 @@ struct WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t H
   return result;
 }
 
+void D3DAPI::releaseRTTOrDepthStencilTexture(struct WrapperResource* res)
+{
+  res->D3DValue.resource->Release();
+  free(res);
+}
+
 struct WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil)
 {
   WrapperRTTSet *result = (WrapperRTTSet*) malloc(sizeof(WrapperRTTSet));
@@ -65,6 +71,12 @@ struct WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &
     new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, nullptr, nullptr);
 
   return result;
+}
+
+void D3DAPI::releaseRTTSet(struct WrapperRTTSet *RTTSet)
+{
+  RTTSet->D3DValue.~D3DRTTSet();
+  free(RTTSet);
 }
 
 void D3DAPI::releasePSO(struct WrapperPipelineState *pso)
@@ -237,6 +249,12 @@ WrapperResource *D3DAPI::createConstantsBuffer(size_t sizeInByte)
   bufdesc.SizeInBytes = (UINT)sizeInByte;
   result->D3DValue.description.CBV = bufdesc;
   return result;
+}
+
+void D3DAPI::releaseConstantsBuffers(struct WrapperResource *cbuf)
+{
+  cbuf->D3DValue.resource->Release();
+  free(cbuf);
 }
 
 void *D3DAPI::mapConstantsBuffer(struct WrapperResource *wrappedConstantBuffer)

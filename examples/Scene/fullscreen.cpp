@@ -83,6 +83,8 @@ FullscreenPassManager::~FullscreenPassManager()
   GlobalGFXAPI->releaseCommandList(CommandList);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SunlightInputs);
   GlobalGFXAPI->releaseSamplerHeap(Samplers);
+  GlobalGFXAPI->releaseConstantsBuffers(viewdata);
+  GlobalGFXAPI->releaseConstantsBuffers(lightdata);
 }
 
 void FullscreenPassManager::renderSunlight()

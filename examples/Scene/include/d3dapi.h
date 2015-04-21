@@ -56,7 +56,9 @@ class D3DAPI : public GFXAPI
 public:
   virtual WrapperResource* createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
   virtual struct WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) override;
+  virtual void releaseRTTOrDepthStencilTexture(struct WrapperResource* res) override;
   virtual struct WrapperRTTSet* createRTTSet(const std::vector<struct WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, struct WrapperResource *DepthStencil) override;
+  virtual void releaseRTTSet(struct WrapperRTTSet *RTTSet) override;
   virtual void releasePSO(struct WrapperPipelineState *pso) override;
   virtual void clearRTTSet(struct WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
   virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) override;
@@ -68,6 +70,7 @@ public:
   virtual void setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap) override;
   virtual void setPipelineState(struct WrapperCommandList* wrappedCmdList, struct WrapperPipelineState* pipelineState) override;
   virtual struct WrapperResource *createConstantsBuffer(size_t) override;
+  virtual void releaseConstantsBuffers(struct WrapperResource *cbuf) override;
   virtual void *mapConstantsBuffer(struct WrapperResource *) override;
   virtual void unmapConstantsBuffers(struct WrapperResource *wrappedConstantsBuffer) override;
   virtual void setIndexVertexBuffersSet(struct WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) override;

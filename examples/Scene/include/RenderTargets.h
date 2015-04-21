@@ -13,9 +13,9 @@ public:
   {
     GBUFFER_NORMAL_AND_DEPTH = 0,
     GBUFFER_BASE_COLOR,
-    GBUFFER_EMIT_VALUE,
+//    GBUFFER_EMIT_VALUE,
     COLORS,
-    LINEAR_DEPTH,
+//    LINEAR_DEPTH,
     RTT_COUNT,
   };
 
@@ -23,7 +23,7 @@ public:
   {
     FBO_GBUFFER,
     FBO_COLORS,
-    FBO_LINEAR_DEPTH,
+//    FBO_LINEAR_DEPTH,
     FBO_COUNT,
   };
 

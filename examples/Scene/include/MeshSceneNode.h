@@ -52,11 +52,9 @@ namespace irr
       struct WrapperDescriptorHeap *descriptors;
       size_t IndexCount;
       size_t Stride;
-      core::matrix4 TextureMatrix;
       size_t vaoBaseVertex;
       size_t vaoOffset;
 //      video::E_VERTEX_TYPE VAOType;
-      uint64_t TextureHandles[6];
       const irr::scene::IMeshSceneNode *object;
     };
   }

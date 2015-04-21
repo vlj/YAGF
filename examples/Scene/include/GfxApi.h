@@ -59,7 +59,9 @@ class GFXAPI
 public:
   virtual struct WrapperResource* createRTT(irr::video::ECOLOR_FORMAT, size_t Width, size_t Height, float fastColor[4]) = 0;
   virtual struct WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) = 0;
+  virtual void releaseRTTOrDepthStencilTexture(struct WrapperResource* res) = 0;
   virtual struct WrapperRTTSet* createRTTSet(const std::vector<struct WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, WrapperResource *DepthStencil) = 0;
+  virtual void releaseRTTSet(struct WrapperRTTSet *RTTSet) = 0;
   virtual void releasePSO(struct WrapperPipelineState *pso) = 0;
   virtual void clearRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float color[4]) = 0;
   virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) = 0;
@@ -72,6 +74,7 @@ public:
   virtual void setPipelineState(struct WrapperCommandList* wrappedCmdList, struct WrapperPipelineState* pipelineState) = 0;
   virtual void setIndexVertexBuffersSet(struct WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) = 0;
   virtual struct WrapperResource *createConstantsBuffer(size_t) = 0;
+  virtual void releaseConstantsBuffers(struct WrapperResource *cbuf) = 0;
   virtual void *mapConstantsBuffer(struct WrapperResource *) = 0;
   virtual void unmapConstantsBuffers(struct WrapperResource *wrappedConstantsBuffer) = 0;
   virtual void writeResourcesTransitionBarrier(struct WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &) = 0;
