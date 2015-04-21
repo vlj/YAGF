@@ -4,7 +4,7 @@
 
 #ifdef GLBUILD
 #include <GLAPI/Shaders.h>
-#include <glapi.h>
+#include <API/glapi.h>
 
 const char *vtxshader = TO_STRING(
   \#version 330 \n

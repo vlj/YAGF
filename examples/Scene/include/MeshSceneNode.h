@@ -6,7 +6,7 @@
 #ifndef MESHSCENENODE_H
 #define MESHSCENENODE_H
 
-#include <GfxApi.h>
+#include <API/GfxApi.h>
 
 #ifdef GLBUILD
 #include <GL/glew.h>

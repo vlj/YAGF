@@ -3,11 +3,11 @@
 #include <MeshSceneNode.h>
 
 #ifdef GLBUILD
-#include <glapi.h>
+#include <API/glapi.h>
 #endif
 
 #ifdef DXBUILD
-#include <d3dapi.h>
+#include <API/d3dapi.h>
 #endif
 
 static irr::video::DrawData allocateMeshBuffer(

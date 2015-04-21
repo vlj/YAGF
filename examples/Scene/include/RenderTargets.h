@@ -4,7 +4,7 @@
 #ifndef __RENDER_TARGETS_H__
 #define __RENDER_TARGETS_H__
 
-#include <GfxApi.h>
+#include <API/GfxApi.h>
 
 class RenderTargets
 {

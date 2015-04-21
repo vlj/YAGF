@@ -4,7 +4,7 @@
 #ifndef __SCENE_H__
 #define __SCENE_H__
 
-#include <GfxApi.h>
+#include <API/GfxApi.h>
 #include <list>
 #include <MeshSceneNode.h>
 #include <RenderTargets.h>

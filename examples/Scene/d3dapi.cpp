@@ -1,7 +1,7 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
 
-#include <d3dapi.h>
+#include <API/d3dapi.h>
 #include <D3DAPI/Texture.h>
 #include <D3DAPI/Resource.h>
 #include <D3DAPI/Sampler.h>

@@ -6,7 +6,7 @@
 #include <D3DAPI/RootSignature.h>
 #include <D3DAPI/PSO.h>
 #include <D3DAPI/D3DRTTSet.h>
-#include <d3dapi.h>
+#include <API/d3dapi.h>
 
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>, ShaderResource<0>, ShaderResource<1>, ShaderResource<2>>,
@@ -65,8 +65,8 @@ struct WrapperPipelineState *createObjectShader()
 #include <GLAPI/Shaders.h>
 #include <GLAPI/Misc.h>
 #include <fstream>
-#include <GfxApi.h>
-#include <glapi.h>
+#include <API/GfxApi.h>
+#include <API/glapi.h>
 
 class Sunlight : public ShaderHelperSingleton<Sunlight>, TextureRead<UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0>, TextureResource<GL_TEXTURE_2D, 1>, TextureResource<GL_TEXTURE_2D, 2>>
 {

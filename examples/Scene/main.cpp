@@ -9,13 +9,13 @@
 #include <GLFW/glfw3.h>
 
 #include <GLAPI/Debug.h>
-#include <glapi.h>
+#include <API/glapi.h>
 #endif
 
 #ifdef DXBUILD
 #include <D3DAPI/Context.h>
 #include <D3DAPI/Misc.h>
-#include <d3dapi.h>
+#include <API/d3dapi.h>
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")

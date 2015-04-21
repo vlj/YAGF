@@ -6,7 +6,7 @@
 #include <RenderTargets.h>
 
 #ifdef DXBUILD
-#include <d3dapi.h>
+#include <API/d3dapi.h>
 #endif
 
 struct ViewBuffer

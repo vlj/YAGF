@@ -4,7 +4,7 @@
 #ifndef __MATERIAL_H__
 #define __MATERIAL_H__
 
-#include <GfxApi.h>
+#include <API/GfxApi.h>
 
 
 #endif
