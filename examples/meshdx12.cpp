@@ -99,10 +99,10 @@ void Init(HWND hWnd)
 
   // Texture
   std::vector<std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> > textureNamePairs;
-  for (unsigned i = 0; i < loader->Textures.size(); i++)
+  for (auto Tex : loader->Textures)
   {
     Textures.push_back(ComPtr<ID3D12Resource>());
-    const std::string &fixed = "..\\examples\\assets\\" + loader->Textures[i].TextureName.substr(0, loader->Textures[i].TextureName.find_last_of('.')) + ".DDS";
+    const std::string &fixed = "..\\examples\\assets\\" + Tex.TextureName.substr(0, Tex.TextureName.find_last_of('.')) + ".DDS";
     std::ifstream DDSFile(fixed, std::ifstream::binary);
     irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
@@ -120,7 +120,7 @@ void Init(HWND hWnd)
     WrapperCommandList *uploadcmdlist = GlobalGFXAPI->createCommandList();
     GlobalGFXAPI->openCommandList(uploadcmdlist);
     TextureInRam.CreateUploadCommandToResourceInDefaultHeap(uploadcmdlist->D3DValue.CommandList, Textures.back().Get());
-    textureNamePairs.push_back(std::make_tuple(loader->Textures[i].TextureName, Textures.back().Get(), TextureInRam.getResourceViewDesc()));
+    textureNamePairs.push_back(std::make_tuple(Tex.TextureName, Textures.back().Get(), TextureInRam.getResourceViewDesc()));
 
     GlobalGFXAPI->closeCommandList(uploadcmdlist);
     GlobalGFXAPI->submitToQueue(uploadcmdlist);
