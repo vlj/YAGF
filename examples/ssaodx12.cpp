@@ -11,53 +11,50 @@
 #pragma comment (lib, "dxgi.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
-class Object : public PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords>>
-{
-public:
-  Object() : PipelineStateObject<Object, VertexLayout<irr::video::S3DVertex2TCoords> >(L"Debug\\ssao_vtx.cso", L"Debug\\ssao_pix.cso")
-  {}
-
-  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
-  {
-    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-
-    psodesc.NumRenderTargets = 1;
-    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-    psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-
-    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-  }
-};
-
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ConstantsBufferResource<0>>,
   DescriptorTable<ShaderResource<0> >,
   DescriptorTable<SamplerResource<0>> > RS;
 
-class LinearizeDepthShader : public PipelineStateObject<LinearizeDepthShader, VertexLayout<ScreenQuadVertex>>
+std::pair<ID3D12PipelineState *, ID3D12RootSignature*> ObjectShaderHandle;
+std::pair<ID3D12PipelineState *, ID3D12RootSignature*> createObjectShader()
 {
-public:
-  LinearizeDepthShader() : PipelineStateObject<LinearizeDepthShader, VertexLayout<ScreenQuadVertex> >(L"Debug\\screenquad.cso", L"Debug\\linearize.cso")
-  {}
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+  psodesc.pRootSignature = RS::get();
+  psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
-  static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
-  {
-    psodesc.pRootSignature = RS::get();
-    psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  psodesc.NumRenderTargets = 1;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
-    psodesc.NumRenderTargets = 1;
-    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-    psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-    psodesc.DepthStencilState.DepthEnable = false;
-    psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+  psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  ID3D12PipelineState *pso = PipelineStateObject<VertexLayout<irr::video::S3DVertex2TCoords>>::get(psodesc, L"Debug\\ssao_vtx.cso", L"Debug\\ssao_pix.cso");
+  return std::make_pair(pso, psodesc.pRootSignature);
+}
 
-    psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-  }
-};
+
+
+std::pair<ID3D12PipelineState *, ID3D12RootSignature*> LinearizeDepthShaderHandle;
+std::pair<ID3D12PipelineState *, ID3D12RootSignature*> createLinearizeDepthShader()
+{
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+  psodesc.pRootSignature = RS::get();
+  psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+  psodesc.NumRenderTargets = 1;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  psodesc.DepthStencilState.DepthEnable = false;
+  psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+  psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  ID3D12PipelineState *pso = PipelineStateObject<VertexLayout<ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\linearize.cso");
+  return std::make_pair(pso, psodesc.pRootSignature);
+}
 
 struct SSAOBuffer
 {
@@ -123,7 +120,7 @@ void Init(HWND hWnd)
     ComPtr<ID3D12CommandAllocator> cmdalloc;
     HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
     ComPtr<ID3D12GraphicsCommandList> cmdlist;
-    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), Object::getInstance()->pso.Get(), IID_PPV_ARGS(&cmdlist));
+    hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
 
     cmdlist->CopyBufferRegion(ScreenQuad.Get(), 0, ScreenQuadCPU.Get(), 0, 3 * 4 * sizeof(float), D3D12_COPY_NONE);
     cmdlist->Close();
@@ -220,6 +217,9 @@ void Init(HWND hWnd)
   fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
   fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
 
+  ObjectShaderHandle = createObjectShader();
+  LinearizeDepthShaderHandle = createLinearizeDepthShader();
+
   delete buffer;
 }
 
@@ -228,8 +228,9 @@ void Draw()
   ComPtr<ID3D12CommandAllocator> cmdalloc;
   HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
   ComPtr<ID3D12GraphicsCommandList> cmdlist;
-  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), Object::getInstance()->pso.Get(), IID_PPV_ARGS(&cmdlist));
+  hr = Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
 
+  cmdlist->SetPipelineState(ObjectShaderHandle.first);
   cmdlist->SetDescriptorHeaps(descriptors.GetAddressOf(), 1);
   cmdlist->SetDescriptorHeaps(depth_tex_descriptors.GetAddressOf(), 1);
   cmdlist->SetDescriptorHeaps(SamplerHeap.GetAddressOf(), 1);
@@ -238,7 +239,7 @@ void Draw()
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
   cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1.f, 0, nullptr, 0);
 
-  cmdlist->SetGraphicsRootSignature(RS::get());
+  cmdlist->SetGraphicsRootSignature(ObjectShaderHandle.second);
   emptyfbo->Bind(cmdlist.Get(), depth_descriptors->GetCPUDescriptorHandleForHeapStart());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetVertexBuffers(0, vao->getVertexBufferView().data(), (UINT)vao->getVertexBufferView().size());
@@ -310,7 +311,7 @@ void Draw()
   cmdlist->SetGraphicsRootDescriptorTable(2, SamplerHeap->GetGPUDescriptorHandleForHeapStart());
   cmdlist->ClearRenderTargetView(Context::getInstance()->getCurrentBackBufferDescriptor(), tmp, nullptr, 0);
   fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(cmdlist.Get());
-  cmdlist->SetPipelineState(LinearizeDepthShader::getInstance()->pso.Get());
+  cmdlist->SetPipelineState(LinearizeDepthShaderHandle.first);
   cmdlist->SetVertexBuffers(0, &ScreenQuadView, 1);
   cmdlist->DrawInstanced(3, 1, 0, 0);
 
@@ -324,9 +325,10 @@ void Draw()
 
 void Clean()
 {
-
-  Object::getInstance()->kill();
-  LinearizeDepthShader::getInstance()->kill();
+  ObjectShaderHandle.first->Release();
+  ObjectShaderHandle.second->Release();
+  LinearizeDepthShaderHandle.first->Release();
+  LinearizeDepthShaderHandle.second->Release();
   delete vao;
   delete fbo[0];
   delete fbo[1];
