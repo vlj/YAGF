@@ -152,7 +152,33 @@ struct WrapperDescriptorHeap* D3DAPI::createSamplerHeap(const std::vector<std::p
 
   for (auto tmp : SamplersDesc)
   {
-    Context::getInstance()->dev->CreateSampler(&Samplers::getTrilinearSamplerDesc(), result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(Index * Increment)));
+    D3D12_SAMPLER_DESC samplerdesc = {};
+
+    samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_WRAP;
+    samplerdesc.MaxAnisotropy = 1;
+    samplerdesc.MinLOD = 0;
+    samplerdesc.MaxLOD = 1000;
+    switch (tmp.first)
+    {
+    case SAMPLER_TYPE::TRILINEAR:
+      samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+      break;
+    case SAMPLER_TYPE::BILINEAR:
+      samplerdesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+      samplerdesc.MaxLOD = 0;
+      break;
+    case SAMPLER_TYPE::NEAREST:
+      samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+      samplerdesc.MaxLOD = 0;
+      break;
+    case SAMPLER_TYPE::ANISOTROPIC:
+      samplerdesc.Filter = D3D12_FILTER_ANISOTROPIC;
+      samplerdesc.MaxAnisotropy = 16;
+      break;
+    }
+    Context::getInstance()->dev->CreateSampler(&samplerdesc, result->D3DValue->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(Index * Increment)));
     Index++;
   }
   return result;
