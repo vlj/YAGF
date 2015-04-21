@@ -60,7 +60,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
-    psodesc.pRootSignature = (*RS::getInstance())();
+    psodesc.pRootSignature = RS::get();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -247,7 +247,7 @@ void Draw()
   cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1., 0, nullptr, 0);
 
   fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(cmdlist.Get(), DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-  cmdlist->SetGraphicsRootSignature((*RS::getInstance())());
+  cmdlist->SetGraphicsRootSignature(RS::get());
   float c[] = { 1., 1., 1., 1. };
   cmdlist->SetGraphicsRootDescriptorTable(0, ReadResourceHeaps->GetGPUDescriptorHandleForHeapStart());
   cmdlist->SetGraphicsRootDescriptorTable(2, Sampler->GetGPUDescriptorHandleForHeapStart());
@@ -279,7 +279,6 @@ void Clean()
 {
   Context::getInstance()->kill();
   Object::getInstance()->kill();
-  RS::getInstance()->kill();
   delete vao;
   delete cbuffer;
   delete jointbuffer;

@@ -20,7 +20,7 @@ public:
 
   static void SetRasterizerAndBlendStates(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psodesc)
   {
-    psodesc.pRootSignature = (*RS::getInstance())();
+    psodesc.pRootSignature = RS::get();
     psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -38,7 +38,7 @@ struct WrapperPipelineState *createSunlightShader()
 {
   WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
   result->D3DValue.pipelineStateObject = Sunlight::getInstance()->pso.Get();
-  result->D3DValue.rootSignature = (*RS::getInstance())();
+  result->D3DValue.rootSignature = RS::get();
   return result;
 }
 #endif
