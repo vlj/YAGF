@@ -49,6 +49,7 @@ struct VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData
     static D3D12_INPUT_ELEMENT_DESC IAdesc[] =
     {
       { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
+      { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_PER_VERTEX_DATA, 0 },
       { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_PER_VERTEX_DATA, 0 },
       { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_PER_VERTEX_DATA, 0 },
       { "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 4, D3D12_INPUT_PER_VERTEX_DATA, 0 },
@@ -64,7 +65,7 @@ struct VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData
 
   static size_t getInputAssemblySize()
   {
-    return 10;
+    return 11;
   }
 };
 

@@ -84,10 +84,10 @@ if(BUILD_DX12)
 endif()
 
 if(BUILD_DX12)
-  add_executable(meshdx12 examples/meshdx12.cpp examples/shaders/skinnedobject.hlsl examples/shaders/object_gbuffer.hlsl)
+  add_executable(meshdx12 d3dapi.cpp d3dshaders.cpp examples/meshdx12.cpp examples/shaders/skinnedobject.hlsl examples/shaders/object_gbuffer.hlsl)
   set_target_properties(meshdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   target_link_libraries(meshdx12 ${PROJECT_NAME})
-  add_executable(ssaodx12 examples/ssaodx12.cpp examples/shaders/ssao_vtx.hlsl examples/shaders/ssao_pix.hlsl examples/shaders/screenquad.hlsl examples/shaders/linearize.hlsl)
+  add_executable(ssaodx12 d3dapi.cpp examples/ssaodx12.cpp examples/shaders/ssao_vtx.hlsl examples/shaders/ssao_pix.hlsl examples/shaders/screenquad.hlsl examples/shaders/linearize.hlsl)
   set_target_properties(ssaodx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   target_link_libraries(ssaodx12 ${PROJECT_NAME})
 endif()
@@ -106,15 +106,14 @@ set_target_properties(scene PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
 target_link_libraries(scene ${PROJECT_NAME})
 
 if(BUILD_DX12)
-
   add_executable(scenedx12
+    d3dapi.cpp
     examples/Scene/main.cpp
     examples/Scene/scene.cpp
     examples/Scene/material.cpp
     examples/Scene/meshscenenode.cpp
     examples/Scene/rendertargets.cpp
     examples/Scene/fullscreen.cpp
-    examples/Scene/d3dapi.cpp
     examples/shaders/sunlight.hlsl
     d3dshaders.cpp
     examples/shaders/object.hlsl

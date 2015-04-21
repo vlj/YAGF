@@ -58,10 +58,15 @@ struct WrapperPipelineState *createObjectShader()
   return result;
 }
 
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<0>, ConstantsBufferResource<1>>,
+  DescriptorTable<ShaderResource<0> >,
+  DescriptorTable<SamplerResource<0>> > SkinnedObjectRS;
+
 struct WrapperPipelineState *createSkinnedObjectShader()
 {
   WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
-  result->D3DValue.rootSignature = ObjectRS::get();
+  result->D3DValue.rootSignature = SkinnedObjectRS::get();
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
   psodesc.pRootSignature = result->D3DValue.rootSignature;
   psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -74,6 +79,6 @@ struct WrapperPipelineState *createSkinnedObjectShader()
   psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
   psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::S3DVertex2TCoords>>::get(psodesc, L"Debug\\skinnedobject.cso", L"Debug\\object_gbuffer.cso");
+  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>::get(psodesc, L"Debug\\skinnedobject.cso", L"Debug\\object_gbuffer.cso");
   return result;
 }

@@ -85,30 +85,6 @@ public:
     cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, Depth, Stencil, nullptr, 0);
   }
 
-  void Bind(ID3D12GraphicsCommandList *cmdlist, D3D12_CPU_DESCRIPTOR_HANDLE DepthDescriptor)
-  {
-    D3D12_RECT rect = {};
-    rect.left = 0;
-    rect.top = 0;
-    rect.bottom = (LONG)width;
-    rect.right = (LONG)height;
-
-    D3D12_VIEWPORT view = {};
-    view.Height = (FLOAT)width;
-    view.Width = (FLOAT)height;
-    view.TopLeftX = 0;
-    view.TopLeftY = 0;
-    view.MinDepth = 0;
-    view.MaxDepth = 1.;
-
-    cmdlist->RSSetViewports(1, &view);
-    cmdlist->RSSetScissorRects(1, &rect);
-
-    if (NumRTT > 0)
-      cmdlist->SetRenderTargets(&DescriptorHeap->GetCPUDescriptorHandleForHeapStart(), true, (UINT)NumRTT, &DepthDescriptor);
-    else
-      cmdlist->SetRenderTargets(nullptr, false, 0, &DepthDescriptor);
-  }
 
   void BindLayer(unsigned i)
   {

@@ -4,16 +4,18 @@
 #pragma once
 
 #include <API/GfxApi.h>
+#include <d3d12.h>
+#include <D3DAPI/D3DRTTSet.h>
+#include <D3DAPI/VAO.h>
+#include <D3DAPI/D3DS3DVertex.h>
 
 struct WrapperRTTSet
 {
-
   D3DRTTSet D3DValue;
 };
 
 struct WrapperCommandList
 {
-
   struct {
     ID3D12CommandAllocator* CommandAllocator;
     ID3D12GraphicsCommandList* CommandList;

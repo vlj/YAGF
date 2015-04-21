@@ -13,6 +13,7 @@ struct VS_INPUT
 {
   float3 pos : POSITION;
   float2 texc : TEXCOORD0;
+  float3 normal : NORMAL;
   int index0 : TEXCOORD1;
   float weight0 : TEXCOORD2;
   int index1 : TEXCOORD3;
@@ -27,6 +28,7 @@ struct PS_INPUT
 {
   float4 pos : SV_POSITION;
   float2 uv : TEXCOORD0;
+  float3 normal : TEXCOORD1;
 };
 
 PS_INPUT main(VS_INPUT In)
@@ -75,5 +77,6 @@ PS_INPUT main(VS_INPUT In)
   float4 position = mul(ModelMatrix, SkinnedPosition);
   result.pos = mul(ViewProjectionMatrix, position);
   result.uv = In.texc;
+  result.normal = In.normal;
   return result;
 }
