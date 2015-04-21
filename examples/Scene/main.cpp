@@ -60,6 +60,7 @@ void clean()
   MeshManager::getInstance()->kill();
   delete rtts;
   delete scnmgr;
+  delete fspassmgr;
 #ifdef DXBUILD
   Context::getInstance()->kill();
 #endif
