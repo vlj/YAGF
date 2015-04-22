@@ -31,6 +31,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> DepthTextureCopyDest;
 FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 {
   SunlightPSO = createSunlightShader();
+  TonemapPSO = createTonemapShader();
   CommandList = GlobalGFXAPI->createCommandList();
 
   viewdata = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewData));
@@ -71,14 +72,21 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_VIEW::SHADER_RESOURCE, 1),
     std::make_tuple(depthtexturecopy, RESOURCE_VIEW::SHADER_RESOURCE, 2),
   });
+
+  TonemapInputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
+  {
+    std::make_tuple(RTT.getRTT(RenderTargets::COLORS), RESOURCE_VIEW::SHADER_RESOURCE, 0),
+  });
   Samplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::NEAREST, 1 }, { SAMPLER_TYPE::NEAREST, 2 } });
 }
 
 FullscreenPassManager::~FullscreenPassManager()
 {
   GlobalGFXAPI->releasePSO(SunlightPSO);
+  GlobalGFXAPI->releasePSO(TonemapPSO);
   GlobalGFXAPI->releaseCommandList(CommandList);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SunlightInputs);
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(TonemapInputs);
   GlobalGFXAPI->releaseSamplerHeap(Samplers);
   GlobalGFXAPI->releaseConstantsBuffers(viewdata);
   GlobalGFXAPI->releaseConstantsBuffers(lightdata);
@@ -103,7 +111,6 @@ void FullscreenPassManager::renderSunlight()
   data->sun_direction[1] = 1.;
   data->sun_direction[2] = 0.;
   GlobalGFXAPI->unmapConstantsBuffers(lightdata);
-  GlobalGFXAPI->openCommandList(CommandList);
 
 #ifdef DXBUILD
   // Copy depth (until crash is fixed ?)
@@ -138,11 +145,7 @@ void FullscreenPassManager::renderSunlight()
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
   });
   GlobalGFXAPI->setPipelineState(CommandList, SunlightPSO);
-  GlobalGFXAPI->setBackbufferAsRTTSet(CommandList, 1024, 1024);
-
-#ifdef GLBUILD
-//  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
-#endif
+  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
   GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
   GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, screentri);
@@ -153,14 +156,25 @@ void FullscreenPassManager::renderSunlight()
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
   });
-  GlobalGFXAPI->setBackbufferAsPresent(CommandList);
-  GlobalGFXAPI->closeCommandList(CommandList);
+}
 
-  GlobalGFXAPI->submitToQueue(CommandList);
-#ifdef DXBUILD
-  Context::getInstance()->Swap();
-  HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
-  WaitForSingleObject(handle, INFINITE);
-  CloseHandle(handle);
-#endif
+void FullscreenPassManager::renderTonemap()
+{
+  GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
+  {
+    std::make_tuple(RTT.getRTT(RenderTargets::COLORS), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
+  });
+  GlobalGFXAPI->setBackbufferAsRTTSet(CommandList, 1024, 1024);
+  GlobalGFXAPI->setPipelineState(CommandList, TonemapPSO);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, TonemapInputs);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
+  GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, screentri);
+  GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
+
+  GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
+  {
+    std::make_tuple(RTT.getRTT(RenderTargets::COLORS), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
+  });
+
+  GlobalGFXAPI->setBackbufferAsPresent(CommandList);
 }

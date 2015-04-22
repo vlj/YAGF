@@ -51,7 +51,6 @@ void init()
 
   rtts = new RenderTargets(1024, 1024);
   fspassmgr = new FullscreenPassManager(*rtts);
-
 }
 
 void clean()
@@ -73,7 +72,18 @@ void draw()
   xue->setRotation(irr::core::vector3df(0.f, timer / 360.f, 0.f));
   scnmgr->update();
   scnmgr->renderGBuffer(nullptr, *rtts);
+  GlobalGFXAPI->openCommandList(fspassmgr->CommandList);
   fspassmgr->renderSunlight();
+  fspassmgr->renderTonemap();
+  GlobalGFXAPI->closeCommandList(fspassmgr->CommandList);
+  GlobalGFXAPI->submitToQueue(fspassmgr->CommandList);
+
+#ifdef DXBUILD
+  Context::getInstance()->Swap();
+  HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
+  WaitForSingleObject(handle, INFINITE);
+  CloseHandle(handle);
+#endif
 
   timer += 16.f;
 }

@@ -76,3 +76,36 @@ struct WrapperPipelineState *createSunlightShader()
   result->GLValue.StateSetter = sunlightStateSetter;
   return result;
 }
+
+class Tonemap : public ShaderHelperSingleton<Tonemap>, TextureRead<TextureResource<GL_TEXTURE_2D, 0>>
+{
+public:
+  Tonemap()
+  {
+    std::ifstream vsin("../examples/shaders/screenquad.vert", std::ios::in);
+    const std::string &vs = std::string((std::istreambuf_iterator<char>(vsin)), std::istreambuf_iterator<char>());
+
+    std::ifstream fsin("../examples/shaders/tonemap.frag", std::ios::in);
+    const std::string &fs = std::string((std::istreambuf_iterator<char>(fsin)), std::istreambuf_iterator<char>());
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_VERTEX_SHADER, vs.c_str(),
+      GL_FRAGMENT_SHADER, fs.c_str());
+
+    AssignSamplerNames(Program, "tex");
+  }
+};
+
+static void tonemapStateSetter()
+{
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  glDisable(GL_BLEND);
+}
+
+struct WrapperPipelineState *createTonemapShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->GLValue.Program = Tonemap::getInstance()->Program;
+  result->GLValue.StateSetter = tonemapStateSetter;
+  return result;
+}

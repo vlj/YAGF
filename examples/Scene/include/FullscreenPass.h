@@ -11,21 +11,27 @@ class FullscreenPassManager
 {
 private:
   RenderTargets &RTT;
-  WrapperPipelineState *SunlightPSO;
-  WrapperDescriptorHeap *SunlightInputs;
-  WrapperDescriptorHeap *Samplers;
-  WrapperCommandList *CommandList;
-  // should be param of rendersunlight
-  WrapperResource *viewdata;
-  WrapperResource *lightdata;
   // Fix for D3D
   WrapperResource *depthtexturecopy;
   WrapperIndexVertexBuffersSet *screentri;
+  WrapperDescriptorHeap *Samplers;
+  // Sunlights
+  WrapperPipelineState *SunlightPSO;
+  WrapperDescriptorHeap *SunlightInputs;
+  // should be param of rendersunlight
+  WrapperResource *viewdata;
+  WrapperResource *lightdata;
+  // Tonemap
+  WrapperPipelineState *TonemapPSO;
+  WrapperDescriptorHeap *TonemapInputs;
 public:
+  WrapperCommandList *CommandList;
+
   FullscreenPassManager(RenderTargets &);
   ~FullscreenPassManager();
 
   void renderSunlight();
+  void renderTonemap();
 };
 
 #endif
