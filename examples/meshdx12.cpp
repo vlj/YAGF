@@ -22,7 +22,7 @@ std::vector<ComPtr<ID3D12Resource> > Textures;
 WrapperDescriptorHeap *Sampler;
 WrapperResource *DepthBuffer;
 
-FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> *vao;
+FormattedVertexStorage *vao;
 
 struct Matrixes
 {
@@ -93,7 +93,7 @@ void Init(HWND hWnd)
     weightsList.push_back(weights);
   }
 
-  vao = new FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
+  vao = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
 
   // Upload to gpudata
 

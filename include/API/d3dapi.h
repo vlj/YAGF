@@ -37,7 +37,7 @@ struct WrapperResource
 
 struct WrapperIndexVertexBuffersSet
 {
-  FormattedVertexStorage<irr::video::S3DVertex2TCoords> D3DValue;
+  FormattedVertexStorage D3DValue;
 };
 
 struct WrapperPipelineState

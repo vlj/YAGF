@@ -13,7 +13,6 @@
 #include <D3DAPI/Context.h>
 #include <d3d12.h>
 #include <vector>
-#include <wrl/client.h>
 #include <D3DAPI/Resource.h>
 
 #include <thread>
@@ -24,11 +23,11 @@ struct VertexFiller;
 template<>
 struct VertexFiller<>
 {
-  static void Fill(std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > &vertexbuffer, std::vector<ID3D12Resource*> &cpuVertexBuffers, size_t vtx_count)
+  static void Fill(std::vector<ID3D12Resource* > &vertexbuffer, std::vector<ID3D12Resource*> &cpuVertexBuffers, size_t vtx_count)
   {}
 
   template<unsigned N>
-  static void BuildDesc(std::vector<D3D12_VERTEX_BUFFER_VIEW> &vtxb, size_t vtx_count, std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > &vertexbuffers)
+  static void BuildDesc(std::vector<D3D12_VERTEX_BUFFER_VIEW> &vtxb, size_t vtx_count, std::vector<ID3D12Resource* > &vertexbuffers)
   {
     assert(vtxb.size() == N + 1);
   }
@@ -37,11 +36,10 @@ struct VertexFiller<>
 template<typename T, typename... Args>
 struct VertexFiller<T, Args...>
 {
-  static void Fill(std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > &vertexbuffers, std::vector<ID3D12Resource*> &cpuVertexBuffers, size_t vtx_count,
+  static void Fill(std::vector<ID3D12Resource* > &vertexbuffers, std::vector<ID3D12Resource*> &cpuVertexBuffers, size_t vtx_count,
     const std::vector<std::vector<T> > &Data, const std::vector<std::vector<Args> > &... Otherdata)
   {
-    ID3D12Resource *newcpubuffer;
-    Microsoft::WRL::ComPtr<ID3D12Resource> newgpubuffer;
+    ID3D12Resource *newcpubuffer, *newgpubuffer;
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
       D3D12_HEAP_MISC_NONE,
@@ -73,7 +71,7 @@ struct VertexFiller<T, Args...>
   }
 
   template<unsigned N>
-  static void BuildDesc(std::vector<D3D12_VERTEX_BUFFER_VIEW> &vtxb, size_t vtx_count, std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > &vertexbuffers)
+  static void BuildDesc(std::vector<D3D12_VERTEX_BUFFER_VIEW> &vtxb, size_t vtx_count, std::vector<ID3D12Resource* > &vertexbuffers)
   {
     D3D12_VERTEX_BUFFER_VIEW newvtxb = {};
     newvtxb.BufferLocation = vertexbuffers[N + 1]->GetGPUVirtualAddress();
@@ -88,12 +86,12 @@ struct VertexFiller<T, Args...>
 *  /tparam S3DVertexFormat is the vertex type
 *  /tparam AppendedData is used for vertex "annotation" in companion buffer (like skinning weight)
 */
-template <typename S3DVertexFormat, typename ...AppendedData>
+
 class FormattedVertexStorage
 {
 private:
-  std::vector<Microsoft::WRL::ComPtr<ID3D12Resource> > vertexbuffers;
-  Microsoft::WRL::ComPtr<ID3D12Resource> indexbuffer;
+  std::vector<ID3D12Resource* > vertexbuffers;
+  ID3D12Resource* indexbuffer;
 
   std::vector<D3D12_VERTEX_BUFFER_VIEW> vtxb;
   D3D12_INDEX_BUFFER_VIEW idxb = {};
@@ -101,6 +99,79 @@ private:
 public:
   std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
 
+  ~FormattedVertexStorage()
+  {
+    if (indexbuffer)
+      indexbuffer->Release();
+    for (ID3D12Resource *res : vertexbuffers)
+      res->Release();
+  }
+
+  template <typename S3DVertexFormat, typename ...AppendedData>
+  FormattedVertexStorage(ID3D12CommandQueue *queue, const std::vector<S3DVertexFormat >& meshes)
+  {
+    vertexbuffers.resize(1);
+    S3DVertexFormat *vertexmap;
+
+    size_t bufferSize = meshes.size() * sizeof(S3DVertexFormat);
+
+    HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(bufferSize),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&cpuvertexdata));
+
+    hr = cpuvertexdata->Map(0, nullptr, (void**)&vertexmap);
+
+    hr = Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(bufferSize),
+      D3D12_RESOURCE_USAGE_COPY_DEST,
+      nullptr,
+      IID_PPV_ARGS(&vertexbuffers[0]));
+
+    memcpy(vertexmap, mesh.getVertices(), bufferSize);
+
+    ID3D12CommandAllocator* temporarycommandalloc;
+    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&temporarycommandalloc));
+
+    ID3D12GraphicsCommandList *uploadcmdlist;
+    hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, temporarycommandalloc, nullptr, IID_PPV_ARGS(&uploadcmdlist));
+
+    uploadcmdlist->CopyBufferRegion(vertexbuffers[0], 0, cpuvertexdata, 0, bufferSize, D3D12_COPY_NONE);
+
+    std::vector<D3D12_RESOURCE_BARRIER_DESC> barriers = {
+      setResourceTransitionBarrier(indexbuffer, D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ)
+    };
+    barriers.push_back(setResourceTransitionBarrier(vertexbuffers[0], D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ));
+
+    uploadcmdlist->ResourceBarrier((UINT)barriers.size(), barriers.data());
+
+    uploadcmdlist->Close();
+    queue->ExecuteCommandLists(1, (ID3D12CommandList**)&uploadcmdlist);
+
+    std::thread t1([=]() {
+      HANDLE handle = getCPUSyncHandle(queue);
+      WaitForSingleObject(handle, INFINITE);
+      CloseHandle(handle);
+      temporarycommandalloc->Release();
+      uploadcmdlist->Release();
+      for (unsigned i = 0; i < cpuresources.size(); i++)
+        cpuvertexdata->Release();
+    });
+    t1.detach();
+
+    D3D12_VERTEX_BUFFER_VIEW newvtxb = {};
+    newvtxb.BufferLocation = vertexbuffers[0]->GetGPUVirtualAddress();
+    newvtxb.SizeInBytes = (UINT)cpuvertexdata;
+    newvtxb.StrideInBytes = sizeof(S3DVertexFormat);
+    vtxb.push_back(newvtxb);
+  }
+
+  template <typename S3DVertexFormat, typename ...AppendedData>
   FormattedVertexStorage(ID3D12CommandQueue *queue, const std::vector<irr::scene::IMeshBuffer<S3DVertexFormat> >& meshes, const std::vector<std::vector<AppendedData> > &... Otherdata)
   {
     size_t total_vertex_cnt = 0, total_index_cnt = 0;
@@ -116,6 +187,7 @@ public:
     S3DVertexFormat *vertexmap;
     unsigned short *indexmap;
 
+    // Vertex buffer 0 on RAM and VRAM
     {
       HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
         &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -137,6 +209,7 @@ public:
         IID_PPV_ARGS(&vertexbuffers[0]));
     }
 
+    // Index buffer RAM and VRAM
     {
       HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
         &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -159,10 +232,12 @@ public:
 
     std::vector<ID3D12Resource*> cpuresources = { cpuvertexdata };
 
+    // Fill vertex buffer > 0 in RAM
     VertexFiller<AppendedData...>::Fill(vertexbuffers, cpuresources, total_vertex_cnt, Otherdata...);
 
     size_t basevertex = 0, baseindex = 0;
 
+    // Fill index buffer and vertex buffer 0 in RAM
     for (const irr::scene::IMeshBuffer<S3DVertexFormat>& mesh : meshes)
     {
       memcpy(&vertexmap[basevertex], mesh.getVertices(), sizeof(S3DVertexFormat) * mesh.getVertexCount());
@@ -182,21 +257,23 @@ public:
     ID3D12GraphicsCommandList *uploadcmdlist;
     hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, temporarycommandalloc, nullptr, IID_PPV_ARGS(&uploadcmdlist));
 
-    uploadcmdlist->CopyBufferRegion(indexbuffer.Get(), 0, cpuindexdata, 0, total_index_cnt * sizeof(unsigned short), D3D12_COPY_NONE);
+    // Upload RAM to VRAM data
+    uploadcmdlist->CopyBufferRegion(indexbuffer, 0, cpuindexdata, 0, total_index_cnt * sizeof(unsigned short), D3D12_COPY_NONE);
     for (unsigned i = 0; i < vertexbuffers.size(); i++)
-      uploadcmdlist->CopyBufferRegion(vertexbuffers[i].Get(), 0, cpuresources[i], 0, cpuresources[i]->GetDesc().Width, D3D12_COPY_NONE);
+      uploadcmdlist->CopyBufferRegion(vertexbuffers[i], 0, cpuresources[i], 0, cpuresources[i]->GetDesc().Width, D3D12_COPY_NONE);
 
     std::vector<D3D12_RESOURCE_BARRIER_DESC> barriers = {
-      setResourceTransitionBarrier(indexbuffer.Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ)
+      setResourceTransitionBarrier(indexbuffer, D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ)
     };
     for (unsigned i = 0; i < vertexbuffers.size(); i++)
-      barriers.push_back(setResourceTransitionBarrier(vertexbuffers[i].Get(), D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ));
+      barriers.push_back(setResourceTransitionBarrier(vertexbuffers[i], D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ));
 
     uploadcmdlist->ResourceBarrier((UINT)barriers.size(), barriers.data());
 
     uploadcmdlist->Close();
     queue->ExecuteCommandLists(1, (ID3D12CommandList**)&uploadcmdlist);
 
+    // Release
     std::thread t1([=]() {
       HANDLE handle = getCPUSyncHandle(queue);
       WaitForSingleObject(handle, INFINITE);
@@ -229,6 +306,11 @@ public:
   D3D12_INDEX_BUFFER_VIEW getIndexBufferView() const
   {
     return idxb;
+  }
+
+  bool hasIndexBuffer() const
+  {
+    return indexbuffer != nullptr;
   }
 
 };
