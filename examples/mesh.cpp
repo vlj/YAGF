@@ -1,7 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
-#include <GLAPI/VAO.h>
+#include <GLAPI/GLVertexStorage.h>
 #include <GLAPI/GLS3DVertex.h>
 #include <GLAPI/Texture.h>
 
@@ -15,8 +15,7 @@
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 
-
-std::vector<std::tuple<size_t, size_t, size_t> > CountBaseIndexVTX;
+GLVertexStorage *vao;
 
 GLuint TrilinearSampler;
 
@@ -174,13 +173,33 @@ void init()
   loader = new irr::scene::CB3DMeshFileLoader(&reader);
   const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = loader->AnimatedMesh.getMeshBuffers();
 
+  std::vector<irr::scene::SMeshBufferLightMap> reorg;
+  std::vector<std::vector<irr::video::SkinnedVertexData> > weights;
+
   for (unsigned i = 0; i < buffers.size(); i++)
   {
     const irr::scene::SMeshBufferLightMap &tmpbuf = buffers[i].first;
+    reorg.push_back(tmpbuf);
     const std::vector<irr::scene::ISkinnedMesh::WeightInfluence> &weigts = loader->AnimatedMesh.WeightBuffers[i];
-    std::pair<size_t, size_t> BaseVtxIndex = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getBase(&tmpbuf, weigts.data());
-    CountBaseIndexVTX.push_back(std::make_tuple(tmpbuf.getIndexCount(), BaseVtxIndex.second, BaseVtxIndex.first));
+    std::vector<irr::video::SkinnedVertexData> bufferweights;
+    for (unsigned j = 0; j < loader->AnimatedMesh.WeightBuffers[i].size(); j+=4)
+    {
+      struct irr::video::SkinnedVertexData weight = {
+        loader->AnimatedMesh.WeightBuffers[i][j].Index,
+        loader->AnimatedMesh.WeightBuffers[i][j].Weight,
+        loader->AnimatedMesh.WeightBuffers[i][j + 1].Index,
+        loader->AnimatedMesh.WeightBuffers[i][j + 1].Weight,
+        loader->AnimatedMesh.WeightBuffers[i][j + 2].Index,
+        loader->AnimatedMesh.WeightBuffers[i][j + 2].Weight,
+        loader->AnimatedMesh.WeightBuffers[i][j + 3].Index,
+        loader->AnimatedMesh.WeightBuffers[i][j + 3].Weight,
+      };
+      bufferweights.push_back(weight);
+    }
+    weights.push_back(bufferweights);
   }
+
+  vao = new GLVertexStorage(reorg, weights);
 
   for (unsigned i = 0; i < loader->Textures.size(); i++)
   {
@@ -243,13 +262,12 @@ void draw()
     glBufferData(GL_UNIFORM_BUFFER, loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float), loader->AnimatedMesh.JointMatrixes.data(), GL_STATIC_DRAW);
 
     glUseProgram(ObjectShader::getInstance()->Program);
-    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData> >::getInstance()->getVAO());
-    for (unsigned i = 0; i < CountBaseIndexVTX.size(); i++)
+    glBindVertexArray(vao->vao);
+    for (unsigned i = 0; i < vao->meshOffset.size(); i++)
     {
-      auto tmp = CountBaseIndexVTX[i];
       const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = loader->AnimatedMesh.getMeshBuffers();
       ObjectShader::getInstance()->SetTextureUnits(cbuf, jointsbuf, textureSet[buffers[i].second.TextureNames[0]].Id, TrilinearSampler);
-      glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(tmp), GL_UNSIGNED_SHORT, (void *)std::get<1>(tmp), (GLsizei)std::get<2>(tmp));
+      glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)std::get<0>(vao->meshOffset[i]), GL_UNSIGNED_SHORT, (void *)std::get<2>(vao->meshOffset[i]), (GLsizei)std::get<1>(vao->meshOffset[i]));
     }
 }
 

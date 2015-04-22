@@ -5,6 +5,7 @@
 #define __GLAPI_H__
 
 #include <API/GfxApi.h>
+#include <GLAPI/GLVertexStorage.h>
 
 struct WrapperResource
 {
@@ -26,10 +27,7 @@ struct WrapperPipelineState
 
 struct WrapperIndexVertexBuffersSet
 {
-  struct {
-    GLuint VAO;
-    std::vector<GLuint> VertexBuffers;
-  } GLValue;
+  GLVertexStorage GLValue;
 };
 
 struct WrapperDescriptorHeap

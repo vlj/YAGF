@@ -10,7 +10,7 @@
 
 #ifdef GLBUILD
 #include <GL/glew.h>
-#include <GLAPI/VAO.h>
+#include <GLAPI/GLVertexStorage.h>
 #include <GLAPI/Texture.h>
 #include <GLAPI/GLS3DVertex.h>
 #endif

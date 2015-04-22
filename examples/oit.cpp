@@ -1,7 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
-#include <GLAPI/VAO.h>
+#include <GLAPI/GLVertexStorage.h>
 #include <GLAPI/GLS3DVertex.h>
 
 #include <GLAPI/Shaders.h>
@@ -178,13 +178,15 @@ struct OITBuffer
 };
 
 GLuint cbuf;
+GLVertexStorage *vao;
 
 void init()
 {
     DebugUtil::enableDebugOutput();
     buffer = GeometryCreator::createCubeMeshBuffer(
         irr::core::vector3df(1., 1., 1.));
-    auto tmp = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getBase(buffer);
+    std::vector<irr::scene::SMeshBuffer> tmp{ *buffer };
+    vao = new GLVertexStorage(tmp);
 
     DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
     MainTexture = generateRTT(1024, 1024, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -248,7 +250,7 @@ void draw()
 
 
     glUseProgram(Transparent::getInstance()->Program);
-    glBindVertexArray(VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex> >::getInstance()->getVAO());
+    glBindVertexArray(vao->vao);
 
     memcpy(cbufdata.Model, Model.pointer(), 16 * sizeof(float));
     cbufdata.color[0] = 0.f;

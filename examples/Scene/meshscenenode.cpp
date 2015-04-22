@@ -88,25 +88,19 @@ namespace irr
 
       const std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > &buffers = Mesh->getMeshBuffers();
 
-#ifdef DXBUILD
       std::vector<irr::scene::SMeshBufferLightMap> reorg;
-#endif
 
       for (const std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> &buffer : buffers)
       {
         const irr::scene::SMeshBufferLightMap* mb = &buffer.first;
         DrawDatas.push_back(allocateMeshBuffer(buffer.first, this));
         WrapperResource *WrapperTexture = (WrapperResource*)malloc(sizeof(WrapperResource));
+        reorg.push_back(buffer.first);
 #ifdef GLBUILD
-        std::pair<size_t, size_t> p = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getBase(mb);
-        DrawDatas.back().vaoBaseVertex = p.first;
-        DrawDatas.back().vaoOffset = p.second;
         WrapperTexture->GLValue = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0])->Id;
 #endif
 
 #ifdef DXBUILD
-        reorg.push_back(buffer.first);
-
         const Texture* TextureInRam = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
 
         Tex.emplace_back();
@@ -169,9 +163,16 @@ namespace irr
         MeshSolidMaterial[MatType].push_back(&mesh);
         }*/
       }
-#ifdef GLBUILD
       PackedVertexBuffer = (WrapperIndexVertexBuffersSet*)malloc(sizeof(WrapperIndexVertexBuffersSet));
-      PackedVertexBuffer->GLValue.VAO = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
+#ifdef GLBUILD
+      new (&PackedVertexBuffer->GLValue) GLVertexStorage(reorg);
+      for (unsigned i = 0; i < DrawDatas.size(); i++)
+      {
+        irr::video::DrawData &drawdata = DrawDatas[i];
+        drawdata.IndexCount = std::get<0>(PackedVertexBuffer->GLValue.meshOffset[i]);
+        drawdata.vaoOffset = std::get<2>(PackedVertexBuffer->GLValue.meshOffset[i]);
+        drawdata.vaoBaseVertex = std::get<1>(PackedVertexBuffer->GLValue.meshOffset[i]);
+      }
 #endif
 #ifdef DXBUILD
       FormattedVertexStorage *tmp = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg);

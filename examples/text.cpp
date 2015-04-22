@@ -1,7 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <Util/GeometryCreator.h>
-#include <GLAPI/VAO.h>
+#include <GLAPI/GLVertexStorage.h>
 
 #include <GLAPI/Shaders.h>
 #include <GLAPI/GLRTTSet.h>
