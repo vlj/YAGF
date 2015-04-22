@@ -133,8 +133,8 @@ namespace irr
           return;
         }
 
-#if defined ( _IRR_WCHAR_FILESYSTEM )
-        File = _wfopen(Filename.c_str(), L"rb");
+#if WIN32
+        fopen_s(&File, Filename.c_str(), "rb");
 #else
         File = fopen(Filename.c_str(), "rb");
 #endif
