@@ -98,6 +98,7 @@ int main()
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
+  glfwSwapInterval(1);
 
   glewExperimental = GL_TRUE;
   glewInit();
