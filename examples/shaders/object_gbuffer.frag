@@ -23,7 +23,7 @@ void main(void)
   float glossmap = texture(glosstex, uv).r;
   float reflectance = texture(glosstex, uv).g;
   EncodedNormal_Roughness_Metalness.xy = 0.5 * EncodeNormal(normalize(nor)) + 0.5;
-  EncodedNormal_Roughness_Metalness.z = 1. - glossmap;
-  EncodedNormal_Roughness_Metalness.w = reflectance;
+  EncodedNormal_Roughness_Metalness.z = 1.;
+  EncodedNormal_Roughness_Metalness.w = 0.;
   EmitMap = texture(glosstex, uv).b;
 }
