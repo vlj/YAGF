@@ -66,7 +66,7 @@ struct SSAOBuffer
   float zf;
 };
 
-FormattedVertexStorage<irr::video::S3DVertex> *vao;
+FormattedVertexStorage *vao;
 
 using namespace Microsoft::WRL;
 ComPtr<ID3D12Resource> DepthTexture;
@@ -74,7 +74,6 @@ ComPtr<ID3D12Resource> DepthBuffer;
 ComPtr<ID3D12Resource> cbufferdata[2];
 ComPtr<ID3D12DescriptorHeap> descriptors;
 ComPtr<ID3D12DescriptorHeap> depth_tex_descriptors;
-ComPtr<ID3D12DescriptorHeap> depth_descriptors;
 ComPtr<ID3D12Resource> ScreenQuad;
 D3D12_VERTEX_BUFFER_VIEW ScreenQuadView;
 ComPtr<ID3D12DescriptorHeap> SamplerHeap;
@@ -135,7 +134,7 @@ void Init(HWND hWnd)
     irr::core::vector3df(1., 1., 1.));
   std::vector<irr::scene::SMeshBuffer> buffers = { *buffer };
 
-  vao = new FormattedVertexStorage<irr::video::S3DVertex>(Context::getInstance()->cmdqueue.Get(), buffers);
+  vao = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), buffers);
 
   // Create render targets
   Context::getInstance()->dev->CreateCommittedResource(
@@ -147,13 +146,10 @@ void Init(HWND hWnd)
     IID_PPV_ARGS(&DepthBuffer)
     );
 
-  depth_descriptors = createDescriptorHeap(Context::getInstance()->dev.Get(), 1, D3D12_DSV_DESCRIPTOR_HEAP, false);
-
   D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_desc = {};
   depth_stencil_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
   depth_stencil_desc.Format = DXGI_FORMAT_D32_FLOAT;
   depth_stencil_desc.Texture2D.MipSlice = 0;
-  Context::getInstance()->dev->CreateDepthStencilView(DepthBuffer.Get(), &depth_stencil_desc, depth_descriptors->GetCPUDescriptorHandleForHeapStart());
 
   Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -213,7 +209,7 @@ void Init(HWND hWnd)
   samplerdesc.MaxLOD = 0;
   Context::getInstance()->dev->CreateSampler(&samplerdesc, SamplerHeap->GetCPUDescriptorHandleForHeapStart());
 
-  emptyfbo = new D3DRTTSet({}, {}, 1024, 1024, nullptr, nullptr);
+  emptyfbo = new D3DRTTSet({}, {}, 1024, 1024, DepthBuffer.Get(), &depth_stencil_desc);
   fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
   fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
 
@@ -237,10 +233,10 @@ void Draw()
 
   float tmp[] = { 0., 0., 0., 0. };
   cmdlist->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
-  cmdlist->ClearDepthStencilView(depth_descriptors->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, 1.f, 0, nullptr, 0);
+  emptyfbo->ClearDepthStencil(cmdlist.Get(), 1.f, 0);
 
   cmdlist->SetGraphicsRootSignature(ObjectShaderHandle.second);
-  emptyfbo->Bind(cmdlist.Get(), depth_descriptors->GetCPUDescriptorHandleForHeapStart());
+  emptyfbo->Bind(cmdlist.Get());
   cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   cmdlist->SetVertexBuffers(0, vao->getVertexBufferView().data(), (UINT)vao->getVertexBufferView().size());
   cmdlist->SetIndexBuffer(&vao->getIndexBufferView());

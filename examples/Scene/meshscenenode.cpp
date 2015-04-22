@@ -174,7 +174,7 @@ namespace irr
       PackedVertexBuffer->GLValue = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
 #endif
 #ifdef DXBUILD
-      auto tmp = new FormattedVertexStorage<irr::video::S3DVertex2TCoords>(Context::getInstance()->cmdqueue.Get(), reorg);
+      FormattedVertexStorage *tmp = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg);
       PackedVertexBuffer = (WrapperIndexVertexBuffersSet *)tmp;
       for (unsigned i = 0; i < DrawDatas.size(); i++)
       {
