@@ -66,6 +66,8 @@ public:
   virtual void clearRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float color[4]) = 0;
   virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) = 0;
   virtual void setRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*) = 0;
+  virtual void setBackbufferAsRTTSet(struct WrapperCommandList* wrappedCmdList, size_t width, size_t height) = 0;
+  virtual void setBackbufferAsPresent(struct WrapperCommandList* wrappedCmdList) = 0;
   virtual struct WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources) = 0;
   virtual void releaseCBVSRVUAVDescriptorHeap(struct WrapperDescriptorHeap* Heap) = 0;
   virtual struct WrapperDescriptorHeap* createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc) = 0;

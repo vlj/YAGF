@@ -132,6 +132,33 @@ void D3DAPI::setRTTSet(struct WrapperCommandList* wrappedCmdList, struct Wrapper
   RTTSet->D3DValue.Bind(wrappedCmdList->D3DValue.CommandList);
 }
 
+void D3DAPI::setBackbufferAsRTTSet(struct WrapperCommandList* wrappedCmdList, size_t width, size_t height)
+{
+  D3D12_RECT rect = {};
+  rect.left = 0;
+  rect.top = 0;
+  rect.bottom = (LONG)width;
+  rect.right = (LONG)height;
+
+  D3D12_VIEWPORT view = {};
+  view.Height = (FLOAT)width;
+  view.Width = (FLOAT)height;
+  view.TopLeftX = 0;
+  view.TopLeftY = 0;
+  view.MinDepth = 0;
+  view.MaxDepth = 1.;
+
+  wrappedCmdList->D3DValue.CommandList->RSSetViewports(1, &view);
+  wrappedCmdList->D3DValue.CommandList->RSSetScissorRects(1, &rect);
+  wrappedCmdList->D3DValue.CommandList->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_PRESENT, D3D12_RESOURCE_USAGE_RENDER_TARGET));
+  wrappedCmdList->D3DValue.CommandList->SetRenderTargets(&Context::getInstance()->getCurrentBackBufferDescriptor(), true, 1, nullptr);
+}
+
+void D3DAPI::setBackbufferAsPresent(struct WrapperCommandList* wrappedCmdList)
+{
+  wrappedCmdList->D3DValue.CommandList->ResourceBarrier(1, &setResourceTransitionBarrier(Context::getInstance()->getCurrentBackBuffer(), D3D12_RESOURCE_USAGE_RENDER_TARGET, D3D12_RESOURCE_USAGE_PRESENT));
+}
+
 struct WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, RESOURCE_VIEW, size_t> > &Resources)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));

@@ -217,6 +217,15 @@ void GLAPI::setRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperR
   RTTSet->GLValue.Bind();
 }
 
+void GLAPI::setBackbufferAsRTTSet(struct WrapperCommandList* wrappedCmdList, size_t width, size_t height)
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0, 0, width, height);
+}
+
+void GLAPI::setBackbufferAsPresent(struct WrapperCommandList* wrappedCmdList)
+{}
+
 struct WrapperDescriptorHeap* GLAPI::createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources)
 {
   WrapperDescriptorHeap *result = (WrapperDescriptorHeap*)malloc(sizeof(WrapperDescriptorHeap));

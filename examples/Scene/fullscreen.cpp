@@ -25,7 +25,6 @@ struct LightData
 };
 
 #ifdef DXBUILD
-D3DRTTSet *fbo[2];
 Microsoft::WRL::ComPtr<ID3D12Resource> DepthTextureCopyDest;
 #endif
 
@@ -56,10 +55,6 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   srv_view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
   srv_view.Texture2D.MipLevels = 1;
   depthtexturecopy->D3DValue.description.SRV = srv_view;
-
-  // FBO
-  fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
-  fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, nullptr, nullptr);
 #endif
 
 #ifdef GLBUILD
@@ -79,10 +74,6 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 
 FullscreenPassManager::~FullscreenPassManager()
 {
-#ifdef DXBUILD
-  delete fbo[0];
-  delete fbo[1];
-#endif
   GlobalGFXAPI->releasePSO(SunlightPSO);
   GlobalGFXAPI->releaseCommandList(CommandList);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SunlightInputs);
@@ -144,12 +135,10 @@ void FullscreenPassManager::renderSunlight()
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
   });
   GlobalGFXAPI->setPipelineState(CommandList, SunlightPSO);
-#ifdef DXBUILD
-  fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(CommandList->D3DValue.CommandList);
-#endif
+  GlobalGFXAPI->setBackbufferAsRTTSet(CommandList, 1024, 1024);
 
 #ifdef GLBUILD
-  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
+//  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
 #endif
   GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
@@ -160,6 +149,7 @@ void FullscreenPassManager::renderSunlight()
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
   });
+  GlobalGFXAPI->setBackbufferAsPresent(CommandList);
   GlobalGFXAPI->closeCommandList(CommandList);
 
   GlobalGFXAPI->submitToQueue(CommandList);
@@ -168,8 +158,5 @@ void FullscreenPassManager::renderSunlight()
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
-#endif
-#ifdef GLBUILD
-  RTT.getRTTSet(RenderTargets::FBO_COLORS)->GLValue.BlitToDefault(0, 0, 1024, 1024);
 #endif
 }
