@@ -52,7 +52,7 @@ std::pair<ID3D12PipelineState *, ID3D12RootSignature*> createLinearizeDepthShade
   psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
   psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
-  ID3D12PipelineState *pso = PipelineStateObject<VertexLayout<ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\linearize.cso");
+  ID3D12PipelineState *pso = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\linearize.cso");
   return std::make_pair(pso, psodesc.pRootSignature);
 }
 
