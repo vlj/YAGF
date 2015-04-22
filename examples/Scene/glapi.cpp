@@ -220,7 +220,7 @@ void GLAPI::setRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperR
 void GLAPI::setBackbufferAsRTTSet(struct WrapperCommandList* wrappedCmdList, size_t width, size_t height)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glViewport(0, 0, width, height);
+  glViewport(0, 0, (GLsizei)width, (GLsizei)height);
 }
 
 void GLAPI::setBackbufferAsPresent(struct WrapperCommandList* wrappedCmdList)
@@ -273,7 +273,7 @@ struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<std::pa
 
 void GLAPI::releaseSamplerHeap(WrapperDescriptorHeap * Heap)
 {
-  for (std::tuple<GLuint, RESOURCE_VIEW, unsigned> Resource : Heap->GLValue)
+  for (std::tuple<GLuint, RESOURCE_VIEW, size_t> Resource : Heap->GLValue)
     glDeleteSamplers(1, &std::get<0>(Resource));
   Heap->GLValue.~vector();
   free(Heap);
@@ -281,19 +281,19 @@ void GLAPI::releaseSamplerHeap(WrapperDescriptorHeap * Heap)
 
 void GLAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap)
 {
-  for (std::tuple<GLuint, RESOURCE_VIEW, unsigned> Resource : DescriptorHeap->GLValue)
+  for (std::tuple<GLuint, RESOURCE_VIEW, size_t> Resource : DescriptorHeap->GLValue)
   {
     switch (std::get<1>(Resource))
     {
     case RESOURCE_VIEW::CONSTANTS_BUFFER:
-      glBindBufferBase(GL_UNIFORM_BUFFER, std::get<2>(Resource), std::get<0>(Resource));
+      glBindBufferBase(GL_UNIFORM_BUFFER, (GLuint)std::get<2>(Resource), std::get<0>(Resource));
       break;
     case RESOURCE_VIEW::SHADER_RESOURCE:
-      glActiveTexture(GL_TEXTURE0 + std::get<2>(Resource));
+      glActiveTexture((GLenum)(GL_TEXTURE0 + std::get<2>(Resource)));
       glBindTexture(GL_TEXTURE_2D, std::get<0>(Resource));
       break;
     case RESOURCE_VIEW::SAMPLER:
-      glBindSampler(std::get<2>(Resource), std::get<0>(Resource));
+      glBindSampler((GLuint)std::get<2>(Resource), std::get<0>(Resource));
       break;
     }
   }

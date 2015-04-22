@@ -34,7 +34,7 @@ struct WrapperIndexVertexBuffersSet
 
 struct WrapperDescriptorHeap
 {
-  std::vector<std::tuple<GLuint, RESOURCE_VIEW, unsigned>> GLValue;
+  std::vector<std::tuple<GLuint, RESOURCE_VIEW, size_t>> GLValue;
 };
 
 class GLAPI : public GFXAPI
