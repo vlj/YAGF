@@ -5,10 +5,6 @@
 #include <Core/BasicVertexLayout.h>
 #include <d3d12.h>
 
-struct ScreenQuadVertex
-{
-};
-
 template<typename... T>
 struct VertexLayout
 {
@@ -70,7 +66,7 @@ struct VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData
 };
 
 template<>
-struct VertexLayout<ScreenQuadVertex>
+struct VertexLayout<irr::video::ScreenQuadVertex>
 {
   static D3D12_INPUT_ELEMENT_DESC* getInputAssemblyLayout()
   {

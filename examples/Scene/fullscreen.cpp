@@ -36,6 +36,8 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   viewdata = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewData));
   lightdata = GlobalGFXAPI->createConstantsBuffer(sizeof(LightData));
 
+  screentri = GlobalGFXAPI->createFullscreenTri();
+
 #ifdef DXBUILD
   // temp depth texture
   Context::getInstance()->dev->CreateCommittedResource(
@@ -80,6 +82,7 @@ FullscreenPassManager::~FullscreenPassManager()
   GlobalGFXAPI->releaseSamplerHeap(Samplers);
   GlobalGFXAPI->releaseConstantsBuffers(viewdata);
   GlobalGFXAPI->releaseConstantsBuffers(lightdata);
+  GlobalGFXAPI->releaseIndexVertexBuffersSet(screentri);
 }
 
 void FullscreenPassManager::renderSunlight()
@@ -142,7 +145,8 @@ void FullscreenPassManager::renderSunlight()
 #endif
   GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SunlightInputs);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
-  GlobalGFXAPI->fullscreenSetVertexBufferAndDraw(CommandList);
+  GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, screentri);
+  GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
 
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
   {

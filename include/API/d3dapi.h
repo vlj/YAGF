@@ -86,5 +86,6 @@ public:
   virtual void drawIndexedInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) override;
   virtual void drawInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) override;
   virtual void submitToQueue(struct WrapperCommandList *wrappedCmdList) override;
-  virtual void fullscreenSetVertexBufferAndDraw(struct WrapperCommandList *wrappedCmdList) override;
+  virtual struct WrapperIndexVertexBuffersSet* createFullscreenTri() override;
+  virtual void releaseIndexVertexBuffersSet(struct WrapperIndexVertexBuffersSet *res) override;
 };

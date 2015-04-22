@@ -280,6 +280,12 @@ namespace irr
       float weight3;
     };
 
+    struct ScreenQuadVertex
+    {
+      irr::core::vector2df Position;
+      irr::core::vector2df Texcoord;
+    };
+
   } // end namespace video
 } // end namespace irr
 

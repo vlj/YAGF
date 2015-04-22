@@ -171,7 +171,7 @@ namespace irr
       }
 #ifdef GLBUILD
       PackedVertexBuffer = (WrapperIndexVertexBuffersSet*)malloc(sizeof(WrapperIndexVertexBuffersSet));
-      PackedVertexBuffer->GLValue = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
+      PackedVertexBuffer->GLValue.VAO = VertexArrayObject<FormattedVertexStorage<irr::video::S3DVertex2TCoords> >::getInstance()->getVAO();
 #endif
 #ifdef DXBUILD
       FormattedVertexStorage *tmp = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg);

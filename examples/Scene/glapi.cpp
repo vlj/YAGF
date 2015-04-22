@@ -301,7 +301,7 @@ void GLAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t 
 
 void GLAPI::setIndexVertexBuffersSet(struct WrapperCommandList* wrappedCmdList, struct WrapperIndexVertexBuffersSet* wrappedVAO)
 {
-  glBindVertexArray(wrappedVAO->GLValue);
+  glBindVertexArray(wrappedVAO->GLValue.VAO);
 }
 
 void GLAPI::setPipelineState(struct WrapperCommandList* wrappedCmdList, struct WrapperPipelineState* wrappedPipelineState)
@@ -366,8 +366,40 @@ void GLAPI::submitToQueue(struct WrapperCommandList *wrappedCmdList)
 
 }
 
-void GLAPI::fullscreenSetVertexBufferAndDraw(struct WrapperCommandList *wrappedCmdList)
+struct WrapperIndexVertexBuffersSet* GLAPI::createFullscreenTri()
 {
-  glBindVertexArray(SharedObject::getInstance()->FullScreenQuadVAO);
-  glDrawArrays(GL_TRIANGLES, 0, 3);
+  GLuint tri_vbo;
+  const float tri_vertex[] = {
+    -1., -1., 0., 0.,
+    -1., 3., 0., 2.,
+    3., -1., 2., 0.,
+  };
+  glGenBuffers(1, &tri_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, tri_vbo);
+  glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(float), tri_vertex, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  GLuint FullScreenQuadVAO;
+  glGenVertexArrays(1, &FullScreenQuadVAO);
+  glBindVertexArray(FullScreenQuadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, tri_vbo);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (GLvoid*)(2 * sizeof(float)));
+
+  WrapperIndexVertexBuffersSet *result = (WrapperIndexVertexBuffersSet*)malloc(sizeof(WrapperIndexVertexBuffersSet));
+  new (&result->GLValue.VertexBuffers) std::vector<GLuint>();
+  result->GLValue.VertexBuffers.push_back(tri_vbo);
+  result->GLValue.VAO = FullScreenQuadVAO;
+
+  return result;
+}
+void GLAPI::releaseIndexVertexBuffersSet(struct WrapperIndexVertexBuffersSet *res)
+{
+  for (GLuint vbo : res->GLValue.VertexBuffers)
+    glDeleteBuffers(1, &vbo);
+  res->GLValue.VertexBuffers.~vector();
+  glDeleteVertexArrays(1, &res->GLValue.VAO);
+  free(res);
 }

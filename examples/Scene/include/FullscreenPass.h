@@ -20,6 +20,7 @@ private:
   WrapperResource *lightdata;
   // Fix for D3D
   WrapperResource *depthtexturecopy;
+  WrapperIndexVertexBuffersSet *screentri;
 public:
   FullscreenPassManager(RenderTargets &);
   ~FullscreenPassManager();

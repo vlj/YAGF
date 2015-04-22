@@ -28,7 +28,7 @@ struct WrapperPipelineState *createSunlightShader()
 
   psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
 
-  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\sunlight.cso");
+  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\sunlight.cso");
   return result;
 }
 

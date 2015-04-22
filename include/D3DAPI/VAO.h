@@ -108,10 +108,11 @@ public:
   }
 
   template <typename S3DVertexFormat, typename ...AppendedData>
-  FormattedVertexStorage(ID3D12CommandQueue *queue, const std::vector<S3DVertexFormat >& meshes)
+  FormattedVertexStorage(ID3D12CommandQueue *queue, const std::vector<S3DVertexFormat >& meshes) : indexbuffer(nullptr)
   {
     vertexbuffers.resize(1);
     S3DVertexFormat *vertexmap;
+    ID3D12Resource *cpuvertexdata;
 
     size_t bufferSize = meshes.size() * sizeof(S3DVertexFormat);
 
@@ -133,22 +134,17 @@ public:
       nullptr,
       IID_PPV_ARGS(&vertexbuffers[0]));
 
-    memcpy(vertexmap, mesh.getVertices(), bufferSize);
+    memcpy(vertexmap, meshes.data(), bufferSize);
 
     ID3D12CommandAllocator* temporarycommandalloc;
-    HRESULT hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&temporarycommandalloc));
-
     ID3D12GraphicsCommandList *uploadcmdlist;
+    hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&temporarycommandalloc));
     hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, temporarycommandalloc, nullptr, IID_PPV_ARGS(&uploadcmdlist));
 
     uploadcmdlist->CopyBufferRegion(vertexbuffers[0], 0, cpuvertexdata, 0, bufferSize, D3D12_COPY_NONE);
 
-    std::vector<D3D12_RESOURCE_BARRIER_DESC> barriers = {
-      setResourceTransitionBarrier(indexbuffer, D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ)
-    };
-    barriers.push_back(setResourceTransitionBarrier(vertexbuffers[0], D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ));
-
-    uploadcmdlist->ResourceBarrier((UINT)barriers.size(), barriers.data());
+    D3D12_RESOURCE_BARRIER_DESC barriers = setResourceTransitionBarrier(vertexbuffers[0], D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ);
+    uploadcmdlist->ResourceBarrier(1, &barriers);
 
     uploadcmdlist->Close();
     queue->ExecuteCommandLists(1, (ID3D12CommandList**)&uploadcmdlist);
@@ -159,14 +155,13 @@ public:
       CloseHandle(handle);
       temporarycommandalloc->Release();
       uploadcmdlist->Release();
-      for (unsigned i = 0; i < cpuresources.size(); i++)
-        cpuvertexdata->Release();
+      cpuvertexdata->Release();
     });
     t1.detach();
 
     D3D12_VERTEX_BUFFER_VIEW newvtxb = {};
     newvtxb.BufferLocation = vertexbuffers[0]->GetGPUVirtualAddress();
-    newvtxb.SizeInBytes = (UINT)cpuvertexdata;
+    newvtxb.SizeInBytes = (UINT)bufferSize;
     newvtxb.StrideInBytes = sizeof(S3DVertexFormat);
     vtxb.push_back(newvtxb);
   }

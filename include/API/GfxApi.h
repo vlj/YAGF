@@ -87,7 +87,9 @@ public:
   virtual void drawIndexedInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) = 0;
   virtual void drawInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) = 0;
   virtual void submitToQueue(struct WrapperCommandList *wrappedCmdList) = 0;
-  virtual void fullscreenSetVertexBufferAndDraw(struct WrapperCommandList *wrappedCmdList) = 0;
+  // Uploaded in the direct queue
+  virtual struct WrapperIndexVertexBuffersSet* createFullscreenTri() = 0;
+  virtual void releaseIndexVertexBuffersSet(struct WrapperIndexVertexBuffersSet *res) = 0;
 };
 
 //Global
