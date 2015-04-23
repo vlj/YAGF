@@ -7,6 +7,7 @@
 #define __COLOR_H_INCLUDED__
 
 #include <cmath>
+#include <cassert>
 
 namespace irr
 {
@@ -90,6 +91,20 @@ namespace irr
         case ECF_BC5_SNORM:
             return true;
         }
+    }
+
+    inline size_t formatBitCount(ECOLOR_FORMAT format)
+    {
+      assert(!isCompressed(format));
+      switch (format)
+      {
+      case ECF_A8R8G8B8:
+      case ECF_R8G8B8A8_UNORM:
+      case ECF_R8G8B8A8_UNORM_SRGB:
+        return 32;
+      default:
+        return 0;
+      }
     }
 
 

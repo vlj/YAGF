@@ -311,9 +311,9 @@ namespace irr
       {
         if (!isCompressed(format)) // Uncompressed formats
         {
+          unsigned byteCount = formatBitCount(format) / 8;
           for (unsigned layer = 0; layer < layersCount; layer++)
           {
-            unsigned byteCount = 4;// header.PixelFormat.RGBBitCount / 8;
             unsigned curWidth = header.Width;
             unsigned curHeight = header.Height;
 
