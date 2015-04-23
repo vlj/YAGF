@@ -8,5 +8,6 @@ struct WrapperPipelineState *createSunlightShader();
 struct WrapperPipelineState *createTonemapShader();
 struct WrapperPipelineState *createObjectShader();
 struct WrapperPipelineState *createSkinnedObjectShader();
+struct WrapperPipelineState *createSkyboxShader();
 
 #endif

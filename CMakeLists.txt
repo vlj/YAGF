@@ -51,6 +51,9 @@ target_link_libraries(ssao ${PROJECT_NAME})
 add_executable(gaussianblur examples/gaussianblur.cpp)
 target_link_libraries(gaussianblur ${PROJECT_NAME})
 
+add_executable(skybox examples/skybox.cpp examples/Scene/glapi.cpp glshaders.cpp)
+target_link_libraries(skybox ${PROJECT_NAME})
+
 add_executable(text examples/text.cpp)
 target_link_libraries(text ${PROJECT_NAME})
 

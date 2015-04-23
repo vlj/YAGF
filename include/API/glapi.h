@@ -6,6 +6,7 @@
 
 #include <API/GfxApi.h>
 #include <GLAPI/GLVertexStorage.h>
+#include <GLAPI/GLRTTSet.h>
 
 struct WrapperResource
 {

@@ -291,7 +291,7 @@ void GLAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t 
       break;
     case RESOURCE_VIEW::SHADER_RESOURCE:
       glActiveTexture((GLenum)(GL_TEXTURE0 + std::get<2>(Resource)));
-      glBindTexture(GL_TEXTURE_2D, std::get<0>(Resource));
+      glBindTexture(GL_TEXTURE_CUBE_MAP, std::get<0>(Resource));
       break;
     case RESOURCE_VIEW::SAMPLER:
       glBindSampler((GLuint)std::get<2>(Resource), std::get<0>(Resource));
