@@ -17,7 +17,7 @@ void main(void)
     vec4 tmp = (InvProj * vec4(eyedir, 1.));
     tmp /= tmp.w;
     eyedir = (InvView * vec4(tmp.xyz, 0.)).xyz;
-    vec4 color = texture(skytexture, vec3(0, 0, 1.));
+    vec4 color = texture(skytexture, eyedir);
     FragColor = vec4(color.xyz, 1.);
 }
 

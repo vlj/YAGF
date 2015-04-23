@@ -12,29 +12,6 @@
 
 #include <Loaders/DDS.h>
 
-GLuint TrilinearSampler;
-
-const char *fragshader =
-"#version 330\n"
-"uniform sampler2D tex;\n"
-"in vec2 uv;\n"
-"out vec4 FragColor;\n"
-"void main() {\n"
-"  FragColor = texture(tex, uv);\n"
-"}\n";
-
-static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
-{
-  GLuint result;
-  glGenTextures(1, &result);
-  glBindTexture(GL_TEXTURE_2D, result);
-  /*    if (CVS->isARBTextureStorageUsable())
-  glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, Width, Height);
-  else*/
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, 0);
-  return result;
-}
-
 struct Matrixes
 {
   float InvView[16];
@@ -59,15 +36,50 @@ void init()
   cubemap = (WrapperResource*)malloc(sizeof(WrapperResource));
   glGenTextures(1, &cubemap->GLValue);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GLValue);
+
+  char texels[6][16] =
+  {
+    {
+      255, 0, 0, 255,
+      255, 0, 0, 255,
+      255, 0, 0, 255,
+      255, 0, 0, 255,
+    },
+    {
+      0, 255, 0, 255,
+      0, 255, 0, 255,
+      0, 255, 0, 255,
+      0, 255, 0, 255,
+    },
+    {
+      0, 0, 255, 255,
+      0, 0, 255, 255,
+      0, 0, 255, 255,
+      0, 0, 255, 255,
+    },
+    {
+      255, 255, 0, 255,
+      255, 255, 0, 255,
+      255, 255, 0, 255,
+      255, 255, 0, 255,
+    },
+    {
+      255, 0, 255, 255,
+      255, 0, 255, 255,
+      255, 0, 255, 255,
+      255, 0, 255, 255,
+    },
+    {
+      0, 255, 255, 255,
+      0, 255, 255, 255,
+      0, 255, 255, 255,
+      0, 255, 255, 255,
+    },
+  };
+
   for (unsigned i = 0; i < 6; i++)
   {
-    char texels[] = {
-      255, 0, 0, 255,
-      255, 0, 0, 255,
-      255, 0, 0, 255,
-      255, 0, 0, 255,
-    };
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X + i, 0, GL_RGBA8, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texels);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texels[i]);
   }
 /*  for (unsigned i = 0; i < loader->Textures.size(); i++)
   {
@@ -105,8 +117,9 @@ void draw()
 {
   Matrixes cbufdata;
   irr::core::matrix4 View, invView, Proj, invProj;
+  View.buildCameraLookAtMatrixLH(irr::core::vector3df(cos(3.14 * time / 10000.), 0., sin(3.14 * time / 10000.)), irr::core::vector3df(0, 0, 0.), irr::core::vector3df(0, 1., 0.));
   View.getInverse(invView);
-  Proj.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+  Proj.buildProjectionMatrixPerspectiveFovLH(110.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
   Proj.getInverse(invProj);
   memcpy(cbufdata.InvView, invView.pointer(), 16 * sizeof(float));
   memcpy(cbufdata.InvProj, invProj.pointer(), 16 * sizeof(float));
