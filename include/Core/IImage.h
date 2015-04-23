@@ -19,7 +19,7 @@ struct PackedMipMapLevel
 
 struct IImage {
   irr::video::ECOLOR_FORMAT Format;
-  std::vector<PackedMipMapLevel> MipMapData;
+  std::vector<std::vector<PackedMipMapLevel> > Layers;
 };
 
 #endif

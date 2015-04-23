@@ -4,7 +4,7 @@
 #include <API/glapi.h>
 #include <Maths/matrix4.h>
 
-#include <GLAPI/Texture.h>
+//#include <GLAPI/Texture.h>
 
 #include <Scene/Shaders.h>
 #include <GLAPI/Misc.h>
@@ -34,60 +34,26 @@ void init()
   DebugUtil::enableDebugOutput();
 
   cubemap = (WrapperResource*)malloc(sizeof(WrapperResource));
+
+
+  const std::string &fixed = "..\\examples\\assets\\w_sky_1.dds";
+  std::ifstream DDSFile(fixed, std::ifstream::binary);
+  irr::video::CImageLoaderDDS DDSPic(DDSFile);
+
   glGenTextures(1, &cubemap->GLValue);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GLValue);
 
-  char texels[6][16] =
+  const IImage &img = DDSPic.getLoadedImage();
+  for (unsigned face = 0; face < 6; face++)
   {
+    std::vector<PackedMipMapLevel> mipmaplevels = DDSPic.getLoadedImage().Layers[face];
+    for (unsigned mipmapLevel = 0; mipmapLevel < mipmaplevels.size(); mipmapLevel++)
     {
-      255, 0, 0, 255,
-      255, 0, 0, 255,
-      255, 0, 0, 255,
-      255, 0, 0, 255,
-    },
-    {
-      0, 255, 0, 255,
-      0, 255, 0, 255,
-      0, 255, 0, 255,
-      0, 255, 0, 255,
-    },
-    {
-      0, 0, 255, 255,
-      0, 0, 255, 255,
-      0, 0, 255, 255,
-      0, 0, 255, 255,
-    },
-    {
-      255, 255, 0, 255,
-      255, 255, 0, 255,
-      255, 255, 0, 255,
-      255, 255, 0, 255,
-    },
-    {
-      255, 0, 255, 255,
-      255, 0, 255, 255,
-      255, 0, 255, 255,
-      255, 0, 255, 255,
-    },
-    {
-      0, 255, 255, 255,
-      0, 255, 255, 255,
-      0, 255, 255, 255,
-      0, 255, 255, 255,
-    },
-  };
-
-  for (unsigned i = 0; i < 6; i++)
-  {
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texels[i]);
+      const PackedMipMapLevel &mipmapLevelData = mipmaplevels[mipmapLevel];
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, mipmapLevel, GL_RGBA8, mipmapLevelData.Width, mipmapLevelData.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, mipmapLevelData.Data);
+    }
   }
-/*  for (unsigned i = 0; i < loader->Textures.size(); i++)
-  {
-    const std::string &fixed = "..\\examples\\assets\\" + loader->Textures[i].TextureName.substr(0, loader->Textures[i].TextureName.find_last_of('.')) + ".DDS";
-    std::ifstream DDSFile(fixed, std::ifstream::binary);
-    irr::video::CImageLoaderDDS DDSPic(DDSFile);
-    Samplers = textureSet.emplace(loader->Textures[i].TextureName, DDSPic.getLoadedImage());
-  }*/
+
 
   CommandList = GlobalGFXAPI->createCommandList();
 

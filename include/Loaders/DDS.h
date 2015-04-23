@@ -273,6 +273,8 @@ namespace irr
       {
         // Code here https://msdn.microsoft.com/en-us/library/windows/desktop/bb173059%28v=vs.85%29.aspx
         unsigned int format = dds->format;
+        if (format == 28)
+          *pf = ECF_R8G8B8A8_UNORM;
         if (format == 71)
           *pf = ECF_BC1_UNORM;
         if (format == 72)
@@ -299,31 +301,38 @@ namespace irr
       ddsHeader header;
       ddsHeaderDXT10 ddsheaderdxt10;
       ECOLOR_FORMAT format;
+      size_t layersCount;
       bool is3D = false;
+      bool isCubemap = false;
       bool useAlpha = false;
       unsigned mipMapCount;
 
       void loadMipLevels(std::ifstream &file)
       {
-        if (header.PixelFormat.Flags & DDPF_RGB) // Uncompressed formats
+        if (!isCompressed(format)) // Uncompressed formats
         {
-          unsigned byteCount = header.PixelFormat.RGBBitCount / 8;
-          unsigned curWidth = header.Width;
-          unsigned curHeight = header.Height;
-
-          for (unsigned i = 0; i < mipMapCount; i++)
+          for (unsigned layer = 0; layer < layersCount; layer++)
           {
-            unsigned int size = curWidth * curHeight * byteCount;
-            char* data = new char[size];
-            file.read(data, size);
-            struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
-            LoadedImage.MipMapData.push_back(mipdata);
+            unsigned byteCount = 4;// header.PixelFormat.RGBBitCount / 8;
+            unsigned curWidth = header.Width;
+            unsigned curHeight = header.Height;
 
-            if (curWidth > 1)
-              curWidth >>= 1;
+            std::vector<PackedMipMapLevel> MipmapData;
+            for (unsigned i = 0; i < mipMapCount; i++)
+            {
+              unsigned int size = curWidth * curHeight * byteCount;
+              char* data = new char[size];
+              file.read(data, size);
+              struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
+              MipmapData.push_back(mipdata);
 
-            if (curHeight > 1)
-              curHeight >>= 1;
+              if (curWidth > 1)
+                curWidth >>= 1;
+
+              if (curHeight > 1)
+                curHeight >>= 1;
+            }
+            LoadedImage.Layers.push_back(MipmapData);
           }
 
           /*          if (header.Flags & DDSD_PITCH)
@@ -381,7 +390,7 @@ namespace irr
           }
           }
         }
-        else if (header.PixelFormat.Flags & DDPF_FOURCC) // Compressed formats
+        else // Compressed formats
         {
           unsigned block_width, block_height;
           unsigned block_size;
@@ -408,24 +417,31 @@ namespace irr
             block_width = 4;
             block_height = 4;
             block_size = 16;
+          default:
+            abort();
           }
 
           unsigned curWidth = header.Width;
           unsigned curHeight = header.Height;
 
-          for (unsigned i = 0; i < mipMapCount; i++)
+          for (unsigned layer = 0; layer < layersCount; layer++)
           {
-            unsigned size = ((curWidth + block_width - 1) / block_width) * ((curHeight + block_height - 1) / block_height) * block_size;
-            char* data = new char[size];
-            file.read(data, size);
-            struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
-            LoadedImage.MipMapData.push_back(mipdata);
+            std::vector<PackedMipMapLevel> MipmapData;
+            for (unsigned i = 0; i < mipMapCount; i++)
+            {
+              unsigned size = ((curWidth + block_width - 1) / block_width) * ((curHeight + block_height - 1) / block_height) * block_size;
+              char* data = new char[size];
+              file.read(data, size);
+              struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
+              MipmapData.push_back(mipdata);
 
-            if (curWidth > 1)
-              curWidth >>= 1;
+              if (curWidth > 1)
+                curWidth >>= 1;
 
-            if (curHeight > 1)
-              curHeight >>= 1;
+              if (curHeight > 1)
+                curHeight >>= 1;
+            }
+            LoadedImage.Layers.push_back(MipmapData);
           }
         }
       }
@@ -462,7 +478,11 @@ namespace irr
         }
 
         is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
+        isCubemap = header.Caps.caps2 & DDSCAPS2_CUBEMAP;
 
+        layersCount = 1;
+        if (isCubemap)
+          layersCount = 6;
         assert(!is3D);
         if (!is3D)
           header.Depth = 1;
@@ -472,7 +492,7 @@ namespace irr
         if (header.MipMapCount > 0 && (header.Flags & DDSD_MIPMAPCOUNT))
           mipMapCount = header.MipMapCount;
 
-        LoadedImage.MipMapData.clear();
+        LoadedImage.Layers.clear();
         loadMipLevels(file);
 
         LoadedImage.Format = format;
@@ -481,10 +501,10 @@ namespace irr
 
       ~CImageLoaderDDS()
       {
-        for (struct PackedMipMapLevel miplevel : LoadedImage.MipMapData)
+/*        for (struct PackedMipMapLevel miplevel : LoadedImage.MipMapData)
         {
           delete[] miplevel.Data;
-        }
+        }*/
       }
 
       const IImage& getLoadedImage() const

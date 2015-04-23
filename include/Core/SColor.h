@@ -30,6 +30,7 @@ namespace irr
 
       //! Default 32 bit color format. 8 bits are used for every component: red, green, blue and alpha.
       ECF_A8R8G8B8,
+      ECF_R8G8B8A8_UNORM,
       ECF_R8G8B8A8_UNORM_SRGB,
 
       //! The normalized non-float formats from the _rg extension
