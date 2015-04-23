@@ -67,16 +67,11 @@ namespace irr
       : ISceneNode(parent, position, rotation, scale)
     {
       cbuffer = GlobalGFXAPI->createConstantsBuffer(sizeof(ObjectData));
-#ifdef DXBUILD
-      PackedVertexBuffer = nullptr;
-#endif
     }
 
     IMeshSceneNode::~IMeshSceneNode()
     {
-#ifdef DXBUILD
-      delete PackedVertexBuffer;
-#endif
+      GlobalGFXAPI->releaseIndexVertexBuffersSet(PackedVertexBuffer);
       GlobalGFXAPI->releaseConstantsBuffers(cbuffer);
       for (irr::video::DrawData &drawdata : DrawDatas)
         GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(drawdata.descriptors);
@@ -175,14 +170,13 @@ namespace irr
       }
 #endif
 #ifdef DXBUILD
-      FormattedVertexStorage *tmp = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg);
-      PackedVertexBuffer = (WrapperIndexVertexBuffersSet *)tmp;
+      new (&PackedVertexBuffer->D3DValue) FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg);
       for (unsigned i = 0; i < DrawDatas.size(); i++)
       {
         irr::video::DrawData &drawdata = DrawDatas[i];
-        drawdata.IndexCount = std::get<0>(tmp->meshOffset[i]);
-        drawdata.vaoOffset = std::get<2>(tmp->meshOffset[i]);
-        drawdata.vaoBaseVertex = std::get<1>(tmp->meshOffset[i]);
+        drawdata.IndexCount = std::get<0>(PackedVertexBuffer->D3DValue.meshOffset[i]);
+        drawdata.vaoOffset = std::get<2>(PackedVertexBuffer->D3DValue.meshOffset[i]);
+        drawdata.vaoBaseVertex = std::get<1>(PackedVertexBuffer->D3DValue.meshOffset[i]);
       }
 #endif
     }
