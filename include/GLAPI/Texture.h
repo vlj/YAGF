@@ -46,26 +46,29 @@ public:
 
     Texture(const IImage& image)
     {
-      Width = image.MipMapData[0].Width;
-      Height = image.MipMapData[0].Height;
-      glGenTextures(1, &Id);
-      glBindTexture(GL_TEXTURE_2D, Id);
+      if (image.Type == TextureType::TEXTURE2D)
+      {
+        Width = image.Layers[0][0].Width;
+        Height = image.Layers[0][0].Height;
+        glGenTextures(1, &Id);
+        glBindTexture(GL_TEXTURE_2D, Id);
 
-      if (!irr::video::isCompressed(image.Format))
-      {
-        for (unsigned i = 0; i < image.MipMapData.size(); i++)
+        if (!irr::video::isCompressed(image.Format))
         {
-          struct PackedMipMapLevel miplevel = image.MipMapData[i];
-          glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, miplevel.Data);
+          for (unsigned i = 0; i < image.Layers[0].size(); i++)
+          {
+            struct PackedMipMapLevel miplevel = image.Layers[0][i];
+            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, miplevel.Data);
+          }
         }
-      }
-      else
-      {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        for (unsigned i = 0; i < image.MipMapData.size(); i++)
+        else
         {
-          struct PackedMipMapLevel miplevel = image.MipMapData[i];
-          glCompressedTexImage2D(GL_TEXTURE_2D, i, getInternalFormatFromColorFormat(image.Format), (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
+          glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+          for (unsigned i = 0; i < image.Layers[0].size(); i++)
+          {
+            struct PackedMipMapLevel miplevel = image.Layers[0][i];
+            glCompressedTexImage2D(GL_TEXTURE_2D, i, getInternalFormatFromColorFormat(image.Format), (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
+          }
         }
       }
     }

@@ -311,16 +311,16 @@ namespace irr
       {
         if (!isCompressed(format)) // Uncompressed formats
         {
-          unsigned byteCount = formatBitCount(format) / 8;
+          size_t byteCount = formatBitCount(format) / 8;
           for (unsigned layer = 0; layer < layersCount; layer++)
           {
-            unsigned curWidth = header.Width;
-            unsigned curHeight = header.Height;
+            size_t curWidth = header.Width;
+            size_t curHeight = header.Height;
 
             std::vector<PackedMipMapLevel> MipmapData;
             for (unsigned i = 0; i < mipMapCount; i++)
             {
-              unsigned int size = curWidth * curHeight * byteCount;
+              size_t size = curWidth * curHeight * byteCount;
               char* data = new char[size];
               file.read(data, size);
               struct PackedMipMapLevel mipdata = { curWidth, curHeight, data, size };
@@ -421,11 +421,10 @@ namespace irr
             abort();
           }
 
-          unsigned curWidth = header.Width;
-          unsigned curHeight = header.Height;
-
           for (unsigned layer = 0; layer < layersCount; layer++)
           {
+            unsigned curWidth = header.Width;
+            unsigned curHeight = header.Height;
             std::vector<PackedMipMapLevel> MipmapData;
             for (unsigned i = 0; i < mipMapCount; i++)
             {
@@ -482,7 +481,14 @@ namespace irr
 
         layersCount = 1;
         if (isCubemap)
+        {
           layersCount = 6;
+          LoadedImage.Type = TextureType::CUBEMAP;
+        }
+        else
+        {
+          LoadedImage.Type = TextureType::TEXTURE2D;
+        }
         assert(!is3D);
         if (!is3D)
           header.Depth = 1;
@@ -501,10 +507,11 @@ namespace irr
 
       ~CImageLoaderDDS()
       {
-/*        for (struct PackedMipMapLevel miplevel : LoadedImage.MipMapData)
+        for (auto Layer : LoadedImage.Layers)
         {
-          delete[] miplevel.Data;
-        }*/
+          for (struct PackedMipMapLevel miplevel : Layer)
+            delete[] miplevel.Data;
+        }
       }
 
       const IImage& getLoadedImage() const
