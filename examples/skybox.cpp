@@ -36,7 +36,7 @@ void init()
   cubemap = (WrapperResource*)malloc(sizeof(WrapperResource));
 
 
-  const std::string &fixed = "..\\examples\\assets\\w_sky_1BC1.dds";
+  const std::string &fixed = "..\\examples\\assets\\hdrsky.dds";
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
@@ -50,7 +50,8 @@ void init()
     for (unsigned mipmapLevel = 0; mipmapLevel < mipmaplevels.size(); mipmapLevel++)
     {
       const PackedMipMapLevel &mipmapLevelData = mipmaplevels[mipmapLevel];
-      glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, mipmapLevel, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, mipmapLevelData.Width, mipmapLevelData.Height, 0, mipmapLevelData.DataSize, mipmapLevelData.Data);
+//      glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, mipmapLevel, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, mipmapLevelData.Width, mipmapLevelData.Height, 0, mipmapLevelData.DataSize, mipmapLevelData.Data);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, mipmapLevel, GL_RGBA32F, mipmapLevelData.Width, mipmapLevelData.Height, 0, GL_RGBA, GL_FLOAT, mipmapLevelData.Data);
     }
   }
 

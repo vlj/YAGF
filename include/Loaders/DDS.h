@@ -273,6 +273,8 @@ namespace irr
       {
         // Code here https://msdn.microsoft.com/en-us/library/windows/desktop/bb173059%28v=vs.85%29.aspx
         unsigned int format = dds->format;
+        if (format == 2)
+          *pf = ECF_R32G32B32A32F;
         if (format == 28)
           *pf = ECF_R8G8B8A8_UNORM;
         if (format == 71)

@@ -58,7 +58,7 @@ namespace irr
       ECF_G32R32F,
 
       //! 128 bit floating point format. 32 bits are used for the red, green, blue and alpha channels.
-      ECF_A32B32G32R32F,
+      ECF_R32G32B32A32F,
 
 
       // Block Compressed format
@@ -102,6 +102,8 @@ namespace irr
       case ECF_R8G8B8A8_UNORM:
       case ECF_R8G8B8A8_UNORM_SRGB:
         return 32;
+      case ECF_R32G32B32A32F:
+        return 128;
       default:
         return 0;
       }
