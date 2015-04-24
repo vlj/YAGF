@@ -7,70 +7,116 @@
 #include <GL/glew.h>
 #include <Core/IImage.h>
 
-inline GLenum getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
+inline void getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt, GLenum &internalFormat, GLenum &format, GLenum &type)
 {
   switch (fmt)
   {
+  case irr::video::ECF_R16G16B16A16F:
+    internalFormat = GL_RGBA16F;
+    format = GL_RGBA;
+    type = GL_HALF_FLOAT;
+    return;
+  case irr::video::ECF_R32G32B32A32F:
+    internalFormat = GL_RGBA32F;
+    format = GL_RGBA;
+    type = GL_FLOAT;
+    return;
   case irr::video::ECF_BC1_UNORM:
-    return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+    internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+    return;
   case irr::video::ECF_BC1_UNORM_SRGB:
-    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+    internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+    return;
   case irr::video::ECF_BC2_UNORM:
-    return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    return;
   case irr::video::ECF_BC2_UNORM_SRGB:
-    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+    internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+    return;
   case irr::video::ECF_BC3_UNORM:
-    return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    return;
   case irr::video::ECF_BC3_UNORM_SRGB:
-    return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+    internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+    return;
   case irr::video::ECF_BC4_UNORM:
-    return GL_COMPRESSED_RED_RGTC1;
+    internalFormat = GL_COMPRESSED_RED_RGTC1;
+    return;
   case irr::video::ECF_BC4_SNORM:
-    return GL_COMPRESSED_SIGNED_RED_RGTC1;
+    internalFormat = GL_COMPRESSED_SIGNED_RED_RGTC1;
+    return;
   case irr::video::ECF_BC5_UNORM:
-    return GL_COMPRESSED_RG_RGTC2;
+    internalFormat = GL_COMPRESSED_RG_RGTC2;
+    return;
   case irr::video::ECF_BC5_SNORM:
-    return GL_COMPRESSED_SIGNED_RG_RGTC2;
+    internalFormat = GL_COMPRESSED_SIGNED_RG_RGTC2;
+    return;
   default:
-    return -1;
+    abort();
+    return;
   }
 }
 
 class Texture
 {
 private:
-    size_t Width, Height;
+  size_t Width, Height;
 public:
-    GLuint Id;
-    Texture() {}
+  GLuint Id;
+  Texture() {}
 
-    Texture(const IImage& image)
+  Texture(const IImage& image)
+  {
+    Width = image.Layers[0][0].Width;
+    Height = image.Layers[0][0].Height;
+    glGenTextures(1, &Id);
+    GLenum internalFormat, format, type;
+    getInternalFormatFromColorFormat(image.Format, internalFormat, format, type);
+    switch (image.Type)
     {
-      if (image.Type == TextureType::TEXTURE2D)
-      {
-        Width = image.Layers[0][0].Width;
-        Height = image.Layers[0][0].Height;
-        glGenTextures(1, &Id);
-        glBindTexture(GL_TEXTURE_2D, Id);
+    case TextureType::TEXTURE2D:
+      glBindTexture(GL_TEXTURE_2D, Id);
 
+      if (!irr::video::isCompressed(image.Format))
+      {
+        for (unsigned i = 0; i < image.Layers[0].size(); i++)
+        {
+          struct PackedMipMapLevel miplevel = image.Layers[0][i];
+          glTexImage2D(GL_TEXTURE_2D, i, internalFormat, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, format, type, miplevel.Data);
+        }
+      }
+      else
+      {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        for (unsigned i = 0; i < image.Layers[0].size(); i++)
+        {
+          struct PackedMipMapLevel miplevel = image.Layers[0][i];
+          glCompressedTexImage2D(GL_TEXTURE_2D, i, internalFormat, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
+        }
+      }
+    case TextureType::CUBEMAP:
+      glBindTexture(GL_TEXTURE_CUBE_MAP, Id);
+      for (unsigned face = 0; face < 6; face++)
+      {
         if (!irr::video::isCompressed(image.Format))
         {
-          for (unsigned i = 0; i < image.Layers[0].size(); i++)
+          for (unsigned i = 0; i < image.Layers[face].size(); i++)
           {
-            struct PackedMipMapLevel miplevel = image.Layers[0][i];
-            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, GL_BGRA, GL_UNSIGNED_BYTE, miplevel.Data);
+            struct PackedMipMapLevel miplevel = image.Layers[face][i];
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, internalFormat, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, format, type, miplevel.Data);
           }
         }
         else
         {
           glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-          for (unsigned i = 0; i < image.Layers[0].size(); i++)
+          for (unsigned i = 0; i < image.Layers[face].size(); i++)
           {
-            struct PackedMipMapLevel miplevel = image.Layers[0][i];
-            glCompressedTexImage2D(GL_TEXTURE_2D, i, getInternalFormatFromColorFormat(image.Format), (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
+            struct PackedMipMapLevel miplevel = image.Layers[face][i];
+            glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, internalFormat, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
           }
         }
       }
+    }
     }
 
     ~Texture()
@@ -78,6 +124,6 @@ public:
       if (Id)
         glDeleteTextures(1, &Id);
     }
-};
+  };
 
 #endif

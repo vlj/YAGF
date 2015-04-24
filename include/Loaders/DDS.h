@@ -275,6 +275,8 @@ namespace irr
         unsigned int format = dds->format;
         if (format == 2)
           *pf = ECF_R32G32B32A32F;
+        if (format == 10)
+          *pf = ECF_R16G16B16A16F;
         if (format == 28)
           *pf = ECF_R8G8B8A8_UNORM;
         if (format == 71)

@@ -102,6 +102,8 @@ namespace irr
       case ECF_R8G8B8A8_UNORM:
       case ECF_R8G8B8A8_UNORM_SRGB:
         return 32;
+      case ECF_R16G16B16A16F:
+        return 64;
       case ECF_R32G32B32A32F:
         return 128;
       default:

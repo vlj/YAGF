@@ -4,7 +4,7 @@
 #include <API/glapi.h>
 #include <Maths/matrix4.h>
 
-//#include <GLAPI/Texture.h>
+#include <GLAPI/Texture.h>
 
 #include <Scene/Shaders.h>
 #include <GLAPI/Misc.h>
@@ -40,21 +40,8 @@ void init()
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-  glGenTextures(1, &cubemap->GLValue);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GLValue);
-
-  const IImage &img = DDSPic.getLoadedImage();
-  for (unsigned face = 0; face < 6; face++)
-  {
-    std::vector<PackedMipMapLevel> mipmaplevels = DDSPic.getLoadedImage().Layers[face];
-    for (unsigned mipmapLevel = 0; mipmapLevel < mipmaplevels.size(); mipmapLevel++)
-    {
-      const PackedMipMapLevel &mipmapLevelData = mipmaplevels[mipmapLevel];
-//      glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, mipmapLevel, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, mipmapLevelData.Width, mipmapLevelData.Height, 0, mipmapLevelData.DataSize, mipmapLevelData.Data);
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, mipmapLevel, GL_RGBA32F, mipmapLevelData.Width, mipmapLevelData.Height, 0, GL_RGBA, GL_FLOAT, mipmapLevelData.Data);
-    }
-  }
-
+  Texture *Tex = new Texture(DDSPic.getLoadedImage());
+  cubemap->GLValue = Tex->Id;
 
   CommandList = GlobalGFXAPI->createCommandList();
 
