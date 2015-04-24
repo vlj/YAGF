@@ -94,6 +94,7 @@ public:
           glCompressedTexImage2D(GL_TEXTURE_2D, i, internalFormat, (GLsizei)miplevel.Width, (GLsizei)miplevel.Height, 0, (GLsizei)miplevel.DataSize, miplevel.Data);
         }
       }
+      break;
     case TextureType::CUBEMAP:
       glBindTexture(GL_TEXTURE_CUBE_MAP, Id);
       for (unsigned face = 0; face < 6; face++)
@@ -116,6 +117,7 @@ public:
           }
         }
       }
+      break;
     }
     }
 
