@@ -12,6 +12,8 @@ inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
 {
   switch (fmt)
   {
+  case irr::video::ECF_R8G8B8A8_UNORM:
+    return DXGI_FORMAT_R8G8B8A8_UNORM;
   case irr::video::ECF_R8G8B8A8_UNORM_SRGB:
     return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
   case irr::video::ECF_R16G16B16A16F:
