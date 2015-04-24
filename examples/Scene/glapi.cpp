@@ -141,14 +141,15 @@ static GLenum getOpenGLFormatAndParametersFromColorFormat(irr::video::ECOLOR_FOR
 struct WrapperResource* GLAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4])
 {
   WrapperResource* result = (WrapperResource *)malloc(sizeof(WrapperResource));
-  glGenTextures(1, &result->GLValue);
-  glBindTexture(GL_TEXTURE_2D, result->GLValue);
+  glGenTextures(1, &result->GLValue.Resource);
+  glBindTexture(GL_TEXTURE_2D, result->GLValue.Resource);
   //    if (CVS->isARBTextureStorageUsable())
   //      glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, res.Width, res.Height);
   //    else
   GLenum type, colorFormat;
   GLenum internalFormat = getOpenGLFormatAndParametersFromColorFormat(Format, colorFormat, type);
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei)Width, (GLsizei)Height, 0, colorFormat, type, 0);
+  result->GLValue.Type = GL_TEXTURE_2D;
   return result;
 }
 
@@ -158,10 +159,10 @@ struct WrapperRTTSet* GLAPI::createRTTSet(const std::vector<struct WrapperResour
   std::vector<GLuint> unwrappedRTTs;
   for (WrapperResource *RTT : RTTs)
   {
-    unwrappedRTTs.push_back(RTT->GLValue);
+    unwrappedRTTs.push_back(RTT->GLValue.Resource);
   }
   if (DepthStencil)
-    new(result) GLRTTSet(unwrappedRTTs, DepthStencil->GLValue, Width, Height);
+    new(result) GLRTTSet(unwrappedRTTs, DepthStencil->GLValue.Resource, Width, Height);
   else
     new(result) GLRTTSet(unwrappedRTTs, Width, Height);
   return result;
@@ -182,15 +183,16 @@ void GLAPI::releasePSO(WrapperPipelineState * pso)
 struct WrapperResource* GLAPI::createDepthStencilTexture(size_t Width, size_t Height)
 {
   WrapperResource* result = (WrapperResource *)malloc(sizeof(WrapperResource));
-  glGenTextures(1, &result->GLValue);
-  glBindTexture(GL_TEXTURE_2D, result->GLValue);
+  glGenTextures(1, &result->GLValue.Resource);
+  glBindTexture(GL_TEXTURE_2D, result->GLValue.Resource);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, (GLsizei)Width, (GLsizei)Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+  result->GLValue.Type = GL_TEXTURE_2D;
   return result;
 }
 
 void GLAPI::releaseRTTOrDepthStencilTexture(WrapperResource * res)
 {
-  glDeleteTextures(1, &res->GLValue);
+  glDeleteTextures(1, &res->GLValue.Resource);
   free(res);
 }
 
@@ -234,7 +236,7 @@ struct WrapperDescriptorHeap* GLAPI::createCBVSRVUAVDescriptorHeap(const std::ve
 
   for (const std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> &Resource : Resources)
   {
-    result->GLValue.push_back(std::make_tuple(std::get<0>(Resource)->GLValue, std::get<1>(Resource), std::get<2>(Resource)));
+    result->GLValue.push_back(std::make_tuple(std::get<0>(Resource), std::get<1>(Resource), std::get<2>(Resource)));
   }
   return result;
 }
@@ -251,20 +253,20 @@ struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<std::pa
   new (&result->GLValue) std::vector<std::tuple<GLuint, RESOURCE_VIEW, unsigned>>();
   for (const std::pair<enum class SAMPLER_TYPE, size_t> &Sampler : SamplersDesc)
   {
-    GLuint SamplerObject;
+    WrapperResource *SamplerObject = (WrapperResource*)malloc(sizeof(WrapperResource));
     switch (Sampler.first)
     {
     case SAMPLER_TYPE::ANISOTROPIC:
-      SamplerObject = SamplerHelper::createTrilinearAnisotropicSampler(16);
+      SamplerObject->GLValue.Resource = SamplerHelper::createTrilinearAnisotropicSampler(16);
       break;
     case SAMPLER_TYPE::TRILINEAR:
-      SamplerObject = SamplerHelper::createTrilinearSampler();
+      SamplerObject->GLValue.Resource = SamplerHelper::createTrilinearSampler();
       break;
     case SAMPLER_TYPE::BILINEAR:
-      SamplerObject = SamplerHelper::createBilinearSampler();
+      SamplerObject->GLValue.Resource = SamplerHelper::createBilinearSampler();
       break;
     case SAMPLER_TYPE::NEAREST:
-      SamplerObject = SamplerHelper::createNearestSampler();
+      SamplerObject->GLValue.Resource = SamplerHelper::createNearestSampler();
       break;
     }
     result->GLValue.push_back(std::make_tuple(SamplerObject, RESOURCE_VIEW::SAMPLER, Sampler.second));
@@ -274,27 +276,30 @@ struct WrapperDescriptorHeap* GLAPI::createSamplerHeap(const std::vector<std::pa
 
 void GLAPI::releaseSamplerHeap(WrapperDescriptorHeap * Heap)
 {
-  for (std::tuple<GLuint, RESOURCE_VIEW, size_t> Resource : Heap->GLValue)
-    glDeleteSamplers(1, &std::get<0>(Resource));
+  for (std::tuple<WrapperResource *, RESOURCE_VIEW, size_t> Resource : Heap->GLValue)
+  {
+    glDeleteSamplers(1, &std::get<0>(Resource)->GLValue.Resource);
+    free(std::get<0>(Resource));
+  }
   Heap->GLValue.~vector();
   free(Heap);
 }
 
 void GLAPI::setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap)
 {
-  for (std::tuple<GLuint, RESOURCE_VIEW, size_t> Resource : DescriptorHeap->GLValue)
+  for (std::tuple<WrapperResource *, RESOURCE_VIEW, size_t> Resource : DescriptorHeap->GLValue)
   {
     switch (std::get<1>(Resource))
     {
     case RESOURCE_VIEW::CONSTANTS_BUFFER:
-      glBindBufferBase(GL_UNIFORM_BUFFER, (GLuint)std::get<2>(Resource), std::get<0>(Resource));
+      glBindBufferBase(GL_UNIFORM_BUFFER, (GLuint)std::get<2>(Resource), std::get<0>(Resource)->GLValue.Resource);
       break;
     case RESOURCE_VIEW::SHADER_RESOURCE:
       glActiveTexture((GLenum)(GL_TEXTURE0 + std::get<2>(Resource)));
-      glBindTexture(GL_TEXTURE_CUBE_MAP, std::get<0>(Resource));
+      glBindTexture(std::get<0>(Resource)->GLValue.Type, std::get<0>(Resource)->GLValue.Resource);
       break;
     case RESOURCE_VIEW::SAMPLER:
-      glBindSampler((GLuint)std::get<2>(Resource), std::get<0>(Resource));
+      glBindSampler((GLuint)std::get<2>(Resource), std::get<0>(Resource)->GLValue.Resource);
       break;
     }
   }
@@ -314,21 +319,21 @@ void GLAPI::setPipelineState(struct WrapperCommandList* wrappedCmdList, struct W
 WrapperResource *GLAPI::createConstantsBuffer(size_t sizeInByte)
 {
   WrapperResource* result = (WrapperResource *)malloc(sizeof(WrapperResource));
-  glGenBuffers(1, &result->GLValue);
-  glBindBuffer(GL_UNIFORM_BUFFER, result->GLValue);
+  glGenBuffers(1, &result->GLValue.Resource);
+  glBindBuffer(GL_UNIFORM_BUFFER, result->GLValue.Resource);
   glBufferData(GL_UNIFORM_BUFFER, sizeInByte, nullptr, GL_STATIC_DRAW);
   return result;
 }
 
 void GLAPI::releaseConstantsBuffers(WrapperResource * cbuf)
 {
-  glDeleteBuffers(1, &cbuf->GLValue);
+  glDeleteBuffers(1, &cbuf->GLValue.Resource);
   free(cbuf);
 }
 
 void *GLAPI::mapConstantsBuffer(struct WrapperResource *wrappedConstantsBuffer)
 {
-  glBindBuffer(GL_UNIFORM_BUFFER, wrappedConstantsBuffer->GLValue);
+  glBindBuffer(GL_UNIFORM_BUFFER, wrappedConstantsBuffer->GLValue.Resource);
   return glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
 }
 

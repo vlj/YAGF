@@ -10,7 +10,10 @@
 
 struct WrapperResource
 {
-  GLuint GLValue;
+  struct {
+    GLuint Resource;
+    GLenum Type;
+  } GLValue;
 };
 
 struct WrapperRTTSet
@@ -33,7 +36,7 @@ struct WrapperIndexVertexBuffersSet
 
 struct WrapperDescriptorHeap
 {
-  std::vector<std::tuple<GLuint, RESOURCE_VIEW, size_t>> GLValue;
+  std::vector<std::tuple<WrapperResource *, RESOURCE_VIEW, size_t>> GLValue;
 };
 
 class GLAPI : public GFXAPI

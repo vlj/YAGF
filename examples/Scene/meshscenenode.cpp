@@ -92,7 +92,8 @@ namespace irr
         WrapperResource *WrapperTexture = (WrapperResource*)malloc(sizeof(WrapperResource));
         reorg.push_back(buffer.first);
 #ifdef GLBUILD
-        WrapperTexture->GLValue = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0])->Id;
+        WrapperTexture->GLValue.Resource = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0])->Id;
+        WrapperTexture->GLValue.Type = GL_TEXTURE_2D;
 #endif
 
 #ifdef DXBUILD

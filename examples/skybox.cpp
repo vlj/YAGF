@@ -41,7 +41,8 @@ void init()
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
   Texture *Tex = new Texture(DDSPic.getLoadedImage());
-  cubemap->GLValue = Tex->Id;
+  cubemap->GLValue.Resource = Tex->Id;
+  cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
 
   CommandList = GlobalGFXAPI->createCommandList();
 
