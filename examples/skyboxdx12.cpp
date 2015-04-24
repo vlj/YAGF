@@ -52,7 +52,7 @@ void Init(HWND hWnd)
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Buffer((UINT)Width * Height * 4 * 6 * 10),
+    &CD3D12_RESOURCE_DESC::Buffer((UINT)Width * Height * 4 * 6),
     D3D12_RESOURCE_USAGE_GENERIC_READ,
     nullptr,
     IID_PPV_ARGS(&TexInRam)
@@ -67,7 +67,7 @@ void Init(HWND hWnd)
     IID_PPV_ARGS(&SkyboxTexture)
     );
 
-  float *tmp;
+  char *tmp;
   TexInRam->Map(0, nullptr, (void**)&tmp);
   for (unsigned face = 0; face < 6; face++)
   {
@@ -99,7 +99,7 @@ void Init(HWND hWnd)
     D3D12_TEXTURE_COPY_LOCATION src = {};
     src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
     src.pResource = TexInRam.Get();
-    src.PlacedTexture.Offset = face * Width * Height * 4;
+    src.PlacedTexture.Offset = Width * Height * 4 * face;
     src.PlacedTexture.Placement.Format = getDXGIFormatFromColorFormat(Image.Format);
     src.PlacedTexture.Placement.Width = (UINT)Width;
     src.PlacedTexture.Placement.Height = (UINT)Height;
@@ -126,7 +126,7 @@ void Init(HWND hWnd)
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
   WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
-//  GlobalGFXAPI->releaseCommandList(uploadcmdlist);
+  GlobalGFXAPI->releaseCommandList(uploadcmdlist);
 
 
   CommandList = GlobalGFXAPI->createCommandList();
