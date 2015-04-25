@@ -481,7 +481,7 @@ namespace irr
         }
 
         is3D = header.Depth > 0 && (header.Flags & DDSD_DEPTH);
-        isCubemap = header.Caps.caps2 & DDSCAPS2_CUBEMAP;
+        isCubemap = !!(header.Caps.caps2 & DDSCAPS2_CUBEMAP);
 
         layersCount = 1;
         if (isCubemap)

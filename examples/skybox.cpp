@@ -66,13 +66,13 @@ void clean()
   GlobalGFXAPI->releaseIndexVertexBuffersSet(ScreenQuad);
 }
 
-static float time = 0.;
+static float timer = 0.;
 
 void draw()
 {
   Matrixes cbufdata;
   irr::core::matrix4 View, invView, Proj, invProj;
-  View.buildCameraLookAtMatrixLH(irr::core::vector3df(cos(3.14 * time / 10000.), 0., sin(3.14 * time / 10000.)), irr::core::vector3df(0, 0, 0.), irr::core::vector3df(0, 1., 0.));
+  View.buildCameraLookAtMatrixLH(irr::core::vector3df(cos(3.14f * timer / 10000.f), 0.f, sin(3.14f * timer / 10000.f)), irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
   View.getInverse(invView);
   Proj.buildProjectionMatrixPerspectiveFovLH(110.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
   Proj.getInverse(invProj);
@@ -97,7 +97,7 @@ void draw()
 //  glClearDepth(1.);
 //  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  time += 1.f;
+  timer += 1.f;
 }
 
 int main()

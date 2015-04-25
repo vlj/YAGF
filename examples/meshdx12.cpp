@@ -63,8 +63,8 @@ void Init(HWND hWnd)
   Sampler = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::TRILINEAR, 0 } });
   DepthBuffer = GlobalGFXAPI->createDepthStencilTexture(1024, 1024);
 
-  fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, DepthBuffer->D3DValue.resource, &DepthBuffer->D3DValue.description.DSV);
-  fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, DepthBuffer->D3DValue.resource, &DepthBuffer->D3DValue.description.DSV);
+  fbo[0] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(0) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, DepthBuffer->D3DValue.resource, &DepthBuffer->D3DValue.description.TextureView.DSV);
+  fbo[1] = new D3DRTTSet({ Context::getInstance()->getBackBuffer(1) }, { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB }, 1024, 1024, DepthBuffer->D3DValue.resource, &DepthBuffer->D3DValue.description.TextureView.DSV);
 
   irr::io::CReadFile reader("..\\examples\\assets\\xue.b3d");
   loader = new irr::scene::CB3DMeshFileLoader(&reader);

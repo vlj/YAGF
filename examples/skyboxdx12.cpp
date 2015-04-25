@@ -76,7 +76,7 @@ void Init(HWND hWnd)
   resdesc.TextureCube.MipLevels = 10;
 
   cubemap->D3DValue.resource = SkyboxTexture.Get();
-  cubemap->D3DValue.description.SRV = resdesc;
+  cubemap->D3DValue.description.TextureView.SRV = resdesc;
 
   GlobalGFXAPI->closeCommandList(uploadcmdlist);
   GlobalGFXAPI->submitToQueue(uploadcmdlist);
@@ -113,7 +113,7 @@ void Draw()
 {
   Matrixes cbufdata;
   irr::core::matrix4 View, invView, Proj, invProj;
-  View.buildCameraLookAtMatrixLH(irr::core::vector3df(cos(3.14 * timer / 10000.), 0., sin(3.14 * timer / 10000.)), irr::core::vector3df(0, 0, 0.), irr::core::vector3df(0, 1., 0.));
+  View.buildCameraLookAtMatrixLH(irr::core::vector3df(cos(3.14f * timer / 10000.f), 0., sin(3.14f * timer / 10000.f)), irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
   View.getInverse(invView);
   Proj.buildProjectionMatrixPerspectiveFovLH(110.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
   Proj.getInverse(invProj);

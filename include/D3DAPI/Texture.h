@@ -192,7 +192,7 @@ public:
         D3D12_RESOURCE_BARRIER_DESC barrier = {};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = DestResource;
-        barrier.Transition.Subresource = face * mipmapLevelCount + miplevel;
+        barrier.Transition.Subresource = (UINT)(face * mipmapLevelCount + miplevel);
         barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_GENERIC_READ;
         barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_COPY_DEST;
         cmdlist->ResourceBarrier(1, &barrier);
@@ -200,7 +200,7 @@ public:
         D3D12_TEXTURE_COPY_LOCATION dst = {};
         dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
         dst.pResource = DestResource;
-        dst.Subresource = face * mipmapLevelCount + miplevel;
+        dst.Subresource = (UINT)(face * mipmapLevelCount + miplevel);
 
         D3D12_TEXTURE_COPY_LOCATION src = {};
         src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
