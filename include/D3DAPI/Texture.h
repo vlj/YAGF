@@ -18,6 +18,8 @@ inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
     return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
   case irr::video::ECF_R16G16B16A16F:
     return DXGI_FORMAT_R16G16B16A16_FLOAT;
+  case irr::video::ECF_R32G32B32A32F:
+    return DXGI_FORMAT_R32G32B32A32_FLOAT;
   case irr::video::ECF_A8R8G8B8:
     return DXGI_FORMAT_R8G8B8A8_UNORM;
   case irr::video::ECF_BC1_UNORM:
