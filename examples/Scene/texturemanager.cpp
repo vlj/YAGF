@@ -18,7 +18,10 @@ TextureManager::TextureManager()
 {}
 
 TextureManager::~TextureManager()
-{}
+{
+  for (auto Tex : textureSet)
+    GlobalGFXAPI->releaseRTTOrDepthStencilTexture(Tex.second);
+}
 
 void TextureManager::LoadTextures(const std::vector<std::string>& TexturesLocation)
 {
