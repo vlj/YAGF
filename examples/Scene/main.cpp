@@ -61,7 +61,7 @@ void init()
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 #if DXBUILD
   ID3D12Resource *SkyboxTexture;
-  Texture TexInRam(DDSPic.getLoadedImage());
+  D3DTexture TexInRam(DDSPic.getLoadedImage());
   const IImage &Image = DDSPic.getLoadedImage();
 
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(

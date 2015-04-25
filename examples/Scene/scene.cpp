@@ -5,10 +5,6 @@
 #include <Scene/Shaders.h>
 #include <RenderTargets.h>
 
-#ifdef DXBUILD
-#include <API/d3dapi.h>
-#endif
-
 struct ViewBuffer
 {
   float ViewProj[16];

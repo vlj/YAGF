@@ -16,7 +16,7 @@
 #endif
 
 #ifdef DXBUILD
-#include <D3DAPI/Texture.h>
+#include <D3DAPI/D3DTexture.h>
 #include <D3DAPI/VAO.h>
 #include <D3DAPI/ConstantBuffer.h>
 #endif
