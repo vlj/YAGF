@@ -17,9 +17,16 @@ struct PackedMipMapLevel
     size_t DataSize;
 };
 
+enum class TextureType
+{
+  TEXTURE2D,
+  CUBEMAP,
+};
+
 struct IImage {
+  TextureType Type;
   irr::video::ECOLOR_FORMAT Format;
-  std::vector<PackedMipMapLevel> MipMapData;
+  std::vector<std::vector<PackedMipMapLevel> > Layers;
 };
 
 #endif

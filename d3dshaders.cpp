@@ -107,3 +107,28 @@ struct WrapperPipelineState *createSkinnedObjectShader()
   result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::S3DVertex2TCoords, irr::video::SkinnedVertexData>>::get(psodesc, L"Debug\\skinnedobject.cso", L"Debug\\object_gbuffer.cso");
   return result;
 }
+
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0>>,
+  DescriptorTable<SamplerResource<0>> > SkyboxRS;
+
+struct WrapperPipelineState *createSkyboxShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->D3DValue.rootSignature = SkyboxRS::get();
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+  psodesc.pRootSignature = result->D3DValue.rootSignature;
+  psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+  psodesc.NumRenderTargets = 1;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+  psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  psodesc.DepthStencilState.DepthEnable = false;
+  psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+  psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+
+  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\skybox.cso");
+  return result;
+}

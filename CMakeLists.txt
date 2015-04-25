@@ -51,6 +51,9 @@ target_link_libraries(ssao ${PROJECT_NAME})
 add_executable(gaussianblur examples/gaussianblur.cpp)
 target_link_libraries(gaussianblur ${PROJECT_NAME})
 
+add_executable(skybox examples/skybox.cpp examples/Scene/glapi.cpp glshaders.cpp)
+target_link_libraries(skybox ${PROJECT_NAME})
+
 add_executable(text examples/text.cpp)
 target_link_libraries(text ${PROJECT_NAME})
 
@@ -78,6 +81,7 @@ if(BUILD_DX12)
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/sunlight.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/tonemap.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/linearize.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/skybox.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
 
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/ssao_vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/ssao_pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
@@ -91,6 +95,9 @@ if(BUILD_DX12)
   add_executable(ssaodx12 d3dapi.cpp examples/ssaodx12.cpp examples/shaders/ssao_vtx.hlsl examples/shaders/ssao_pix.hlsl examples/shaders/screenquad.hlsl examples/shaders/linearize.hlsl)
   set_target_properties(ssaodx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   target_link_libraries(ssaodx12 ${PROJECT_NAME})
+  add_executable(skyboxdx12 d3dapi.cpp d3dshaders.cpp examples/skyboxdx12.cpp examples/shaders/screenquad.hlsl examples/shaders/skybox.hlsl)
+  set_target_properties(skyboxdx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+  target_link_libraries(skyboxdx12 ${PROJECT_NAME})
 endif()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples/Scene/include")

@@ -109,3 +109,37 @@ struct WrapperPipelineState *createTonemapShader()
   result->GLValue.StateSetter = tonemapStateSetter;
   return result;
 }
+
+
+class Skybox : public ShaderHelperSingleton<Skybox>, TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>>
+{
+public:
+  Skybox()
+  {
+    std::ifstream vsin("../examples/shaders/screenquad.vert", std::ios::in);
+    const std::string &vs = std::string((std::istreambuf_iterator<char>(vsin)), std::istreambuf_iterator<char>());
+
+    std::ifstream fsin("../examples/shaders/skybox.frag", std::ios::in);
+    const std::string &fs = std::string((std::istreambuf_iterator<char>(fsin)), std::istreambuf_iterator<char>());
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_VERTEX_SHADER, vs.c_str(),
+      GL_FRAGMENT_SHADER, fs.c_str());
+
+    AssignSamplerNames(Program, "Matrixes", "skytexture");
+  }
+};
+
+static void skyboxStateSetter()
+{
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  glDisable(GL_BLEND);
+}
+
+struct WrapperPipelineState *createSkyboxShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->GLValue.Program = Skybox::getInstance()->Program;
+  result->GLValue.StateSetter = skyboxStateSetter;
+  return result;
+}

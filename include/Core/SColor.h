@@ -7,6 +7,7 @@
 #define __COLOR_H_INCLUDED__
 
 #include <cmath>
+#include <cassert>
 
 namespace irr
 {
@@ -30,6 +31,7 @@ namespace irr
 
       //! Default 32 bit color format. 8 bits are used for every component: red, green, blue and alpha.
       ECF_A8R8G8B8,
+      ECF_R8G8B8A8_UNORM,
       ECF_R8G8B8A8_UNORM_SRGB,
 
       //! The normalized non-float formats from the _rg extension
@@ -56,7 +58,7 @@ namespace irr
       ECF_G32R32F,
 
       //! 128 bit floating point format. 32 bits are used for the red, green, blue and alpha channels.
-      ECF_A32B32G32R32F,
+      ECF_R32G32B32A32F,
 
 
       // Block Compressed format
@@ -89,6 +91,24 @@ namespace irr
         case ECF_BC5_SNORM:
             return true;
         }
+    }
+
+    inline size_t formatBitCount(ECOLOR_FORMAT format)
+    {
+      assert(!isCompressed(format));
+      switch (format)
+      {
+      case ECF_A8R8G8B8:
+      case ECF_R8G8B8A8_UNORM:
+      case ECF_R8G8B8A8_UNORM_SRGB:
+        return 32;
+      case ECF_R16G16B16A16F:
+        return 64;
+      case ECF_R32G32B32A32F:
+        return 128;
+      default:
+        return 0;
+      }
     }
 
 
