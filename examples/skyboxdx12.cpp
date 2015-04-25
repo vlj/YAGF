@@ -23,7 +23,7 @@ struct Matrixes
 WrapperResource *cbuf;
 WrapperResource *cubemap;
 WrapperDescriptorHeap* Samplers;
-WrapperDescriptorHeap *Inputs;
+WrapperDescriptorHeap *Inputs[2];
 WrapperCommandList *CommandList;
 WrapperPipelineState *SkyboxPSO;
 WrapperIndexVertexBuffersSet *ScreenQuad;
@@ -46,7 +46,6 @@ void Init(HWND hWnd)
   GlobalGFXAPI = new D3DAPI();
 
   cubemap = (WrapperResource*)malloc(sizeof(WrapperResource));
-
 
   const std::string &fixed = "..\\examples\\assets\\hdrsky.dds";
   std::ifstream DDSFile(fixed, std::ifstream::binary);
@@ -89,7 +88,8 @@ void Init(HWND hWnd)
   CommandList = GlobalGFXAPI->createCommandList();
 
   cbuf = GlobalGFXAPI->createConstantsBuffer(sizeof(Matrixes));
-  Inputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuf, RESOURCE_VIEW::CONSTANTS_BUFFER, 0), std::make_tuple(cubemap, RESOURCE_VIEW::SHADER_RESOURCE, 0) });
+  Inputs[0] = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuf, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
+  Inputs[1] = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cubemap, RESOURCE_VIEW::SHADER_RESOURCE, 0) });
   Samplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::ANISOTROPIC, 0 } });
 
   SkyboxPSO = createSkyboxShader();
@@ -99,7 +99,8 @@ void Init(HWND hWnd)
 
 void Clean()
 {
-  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(Inputs);
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(Inputs[0]);
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(Inputs[1]);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(Samplers);
   GlobalGFXAPI->releaseConstantsBuffers(cbuf);
   GlobalGFXAPI->releaseCommandList(CommandList);
@@ -127,8 +128,9 @@ void Draw()
   GlobalGFXAPI->openCommandList(CommandList);
   GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, ScreenQuad);
   GlobalGFXAPI->setPipelineState(CommandList, SkyboxPSO);
-  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, Inputs);
-  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Samplers);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, Inputs[0]);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, Inputs[1]);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 2, Samplers);
   GlobalGFXAPI->setBackbufferAsRTTSet(CommandList, 1024, 1024);
   GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
   GlobalGFXAPI->setBackbufferAsPresent(CommandList);
