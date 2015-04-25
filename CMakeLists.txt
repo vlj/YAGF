@@ -38,7 +38,7 @@ include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 file(GLOB_RECURSE HEADERS_LIST include "*.h")
-add_library(${PROJECT_NAME} runtime.cpp ${HEADERS_LIST})
+add_library(${PROJECT_NAME} runtime.cpp examples/Scene/rendertargets.cpp examples/Scene/fullscreen.cpp ${HEADERS_LIST})
 if (WIN32)
   target_link_libraries(${PROJECT_NAME} glew ${GLEW_LIBRARY} glfw ${GLFW_LIBRARIES} freetype ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
 else()
@@ -107,8 +107,6 @@ add_executable(scene
   examples/Scene/scene.cpp
   examples/Scene/material.cpp
   examples/Scene/meshscenenode.cpp
-  examples/Scene/rendertargets.cpp
-  examples/Scene/fullscreen.cpp
   examples/Scene/texturemanager.cpp
   glshaders.cpp
   examples/Scene/glapi.cpp)
@@ -122,8 +120,6 @@ if(BUILD_DX12)
     examples/Scene/scene.cpp
     examples/Scene/material.cpp
     examples/Scene/meshscenenode.cpp
-    examples/Scene/rendertargets.cpp
-    examples/Scene/fullscreen.cpp
     examples/Scene/texturemanager.cpp
     examples/shaders/sunlight.hlsl
     d3dshaders.cpp
