@@ -10,4 +10,5 @@ struct WrapperPipelineState *createObjectShader();
 struct WrapperPipelineState *createSkinnedObjectShader();
 struct WrapperPipelineState *createSkyboxShader();
 
+struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap();
 #endif

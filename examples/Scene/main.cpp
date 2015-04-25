@@ -4,6 +4,7 @@
 #include <Scene.h>
 #include <Scene/FullscreenPass.h>
 #include <Loaders/DDS.h>
+#include <Scene/IBL.h>
 
 #ifdef GLBUILD
 #include <GL/glew.h>
@@ -100,6 +101,8 @@ void init()
   cubemap->GLValue.Resource = Tex->Id;
   cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
 #endif
+
+  cubemap = generateSpecularCubemap(cubemap);
 
   skyboxTextureHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {

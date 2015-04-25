@@ -4,6 +4,7 @@
 #define IBL_HPP
 
 #include <Core/IImage.h>
+#include <API/GfxApi.h>
 
 struct Color
 {
@@ -19,6 +20,6 @@ using the cubemap provided by CubemapFace.
 */
 void SphericalHarmonics(Color *CubemapFace[6], size_t edge_size, float *blueSHCoeff, float *greenSHCoeff, float *redSHCoeff);
 
-size_t generateSpecularCubemap(size_t probe);
+WrapperResource *generateSpecularCubemap(WrapperResource *probe);
 IImage getDFGLUT(size_t DFG_LUT_size = 128);
 #endif

@@ -292,11 +292,10 @@ std::pair<float, float> ImportanceSamplingCos(std::pair<float, float> Seeds)
   return std::make_pair(acosf(Seeds.first), 2.f * 3.14f * Seeds.second);
 }
 
-#if 0
 static
-core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
+irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 {
-  core::matrix4 resultMat;
+  irr::core::matrix4 resultMat;
   float *M = resultMat.pointer();
   memset(M, 0, 16 * sizeof(float));
   assert(indexX < 4);
@@ -308,33 +307,53 @@ core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, flo
   return resultMat;
 }
 
-GLuint generateSpecularCubemap(GLuint probe)
-{
-  GLuint cubemap_texture;
+#ifdef GLBUILD
+#include <API/glapi.h>
+#endif
+#ifdef DXBUILD
+#include <API/d3dapi.h>
+#endif
 
-  glGenTextures(1, &cubemap_texture);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
+struct PermutationMatrix
+{
+  float Matrix[16];
+};
+
+WrapperResource *generateSpecularCubemap(WrapperResource *probe)
+{
   size_t cubemap_size = 256;
+  WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
+
+  WrapperCommandList *CommandList = GlobalGFXAPI->createCommandList();
+  WrapperPipelineState *PSO = ImportanceSamplingForSpecularCubemap();
+  WrapperIndexVertexBuffersSet *bigtri = GlobalGFXAPI->createFullscreenTri();
+
+  WrapperResource *cbuf = GlobalGFXAPI->createConstantsBuffer(sizeof(PermutationMatrix));
+  WrapperDescriptorHeap *probeheap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0) });
+  WrapperDescriptorHeap *cbufheap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuf, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
+  WrapperDescriptorHeap *samplers = GlobalGFXAPI->createSamplerHeap({std::make_pair(SAMPLER_TYPE::ANISOTROPIC, 0)});
+
+#ifdef GLBUILD
+  result->GLValue.Type = GL_TEXTURE_CUBE_MAP;
+  glGenTextures(1, &result->GLValue.Resource);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, result->GLValue.Resource);
   for (int i = 0; i < 6; i++)
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F, cubemap_size, cubemap_size, 0, GL_BGRA, GL_FLOAT, 0);
   glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-  if (!CVS->isDefferedEnabled())
-    return cubemap_texture;
-
   GLuint fbo;
   glGenFramebuffers(1, &fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
   glViewport(0, 0, cubemap_size, cubemap_size);
   GLenum bufs[] = { GL_COLOR_ATTACHMENT0 };
   glDrawBuffers(1, bufs);
-  glUseProgram(UtilShader::SpecularIBLGenerator::getInstance()->Program);
 
-  glDisable(GL_BLEND);
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
+#endif
 
-  core::matrix4 M[6] = {
+  GlobalGFXAPI->openCommandList(CommandList);
+  GlobalGFXAPI->setPipelineState(CommandList, PSO);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 3, samplers);
+
+  irr::core::matrix4 M[6] = {
     getPermutationMatrix(2, -1., 1, -1., 0, 1.),
     getPermutationMatrix(2, 1., 1, -1., 0, -1.),
     getPermutationMatrix(0, 1., 2, 1., 1, 1.),
@@ -356,8 +375,9 @@ GLuint generateSpecularCubemap(GLuint probe)
       tmp[2 * i + 1] = sample.second;
     }
 
+#ifdef GLBUILD
     glBindVertexArray(0);
-    glActiveTexture(GL_TEXTURE0 + UtilShader::SpecularIBLGenerator::getInstance()->TU_Samples);
+    glActiveTexture(GL_TEXTURE1);
     GLuint sampleTex, sampleBuffer;
     glGenBuffers(1, &sampleBuffer);
     glBindBuffer(GL_TEXTURE_BUFFER, sampleBuffer);
@@ -365,33 +385,39 @@ GLuint generateSpecularCubemap(GLuint probe)
     glGenTextures(1, &sampleTex);
     glBindTexture(GL_TEXTURE_BUFFER, sampleTex);
     glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, sampleBuffer);
-    glBindVertexArray(SharedObject::FullScreenQuadVAO);
+#endif
 
+    GlobalGFXAPI->setDescriptorHeap(CommandList, 2, probeheap);
+    GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, bigtri);
     for (unsigned face = 0; face < 6; face++)
     {
-
-      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, cubemap_texture, level);
+#ifdef GLBUILD
+      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, result->GLValue.Resource, level);
       GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
       assert(status == GL_FRAMEBUFFER_COMPLETE);
+#endif
+      memcpy(GlobalGFXAPI->mapConstantsBuffer(cbuf), M[face].pointer(), 16 * sizeof(float));
+      GlobalGFXAPI->unmapConstantsBuffers(cbuf);
 
-      UtilShader::SpecularIBLGenerator::getInstance()->SetTextureUnits(probe);
-      UtilShader::SpecularIBLGenerator::getInstance()->setUniforms(M[face], viewportSize);
-
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+      GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap);
+      GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
     }
-    glActiveTexture(GL_TEXTURE0 + UtilShader::SpecularIBLGenerator::getInstance()->TU_Samples);
+#ifdef GLBUILD
+    glActiveTexture(GL_TEXTURE1);
     glBindBuffer(GL_TEXTURE_BUFFER, 0);
     glBindTexture(GL_TEXTURE_BUFFER, 0);
-
-    delete[] tmp;
     glDeleteTextures(1, &sampleTex);
     glDeleteBuffers(1, &sampleBuffer);
+#endif
+
+    delete[] tmp;
   }
+#ifdef GLBUILD
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glDeleteFramebuffers(1, &fbo);
-  return cubemap_texture;
-}
 #endif
+  return result;
+}
 
 static float G1_Schlick(const irr::core::vector3df &V, const irr::core::vector3df &normal, float k)
 {

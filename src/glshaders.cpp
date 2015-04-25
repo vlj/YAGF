@@ -143,3 +143,38 @@ struct WrapperPipelineState *createSkyboxShader()
   result->GLValue.StateSetter = skyboxStateSetter;
   return result;
 }
+
+class ImportanceSamplingForSpecularCubemap : public ShaderHelperSingleton< class ImportanceSamplingForSpecularCubemap>, TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>, TextureResource<GL_TEXTURE_2D, 1>>
+{
+public:
+  ImportanceSamplingForSpecularCubemap()
+  {
+    std::ifstream vsin("../examples/shaders/screenquad.vert", std::ios::in);
+    const std::string &vs = std::string((std::istreambuf_iterator<char>(vsin)), std::istreambuf_iterator<char>());
+
+    std::ifstream fsin("../examples/shaders/importance_sampling_specular.frag", std::ios::in);
+    const std::string &fs = std::string((std::istreambuf_iterator<char>(fsin)), std::istreambuf_iterator<char>());
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_VERTEX_SHADER, vs.c_str(),
+      GL_FRAGMENT_SHADER, fs.c_str());
+
+    AssignSamplerNames(Program, "Matrix", "tex", "samples");
+  }
+};
+
+static void ImportanceSamplingForSpecularCubemapStateSetter()
+{
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+  glDisable(GL_BLEND);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
+}
+
+
+struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->GLValue.Program = ImportanceSamplingForSpecularCubemap::getInstance()->Program;
+  result->GLValue.StateSetter = ImportanceSamplingForSpecularCubemapStateSetter;
+  return result;
+}
