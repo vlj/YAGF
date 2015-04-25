@@ -112,7 +112,7 @@ namespace irr
 
 
         WrapperTexture->D3DValue.resource = Tex.back().Get();
-        WrapperTexture->D3DValue.description.SRV = TextureInRam->getResourceViewDesc();
+        WrapperTexture->D3DValue.description.TextureView.SRV = TextureInRam->getResourceViewDesc();
 
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
         Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));

@@ -34,21 +34,7 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   lightdata = GlobalGFXAPI->createConstantsBuffer(sizeof(LightData));
 
   screentri = GlobalGFXAPI->createFullscreenTri();
-
-#ifdef DXBUILD
-  depthtexturecopy = (WrapperResource*)malloc(sizeof(WrapperResource));
-  depthtexturecopy->D3DValue.resource = RTT.getDepthBuffer()->D3DValue.resource;
-  D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
-  srv_view.Format = DXGI_FORMAT_R32_FLOAT;
-  srv_view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-  srv_view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srv_view.Texture2D.MipLevels = 1;
-  depthtexturecopy->D3DValue.description.SRV = srv_view;
-#endif
-
-#ifdef GLBUILD
   depthtexturecopy = RTT.getDepthBuffer();
-#endif
 
   SunlightInputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {

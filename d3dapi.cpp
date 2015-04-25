@@ -25,11 +25,12 @@ struct WrapperResource* D3DAPI::createRTT(irr::video::ECOLOR_FORMAT Format, size
   srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
   srv.Texture2D.MipLevels = 1;
 
-  result->D3DValue.description.SRV = srv;
+  result->D3DValue.description.TextureView.SRV = srv;
 
   return result;
 }
 
+// We assume it can be read afterward
 struct WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t Height)
 {
   WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
@@ -45,7 +46,14 @@ struct WrapperResource* D3DAPI::createDepthStencilTexture(size_t Width, size_t H
   dsv.Format = DXGI_FORMAT_D32_FLOAT;
   dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
   dsv.Texture2D.MipSlice = 0;
-  result->D3DValue.description.DSV = dsv;
+  result->D3DValue.description.TextureView.DSV = dsv;
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+  srv.Format = DXGI_FORMAT_R32_FLOAT;
+  srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  srv.Texture2D.MipLevels = 1;
+  result->D3DValue.description.TextureView.SRV = srv;
 
   return result;
 }
@@ -66,7 +74,7 @@ struct WrapperRTTSet* D3DAPI::createRTTSet(const std::vector<WrapperResource*> &
     dxgi_formats.push_back(getDXGIFormatFromColorFormat(formats[i]));
   }
   if (DepthStencil)
-    new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, DepthStencil->D3DValue.resource, &DepthStencil->D3DValue.description.DSV);
+    new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, DepthStencil->D3DValue.resource, &DepthStencil->D3DValue.description.TextureView.DSV);
   else
     new(result) D3DRTTSet(resources, dxgi_formats, Width, Height, nullptr, nullptr);
 
@@ -180,7 +188,7 @@ struct WrapperDescriptorHeap* D3DAPI::createCBVSRVUAVDescriptorHeap(const std::v
       Context::getInstance()->dev->CreateConstantBufferView(&std::get<0>(Resource)->D3DValue.description.CBV, Handle);
       break;
     case RESOURCE_VIEW::SHADER_RESOURCE:
-      Context::getInstance()->dev->CreateShaderResourceView(std::get<0>(Resource)->D3DValue.resource, &std::get<0>(Resource)->D3DValue.description.SRV, Handle);
+      Context::getInstance()->dev->CreateShaderResourceView(std::get<0>(Resource)->D3DValue.resource, &std::get<0>(Resource)->D3DValue.description.TextureView.SRV, Handle);
       break;
     }
     Index++;
