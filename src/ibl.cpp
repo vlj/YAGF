@@ -1,6 +1,10 @@
+// Copyright (C) 2015 Vincent Lejeune
+// For conditions of distribution and use, see copyright notice in License.txt
+
 #include <Scene/IBL.h>
 #include <Scene/Shaders.h>>
 #include <Core/BasicVertexLayout.h>
+#include <Maths/matrix4.h>
 #include <cmath>
 #include <set>
 
@@ -243,6 +247,8 @@ void SphericalHarmonics(Color *CubemapFace[6], size_t edge_size, float *blueSHCo
   }
 }
 
+#endif
+
 // From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
 /** Returns the index-th pair from Hammersley set of pseudo random set.
 Hammersley set is a uniform distribution between 0 and 1 for 2 components.
@@ -286,6 +292,7 @@ std::pair<float, float> ImportanceSamplingCos(std::pair<float, float> Seeds)
   return std::make_pair(acosf(Seeds.first), 2.f * 3.14f * Seeds.second);
 }
 
+#if 0
 static
 core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 {
@@ -384,8 +391,9 @@ GLuint generateSpecularCubemap(GLuint probe)
   glDeleteFramebuffers(1, &fbo);
   return cubemap_texture;
 }
+#endif
 
-static float G1_Schlick(const core::vector3df &V, const core::vector3df &normal, float k)
+static float G1_Schlick(const irr::core::vector3df &V, const irr::core::vector3df &normal, float k)
 {
   float NdotV = V.dotProduct(normal);
   NdotV = NdotV > 0.f ? NdotV : 0.f;
@@ -393,7 +401,7 @@ static float G1_Schlick(const core::vector3df &V, const core::vector3df &normal,
   return 1.f / (NdotV * (1.f - k) + k);
 }
 
-float G_Smith(const core::vector3df &lightdir, const core::vector3df &viewdir, const core::vector3df &normal, float roughness)
+float G_Smith(const irr::core::vector3df &lightdir, const irr::core::vector3df &viewdir, const irr::core::vector3df &normal, float roughness)
 {
   float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
   return G1_Schlick(lightdir, normal, k) * G1_Schlick(viewdir, normal, k);
@@ -403,15 +411,15 @@ static
 std::pair<float, float> getSpecularDFG(float roughness, float NdotV)
 {
   // We assume a local referential where N points in Y direction
-  core::vector3df V(sqrtf(1.f - NdotV * NdotV), NdotV, 0.f);
+  irr::core::vector3df V(sqrtf(1.f - NdotV * NdotV), NdotV, 0.f);
 
   float DFG1 = 0., DFG2 = 0.;
   for (unsigned sample = 0; sample < 1024; sample++)
   {
     std::pair<float, float> ThetaPhi = ImportanceSamplingGGX(HammersleySequence(sample, 1024), roughness);
     float Theta = ThetaPhi.first, Phi = ThetaPhi.second;
-    core::vector3df H(sinf(Theta) * cosf(Phi), cosf(Theta), sinf(Theta) * sinf(Phi));
-    core::vector3df L = 2 * H.dotProduct(V) * H - V;
+    irr::core::vector3df H(sinf(Theta) * cosf(Phi), cosf(Theta), sinf(Theta) * sinf(Phi));
+    irr::core::vector3df L = 2 * H.dotProduct(V) * H - V;
     float NdotL = L.Y;
     if (NdotL > 0.)
     {
@@ -419,7 +427,7 @@ std::pair<float, float> getSpecularDFG(float roughness, float NdotV)
       VdotH = VdotH > 0.f ? VdotH : 0.f;
       VdotH = VdotH < 1.f ? VdotH : 1.f;
       float Fc = powf(1.f - VdotH, 5.f);
-      float G = G_Smith(L, V, core::vector3df(0.f, 1.f, 0.f), roughness);
+      float G = G_Smith(L, V, irr::core::vector3df(0.f, 1.f, 0.f), roughness);
       DFG1 += (1.f - Fc) * G * VdotH;
       DFG2 += Fc * G * VdotH;
     }
@@ -431,17 +439,17 @@ static
 float getDiffuseDFG(float roughness, float NdotV)
 {
   // We assume a local referential where N points in Y direction
-  core::vector3df V(sqrtf(1.f - NdotV * NdotV), NdotV, 0.f);
+  irr::core::vector3df V(sqrtf(1.f - NdotV * NdotV), NdotV, 0.f);
   float DFG = 0.f;
   for (unsigned sample = 0; sample < 1024; sample++)
   {
     std::pair<float, float> ThetaPhi = ImportanceSamplingCos(HammersleySequence(sample, 1024));
     float Theta = ThetaPhi.first, Phi = ThetaPhi.second;
-    core::vector3df L(sinf(Theta) * cosf(Phi), cosf(Theta), sinf(Theta) * sinf(Phi));
+    irr::core::vector3df L(sinf(Theta) * cosf(Phi), cosf(Theta), sinf(Theta) * sinf(Phi));
     float NdotL = L.Y;
     if (NdotL > 0.f)
     {
-      core::vector3df H = (L + V).normalize();
+      irr::core::vector3df H = (L + V).normalize();
       float LdotH = L.dotProduct(H);
       float f90 = .5f + 2.f * LdotH * LdotH * roughness * roughness;
       DFG += (1.f + (f90 - 1.f) * (1.f - powf(NdotL, 5.f))) * (1.f + (f90 - 1.f) * (1.f - powf(NdotV, 5.f)));
@@ -450,10 +458,22 @@ float getDiffuseDFG(float roughness, float NdotV)
   return DFG / 1024;
 }
 
-GLuint generateSpecularDFGLUT()
+/** Generate the Look Up Table for the DFG texture.
+    DFG Texture is used to compute diffuse and specular response from environmental lighting. */
+IImage getDFGLUT(size_t DFG_LUT_size)
 {
-  size_t DFG_LUT_size = 128;
+  IImage DFG_LUT_texture;
+  DFG_LUT_texture.Format = irr::video::ECF_R32G32B32A32F;
+  DFG_LUT_texture.Type = TextureType::TEXTURE2D;
   float *texture_content = new float[4 * DFG_LUT_size * DFG_LUT_size];
+
+  PackedMipMapLevel LUT = {
+    DFG_LUT_size,
+    DFG_LUT_size,
+    texture_content,
+    4 * DFG_LUT_size * DFG_LUT_size * sizeof(float)
+  };
+  DFG_LUT_texture.Layers.push_back({ LUT });
 
 #pragma omp parallel for
   for (int i = 0; i < int(DFG_LUT_size); i++)
@@ -470,14 +490,5 @@ GLuint generateSpecularDFGLUT()
     }
   }
 
-  GLuint DFG_LUT_texture;
-  glGenTextures(1, &DFG_LUT_texture);
-  glBindTexture(GL_TEXTURE_2D, DFG_LUT_texture);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, DFG_LUT_size, DFG_LUT_size, 0, GL_RGBA, GL_FLOAT, texture_content);
-
-  delete[] texture_content;
   return DFG_LUT_texture;
 }
-
-#endif
