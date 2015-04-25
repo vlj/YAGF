@@ -1,8 +1,8 @@
 #include <MeshSceneNode.h>
 #include <MeshManager.h>
-#include <RenderTargets.h>
+#include <Scene/RenderTargets.h>
 #include <Scene.h>
-#include <FullscreenPass.h>
+#include <Scene/FullscreenPass.h>
 #include <Loaders/DDS.h>
 
 #ifdef GLBUILD

@@ -3,7 +3,7 @@
 #include <Scene.h>
 
 #include <Scene/Shaders.h>
-#include <RenderTargets.h>
+#include <Scene/RenderTargets.h>
 
 struct ViewBuffer
 {

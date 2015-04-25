@@ -4,7 +4,7 @@
 #ifndef __FULLSCREEN_PASS_H__
 #define __FULLSCREEN_PASS_H__
 
-#include <RenderTargets.h>
+#include <Scene/RenderTargets.h>
 #include <API/GfxApi.h>
 
 class FullscreenPassManager

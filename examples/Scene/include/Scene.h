@@ -7,7 +7,7 @@
 #include <API/GfxApi.h>
 #include <list>
 #include <MeshSceneNode.h>
-#include <RenderTargets.h>
+#include <Scene/RenderTargets.h>
 
 class Scene
 {

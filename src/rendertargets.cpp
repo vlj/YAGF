@@ -1,6 +1,6 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
-#include <RenderTargets.h>
+#include <Scene/RenderTargets.h>
 
 
 RenderTargets::RenderTargets(size_t w, size_t h) : Width(w), Height(h)
