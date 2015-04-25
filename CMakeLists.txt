@@ -38,7 +38,7 @@ include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 file(GLOB_RECURSE HEADERS_LIST include "*.h")
-add_library(${PROJECT_NAME} src/runtime.cpp src/rendertargets.cpp src/fullscreen.cpp src/ibl.cpp ${HEADERS_LIST})
+add_library(${PROJECT_NAME} src/runtime.cpp src/rendertargets.cpp src/fullscreen.cpp ${HEADERS_LIST})
 if (WIN32)
   target_link_libraries(${PROJECT_NAME} glew ${GLEW_LIBRARY} glfw ${GLFW_LIBRARIES} freetype ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
 else()
@@ -53,6 +53,10 @@ target_link_libraries(gaussianblur ${PROJECT_NAME})
 
 add_executable(skybox examples/skybox.cpp src/glapi.cpp src/glshaders.cpp)
 target_link_libraries(skybox ${PROJECT_NAME})
+
+add_executable(ibl examples/ibl.cpp src/glapi.cpp src/glshaders.cpp src/ibl.cpp)
+target_link_libraries(ibl ${PROJECT_NAME})
+set_target_properties(ibl PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
 
 add_executable(text examples/text.cpp)
 target_link_libraries(text ${PROJECT_NAME})
@@ -109,6 +113,7 @@ add_executable(scene
   examples/Scene/meshscenenode.cpp
   examples/Scene/texturemanager.cpp
   src/glshaders.cpp
+  src/ibl.cpp
   src/glapi.cpp)
 set_target_properties(scene PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
 target_link_libraries(scene ${PROJECT_NAME})
@@ -116,6 +121,7 @@ target_link_libraries(scene ${PROJECT_NAME})
 if(BUILD_DX12)
   add_executable(scenedx12
     src/d3dapi.cpp
+    src/ibl.cpp
     examples/Scene/main.cpp
     examples/Scene/scene.cpp
     examples/Scene/material.cpp
