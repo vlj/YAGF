@@ -109,6 +109,7 @@ add_executable(scene
   examples/Scene/meshscenenode.cpp
   examples/Scene/rendertargets.cpp
   examples/Scene/fullscreen.cpp
+  examples/Scene/texturemanager.cpp
   glshaders.cpp
   examples/Scene/glapi.cpp)
 set_target_properties(scene PROPERTIES COMPILE_DEFINITIONS "GLBUILD")
@@ -123,6 +124,7 @@ if(BUILD_DX12)
     examples/Scene/meshscenenode.cpp
     examples/Scene/rendertargets.cpp
     examples/Scene/fullscreen.cpp
+    examples/Scene/texturemanager.cpp
     examples/shaders/sunlight.hlsl
     d3dshaders.cpp
     examples/shaders/object.hlsl

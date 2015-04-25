@@ -23,27 +23,11 @@ private:
   std::list<Texture> TextureStore;
   std::unordered_map<std::string, Texture*> textureSet;
 public:
-  TextureManager() {}
+  TextureManager();
+  ~TextureManager();
 
-  void LoadTextures(const std::vector<std::string>& TexturesLocation)
-  {
-    for (std::string TextureLoc : TexturesLocation)
-    {
-      const std::string &fixed = "..\\examples\\assets\\" + TextureLoc.substr(0, TextureLoc.find_last_of('.')) + ".DDS";
-      std::ifstream DDSFile(fixed, std::ifstream::binary);
-      irr::video::CImageLoaderDDS DDSPic(DDSFile);
-      TextureStore.emplace_back(DDSPic.getLoadedImage());
-      textureSet.emplace(TextureLoc, &TextureStore.back());
-    }
-  }
-
-  const Texture* getTexture(const std::string &name) const
-  {
-    std::unordered_map<std::string, Texture*>::const_iterator It = textureSet.find(name);
-    if (It == textureSet.end())
-      return nullptr;
-    return It->second;
-  }
+  void LoadTextures(const std::vector<std::string>& TexturesLocation);
+  const Texture* getTexture(const std::string &name) const;
 };
 
 #endif
