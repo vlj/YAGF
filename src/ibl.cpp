@@ -393,6 +393,7 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
     {
 #ifdef GLBUILD
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, result->GLValue.Resource, level);
+      glViewport(0, 0, viewportSize, viewportSize);
       GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
       assert(status == GL_FRAMEBUFFER_COMPLETE);
 #endif
