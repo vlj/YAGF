@@ -28,6 +28,7 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 {
   SunlightPSO = createSunlightShader();
   TonemapPSO = createTonemapShader();
+  SkyboxPSO = createSkyboxShader();
   CommandList = GlobalGFXAPI->createCommandList();
 
   viewdata = GlobalGFXAPI->createConstantsBuffer(sizeof(ViewData));
@@ -49,17 +50,27 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   {
     std::make_tuple(RTT.getRTT(RenderTargets::COLORS), RESOURCE_VIEW::SHADER_RESOURCE, 0),
   });
+
+  SkyboxInputs = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
+  {
+    std::make_tuple(viewdata, RESOURCE_VIEW::CONSTANTS_BUFFER, 0),
+  }
+  );
   Samplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::NEAREST, 1 }, { SAMPLER_TYPE::NEAREST, 2 } });
+  SkyboxSamplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::ANISOTROPIC, 0 } });
 }
 
 FullscreenPassManager::~FullscreenPassManager()
 {
   GlobalGFXAPI->releasePSO(SunlightPSO);
   GlobalGFXAPI->releasePSO(TonemapPSO);
+  GlobalGFXAPI->releasePSO(SkyboxPSO);
   GlobalGFXAPI->releaseCommandList(CommandList);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SunlightInputs);
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(TonemapInputs);
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(SkyboxInputs);
   GlobalGFXAPI->releaseSamplerHeap(Samplers);
+  GlobalGFXAPI->releaseSamplerHeap(SkyboxSamplers);
   GlobalGFXAPI->releaseConstantsBuffers(viewdata);
   GlobalGFXAPI->releaseConstantsBuffers(lightdata);
   GlobalGFXAPI->releaseIndexVertexBuffersSet(screentri);
@@ -124,4 +135,15 @@ void FullscreenPassManager::renderTonemap()
   });
 
   GlobalGFXAPI->setBackbufferAsPresent(CommandList);
+}
+
+void FullscreenPassManager::renderSky(WrapperDescriptorHeap *skyboxtextureheap)
+{
+  GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLOR_WITH_DEPTH));
+  GlobalGFXAPI->setPipelineState(CommandList, SkyboxPSO);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, SkyboxInputs);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, skyboxtextureheap);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 2, SkyboxSamplers);
+  GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, screentri);
+  GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
 }

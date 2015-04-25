@@ -18,6 +18,10 @@ private:
   // Sunlights
   WrapperPipelineState *SunlightPSO;
   WrapperDescriptorHeap *SunlightInputs;
+  // Skybox
+  WrapperPipelineState *SkyboxPSO;
+  WrapperDescriptorHeap *SkyboxInputs;
+  WrapperDescriptorHeap *SkyboxSamplers;
   // should be param of rendersunlight
   WrapperResource *viewdata;
   WrapperResource *lightdata;
@@ -32,6 +36,7 @@ public:
 
   void renderSunlight();
   void renderTonemap();
+  void renderSky(WrapperDescriptorHeap *skyboxtextureheap);
 };
 
 #endif

@@ -23,6 +23,7 @@ public:
   {
     FBO_GBUFFER,
     FBO_COLORS,
+    FBO_COLOR_WITH_DEPTH,
 //    FBO_LINEAR_DEPTH,
     FBO_COUNT,
   };

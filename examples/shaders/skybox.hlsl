@@ -16,7 +16,6 @@ struct PS_INPUT
 
 float4 main(PS_INPUT In) : SV_TARGET
 {
-  In.uv.y = 1. - In.uv.y;
   float3 eyedir = float3(In.uv, 1.);
   eyedir = 2.0 * eyedir - 1.0;
   float4 tmp = mul(InvProj, float4(eyedir, 1.));
