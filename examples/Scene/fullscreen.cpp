@@ -24,10 +24,6 @@ struct LightData
   float sun_col[3];
 };
 
-#ifdef DXBUILD
-Microsoft::WRL::ComPtr<ID3D12Resource> DepthTextureCopyDest;
-#endif
-
 FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
 {
   SunlightPSO = createSunlightShader();
@@ -40,18 +36,8 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   screentri = GlobalGFXAPI->createFullscreenTri();
 
 #ifdef DXBUILD
-  // temp depth texture
-  Context::getInstance()->dev->CreateCommittedResource(
-    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-    D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, 1024, 1024),
-    D3D12_RESOURCE_USAGE_GENERIC_READ,
-    nullptr,
-    IID_PPV_ARGS(&DepthTextureCopyDest)
-    );
-
   depthtexturecopy = (WrapperResource*)malloc(sizeof(WrapperResource));
-  depthtexturecopy->D3DValue.resource = DepthTextureCopyDest.Get();
+  depthtexturecopy->D3DValue.resource = RTT.getDepthBuffer()->D3DValue.resource;
   D3D12_SHADER_RESOURCE_VIEW_DESC srv_view = {};
   srv_view.Format = DXGI_FORMAT_R32_FLOAT;
   srv_view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -112,37 +98,11 @@ void FullscreenPassManager::renderSunlight()
   data->sun_direction[2] = 0.;
   GlobalGFXAPI->unmapConstantsBuffers(lightdata);
 
-#ifdef DXBUILD
-  // Copy depth (until crash is fixed ?)
-  {
-    D3D12_RESOURCE_BARRIER_DESC barriers[2] = {
-      setResourceTransitionBarrier(RTT.getDepthBuffer()->D3DValue.resource, D3D12_RESOURCE_USAGE_DEPTH, D3D12_RESOURCE_USAGE_COPY_SOURCE),
-      setResourceTransitionBarrier(depthtexturecopy->D3DValue.resource, D3D12_RESOURCE_USAGE_GENERIC_READ, D3D12_RESOURCE_USAGE_COPY_DEST)
-    };
-    CommandList->D3DValue.CommandList->ResourceBarrier(2, barriers);
-
-
-    D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
-    dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
-    dst.Subresource = 0;
-    dst.pResource = depthtexturecopy->D3DValue.resource;
-    src.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
-    src.Subresource = 0;
-    src.pResource = RTT.getDepthBuffer()->D3DValue.resource;
-    CommandList->D3DValue.CommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
-
-    D3D12_RESOURCE_BARRIER_DESC barriers_back[2] = {
-      setResourceTransitionBarrier(RTT.getDepthBuffer()->D3DValue.resource, D3D12_RESOURCE_USAGE_COPY_SOURCE, D3D12_RESOURCE_USAGE_DEPTH),
-      setResourceTransitionBarrier(depthtexturecopy->D3DValue.resource, D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ)
-    };
-    CommandList->D3DValue.CommandList->ResourceBarrier(2, barriers_back);
-  }
-#endif
-
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList,
   {
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC),
+    std::make_tuple(RTT.getDepthBuffer(), RESOURCE_USAGE::DEPTH_STENCIL, RESOURCE_USAGE::READ_GENERIC),
   });
   GlobalGFXAPI->setPipelineState(CommandList, SunlightPSO);
   GlobalGFXAPI->setRTTSet(CommandList, RTT.getRTTSet(RenderTargets::FBO_COLORS));
@@ -155,6 +115,7 @@ void FullscreenPassManager::renderSunlight()
   {
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_NORMAL_AND_DEPTH), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
     std::make_tuple(RTT.getRTT(RenderTargets::GBUFFER_BASE_COLOR), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET),
+    std::make_tuple(RTT.getDepthBuffer(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_STENCIL),
   });
 }
 
