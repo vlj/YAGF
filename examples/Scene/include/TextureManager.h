@@ -7,27 +7,19 @@
 #include <Core/Singleton.h>
 #include <list>
 #include <string>
-#include <Loaders/DDS.h>
 #include <unordered_map>
+#include <API/GfxApi.h>
 
-#ifdef GLBUILD
-#include <GLAPI/Texture.h>
-#endif
-
-#ifdef DXBUILD
-#include <D3DAPI/Texture.h>
-#endif
 class TextureManager : public Singleton<TextureManager>
 {
 private:
-  std::list<Texture> TextureStore;
-  std::unordered_map<std::string, Texture*> textureSet;
+  std::unordered_map<std::string, WrapperResource *> textureSet;
 public:
   TextureManager();
   ~TextureManager();
 
   void LoadTextures(const std::vector<std::string>& TexturesLocation);
-  const Texture* getTexture(const std::string &name) const;
+  WrapperResource* getTexture(const std::string &name) const;
 };
 
 #endif

@@ -89,44 +89,9 @@ namespace irr
       {
         const irr::scene::SMeshBufferLightMap* mb = &buffer.first;
         DrawDatas.push_back(allocateMeshBuffer(buffer.first, this));
-        WrapperResource *WrapperTexture = (WrapperResource*)malloc(sizeof(WrapperResource));
+        WrapperResource *WrapperTexture = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
         reorg.push_back(buffer.first);
-#ifdef GLBUILD
-        WrapperTexture->GLValue.Resource = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0])->Id;
-        WrapperTexture->GLValue.Type = GL_TEXTURE_2D;
-#endif
 
-#ifdef DXBUILD
-        const Texture* TextureInRam = TextureManager::getInstance()->getTexture(buffer.second.TextureNames[0]);
-
-        Tex.emplace_back();
-
-        HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
-          &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-          D3D12_HEAP_MISC_NONE,
-          &CD3D12_RESOURCE_DESC::Tex2D(TextureInRam->getFormat(), (UINT)TextureInRam->getWidth(), (UINT)TextureInRam->getHeight(), 1, (UINT16)TextureInRam->getMipLevelsCount()),
-          D3D12_RESOURCE_USAGE_GENERIC_READ,
-          nullptr,
-          IID_PPV_ARGS(&Tex.back())
-          );
-
-
-        WrapperTexture->D3DValue.resource = Tex.back().Get();
-        WrapperTexture->D3DValue.description.TextureView.SRV = TextureInRam->getResourceViewDesc();
-
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdalloc;
-        Context::getInstance()->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdalloc));
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdlist;
-        Context::getInstance()->dev->CreateCommandList(1, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdalloc.Get(), nullptr, IID_PPV_ARGS(&cmdlist));
-
-        TextureInRam->CreateUploadCommandToResourceInDefaultHeap(cmdlist.Get(), Tex.back().Get());
-
-        cmdlist->Close();
-        Context::getInstance()->cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)cmdlist.GetAddressOf());
-        HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
-        WaitForSingleObject(handle, INFINITE);
-        CloseHandle(handle);
-#endif
         DrawDatas.back().descriptors = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
         {
           std::make_tuple(cbuffer, RESOURCE_VIEW::CONSTANTS_BUFFER, 1),

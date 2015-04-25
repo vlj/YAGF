@@ -3,6 +3,7 @@
 #include <RenderTargets.h>
 #include <Scene.h>
 #include <FullscreenPass.h>
+#include <Loaders/DDS.h>
 
 #ifdef GLBUILD
 #include <GL/glew.h>
@@ -93,6 +94,13 @@ void init()
   CloseHandle(handle);
   GlobalGFXAPI->releaseCommandList(uploadcmdlist);
 #endif
+
+#ifdef GLBUILD
+  Texture *Tex = new Texture(DDSPic.getLoadedImage());
+  cubemap->GLValue.Resource = Tex->Id;
+  cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
+#endif
+
   skyboxTextureHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {
     std::make_tuple(cubemap, RESOURCE_VIEW::SHADER_RESOURCE, 0)

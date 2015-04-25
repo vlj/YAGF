@@ -116,7 +116,7 @@ class Skybox : public ShaderHelperSingleton<Skybox>, TextureRead<UniformBufferRe
 public:
   Skybox()
   {
-    std::ifstream vsin("../examples/shaders/screenquad.vert", std::ios::in);
+    std::ifstream vsin("../examples/shaders/skybox.vert", std::ios::in);
     const std::string &vs = std::string((std::istreambuf_iterator<char>(vsin)), std::istreambuf_iterator<char>());
 
     std::ifstream fsin("../examples/shaders/skybox.frag", std::ios::in);
@@ -131,7 +131,7 @@ public:
 
 static void skyboxStateSetter()
 {
-  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
   glDisable(GL_BLEND);
 }
