@@ -6,12 +6,12 @@
 
 #ifdef GLBUILD
 #include <API/glapi.h>
-#include <GLAPI/Texture.h>
+#include <GLAPI/GLTexture.h>
 #endif
 
 #ifdef DXBUILD
 #include <API/d3dapi.h>
-#include <D3DAPI/Texture.h>
+#include <D3DAPI/D3DTexture.h>
 #endif
 
 TextureManager::TextureManager()
@@ -33,13 +33,13 @@ void TextureManager::LoadTextures(const std::vector<std::string>& TexturesLocati
 #ifdef GLBUILD
     WrapperResource *res = (WrapperResource*)malloc(sizeof(WrapperResource));
     // TODO : clean it
-    Texture *tmptexture = new Texture(DDSPic.getLoadedImage());
+    GLTexture *tmptexture = new GLTexture(DDSPic.getLoadedImage());
     res->GLValue.Resource = tmptexture->Id;
     res->GLValue.Type = GL_TEXTURE_2D;
 #endif
 
 #ifdef DXBUILD
-    Texture TextureInRam(DDSPic.getLoadedImage());
+    D3DTexture TextureInRam(DDSPic.getLoadedImage());
     WrapperResource *res = (WrapperResource*)malloc(sizeof(WrapperResource));
 
     HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(

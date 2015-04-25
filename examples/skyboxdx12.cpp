@@ -4,7 +4,7 @@
 #include <Maths/matrix4.h>
 #include <wrl/client.h>
 
-#include <D3DAPI/Texture.h>
+#include <D3DAPI/D3DTexture.h>
 
 #include <Scene/Shaders.h>
 
@@ -51,7 +51,7 @@ void Init(HWND hWnd)
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-  Texture TexInRam(DDSPic.getLoadedImage());
+  D3DTexture TexInRam(DDSPic.getLoadedImage());
   const IImage &Image = DDSPic.getLoadedImage();
 
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(

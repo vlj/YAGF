@@ -57,15 +57,15 @@ inline void getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt, GLen
   }
 }
 
-class Texture
+class GLTexture
 {
 private:
   size_t Width, Height;
 public:
   GLuint Id;
-  Texture() {}
+  GLTexture() {}
 
-  Texture(const IImage& image)
+  GLTexture(const IImage& image)
   {
     Width = image.Layers[0][0].Width;
     Height = image.Layers[0][0].Height;
@@ -121,7 +121,7 @@ public:
     }
     }
 
-    ~Texture()
+    ~GLTexture()
     {
       if (Id)
         glDeleteTextures(1, &Id);

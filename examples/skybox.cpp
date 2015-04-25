@@ -4,7 +4,7 @@
 #include <API/glapi.h>
 #include <Maths/matrix4.h>
 
-#include <GLAPI/Texture.h>
+#include <GLAPI/GLTexture.h>
 
 #include <Scene/Shaders.h>
 #include <GLAPI/Misc.h>
@@ -40,7 +40,7 @@ void init()
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-  Texture *Tex = new Texture(DDSPic.getLoadedImage());
+  GLTexture *Tex = new GLTexture(DDSPic.getLoadedImage());
   cubemap->GLValue.Resource = Tex->Id;
   cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
 
@@ -53,7 +53,7 @@ void init()
   SkyboxPSO = createSkyboxShader();
   ScreenQuad = GlobalGFXAPI->createFullscreenTri();
 
-  glDepthFunc(GL_LEQUAL);
+  glDepthFunc(GL_ALWAYS);
 }
 
 void clean()

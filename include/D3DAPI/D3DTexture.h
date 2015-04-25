@@ -47,7 +47,7 @@ inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
   }
 }
 
-class Texture
+class D3DTexture
 {
 private:
   struct MipLevelData
@@ -64,7 +64,7 @@ private:
   std::vector<MipLevelData> Mips;
   irr::video::ECOLOR_FORMAT Format;
 public:
-  Texture(const IImage& image) : Format(image.Format)
+  D3DTexture(const IImage& image) : Format(image.Format)
   {
     Width = image.Layers[0][0].Width;
     Height = image.Layers[0][0].Height;
@@ -152,12 +152,12 @@ public:
     texinram->Unmap(0, nullptr);
   }
 
-  Texture(const Texture &)
+  D3DTexture(const D3DTexture &)
   {
 
   }
 
-  ~Texture()
+  ~D3DTexture()
   {
 
   }

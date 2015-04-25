@@ -3,7 +3,7 @@
 #include <Util/GeometryCreator.h>
 #include <GLAPI/GLVertexStorage.h>
 #include <GLAPI/GLS3DVertex.h>
-#include <GLAPI/Texture.h>
+#include <GLAPI/GLTexture.h>
 
 #include <GLAPI/Shaders.h>
 #include <GLAPI/GLRTTSet.h>
@@ -164,7 +164,7 @@ GLuint jointsbuf;
 
 irr::scene::CB3DMeshFileLoader *loader;
 
-std::unordered_map<std::string, Texture> textureSet;
+std::unordered_map<std::string, GLTexture> textureSet;
 
 void init()
 {

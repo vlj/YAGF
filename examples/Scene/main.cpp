@@ -96,7 +96,7 @@ void init()
 #endif
 
 #ifdef GLBUILD
-  Texture *Tex = new Texture(DDSPic.getLoadedImage());
+  GLTexture *Tex = new GLTexture(DDSPic.getLoadedImage());
   cubemap->GLValue.Resource = Tex->Id;
   cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
 #endif

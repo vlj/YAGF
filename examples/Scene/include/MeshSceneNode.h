@@ -11,7 +11,7 @@
 #ifdef GLBUILD
 #include <GL/glew.h>
 #include <GLAPI/GLVertexStorage.h>
-#include <GLAPI/Texture.h>
+#include <GLAPI/GLTexture.h>
 #include <GLAPI/GLS3DVertex.h>
 #endif
 

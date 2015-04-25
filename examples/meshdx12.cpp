@@ -3,7 +3,7 @@
 
 #include <D3DAPI/D3DRTTSet.h>
 #include <D3DAPI/VAO.h>
-#include <D3DAPI/Texture.h>
+#include <D3DAPI/D3DTexture.h>
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 #include <tuple>
@@ -106,7 +106,7 @@ void Init(HWND hWnd)
     std::ifstream DDSFile(fixed, std::ifstream::binary);
     irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-    Texture TextureInRam(DDSPic.getLoadedImage());
+    D3DTexture TextureInRam(DDSPic.getLoadedImage());
 
     HRESULT hr = dev->CreateCommittedResource(
       &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),

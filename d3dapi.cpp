@@ -2,7 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <API/d3dapi.h>
-#include <D3DAPI/Texture.h>
+#include <D3DAPI/D3DTexture.h>
 #include <D3DAPI/Resource.h>
 #include <D3DAPI/Sampler.h>
 
