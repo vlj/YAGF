@@ -52,98 +52,22 @@ void Init(HWND hWnd)
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-  Microsoft::WRL::ComPtr<ID3D12Resource> TexInRam;
+  Texture TexInRam(DDSPic.getLoadedImage());
   const IImage &Image = DDSPic.getLoadedImage();
 
-  size_t Width = Image.Layers[0][0].Width, Height = Image.Layers[0][0].Height, mipmapCount = Image.Layers[0].size();
-
-  size_t bitcount = 128 / 8;
-
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
-    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-    D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Buffer((UINT)Width * Height * bitcount * 6 * 3),
-    D3D12_RESOURCE_USAGE_GENERIC_READ,
-    nullptr,
-    IID_PPV_ARGS(&TexInRam)
-    );
-
-  hr = Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(Image.Format), (UINT)Width, (UINT)Height, 6, mipmapCount),
+    &CD3D12_RESOURCE_DESC::Tex2D(getDXGIFormatFromColorFormat(Image.Format), (UINT)TexInRam.getWidth(), (UINT)TexInRam.getHeight(), 6, (UINT)TexInRam.getMipLevelsCount()),
     D3D12_RESOURCE_USAGE_GENERIC_READ,
     nullptr,
     IID_PPV_ARGS(&SkyboxTexture)
     );
 
-  std::vector<MipLevelData> mlds;
-  size_t block_width = 1, block_height = 1;
-  size_t block_size = bitcount;
-
-  char *tmp;
-  TexInRam->Map(0, nullptr, (void**)&tmp);
-  size_t offset_in_texram = 0;
-  for (unsigned face = 0; face < 6; face++)
-  {
-    for (unsigned miplevel = 0; miplevel < mipmapCount; miplevel++)
-    {
-      offset_in_texram = (offset_in_texram + 511) & -0x200;
-      // Row pitch is always a multiple of 256
-      size_t height_in_blocks = (Image.Layers[face][miplevel].Height + block_height - 1) / block_height;
-      size_t width_in_blocks = (Image.Layers[face][miplevel].Width + block_width - 1) / block_width;
-      size_t height_in_texram = height_in_blocks * block_height;
-      size_t width_in_texram = width_in_blocks * block_width;
-      size_t rowPitch = max(width_in_blocks * block_size, 256);
-      MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
-      mlds.push_back(mml);
-      for (unsigned row = 0; row < height_in_blocks; row++)
-      {
-        memcpy(((char*)tmp) + offset_in_texram, (char*)(Image.Layers[face][miplevel].Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
-        offset_in_texram += rowPitch;
-      }
-    }
-  }
-  TexInRam->Unmap(0, nullptr);
-
-
   WrapperCommandList *uploadcmdlist = GlobalGFXAPI->createCommandList();
   GlobalGFXAPI->openCommandList(uploadcmdlist);
 
-  for (unsigned face = 0; face < 6; face++)
-  {
-    for (unsigned miplevel = 0; miplevel < mipmapCount; miplevel++)
-    {
-      MipLevelData mipmapLevel = mlds[face * mipmapCount + miplevel];
-      D3D12_RESOURCE_BARRIER_DESC barrier = {};
-      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      barrier.Transition.pResource = SkyboxTexture.Get();
-      barrier.Transition.Subresource = face * mipmapCount + miplevel;
-      barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_GENERIC_READ;
-      barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_COPY_DEST;
-      uploadcmdlist->D3DValue.CommandList->ResourceBarrier(1, &barrier);
-
-      D3D12_TEXTURE_COPY_LOCATION dst = {};
-      dst.Type = D3D12_SUBRESOURCE_VIEW_SELECT_SUBRESOURCE;
-      dst.pResource = SkyboxTexture.Get();
-      dst.Subresource = face * mipmapCount + miplevel;
-
-      D3D12_TEXTURE_COPY_LOCATION src = {};
-      src.Type = D3D12_SUBRESOURCE_VIEW_PLACED_PITCHED_SUBRESOURCE;
-      src.pResource = TexInRam.Get();
-      src.PlacedTexture.Offset = mipmapLevel.Offset;
-      src.PlacedTexture.Placement.Format = getDXGIFormatFromColorFormat(Image.Format);
-      src.PlacedTexture.Placement.Width = (UINT)mipmapLevel.Width;
-      src.PlacedTexture.Placement.Height = (UINT)mipmapLevel.Height;
-      src.PlacedTexture.Placement.Depth = 1;
-      src.PlacedTexture.Placement.RowPitch = (UINT)mipmapLevel.RowPitch;
-      uploadcmdlist->D3DValue.CommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr, D3D12_COPY_NONE);
-
-      barrier.Transition.StateBefore = D3D12_RESOURCE_USAGE_COPY_DEST;
-      barrier.Transition.StateAfter = D3D12_RESOURCE_USAGE_GENERIC_READ;
-      uploadcmdlist->D3DValue.CommandList->ResourceBarrier(1, &barrier);
-    }
-  }
+  TexInRam.CreateUploadCommandToResourceInDefaultHeap(uploadcmdlist->D3DValue.CommandList, SkyboxTexture.Get());
 
   D3D12_SHADER_RESOURCE_VIEW_DESC resdesc = {};
   resdesc.Format = getDXGIFormatFromColorFormat(Image.Format);
