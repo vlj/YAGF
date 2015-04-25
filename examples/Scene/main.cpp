@@ -106,6 +106,8 @@ void clean()
   delete rtts;
   delete scnmgr;
   delete fspassmgr;
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(skyboxTextureHeap);
+  GlobalGFXAPI->releaseRTTOrDepthStencilTexture(cubemap);
 #ifdef DXBUILD
   Context::getInstance()->kill();
 #endif
