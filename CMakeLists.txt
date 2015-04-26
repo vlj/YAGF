@@ -87,6 +87,7 @@ if(BUILD_DX12)
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/tonemap.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/linearize.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/skybox.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
+  SET_SOURCE_FILES_PROPERTIES(examples/shaders/importance_sampling_specular.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
 
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/ssao_vtx.hlsl PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/ssao_pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
@@ -133,6 +134,7 @@ if(BUILD_DX12)
     examples/shaders/object_gbuffer.hlsl
     examples/shaders/skybox.hlsl
     examples/shaders/skyboxvert.hlsl
+    examples/shaders/importance_sampling_specular.hlsl
     examples/shaders/tonemap.hlsl)
   set_target_properties(scenedx12 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
   set_target_properties(scenedx12 PROPERTIES COMPILE_DEFINITIONS "DXBUILD")

@@ -134,3 +134,30 @@ struct WrapperPipelineState *createSkyboxShader()
   result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\skyboxvert.cso", L"Debug\\skybox.cso");
   return result;
 }
+
+
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<0>>,
+  DescriptorTable<ShaderResource<1>>,
+  DescriptorTable<ShaderResource<0>>,
+  DescriptorTable<SamplerResource<0>> > ImportanceSamplingForSpecularCubemapRS;
+
+struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->D3DValue.rootSignature = ImportanceSamplingForSpecularCubemapRS::get();
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+  psodesc.pRootSignature = result->D3DValue.rootSignature;
+  psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+  psodesc.NumRenderTargets = 1;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  psodesc.DepthStencilState.DepthEnable = false;
+
+  psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+
+  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\importance_sampling_specular.cso");
+  return result;
+}
