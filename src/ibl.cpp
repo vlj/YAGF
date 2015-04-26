@@ -412,6 +412,35 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
     GlobalGFXAPI->unmapConstantsBuffers(cbuf[i]);
   }
 
+#ifdef DXBUILD
+  Microsoft::WRL::ComPtr<ID3D12Resource> tbuffer[8];
+  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> tbufferheap[8];
+  for (unsigned i = 0; i < 8; i++)
+  {
+    hr = Context::getInstance()->dev->CreateCommittedResource(
+      &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+      D3D12_HEAP_MISC_NONE,
+      &CD3D12_RESOURCE_DESC::Buffer(1024 * 2 * sizeof(float)),
+      D3D12_RESOURCE_USAGE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(&tbuffer[i])
+      );
+
+    D3D12_DESCRIPTOR_HEAP_DESC dh = {};
+    dh.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
+    dh.NumDescriptors = 1;
+    dh.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
+    hr = Context::getInstance()->dev->CreateDescriptorHeap(&dh, IID_PPV_ARGS(&tbufferheap[i]));
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+    srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srv.Buffer.FirstElement = 0;
+    srv.Buffer.NumElements = 1024;
+    srv.Buffer.StructureByteStride = 2 * sizeof(float);
+    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    Context::getInstance()->dev->CreateShaderResourceView(tbuffer[i].Get(), &srv, tbufferheap[i]->GetCPUDescriptorHandleForHeapStart());
+  }
+#endif
+
   for (unsigned level = 0; level < 8; level++)
   {
     float roughness = .05f + .95f * level / 8.f;
@@ -452,8 +481,14 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
     view.MinDepth = 0;
     view.MaxDepth = 1.;
 
+    void *tbuffermap;
+    tbuffer[level]->Map(0, nullptr, &tbuffermap);
+    memcpy(tbuffermap, tmp, 2048 * sizeof(float));
+    tbuffer[level]->Unmap(0, nullptr);
+
     CommandList->D3DValue.CommandList->RSSetViewports(1, &view);
     CommandList->D3DValue.CommandList->RSSetScissorRects(1, &rect);
+    CommandList->D3DValue.CommandList->SetGraphicsRootDescriptorTable(1, tbufferheap[level]->GetGPUDescriptorHandleForHeapStart());
 #endif
 
     GlobalGFXAPI->setDescriptorHeap(CommandList, 2, probeheap);
