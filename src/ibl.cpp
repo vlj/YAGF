@@ -2,7 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <Scene/IBL.h>
-#include <Scene/Shaders.h>>
+#include <Scene/Shaders.h>
 #include <Core/BasicVertexLayout.h>
 #include <Maths/matrix4.h>
 #include <cmath>
@@ -370,10 +370,12 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
 
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CubeFaceRTT;
 
-  D3D12_DESCRIPTOR_HEAP_DESC dh = {};
-  dh.Type = D3D12_RTV_DESCRIPTOR_HEAP;
-  dh.NumDescriptors = 6 * 8;
-  hr = Context::getInstance()->dev->CreateDescriptorHeap(&dh, IID_PPV_ARGS(&CubeFaceRTT));
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC dh = {};
+    dh.Type = D3D12_RTV_DESCRIPTOR_HEAP;
+    dh.NumDescriptors = 6 * 8;
+    hr = Context::getInstance()->dev->CreateDescriptorHeap(&dh, IID_PPV_ARGS(&CubeFaceRTT));
+  }
 
   size_t index = 0, increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP);
   for (unsigned mipmaplevel = 0; mipmaplevel < 8; mipmaplevel++)
@@ -524,6 +526,19 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
   GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList, { std::make_tuple(result, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC) });
   GlobalGFXAPI->closeCommandList(CommandList);
   GlobalGFXAPI->submitToQueue(CommandList);
+
+
+  GlobalGFXAPI->releaseCommandList(CommandList);
+  GlobalGFXAPI->releasePSO(PSO);
+  GlobalGFXAPI->releaseIndexVertexBuffersSet(bigtri);
+  for (unsigned i = 0; i < 6; i++)
+  {
+    GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(cbufheap[i]);
+    GlobalGFXAPI->releaseConstantsBuffers(cbuf[i]);
+  }
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(probeheap);
+  GlobalGFXAPI->releaseSamplerHeap(samplers);
+
 #ifdef GLBUILD
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glDeleteFramebuffers(1, &fbo);

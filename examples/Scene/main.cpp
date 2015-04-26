@@ -29,7 +29,7 @@ RenderTargets *rtts;
 Scene *scnmgr;
 FullscreenPassManager *fspassmgr;
 irr::scene::ISceneNode *xue;
-WrapperResource *cubemap;
+WrapperResource *cubemap, *cubemap2;
 WrapperDescriptorHeap *skyboxTextureHeap;
 
 #ifdef DXBUILD
@@ -102,7 +102,7 @@ void init()
   cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
 #endif
 
-  cubemap = generateSpecularCubemap(cubemap);
+  cubemap2 = generateSpecularCubemap(cubemap);
 
   skyboxTextureHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {
@@ -119,6 +119,7 @@ void clean()
   delete fspassmgr;
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(skyboxTextureHeap);
   GlobalGFXAPI->releaseRTTOrDepthStencilTexture(cubemap);
+  GlobalGFXAPI->releaseRTTOrDepthStencilTexture(cubemap2);
 #ifdef DXBUILD
   Context::getInstance()->kill();
 #endif
