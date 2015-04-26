@@ -29,8 +29,8 @@ RenderTargets *rtts;
 Scene *scnmgr;
 FullscreenPassManager *fspassmgr;
 irr::scene::ISceneNode *xue;
-WrapperResource *cubemap, *cubemap2;
-WrapperDescriptorHeap *skyboxTextureHeap;
+WrapperResource *cubemap, *probe, *dfg;
+WrapperDescriptorHeap *skyboxTextureHeap, *probeHeap;
 
 #ifdef DXBUILD
 GFXAPI *GlobalGFXAPI = new D3DAPI();
@@ -57,6 +57,7 @@ void init()
   fspassmgr = new FullscreenPassManager(*rtts);
 
   cubemap = (WrapperResource*)malloc(sizeof(WrapperResource));
+  dfg = (WrapperResource*)malloc(sizeof(WrapperResource));
   const std::string &fixed = "..\\examples\\assets\\w_sky_1BC1.dds";
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
@@ -88,6 +89,32 @@ void init()
   cubemap->D3DValue.resource = SkyboxTexture;
   cubemap->D3DValue.description.TextureView.SRV = resdesc;
 
+  cubemap->D3DValue.resource = SkyboxTexture;
+  cubemap->D3DValue.description.TextureView.SRV = resdesc;
+
+  ID3D12Resource *DFGTexture;
+  D3DTexture DFGInRam(getDFGLUT());
+
+  hr = Context::getInstance()->dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Tex2D(DFGInRam.getFormat(), (UINT)DFGInRam.getWidth(), (UINT)DFGInRam.getHeight(), 1, 0),
+    D3D12_RESOURCE_USAGE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(&DFGTexture)
+    );
+
+  DFGInRam.CreateUploadCommandToResourceInDefaultHeap(uploadcmdlist->D3DValue.CommandList, DFGTexture);
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC resdesc_dfg = {};
+  resdesc_dfg.Format = DFGInRam.getFormat();
+  resdesc_dfg.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  resdesc_dfg.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  resdesc_dfg.TextureCube.MipLevels = 1;
+
+  dfg->D3DValue.resource = DFGTexture;
+  dfg->D3DValue.description.TextureView.SRV = resdesc_dfg;
+
   GlobalGFXAPI->closeCommandList(uploadcmdlist);
   GlobalGFXAPI->submitToQueue(uploadcmdlist);
   HANDLE handle = getCPUSyncHandle(Context::getInstance()->cmdqueue.Get());
@@ -102,11 +129,17 @@ void init()
   cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
 #endif
 
-  cubemap2 = generateSpecularCubemap(cubemap);
+  probe = generateSpecularCubemap(cubemap);
 
   skyboxTextureHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {
     std::make_tuple(cubemap, RESOURCE_VIEW::SHADER_RESOURCE, 0)
+  });
+
+  probeHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
+  {
+    std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0),
+    std::make_tuple(dfg, RESOURCE_VIEW::SHADER_RESOURCE, 0)
   });
 }
 
@@ -118,8 +151,10 @@ void clean()
   delete scnmgr;
   delete fspassmgr;
   GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(skyboxTextureHeap);
+  GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(probeHeap);
   GlobalGFXAPI->releaseRTTOrDepthStencilTexture(cubemap);
-  GlobalGFXAPI->releaseRTTOrDepthStencilTexture(cubemap2);
+  GlobalGFXAPI->releaseRTTOrDepthStencilTexture(dfg);
+  GlobalGFXAPI->releaseRTTOrDepthStencilTexture(probe);
 #ifdef DXBUILD
   Context::getInstance()->kill();
 #endif
@@ -133,6 +168,7 @@ void draw()
   scnmgr->update();
   scnmgr->renderGBuffer(nullptr, *rtts);
   GlobalGFXAPI->openCommandList(fspassmgr->CommandList);
+  fspassmgr->renderIBL(probeHeap);
   fspassmgr->renderSunlight();
   fspassmgr->renderSky(skyboxTextureHeap);
   fspassmgr->renderTonemap();

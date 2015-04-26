@@ -9,6 +9,7 @@ struct WrapperPipelineState *createTonemapShader();
 struct WrapperPipelineState *createObjectShader();
 struct WrapperPipelineState *createSkinnedObjectShader();
 struct WrapperPipelineState *createSkyboxShader();
+struct WrapperPipelineState *createIBLShader();
 
 struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap();
 #endif

@@ -15,6 +15,10 @@ private:
   WrapperResource *depthtexturecopy;
   WrapperIndexVertexBuffersSet *screentri;
   WrapperDescriptorHeap *Samplers;
+  // IBL
+  WrapperPipelineState *IBLPSO;
+  WrapperDescriptorHeap *IBLInputs;
+  WrapperDescriptorHeap *IBLSamplers;
   // Sunlights
   WrapperPipelineState *SunlightPSO;
   WrapperDescriptorHeap *SunlightInputs;
@@ -37,6 +41,7 @@ public:
   void renderSunlight();
   void renderTonemap();
   void renderSky(WrapperDescriptorHeap *skyboxtextureheap);
+  void renderIBL(WrapperDescriptorHeap *probeHeap);
 };
 
 #endif

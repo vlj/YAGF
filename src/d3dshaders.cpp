@@ -46,12 +46,17 @@ struct WrapperPipelineState *createSunlightShader()
   psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
   psodesc.NumRenderTargets = 1;
-  psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
   psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
   psodesc.DepthStencilState.DepthEnable = false;
   psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
   psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+  psodesc.BlendState.RenderTarget[0].BlendEnable = true;
+  psodesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+  psodesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
+  psodesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
+  psodesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
   result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\sunlight.cso");
   return result;
@@ -123,7 +128,7 @@ struct WrapperPipelineState *createSkyboxShader()
   psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
   psodesc.NumRenderTargets = 1;
-  psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
   psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
   psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
   psodesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_LESS_EQUAL;
@@ -159,5 +164,31 @@ struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap()
   psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
 
   result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\importance_sampling_specular.cso");
+  return result;
+}
+
+typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+  DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0>, ShaderResource<1>, ShaderResource<2>>,
+  DescriptorTable<ShaderResource<3>, ShaderResource<4>>,
+  DescriptorTable<SamplerResource<0>, SamplerResource<1>, SamplerResource<2>> > IBLRS;
+
+struct WrapperPipelineState *createIBLShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->D3DValue.rootSignature = IBLRS::get();
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+  psodesc.pRootSignature = result->D3DValue.rootSignature;
+  psodesc.RasterizerState = CD3D12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+  psodesc.NumRenderTargets = 1;
+  psodesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+  psodesc.DepthStencilState = CD3D12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  psodesc.DepthStencilState.DepthEnable = false;
+  psodesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+  psodesc.BlendState = CD3D12_BLEND_DESC(D3D12_DEFAULT);
+
+  result->D3DValue.pipelineStateObject = PipelineStateObject<VertexLayout<irr::video::ScreenQuadVertex>>::get(psodesc, L"Debug\\screenquad.cso", L"Debug\\ibl.cso");
   return result;
 }
