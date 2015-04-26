@@ -328,9 +328,13 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
   WrapperPipelineState *PSO = ImportanceSamplingForSpecularCubemap();
   WrapperIndexVertexBuffersSet *bigtri = GlobalGFXAPI->createFullscreenTri();
 
-  WrapperResource *cbuf = GlobalGFXAPI->createConstantsBuffer(sizeof(PermutationMatrix));
+  WrapperResource *cbuf[6];
+  for(unsigned i = 0; i < 6; i++)
+    cbuf[i] = GlobalGFXAPI->createConstantsBuffer(sizeof(PermutationMatrix));
   WrapperDescriptorHeap *probeheap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0) });
-  WrapperDescriptorHeap *cbufheap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuf, RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
+  WrapperDescriptorHeap *cbufheap[6];
+  for (unsigned i = 0; i < 6; i++)
+    cbufheap[i] = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuf[i], RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
   WrapperDescriptorHeap *samplers = GlobalGFXAPI->createSamplerHeap({std::make_pair(SAMPLER_TYPE::ANISOTROPIC, 0)});
 
 #ifdef GLBUILD
@@ -402,6 +406,12 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
     getPermutationMatrix(0, -1., 1, -1., 2, -1.),
   };
 
+  for (unsigned i = 0; i < 6; i++)
+  {
+    memcpy(GlobalGFXAPI->mapConstantsBuffer(cbuf[i]), M[i].pointer(), 16 * sizeof(float));
+    GlobalGFXAPI->unmapConstantsBuffers(cbuf[i]);
+  }
+
   for (unsigned level = 0; level < 8; level++)
   {
     float roughness = .05f + .95f * level / 8.f;
@@ -427,6 +437,25 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
     glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, sampleBuffer);
 #endif
 
+#ifdef DXBUILD
+    D3D12_RECT rect = {};
+    rect.left = 0;
+    rect.top = 0;
+    rect.bottom = (LONG)viewportSize;
+    rect.right = (LONG)viewportSize;
+
+    D3D12_VIEWPORT view = {};
+    view.Height = (FLOAT)viewportSize;
+    view.Width = (FLOAT)viewportSize;
+    view.TopLeftX = 0;
+    view.TopLeftY = 0;
+    view.MinDepth = 0;
+    view.MaxDepth = 1.;
+
+    CommandList->D3DValue.CommandList->RSSetViewports(1, &view);
+    CommandList->D3DValue.CommandList->RSSetScissorRects(1, &rect);
+#endif
+
     GlobalGFXAPI->setDescriptorHeap(CommandList, 2, probeheap);
     GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, bigtri);
     for (unsigned face = 0; face < 6; face++)
@@ -442,10 +471,7 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
       CommandList->D3DValue.CommandList->SetRenderTargets(&CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(index * increment), true, 1, nullptr);
       index++;
 #endif
-      memcpy(GlobalGFXAPI->mapConstantsBuffer(cbuf), M[face].pointer(), 16 * sizeof(float));
-      GlobalGFXAPI->unmapConstantsBuffers(cbuf);
-
-      GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap);
+      GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap[face]);
       GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
     }
 
@@ -459,6 +485,8 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
 
     delete[] tmp;
   }
+
+  GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList, { std::make_tuple(result, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC) });
   GlobalGFXAPI->closeCommandList(CommandList);
   GlobalGFXAPI->submitToQueue(CommandList);
 #ifdef GLBUILD
