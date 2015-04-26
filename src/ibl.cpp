@@ -342,12 +342,12 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
   glGenTextures(1, &result->GLValue.Resource);
   glBindTexture(GL_TEXTURE_CUBE_MAP, result->GLValue.Resource);
   for (int i = 0; i < 6; i++)
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F, cubemap_size, cubemap_size, 0, GL_BGRA, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F, (GLsizei)cubemap_size, (GLsizei)cubemap_size, 0, GL_BGRA, GL_FLOAT, 0);
   glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
   GLuint fbo;
   glGenFramebuffers(1, &fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-  glViewport(0, 0, cubemap_size, cubemap_size);
+  glViewport(0, 0, (GLsizei)cubemap_size, (GLsizei)cubemap_size);
   GLenum bufs[] = { GL_COLOR_ATTACHMENT0 };
   glDrawBuffers(1, bufs);
 #endif
@@ -356,7 +356,7 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
   HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT, cubemap_size, cubemap_size, 6, 8, 1, 0, D3D12_RESOURCE_MISC_ALLOW_RENDER_TARGET),
+    &CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT, (UINT)cubemap_size, (UINT)cubemap_size, 6, 8, 1, 0, D3D12_RESOURCE_MISC_ALLOW_RENDER_TARGET),
     D3D12_RESOURCE_USAGE_RENDER_TARGET,
     nullptr,
     IID_PPV_ARGS(&result->D3DValue.resource)
@@ -388,7 +388,7 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
       rtv.Texture2DArray.ArraySize = 1;
       rtv.Texture2DArray.MipSlice = mipmaplevel;
       rtv.Texture2DArray.FirstArraySlice = face;
-      Context::getInstance()->dev->CreateRenderTargetView(result->D3DValue.resource, &rtv, CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(index * increment));
+      Context::getInstance()->dev->CreateRenderTargetView(result->D3DValue.resource, &rtv, CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(index * increment)));
       index++;
     }
   }
@@ -499,13 +499,13 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
     {
 #ifdef GLBUILD
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, result->GLValue.Resource, level);
-      glViewport(0, 0, viewportSize, viewportSize);
+      glViewport(0, 0, (GLsizei)viewportSize, (GLsizei)viewportSize);
       GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
       assert(status == GL_FRAMEBUFFER_COMPLETE);
 #endif
 
 #ifdef DXBUILD
-      CommandList->D3DValue.CommandList->SetRenderTargets(&CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(index * increment), true, 1, nullptr);
+      CommandList->D3DValue.CommandList->SetRenderTargets(&CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(index * increment)), true, 1, nullptr);
       index++;
 #endif
       GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap[face]);
