@@ -11,8 +11,8 @@ TextureCube Probe : register(t3);
 Texture2D DFGTex : register(t4);
 
 sampler Nearest : register(s0);
-sampler Anisotropic : register(s1);
-sampler Bilinear : register(s2);
+sampler Anisotropic : register(s3);
+sampler Bilinear : register(s4);
 
 
 float4 getPosFromUVDepth(float3 uvDepth, float4x4 InverseProjectionMatrix)
@@ -77,8 +77,8 @@ float3 SpecularIBL(float3 normal, float3 V, float roughness, float3 F0)
   float lodval = 7. * roughness;
   float3 LD = max(Probe.SampleLevel(Anisotropic, sampleDirection, lodval).rgb, float3(0., 0., 0.));
 
-  float NdotV = clamp(dot(V, normal), 0., 1.);
-  float2 DFG = DFGTex.Sample(Bilinear, float2(NdotV, roughness)).rg;
+  float NdotV = saturate(dot(V, normal));
+  float2 DFG = DFGTex.Sample(Bilinear, float2(NdotV, 0.)).rg;
 
   return LD * (F0 * DFG.x + DFG.y);
 }

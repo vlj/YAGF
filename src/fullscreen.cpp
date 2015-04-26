@@ -60,7 +60,7 @@ FullscreenPassManager::FullscreenPassManager(RenderTargets &rtts) : RTT(rtts)
   );
   Samplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::NEAREST, 1 }, { SAMPLER_TYPE::NEAREST, 2 } });
   SkyboxSamplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::ANISOTROPIC, 0 } });
-  IBLSamplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::ANISOTROPIC, 1 }, { SAMPLER_TYPE::BILINEAR, 2 } });
+  IBLSamplers = GlobalGFXAPI->createSamplerHeap({ { SAMPLER_TYPE::NEAREST, 0 }, { SAMPLER_TYPE::NEAREST, 1 }, { SAMPLER_TYPE::NEAREST, 2 }, { SAMPLER_TYPE::ANISOTROPIC, 3 }, { SAMPLER_TYPE::BILINEAR, 4 } });
 }
 
 FullscreenPassManager::~FullscreenPassManager()

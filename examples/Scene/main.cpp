@@ -127,6 +127,10 @@ void init()
   GLTexture *Tex = new GLTexture(DDSPic.getLoadedImage());
   cubemap->GLValue.Resource = Tex->Id;
   cubemap->GLValue.Type = GL_TEXTURE_CUBE_MAP;
+
+  GLTexture *DFGTex = new GLTexture(getDFGLUT());
+  dfg->GLValue.Resource = DFGTex->Id;
+  dfg->GLValue.Type = GL_TEXTURE_2D;
 #endif
 
   probe = generateSpecularCubemap(cubemap);
@@ -138,8 +142,8 @@ void init()
 
   probeHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {
-    std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0),
-    std::make_tuple(dfg, RESOURCE_VIEW::SHADER_RESOURCE, 0)
+    std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 3),
+    std::make_tuple(dfg, RESOURCE_VIEW::SHADER_RESOURCE, 4)
   });
 }
 
