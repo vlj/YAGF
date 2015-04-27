@@ -71,7 +71,7 @@ vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
     float lodval = 7. * roughness;
     vec3 LD = max(textureLod(probe, sampleDirection, lodval).rgb, vec3(0.));
 
-    float NdotV = clamp(dot(V, normal), 0., 1.);
+    float NdotV = clamp(dot(V, normal), 0.01, 1.);
     vec2 DFG = texture(dfg, vec2(NdotV, roughness)).rg;
 
     return LD * (F0 * DFG.x + DFG.y);

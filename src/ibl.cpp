@@ -574,13 +574,27 @@ std::pair<float, float> getSpecularDFG(float roughness, float NdotV)
     irr::core::vector3df H(sinf(Theta) * cosf(Phi), cosf(Theta), sinf(Theta) * sinf(Phi));
     irr::core::vector3df L = 2 * H.dotProduct(V) * H - V;
     float NdotL = L.Y;
+
+    float NdotH = H.Y > 0. ? H.Y : 0.;
     if (NdotL > 0.)
     {
       float VdotH = V.dotProduct(H);
       VdotH = VdotH > 0.f ? VdotH : 0.f;
       VdotH = VdotH < 1.f ? VdotH : 1.f;
       float Fc = powf(1.f - VdotH, 5.f);
-      float G = G_Smith(L, V, irr::core::vector3df(0.f, 1.f, 0.f), roughness);
+      float G;
+      if (NdotV == 0.)
+      {
+        float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
+        G = G1_Schlick(L, irr::core::vector3df(0.f, 1.f, 0.f), k) / NdotH;
+      }
+      else if (NdotH == 0.)
+      {
+        float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
+        G = G1_Schlick(V, irr::core::vector3df(0.f, 1.f, 0.f), k) / NdotV;
+      }
+      else
+        G = G_Smith(L, V, irr::core::vector3df(0.f, 1.f, 0.f), roughness) / (NdotV * NdotH);
       DFG1 += (1.f - Fc) * G * VdotH;
       DFG2 += Fc * G * VdotH;
     }
