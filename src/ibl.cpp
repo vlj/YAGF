@@ -582,19 +582,7 @@ std::pair<float, float> getSpecularDFG(float roughness, float NdotV)
       VdotH = VdotH > 0.f ? VdotH : 0.f;
       VdotH = VdotH < 1.f ? VdotH : 1.f;
       float Fc = powf(1.f - VdotH, 5.f);
-      float G;
-      if (NdotV == 0.)
-      {
-        float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
-        G = G1_Schlick(L, irr::core::vector3df(0.f, 1.f, 0.f), k) / NdotH;
-      }
-      else if (NdotH == 0.)
-      {
-        float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
-        G = G1_Schlick(V, irr::core::vector3df(0.f, 1.f, 0.f), k) / NdotV;
-      }
-      else
-        G = G_Smith(L, V, irr::core::vector3df(0.f, 1.f, 0.f), roughness) / (NdotV * NdotH);
+      float G = G_Smith(L, V, irr::core::vector3df(0.f, 1.f, 0.f), roughness);
       DFG1 += (1.f - Fc) * G * VdotH;
       DFG2 += Fc * G * VdotH;
     }
@@ -648,7 +636,7 @@ IImage getDFGLUT(size_t DFG_LUT_size)
     float roughness = .05f + .95f * float(i) / float(DFG_LUT_size - 1);
     for (unsigned j = 0; j < DFG_LUT_size; j++)
     {
-      float NdotV = float(j) / float(DFG_LUT_size - 1);
+      float NdotV = float(1 + j) / float(DFG_LUT_size + 1);
       std::pair<float, float> DFG = getSpecularDFG(roughness, NdotV);
       texture_content[4 * (i * DFG_LUT_size + j)] = DFG.first;
       texture_content[4 * (i * DFG_LUT_size + j) + 1] = DFG.second;
