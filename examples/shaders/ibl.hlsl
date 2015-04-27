@@ -77,7 +77,7 @@ float3 SpecularIBL(float3 normal, float3 V, float roughness, float3 F0)
   float lodval = 7. * roughness;
   float3 LD = max(Probe.SampleLevel(Anisotropic, sampleDirection, lodval).rgb, float3(0., 0., 0.));
 
-  float NdotV = saturate(dot(V, normal));
+  float NdotV = clamp(dot(V, normal), .01, 1.);
   float2 DFG = DFGTex.Sample(Bilinear, float2(NdotV, 0.)).rg;
 
   return LD * (F0 * DFG.x + DFG.y);

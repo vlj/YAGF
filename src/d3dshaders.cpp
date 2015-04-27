@@ -170,7 +170,7 @@ struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap()
 typedef RootSignature<D3D12_ROOT_SIGNATURE_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
   DescriptorTable<ConstantsBufferResource<0>, ShaderResource<0>, ShaderResource<1>, ShaderResource<2>>,
   DescriptorTable<ShaderResource<3>, ShaderResource<4>>,
-  DescriptorTable<SamplerResource<0>, SamplerResource<1>, SamplerResource<2>> > IBLRS;
+  DescriptorTable<SamplerResource<0>, SamplerResource<1>, SamplerResource<2>, SamplerResource<3>, SamplerResource<4>> > IBLRS;
 
 struct WrapperPipelineState *createIBLShader()
 {
