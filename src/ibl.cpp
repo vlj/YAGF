@@ -8,238 +8,88 @@
 #include <cmath>
 #include <set>
 
+#ifdef GLBUILD
+#include <API/glapi.h>
+#endif
+#ifdef DXBUILD
+#include <API/d3dapi.h>
+#endif
 
-enum CubeFace
+struct SH
 {
-  POSITIVE_X = 0,
-  NEGATIVE_X,
-  POSITIVE_Y,
-  NEGATIVE_Y,
-  POSITIVE_Z,
-  NEGATIVE_Z
+  float bL00;
+  float bL1m1;
+  float bL10;
+  float bL11;
+  float bL2m2;
+  float bL2m1;
+  float bL20;
+  float bL21;
+  float bL22;
+
+  float gL00;
+  float gL1m1;
+  float gL10;
+  float gL11;
+  float gL2m2;
+  float gL2m1;
+  float gL20;
+  float gL21;
+  float gL22;
+
+  float rL00;
+  float rL1m1;
+  float rL10;
+  float rL11;
+  float rL2m2;
+  float rL2m1;
+  float rL20;
+  float rL21;
+  float rL22;
 };
 
-
-static
-irr::core::vector3df vectorFromIndex(CubeFace face, float i, float j)
+SHCoefficients computeSphericalHarmonics(WrapperResource *probe, size_t edge_size)
 {
-  float x, y, z;
-  switch (face)
+  SHCoefficients Result;
+
+  WrapperPipelineState *PSO = createComputeSHShader();
+  WrapperCommandList *CommandList = GlobalGFXAPI->createCommandList();
+  WrapperResource *cbuf = GlobalGFXAPI->createConstantsBuffer(sizeof(int));
+  float cube_size = (float)edge_size / 10.;
+  void *tmp = GlobalGFXAPI->mapConstantsBuffer(cbuf);
+  memcpy(tmp, &cube_size, sizeof(int));
+  GlobalGFXAPI->unmapConstantsBuffers(cbuf);
+  WrapperDescriptorHeap *heap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {
-  case POSITIVE_X:
-    x = 1.;
-    y = -i;
-    z = -j;
-    break;
-  case NEGATIVE_X:
-    x = -1.;
-    y = -i;
-    z = j;
-    break;
-  case POSITIVE_Y:
-    x = j;
-    y = 1.;
-    z = i;
-    break;
-  case NEGATIVE_Y:
-    x = j;
-    y = -1;
-    z = -i;
-    break;
-  case POSITIVE_Z:
-    x = j;
-    y = -i;
-    z = 1;
-    break;
-  case NEGATIVE_Z:
-    x = -j;
-    y = -i;
-    z = -1;
-    break;
-  }
-
-  float norm = sqrt(x * x + y * y + z * z);
-  x /= norm, y /= norm, z /= norm;
-  return irr::core::vector3df(x, y, z);
-}
-
-struct YmlModuledBySolidAngleCoefficientsTable
-{
-  float *Y00;
-  float *Y1minus1;
-  float *Y10;
-  float *Y11;
-  float *Y2minus2;
-  float *Y2minus1;
-  float *Y20;
-  float *Y21;
-  float *Y22;
-
-  YmlModuledBySolidAngleCoefficientsTable(size_t cubeEdge)
+    std::make_tuple(cbuf, RESOURCE_VIEW::CONSTANTS_BUFFER, 0),
+    std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0)
+  });
+  WrapperDescriptorHeap *samplers = GlobalGFXAPI->createSamplerHeap(
   {
-    Y00 = new float[cubeEdge * cubeEdge];
-    Y1minus1 = new float[cubeEdge * cubeEdge];
-    Y10 = new float[cubeEdge * cubeEdge];
-    Y11 = new float[cubeEdge * cubeEdge];
-    Y2minus2 = new float[cubeEdge * cubeEdge];
-    Y2minus1 = new float[cubeEdge * cubeEdge];
-    Y20 = new float[cubeEdge * cubeEdge];
-    Y21 = new float[cubeEdge * cubeEdge];
-    Y22 = new float[cubeEdge * cubeEdge];
-  }
+    std::make_pair(SAMPLER_TYPE::ANISOTROPIC, 0)
+  });
+#ifdef GLBUILD
+  GLuint shbuf;
+  glGenBuffers(1, &shbuf);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, shbuf);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(SH), nullptr, GL_STREAM_COPY);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shbuf);
+#endif
 
-  ~YmlModuledBySolidAngleCoefficientsTable()
-  {
-    delete[] Y00;
-    delete[] Y1minus1;
-    delete[] Y10;
-    delete[] Y11;
-    delete[] Y2minus2;
-    delete[] Y2minus1;
-    delete[] Y20;
-    delete[] Y21;
-    delete[] Y22;
-  }
+  GlobalGFXAPI->setPipelineState(CommandList, PSO);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, heap);
+  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, samplers);
 
-  YmlModuledBySolidAngleCoefficientsTable(const YmlModuledBySolidAngleCoefficientsTable&) = delete;
-  YmlModuledBySolidAngleCoefficientsTable& operator=(const YmlModuledBySolidAngleCoefficientsTable&) = delete;
-};
+#ifdef GLBUILD
+  glDispatchCompute(1, 1, 1);
+  SH *Shval = (SH*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+#endif
 
-static
-YmlModuledBySolidAngleCoefficientsTable *getYmlModuledBySolidAngle(CubeFace face, size_t edge_size)
-{
-  YmlModuledBySolidAngleCoefficientsTable *Res = new YmlModuledBySolidAngleCoefficientsTable(edge_size);
-  const YmlModuledBySolidAngleCoefficientsTable &Result = *Res;
-#pragma omp parallel for
-  for (int i = 0; i < int(edge_size); i++)
-  {
-    for (unsigned j = 0; j < edge_size; j++)
-    {
-      float fi = float(i), fj = float(j);
-      fi /= edge_size, fj /= edge_size;
-      fi = 2 * fi - 1, fj = 2 * fj - 1;
-      irr::core::vector3df &V = vectorFromIndex(face, fi, fj);
+  memcpy(Result.Blue, Shval, 9 * sizeof(float));
+  memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
+  memcpy(Result.Red, &Shval[18], 9 * sizeof(float));
 
-      float d = sqrt(fi * fi + fj * fj + 1);
-      // Constant obtained by projecting unprojected ref values
-      float solidangle = 2.75f / (edge_size * edge_size * pow(d, 1.5f));
-
-      // constant part of Ylm
-      float c00 = 0.282095f;
-      float c1minus1 = 0.488603f;
-      float c10 = 0.488603f;
-      float c11 = 0.488603f;
-      float c2minus2 = 1.092548f;
-      float c2minus1 = 1.092548f;
-      float c21 = 1.092548f;
-      float c20 = 0.315392f;
-      float c22 = 0.546274f;
-
-      size_t idx = i * edge_size + j;
-
-      Result.Y00[idx] = c00 * solidangle;
-      Result.Y1minus1[idx] = c1minus1 * V.Y  * solidangle;
-      Result.Y10[idx] = c10 * V.Z  * solidangle;
-      Result.Y11[idx] = c11 * V.X  * solidangle;
-      Result.Y2minus2[idx] = c2minus2 * V.X * V.Y  * solidangle;
-      Result.Y2minus1[idx] = c2minus1 * V.Y * V.Z  * solidangle;
-      Result.Y21[idx] = c21 * V.X * V.Z  * solidangle;
-      Result.Y20[idx] = c20 * (3 * V.Z * V.Z - 1) * solidangle;
-      Result.Y22[idx] = c22 * (V.X * V.X - V.Y * V.Y)  * solidangle;
-    }
-  }
-  return Res;
-}
-
-
-SHCoefficients computeSphericalHarmonics(const IImage &cubemap, size_t edge_size)
-{
-  assert(cubemap.Type == TextureType::CUBEMAP);
-  SHCoefficients Result = {};
-
-  float b0 = 0., b1 = 0., b2 = 0., b3 = 0., b4 = 0., b5 = 0., b6 = 0., b7 = 0., b8 = 0.;
-  float r0 = 0., r1 = 0., r2 = 0., r3 = 0., r4 = 0., r5 = 0., r6 = 0., r7 = 0., r8 = 0.;
-  float g0 = 0., g1 = 0., g2 = 0., g3 = 0., g4 = 0., g5 = 0., g6 = 0., g7 = 0., g8 = 0.;
-  for (size_t face = 0; face < 6; face++)
-  {
-    YmlModuledBySolidAngleCoefficientsTable *tmpyml = getYmlModuledBySolidAngle((CubeFace)face, edge_size);
-    const YmlModuledBySolidAngleCoefficientsTable &Yml = *tmpyml;
-
-#pragma omp parallel for reduction(+ : b0, b1, b2, b3, b4, b5, b6, b7, b8, r0, r1, r2, r3, r4, r5, r6, r7, r8, g0, g1, g2, g3, g4, g5, g6, g7, g8)
-    for (int i = 0; i < int(edge_size); i++)
-    {
-      for (size_t j = 0; j < edge_size; j++)
-      {
-        int idx = i * edge_size + j;
-
-        char *tmp = (char*)cubemap.Layers[face][0].Data;
-        float b = (float)tmp[4 * idx] / 255;
-        float g = (float)tmp[4 * idx + 1] / 255;
-        float r = (float)tmp[4 * idx + 2] / 255;
-
-        b0 += b * Yml.Y00[idx];
-        b1 += b * Yml.Y1minus1[idx];
-        b2 += b * Yml.Y10[idx];
-        b3 += b * Yml.Y11[idx];
-        b4 += b * Yml.Y2minus2[idx];
-        b5 += b * Yml.Y2minus1[idx];
-        b6 += b * Yml.Y20[idx];
-        b7 += b * Yml.Y21[idx];
-        b8 += b * Yml.Y22[idx];
-
-        g0 += g * Yml.Y00[idx];
-        g1 += g * Yml.Y1minus1[idx];
-        g2 += g * Yml.Y10[idx];
-        g3 += g * Yml.Y11[idx];
-        g4 += g * Yml.Y2minus2[idx];
-        g5 += g * Yml.Y2minus1[idx];
-        g6 += g * Yml.Y20[idx];
-        g7 += g * Yml.Y21[idx];
-        g8 += g * Yml.Y22[idx];
-
-
-        r0 += r * Yml.Y00[idx];
-        r1 += r * Yml.Y1minus1[idx];
-        r2 += r * Yml.Y10[idx];
-        r3 += r * Yml.Y11[idx];
-        r4 += r * Yml.Y2minus2[idx];
-        r5 += r * Yml.Y2minus1[idx];
-        r6 += r * Yml.Y20[idx];
-        r7 += r * Yml.Y21[idx];
-        r8 += r * Yml.Y22[idx];
-      }
-    }
-  }
-
-  Result.Blue[0] = b0;
-  Result.Blue[1] = b1;
-  Result.Blue[2] = b2;
-  Result.Blue[3] = b3;
-  Result.Blue[4] = b4;
-  Result.Blue[5] = b5;
-  Result.Blue[6] = b6;
-  Result.Blue[7] = b7;
-  Result.Blue[8] = b8;
-
-  Result.Red[0] = r0;
-  Result.Red[1] = r1;
-  Result.Red[2] = r2;
-  Result.Red[3] = r3;
-  Result.Red[4] = r4;
-  Result.Red[5] = r5;
-  Result.Red[6] = r6;
-  Result.Red[7] = r7;
-  Result.Red[8] = r8;
-
-  Result.Green[0] = g0;
-  Result.Green[1] = g1;
-  Result.Green[2] = g2;
-  Result.Green[3] = g3;
-  Result.Green[4] = g4;
-  Result.Green[5] = g5;
-  Result.Green[6] = g6;
-  Result.Green[7] = g7;
-  Result.Green[8] = g8;
+  glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
   return Result;
 }
@@ -301,13 +151,6 @@ irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY
   M[8 + indexZ] = valZ;
   return resultMat;
 }
-
-#ifdef GLBUILD
-#include <API/glapi.h>
-#endif
-#ifdef DXBUILD
-#include <API/d3dapi.h>
-#endif
 
 struct PermutationMatrix
 {

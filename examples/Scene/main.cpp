@@ -62,14 +62,6 @@ void init()
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-  SHCoefficients coeffs = computeSphericalHarmonics(DDSPic.getLoadedImage(), DDSPic.getLoadedImage().Layers[0][0].Width);
-  IBLCoeffs = GlobalGFXAPI->createConstantsBuffer(9 * 3 * sizeof(float));
-
-  float *SHbuffers = (float*) GlobalGFXAPI->mapConstantsBuffer(IBLCoeffs);
-  memcpy(&SHbuffers[12], coeffs.Blue, 9 * sizeof(float));
-  memcpy(&SHbuffers[21], coeffs.Green, 9 * sizeof(float));
-  memcpy(&SHbuffers[30], coeffs.Red, 9 * sizeof(float));
-  GlobalGFXAPI->unmapConstantsBuffers(IBLCoeffs);
 #if DXBUILD
   ID3D12Resource *SkyboxTexture;
   D3DTexture TexInRam(DDSPic.getLoadedImage());
@@ -141,6 +133,14 @@ void init()
   dfg->GLValue.Resource = DFGTex->Id;
   dfg->GLValue.Type = GL_TEXTURE_2D;
 #endif
+  SHCoefficients coeffs = computeSphericalHarmonics(cubemap, DDSPic.getLoadedImage().Layers[0][0].Width);
+  IBLCoeffs = GlobalGFXAPI->createConstantsBuffer(9 * 3 * sizeof(float));
+
+  float *SHbuffers = (float*)GlobalGFXAPI->mapConstantsBuffer(IBLCoeffs);
+  memcpy(&SHbuffers[12], coeffs.Blue, 9 * sizeof(float));
+  memcpy(&SHbuffers[21], coeffs.Green, 9 * sizeof(float));
+  memcpy(&SHbuffers[30], coeffs.Red, 9 * sizeof(float));
+  GlobalGFXAPI->unmapConstantsBuffers(IBLCoeffs);
 
   probe = generateSpecularCubemap(cubemap);
 
@@ -179,6 +179,7 @@ static float timer = 0.;
 
 void draw()
 {
+  computeSphericalHarmonics(cubemap, 1024);
   xue->setRotation(irr::core::vector3df(0.f, timer / 360.f, 0.f));
   scnmgr->update();
   scnmgr->renderGBuffer(nullptr, *rtts);

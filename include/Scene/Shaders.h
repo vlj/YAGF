@@ -12,4 +12,5 @@ struct WrapperPipelineState *createSkyboxShader();
 struct WrapperPipelineState *createIBLShader();
 
 struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap();
+struct WrapperPipelineState *createComputeSHShader();
 #endif

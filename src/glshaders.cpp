@@ -181,6 +181,34 @@ struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap()
   return result;
 }
 
+class ComputeSHShader : public ShaderHelperSingleton<ComputeSHShader>, TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>>
+{
+public:
+  ComputeSHShader()
+  {
+    std::ifstream fsin("../examples/shaders/computesh.comp", std::ios::in);
+    const std::string &fs = std::string((std::istreambuf_iterator<char>(fsin)), std::istreambuf_iterator<char>());
+    Program = ProgramShaderLoading::LoadProgram(
+      GL_COMPUTE_SHADER, fs.c_str());
+
+    AssignSamplerNames(Program, "DATA", "probe");
+    GLuint SHblock = glGetProgramResourceIndex(Program, GL_SHADER_STORAGE_BLOCK, "SH");
+    glShaderStorageBlockBinding(Program, SHblock, 0);
+  }
+};
+
+static void none()
+{
+}
+
+struct WrapperPipelineState *createComputeSHShader()
+{
+  WrapperPipelineState *result = (WrapperPipelineState*)malloc(sizeof(WrapperPipelineState));
+  result->GLValue.Program = ComputeSHShader::getInstance()->Program;
+  result->GLValue.StateSetter = none;
+  return result;
+}
+
 class IBLShader : public ShaderHelperSingleton< class IBLShader>, TextureRead < UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0>, TextureResource<GL_TEXTURE_2D, 1>, TextureResource<GL_TEXTURE_2D, 2>, TextureResource<GL_TEXTURE_2D, 3>, TextureResource<GL_TEXTURE_2D, 4> >
 {
 public:
