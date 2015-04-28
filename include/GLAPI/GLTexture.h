@@ -11,6 +11,11 @@ inline void getInternalFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt, GLen
 {
   switch (fmt)
   {
+  case irr::video::ECF_R8G8B8A8_UNORM:
+    internalFormat = GL_RGBA8;
+    format = GL_RGBA;
+    type = GL_UNSIGNED_BYTE;
+    return;
   case irr::video::ECF_R16G16B16A16F:
     internalFormat = GL_RGBA16F;
     format = GL_RGBA;

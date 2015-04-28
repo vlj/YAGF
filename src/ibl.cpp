@@ -8,37 +8,50 @@
 #include <cmath>
 #include <set>
 
-#if 0
-static void getXYZ(GLenum face, float i, float j, float &x, float &y, float &z)
+
+enum CubeFace
 {
+  POSITIVE_X = 0,
+  NEGATIVE_X,
+  POSITIVE_Y,
+  NEGATIVE_Y,
+  POSITIVE_Z,
+  NEGATIVE_Z
+};
+
+
+static
+irr::core::vector3df vectorFromIndex(CubeFace face, float i, float j)
+{
+  float x, y, z;
   switch (face)
   {
-  case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+  case POSITIVE_X:
     x = 1.;
     y = -i;
     z = -j;
     break;
-  case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+  case NEGATIVE_X:
     x = -1.;
     y = -i;
     z = j;
     break;
-  case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+  case POSITIVE_Y:
     x = j;
     y = 1.;
     z = i;
     break;
-  case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+  case NEGATIVE_Y:
     x = j;
     y = -1;
     z = -i;
     break;
-  case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+  case POSITIVE_Z:
     x = j;
     y = -i;
     z = 1;
     break;
-  case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+  case NEGATIVE_Z:
     x = -j;
     y = -i;
     z = -1;
@@ -47,25 +60,69 @@ static void getXYZ(GLenum face, float i, float j, float &x, float &y, float &z)
 
   float norm = sqrt(x * x + y * y + z * z);
   x /= norm, y /= norm, z /= norm;
-  return;
+  return irr::core::vector3df(x, y, z);
 }
 
-
-static void getYml(GLenum face, size_t edge_size,
-  float *Y00,
-  float *Y1minus1, float *Y10, float *Y11,
-  float *Y2minus2, float *Y2minus1, float *Y20, float *Y21, float *Y22)
+struct YmlModuledBySolidAngleCoefficientsTable
 {
+  float *Y00;
+  float *Y1minus1;
+  float *Y10;
+  float *Y11;
+  float *Y2minus2;
+  float *Y2minus1;
+  float *Y20;
+  float *Y21;
+  float *Y22;
+
+  YmlModuledBySolidAngleCoefficientsTable(size_t cubeEdge)
+  {
+    Y00 = new float[cubeEdge * cubeEdge];
+    Y1minus1 = new float[cubeEdge * cubeEdge];
+    Y10 = new float[cubeEdge * cubeEdge];
+    Y11 = new float[cubeEdge * cubeEdge];
+    Y2minus2 = new float[cubeEdge * cubeEdge];
+    Y2minus1 = new float[cubeEdge * cubeEdge];
+    Y20 = new float[cubeEdge * cubeEdge];
+    Y21 = new float[cubeEdge * cubeEdge];
+    Y22 = new float[cubeEdge * cubeEdge];
+  }
+
+  ~YmlModuledBySolidAngleCoefficientsTable()
+  {
+    delete[] Y00;
+    delete[] Y1minus1;
+    delete[] Y10;
+    delete[] Y11;
+    delete[] Y2minus2;
+    delete[] Y2minus1;
+    delete[] Y20;
+    delete[] Y21;
+    delete[] Y22;
+  }
+
+  YmlModuledBySolidAngleCoefficientsTable(const YmlModuledBySolidAngleCoefficientsTable&) = delete;
+  YmlModuledBySolidAngleCoefficientsTable& operator=(const YmlModuledBySolidAngleCoefficientsTable&) = delete;
+};
+
+static
+YmlModuledBySolidAngleCoefficientsTable *getYmlModuledBySolidAngle(CubeFace face, size_t edge_size)
+{
+  YmlModuledBySolidAngleCoefficientsTable *Res = new YmlModuledBySolidAngleCoefficientsTable(edge_size);
+  const YmlModuledBySolidAngleCoefficientsTable &Result = *Res;
 #pragma omp parallel for
   for (int i = 0; i < int(edge_size); i++)
   {
     for (unsigned j = 0; j < edge_size; j++)
     {
-      float x, y, z;
       float fi = float(i), fj = float(j);
       fi /= edge_size, fj /= edge_size;
       fi = 2 * fi - 1, fj = 2 * fj - 1;
-      getXYZ(face, fi, fj, x, y, z);
+      irr::core::vector3df &V = vectorFromIndex(face, fi, fj);
+
+      float d = sqrt(fi * fi + fj * fj + 1);
+      // Constant obtained by projecting unprojected ref values
+      float solidangle = 2.75f / (edge_size * edge_size * pow(d, 1.5f));
 
       // constant part of Ylm
       float c00 = 0.282095f;
@@ -80,174 +137,112 @@ static void getYml(GLenum face, size_t edge_size,
 
       size_t idx = i * edge_size + j;
 
-      Y00[idx] = c00;
-      Y1minus1[idx] = c1minus1 * y;
-      Y10[idx] = c10 * z;
-      Y11[idx] = c11 * x;
-      Y2minus2[idx] = c2minus2 * x * y;
-      Y2minus1[idx] = c2minus1 * y * z;
-      Y21[idx] = c21 * x * z;
-      Y20[idx] = c20 * (3 * z * z - 1);
-      Y22[idx] = c22 * (x * x - y * y);
+      Result.Y00[idx] = c00 * solidangle;
+      Result.Y1minus1[idx] = c1minus1 * V.Y  * solidangle;
+      Result.Y10[idx] = c10 * V.Z  * solidangle;
+      Result.Y11[idx] = c11 * V.X  * solidangle;
+      Result.Y2minus2[idx] = c2minus2 * V.X * V.Y  * solidangle;
+      Result.Y2minus1[idx] = c2minus1 * V.Y * V.Z  * solidangle;
+      Result.Y21[idx] = c21 * V.X * V.Z  * solidangle;
+      Result.Y20[idx] = c20 * (3 * V.Z * V.Z - 1) * solidangle;
+      Result.Y22[idx] = c22 * (V.X * V.X - V.Y * V.Y)  * solidangle;
     }
   }
+  return Res;
 }
 
 
-static void projectSH(Color *CubemapFace[6], size_t edge_size,
-  float *Y00[],
-  float *Y1minus1[], float *Y10[], float *Y11[],
-  float *Y2minus2[], float *Y2minus1[], float * Y20[], float *Y21[], float *Y22[],
-  float *blueSHCoeff, float *greenSHCoeff, float *redSHCoeff
-  )
+SHCoefficients computeSphericalHarmonics(const IImage &cubemap, size_t edge_size)
 {
-  for (unsigned i = 0; i < 9; i++)
-  {
-    blueSHCoeff[i] = 0;
-    greenSHCoeff[i] = 0;
-    redSHCoeff[i] = 0;
-  }
+  assert(cubemap.Type == TextureType::CUBEMAP);
+  SHCoefficients Result = {};
 
-  float wh = float(edge_size * edge_size);
   float b0 = 0., b1 = 0., b2 = 0., b3 = 0., b4 = 0., b5 = 0., b6 = 0., b7 = 0., b8 = 0.;
   float r0 = 0., r1 = 0., r2 = 0., r3 = 0., r4 = 0., r5 = 0., r6 = 0., r7 = 0., r8 = 0.;
   float g0 = 0., g1 = 0., g2 = 0., g3 = 0., g4 = 0., g5 = 0., g6 = 0., g7 = 0., g8 = 0.;
-  for (unsigned face = 0; face < 6; face++)
+  for (size_t face = 0; face < 6; face++)
   {
+    YmlModuledBySolidAngleCoefficientsTable *tmpyml = getYmlModuledBySolidAngle((CubeFace)face, edge_size);
+    const YmlModuledBySolidAngleCoefficientsTable &Yml = *tmpyml;
+
 #pragma omp parallel for reduction(+ : b0, b1, b2, b3, b4, b5, b6, b7, b8, r0, r1, r2, r3, r4, r5, r6, r7, r8, g0, g1, g2, g3, g4, g5, g6, g7, g8)
     for (int i = 0; i < int(edge_size); i++)
     {
-      for (unsigned j = 0; j < edge_size; j++)
+      for (size_t j = 0; j < edge_size; j++)
       {
         int idx = i * edge_size + j;
-        float fi = float(i), fj = float(j);
-        fi /= edge_size, fj /= edge_size;
-        fi = 2 * fi - 1, fj = 2 * fj - 1;
+
+        char *tmp = (char*)cubemap.Layers[face][0].Data;
+        float b = (float)tmp[4 * idx] / 255;
+        float g = (float)tmp[4 * idx + 1] / 255;
+        float r = (float)tmp[4 * idx + 2] / 255;
+
+        b0 += b * Yml.Y00[idx];
+        b1 += b * Yml.Y1minus1[idx];
+        b2 += b * Yml.Y10[idx];
+        b3 += b * Yml.Y11[idx];
+        b4 += b * Yml.Y2minus2[idx];
+        b5 += b * Yml.Y2minus1[idx];
+        b6 += b * Yml.Y20[idx];
+        b7 += b * Yml.Y21[idx];
+        b8 += b * Yml.Y22[idx];
+
+        g0 += g * Yml.Y00[idx];
+        g1 += g * Yml.Y1minus1[idx];
+        g2 += g * Yml.Y10[idx];
+        g3 += g * Yml.Y11[idx];
+        g4 += g * Yml.Y2minus2[idx];
+        g5 += g * Yml.Y2minus1[idx];
+        g6 += g * Yml.Y20[idx];
+        g7 += g * Yml.Y21[idx];
+        g8 += g * Yml.Y22[idx];
 
 
-        float d = sqrt(fi * fi + fj * fj + 1);
-
-        // Constant obtained by projecting unprojected ref values
-        float solidangle = 2.75f / (wh * pow(d, 1.5f));
-        // pow(., 2.2) to convert from srgb
-        float b = CubemapFace[face][edge_size * i + j].Blue;
-        float g = CubemapFace[face][edge_size * i + j].Green;
-        float r = CubemapFace[face][edge_size * i + j].Red;
-
-        b0 += b * Y00[face][idx] * solidangle;
-        b1 += b * Y1minus1[face][idx] * solidangle;
-        b2 += b * Y10[face][idx] * solidangle;
-        b3 += b * Y11[face][idx] * solidangle;
-        b4 += b * Y2minus2[face][idx] * solidangle;
-        b5 += b * Y2minus1[face][idx] * solidangle;
-        b6 += b * Y20[face][idx] * solidangle;
-        b7 += b * Y21[face][idx] * solidangle;
-        b8 += b * Y22[face][idx] * solidangle;
-
-        g0 += g * Y00[face][idx] * solidangle;
-        g1 += g * Y1minus1[face][idx] * solidangle;
-        g2 += g * Y10[face][idx] * solidangle;
-        g3 += g * Y11[face][idx] * solidangle;
-        g4 += g * Y2minus2[face][idx] * solidangle;
-        g5 += g * Y2minus1[face][idx] * solidangle;
-        g6 += g * Y20[face][idx] * solidangle;
-        g7 += g * Y21[face][idx] * solidangle;
-        g8 += g * Y22[face][idx] * solidangle;
-
-
-        r0 += r * Y00[face][idx] * solidangle;
-        r1 += r * Y1minus1[face][idx] * solidangle;
-        r2 += r * Y10[face][idx] * solidangle;
-        r3 += r * Y11[face][idx] * solidangle;
-        r4 += r * Y2minus2[face][idx] * solidangle;
-        r5 += r * Y2minus1[face][idx] * solidangle;
-        r6 += r * Y20[face][idx] * solidangle;
-        r7 += r * Y21[face][idx] * solidangle;
-        r8 += r * Y22[face][idx] * solidangle;
+        r0 += r * Yml.Y00[idx];
+        r1 += r * Yml.Y1minus1[idx];
+        r2 += r * Yml.Y10[idx];
+        r3 += r * Yml.Y11[idx];
+        r4 += r * Yml.Y2minus2[idx];
+        r5 += r * Yml.Y2minus1[idx];
+        r6 += r * Yml.Y20[idx];
+        r7 += r * Yml.Y21[idx];
+        r8 += r * Yml.Y22[idx];
       }
     }
   }
 
-  blueSHCoeff[0] = b0;
-  blueSHCoeff[1] = b1;
-  blueSHCoeff[2] = b2;
-  blueSHCoeff[3] = b3;
-  blueSHCoeff[4] = b4;
-  blueSHCoeff[5] = b5;
-  blueSHCoeff[6] = b6;
-  blueSHCoeff[7] = b7;
-  blueSHCoeff[8] = b8;
+  Result.Blue[0] = b0;
+  Result.Blue[1] = b1;
+  Result.Blue[2] = b2;
+  Result.Blue[3] = b3;
+  Result.Blue[4] = b4;
+  Result.Blue[5] = b5;
+  Result.Blue[6] = b6;
+  Result.Blue[7] = b7;
+  Result.Blue[8] = b8;
 
-  redSHCoeff[0] = r0;
-  redSHCoeff[1] = r1;
-  redSHCoeff[2] = r2;
-  redSHCoeff[3] = r3;
-  redSHCoeff[4] = r4;
-  redSHCoeff[5] = r5;
-  redSHCoeff[6] = r6;
-  redSHCoeff[7] = r7;
-  redSHCoeff[8] = r8;
+  Result.Red[0] = r0;
+  Result.Red[1] = r1;
+  Result.Red[2] = r2;
+  Result.Red[3] = r3;
+  Result.Red[4] = r4;
+  Result.Red[5] = r5;
+  Result.Red[6] = r6;
+  Result.Red[7] = r7;
+  Result.Red[8] = r8;
 
-  greenSHCoeff[0] = g0;
-  greenSHCoeff[1] = g1;
-  greenSHCoeff[2] = g2;
-  greenSHCoeff[3] = g3;
-  greenSHCoeff[4] = g4;
-  greenSHCoeff[5] = g5;
-  greenSHCoeff[6] = g6;
-  greenSHCoeff[7] = g7;
-  greenSHCoeff[8] = g8;
+  Result.Green[0] = g0;
+  Result.Green[1] = g1;
+  Result.Green[2] = g2;
+  Result.Green[3] = g3;
+  Result.Green[4] = g4;
+  Result.Green[5] = g5;
+  Result.Green[6] = g6;
+  Result.Green[7] = g7;
+  Result.Green[8] = g8;
+
+  return Result;
 }
-
-void SphericalHarmonics(Color *CubemapFace[6], size_t edge_size, float *blueSHCoeff, float *greenSHCoeff, float *redSHCoeff)
-{
-  float *Y00[6];
-  float *Y1minus1[6];
-  float *Y10[6];
-  float *Y11[6];
-  float *Y2minus2[6];
-  float *Y2minus1[6];
-  float *Y20[6];
-  float *Y21[6];
-  float *Y22[6];
-
-  for (unsigned face = 0; face < 6; face++)
-  {
-    Y00[face] = new float[edge_size * edge_size];
-    Y1minus1[face] = new float[edge_size * edge_size];
-    Y10[face] = new float[edge_size * edge_size];
-    Y11[face] = new float[edge_size * edge_size];
-    Y2minus2[face] = new float[edge_size * edge_size];
-    Y2minus1[face] = new float[edge_size * edge_size];
-    Y20[face] = new float[edge_size * edge_size];
-    Y21[face] = new float[edge_size * edge_size];
-    Y22[face] = new float[edge_size * edge_size];
-
-    getYml(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, edge_size, Y00[face], Y1minus1[face], Y10[face], Y11[face], Y2minus2[face], Y2minus1[face], Y20[face], Y21[face], Y22[face]);
-  }
-
-  projectSH(CubemapFace, edge_size,
-    Y00,
-    Y1minus1, Y10, Y11,
-    Y2minus2, Y2minus1, Y20, Y21, Y22,
-    blueSHCoeff, greenSHCoeff, redSHCoeff
-    );
-
-  for (unsigned face = 0; face < 6; face++)
-  {
-    delete[] Y00[face];
-    delete[] Y1minus1[face];
-    delete[] Y10[face];
-    delete[] Y11[face];
-    delete[] Y2minus2[face];
-    delete[] Y2minus1[face];
-    delete[] Y20[face];
-    delete[] Y21[face];
-    delete[] Y22[face];
-  }
-}
-
-#endif
 
 // From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
 /** Returns the index-th pair from Hammersley set of pseudo random set.

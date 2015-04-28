@@ -5,6 +5,7 @@ uniform sampler2D dtex;
 
 layout(std140) uniform VIEWDATA
 {
+  mat4 ViewMatrix;
   mat4 InverseViewMatrix;
   mat4 InverseProjectionMatrix;
 };

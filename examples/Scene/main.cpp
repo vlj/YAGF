@@ -29,7 +29,7 @@ RenderTargets *rtts;
 Scene *scnmgr;
 FullscreenPassManager *fspassmgr;
 irr::scene::ISceneNode *xue;
-WrapperResource *cubemap, *probe, *dfg;
+WrapperResource *cubemap, *probe, *dfg, *IBLCoeffs;
 WrapperDescriptorHeap *skyboxTextureHeap, *probeHeap;
 
 #ifdef DXBUILD
@@ -58,9 +58,18 @@ void init()
 
   cubemap = (WrapperResource*)malloc(sizeof(WrapperResource));
   dfg = (WrapperResource*)malloc(sizeof(WrapperResource));
-  const std::string &fixed = "..\\examples\\assets\\w_sky_1BC1.dds";
+  const std::string &fixed = "..\\examples\\assets\\w_sky_1.dds";
   std::ifstream DDSFile(fixed, std::ifstream::binary);
   irr::video::CImageLoaderDDS DDSPic(DDSFile);
+
+  SHCoefficients coeffs = computeSphericalHarmonics(DDSPic.getLoadedImage(), DDSPic.getLoadedImage().Layers[0][0].Width);
+  IBLCoeffs = GlobalGFXAPI->createConstantsBuffer(9 * 3 * sizeof(float));
+
+  float *SHbuffers = (float*) GlobalGFXAPI->mapConstantsBuffer(IBLCoeffs);
+  memcpy(&SHbuffers[12], coeffs.Blue, 9 * sizeof(float));
+  memcpy(&SHbuffers[21], coeffs.Green, 9 * sizeof(float));
+  memcpy(&SHbuffers[30], coeffs.Red, 9 * sizeof(float));
+  GlobalGFXAPI->unmapConstantsBuffers(IBLCoeffs);
 #if DXBUILD
   ID3D12Resource *SkyboxTexture;
   D3DTexture TexInRam(DDSPic.getLoadedImage());
@@ -142,6 +151,7 @@ void init()
 
   probeHeap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
   {
+    std::make_tuple(IBLCoeffs, RESOURCE_VIEW::CONSTANTS_BUFFER, 1),
     std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 3),
     std::make_tuple(dfg, RESOURCE_VIEW::SHADER_RESOURCE, 4)
   });
@@ -159,6 +169,7 @@ void clean()
   GlobalGFXAPI->releaseRTTOrDepthStencilTexture(cubemap);
   GlobalGFXAPI->releaseRTTOrDepthStencilTexture(dfg);
   GlobalGFXAPI->releaseRTTOrDepthStencilTexture(probe);
+  GlobalGFXAPI->releaseConstantsBuffers(IBLCoeffs);
 #ifdef DXBUILD
   Context::getInstance()->kill();
 #endif

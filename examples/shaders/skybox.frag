@@ -3,6 +3,7 @@ uniform samplerCube skytexture;
 
 layout(std140) uniform Matrixes
 {
+  mat4 ViewMatrix;
   mat4 InvView;
   mat4 InvProj;
 };

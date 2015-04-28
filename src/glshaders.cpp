@@ -181,7 +181,7 @@ struct WrapperPipelineState *ImportanceSamplingForSpecularCubemap()
   return result;
 }
 
-class IBLShader : public ShaderHelperSingleton< class IBLShader>, TextureRead < UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>, TextureResource<GL_TEXTURE_2D, 1>, TextureResource<GL_TEXTURE_2D, 2>, TextureResource<GL_TEXTURE_2D, 3>, TextureResource<GL_TEXTURE_2D, 4> >
+class IBLShader : public ShaderHelperSingleton< class IBLShader>, TextureRead < UniformBufferResource<0>, UniformBufferResource<1>, TextureResource<GL_TEXTURE_2D, 0>, TextureResource<GL_TEXTURE_2D, 1>, TextureResource<GL_TEXTURE_2D, 2>, TextureResource<GL_TEXTURE_2D, 3>, TextureResource<GL_TEXTURE_2D, 4> >
 {
 public:
   IBLShader()
@@ -195,7 +195,7 @@ public:
       GL_VERTEX_SHADER, vs.c_str(),
       GL_FRAGMENT_SHADER, fs.c_str());
 
-    AssignSamplerNames(Program, "VIEWDATA", "ntex", "ctex", "dtex", "probe", "dfg");
+    AssignSamplerNames(Program, "VIEWDATA", "IBLDATA", "ntex", "ctex", "dtex", "probe", "dfg");
   }
 };
 

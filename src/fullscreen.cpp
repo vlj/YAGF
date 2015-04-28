@@ -6,6 +6,7 @@
 
 struct ViewData
 {
+  float ViewMatrix[16];
   float InverseViewMatrix[16];
   float InverseProjectionMatrix[16];
 };
@@ -149,6 +150,7 @@ void FullscreenPassManager::renderIBL(WrapperDescriptorHeap *probeHeap)
   Proj.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
   Proj.getInverse(invProj);
   ViewData * vdata = (ViewData *)GlobalGFXAPI->mapConstantsBuffer(viewdata);
+  memcpy(&vdata->ViewMatrix, View.pointer(), 16 * sizeof(float));
   memcpy(&vdata->InverseViewMatrix, InvView.pointer(), 16 * sizeof(float));
   memcpy(&vdata->InverseProjectionMatrix, invProj.pointer(), 16 * sizeof(float));
   GlobalGFXAPI->unmapConstantsBuffers(viewdata);
