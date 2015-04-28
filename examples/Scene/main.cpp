@@ -179,7 +179,6 @@ static float timer = 0.;
 
 void draw()
 {
-  computeSphericalHarmonics(cubemap, 1024);
   xue->setRotation(irr::core::vector3df(0.f, timer / 360.f, 0.f));
   scnmgr->update();
   scnmgr->renderGBuffer(nullptr, *rtts);

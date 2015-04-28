@@ -82,7 +82,7 @@ SHCoefficients computeSphericalHarmonics(WrapperResource *probe, size_t edge_siz
 
 #ifdef GLBUILD
   glDispatchCompute(1, 1, 1);
-  SH *Shval = (SH*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+  float *Shval = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 #endif
 
   memcpy(Result.Blue, Shval, 9 * sizeof(float));
