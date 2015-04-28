@@ -137,9 +137,9 @@ void init()
   IBLCoeffs = GlobalGFXAPI->createConstantsBuffer(9 * 3 * sizeof(float));
 
   float *SHbuffers = (float*)GlobalGFXAPI->mapConstantsBuffer(IBLCoeffs);
-  memcpy(&SHbuffers[12], coeffs.Blue, 9 * sizeof(float));
-  memcpy(&SHbuffers[21], coeffs.Green, 9 * sizeof(float));
-  memcpy(&SHbuffers[30], coeffs.Red, 9 * sizeof(float));
+  memcpy(&SHbuffers[0], coeffs.Blue, 9 * sizeof(float));
+  memcpy(&SHbuffers[9], coeffs.Green, 9 * sizeof(float));
+  memcpy(&SHbuffers[18], coeffs.Red, 9 * sizeof(float));
   GlobalGFXAPI->unmapConstantsBuffers(IBLCoeffs);
 
   probe = generateSpecularCubemap(cubemap);

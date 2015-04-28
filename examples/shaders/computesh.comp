@@ -44,15 +44,15 @@ vec3 getVectorFromCubeAndUV(uint face, vec2 uv)
 {
   float u = uv.x, v = uv.y;
   if (face == 0)
-    return vec3(1., -u, -v);
+    return vec3(1., u, v);
   if (face == 1)
-    return vec3(-1., -u, v);
+    return vec3(-1., -u, -v);
   if (face == 2)
     return vec3(v, 1., u);
   if (face == 3)
-    return vec3(v, -1., u);
+    return vec3(-v, -1., -u);
   if (face == 4)
-    return vec3(v, -u, 1.);
+    return vec3(v, u, 1.);
   if (face == 5)
     return vec3(-v, -u, -1.);
 }
@@ -98,7 +98,8 @@ void main()
     {
       for (uint j = 0; j < edge_size; j++)
       {
-        vec3 vect = getVectorFromCubeAndUV(face, gl_GlobalInvocationID.xy);
+        vec2 uv = 2. * vec2(i, j) / (edge_size - 1.) - 1.;
+        vec3 vect = getVectorFromCubeAndUV(face, uv);
         float d = length(vect);
         // Constant obtained by projecting unprojected ref values
         float solidangle = 2.75f / (edge_size * edge_size * pow(d, 1.5f));
