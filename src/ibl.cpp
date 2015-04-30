@@ -76,6 +76,19 @@ SHCoefficients computeSphericalHarmonics(WrapperResource *probe, size_t edge_siz
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shbuf);
 #endif
 
+#ifdef DXBUILD
+  ID3D12Resource *uav;
+  float colors[] = { 0., 0., 0., 0. };
+  HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    D3D12_HEAP_MISC_NONE,
+    &CD3D12_RESOURCE_DESC::Buffer(27 * sizeof(float)),
+    D3D12_RESOURCE_USAGE_UNORDERED_ACCESS,
+    nullptr,
+    IID_PPV_ARGS(&uav)
+    );
+#endif
+
   GlobalGFXAPI->setPipelineState(CommandList, PSO);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 0, heap);
   GlobalGFXAPI->setDescriptorHeap(CommandList, 1, samplers);
@@ -83,13 +96,17 @@ SHCoefficients computeSphericalHarmonics(WrapperResource *probe, size_t edge_siz
 #ifdef GLBUILD
   glDispatchCompute(1, 1, 1);
   float *Shval = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-#endif
 
   memcpy(Result.Blue, Shval, 9 * sizeof(float));
   memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
   memcpy(Result.Red, &Shval[18], 9 * sizeof(float));
 
   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+#endif
+
+#ifdef DXBUILD
+  CommandList->D3DValue.CommandList->Dispatch(1, 1, 1);
+#endif
 
   return Result;
 }

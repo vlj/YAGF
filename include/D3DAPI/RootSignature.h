@@ -19,6 +19,16 @@ struct ConstantsBufferResource
 };
 
 template <size_t BindingPoint>
+struct UAVResource
+{
+  static void Build(std::vector<D3D12_DESCRIPTOR_RANGE>& RP)
+  {
+    RP.push_back(D3D12_DESCRIPTOR_RANGE());
+    RP.back().Init(D3D12_DESCRIPTOR_RANGE_UAV, 1, BindingPoint);
+  }
+};
+
+template <size_t BindingPoint>
 struct ShaderResource
 {
   static void Build(std::vector<D3D12_DESCRIPTOR_RANGE>& RP)
