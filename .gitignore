@@ -42,4 +42,6 @@ CMakeCXXCompilerId.cpp
 *.db
 *.opendb
 *.o*
+*.a
+*.recipe
 *.ipch
