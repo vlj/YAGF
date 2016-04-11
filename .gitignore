@@ -10,7 +10,6 @@ glfw_config.h
 *.pc
 *.cso
 *.exp
-zconf.h
 pnglibconf.h
 *.res
 
