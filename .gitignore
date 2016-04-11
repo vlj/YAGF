@@ -1,4 +1,4 @@
-deps/*
+#deps/*
 *.rule
 *.cache
 Doxyfile
@@ -17,15 +17,15 @@ pnglibconf.h
 *CMakeCache.txt
 *.check_cache
 *.cmake
-*.vcxproj
-*.vcxproj.filters
+#*.vcxproj
+#*.vcxproj.filters
 *.exe
 *.ilk
 *.pdb
 *.log
 *.tlog
 *.obj
-*.sln
+#*.sln
 *.opensdf
 *.sdf
 *.suo
