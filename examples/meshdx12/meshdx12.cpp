@@ -434,6 +434,9 @@ struct Sample
 
     irr::scene::CB3DMeshFileLoader *loader;
 
+    buffer_t vertex_buffer_attributes;
+    D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
+
     void Init()
     {
         command_allocator = create_command_storage(dev);
@@ -490,10 +493,10 @@ struct Sample
         //vao = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
         size_t bufferSize = total_vertex_cnt * sizeof(irr::video::S3DVertex2TCoords);
 
-        buffer_t cpuvertexdata = create_buffer(dev, bufferSize);
-        void *vertexmap = map_buffer(dev, cpuvertexdata);
+        vertex_buffer_attributes = create_buffer(dev, bufferSize);
+        void *vertexmap = map_buffer(dev, vertex_buffer_attributes);
         memcpy(vertexmap, reorg.data(), bufferSize);
-        unmap_buffer(dev, cpuvertexdata);
+        unmap_buffer(dev, vertex_buffer_attributes);
         // TODO: Upload to GPUmem
         /*
         hr = Context::getInstance()->dev->CreateCommittedResource(
@@ -529,11 +532,10 @@ struct Sample
         });
         t1.detach();*/
 
-/*        D3D12_VERTEX_BUFFER_VIEW newvtxb = {};
-        newvtxb.BufferLocation = vertexbuffers[0]->GetGPUVirtualAddress();
-        newvtxb.SizeInBytes = (UINT)bufferSize;
-        newvtxb.StrideInBytes = sizeof(S3DVertexFormat);
-        vtxb.push_back(newvtxb);*/
+        vertex_buffer_view = {};
+        vertex_buffer_view.BufferLocation = vertex_buffer_attributes->GetGPUVirtualAddress();
+        vertex_buffer_view.SizeInBytes = (UINT)bufferSize;
+        vertex_buffer_view.StrideInBytes = sizeof(irr::video::S3DVertex2TCoords);
 
         // Upload to gpudata
 
@@ -697,7 +699,7 @@ public:
         command_list->SetDescriptorHeaps(2, descriptors.data());
 
 //        command_list->IASetIndexBuffer(&vao->getIndexBufferView());
-//        command_list->IASetVertexBuffers(0, &vao->getVertexBufferView()[0], 1);
+        command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
 //        command_list->IASetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
 
         std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
