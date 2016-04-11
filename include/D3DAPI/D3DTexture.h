@@ -47,16 +47,17 @@ inline DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
   }
 }
 
-class D3DTexture
+struct MipLevelData
 {
-private:
-  struct MipLevelData
-  {
     size_t Offset;
     size_t Width;
     size_t Height;
     size_t RowPitch;
-  };
+};
+
+class D3DTexture
+{
+private:
   size_t Width, Height;
   size_t layerCount;
   size_t mipmapLevelCount;

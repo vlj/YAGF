@@ -434,7 +434,7 @@ namespace irr
 #endif
 
 #ifndef WIN32
-    } __attribute__((aligned(16)));
+    };
 #else
     };
 #endif
