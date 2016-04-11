@@ -38,3 +38,6 @@ TargetDirectories.txt
 CMakeCCompilerId.c
 CMakeCXXCompilerId.cpp
 *.bin
+*.idb
+*.db
+*.opendb

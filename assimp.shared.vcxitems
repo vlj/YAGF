@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\clipper\clipper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\convertutf\ConvertUTF.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\irrXML.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\DDLNode.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\OpenDDLCommon.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\OpenDDLExport.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\OpenDDLParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\Value.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\common\shapes.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\advancing_front.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\cdt.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\sweep.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\sweep_context.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\unzip\ioapi.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\unzip\unzip.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\adler32.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\compress.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\crc32.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\deflate.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\gzclose.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\gzlib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\gzread.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\gzwrite.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\infback.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inffast.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inflate.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inftrees.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\trees.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\uncompr.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\zutil.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\win32\zlib.def" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\color4.inl" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\material.inl" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\matrix3x3.inl" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\matrix4x4.inl" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\quaternion.inl" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\vector2.inl" />
+    <None Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\vector3.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\clipper\clipper.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\convertutf\ConvertUTF.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\CXMLReaderImpl.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\heapsort.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\irrArray.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\irrString.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\irrTypes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrxml\irrXML.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\include\openddlparser\DDLNode.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\include\openddlparser\OpenDDLCommon.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\include\openddlparser\OpenDDLExport.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\include\openddlparser\OpenDDLParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\include\openddlparser\OpenDDLParserUtils.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\include\openddlparser\Value.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\common\shapes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\common\utils.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\poly2tri.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\advancing_front.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\cdt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\sweep.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\poly2tri\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\allocators.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\document.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\encodedstream.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\encodings.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\error\en.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\error\error.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\filereadstream.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\filewritestream.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\biginteger.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\diyfp.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\dtoa.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\ieee754.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\itoa.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\meta.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\pow10.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\stack.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\strfunc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\strtod.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\internal\swap.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\memorybuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\memorystream.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\msinttypes\inttypes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\msinttypes\stdint.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\pointer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\prettywriter.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\rapidjson.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\reader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\stringbuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\rapidjson\include\rapidjson\writer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\unzip\crypt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\unzip\ioapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\unzip\unzip.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\crc32.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\deflate.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\gzguts.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inffast.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inffixed.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inflate.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\inftrees.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\trees.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\zconf.in.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\zlib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\zlib\zutil.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\ai_assert.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\anim.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\camera.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\cexport.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\cfileio.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\cimport.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\color4.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\compiler\poppack1.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\compiler\pstdint.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\compiler\pushpack1.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\config.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\defs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\Exporter.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\Importer.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\importerdesc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\IOStream.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\light.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\Logger.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\LogStream.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\material.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\matrix3x3.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\matrix4x4.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\mesh.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\metadata.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\port\androidjni\AndroidJNIIOSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\postprocess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\quaternion.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\scene.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\texture.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\types.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\vector2.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\vector3.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)deps\assimp\include\assimp\version.h" />
+  </ItemGroup>
+</Project>
