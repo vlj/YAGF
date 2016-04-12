@@ -14,7 +14,6 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)include\API\d3dapi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\API\GfxApi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\API\glapi.h" />
   </ItemGroup>

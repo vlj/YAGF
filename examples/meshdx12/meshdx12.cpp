@@ -1,7 +1,3 @@
-//#include <API/d3dapi.h>
-#include <API/GfxApi.h>
-
-#include <fstream>
 
 //#include <D3DAPI/D3DRTTSet.h>
 //#include <D3DAPI/VAO.h>
@@ -12,27 +8,15 @@
 #include <array>
 #include <unordered_map>
 
-#include <d3d12.h>
-#include <d3dcompiler.h>
-#include <dxgi1_4.h>
-#include <wrl\client.h>
+#include <API/d3dapi.h>
 #include <d3dx12.h>
+#include <d3dcompiler.h>
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
-
-using command_list_storage_t = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
-using command_list_t = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
-using device_t = Microsoft::WRL::ComPtr<ID3D12Device>;
-using command_queue_t = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;
-using buffer_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
-using image_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
-using descriptor_storage_t = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
-using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
-using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
 
 static float timer = 0.;
 
@@ -152,252 +136,14 @@ namespace
         }
     }
 
-    command_list_storage_t create_command_storage(device_t dev)
-    {
-        command_list_storage_t result;
-        CHECK_HRESULT(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(result.GetAddressOf())));
-        return result;
-    }
-
-    command_list_t create_command_list(device_t dev, command_list_storage_t storage)
-    {
-        command_list_t result;
-        CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage.Get(), nullptr, IID_PPV_ARGS(result.GetAddressOf())));
-        return result;
-    }
-
-    buffer_t create_buffer(device_t dev, size_t size)
-    {
-        buffer_t result;
-        size_t real_size = std::max<size_t>(size, 256);
-        CHECK_HRESULT(dev->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-            D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(real_size),
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(result.GetAddressOf())));
-        return result;
-    }
-
-    void* map_buffer(device_t dev, buffer_t buffer)
-    {
-        void* result;
-        CHECK_HRESULT(buffer->Map(0, nullptr, (void**)&result));
-        return result;
-    }
-
-    void unmap_buffer(device_t dev, buffer_t buffer)
-    {
-        buffer->Unmap(0, nullptr);
-    }
-
-    image_t create_image(device_t dev, DXGI_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value)
-    {
-        image_t result;
-        CHECK_HRESULT(dev->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mipmap, 1, 0, flags),
-            initial_state,
-            clear_value,
-            IID_PPV_ARGS(result.GetAddressOf())));
-        return result;
-    }
-
-    descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors)
-    {
-        descriptor_storage_t result;
-        D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-        heapdesc.NumDescriptors = num_descriptors;
-        heapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        CHECK_HRESULT(dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(result.GetAddressOf())));
-        return result;
-    }
-
-    void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, size_t index, buffer_t buffer, uint32_t buffer_size)
-    {
-        uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-        desc.BufferLocation = buffer->GetGPUVirtualAddress();
-        desc.SizeInBytes = std::max<uint32_t>(256, buffer_size);
-        dev->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
-    }
-
-    descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors)
-    {
-        descriptor_storage_t result;
-        D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-        heapdesc.NumDescriptors = num_descriptors;
-        heapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-        heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        CHECK_HRESULT(dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(result.GetAddressOf())));
-        return result;
-    }
-
-    void create_sampler(device_t dev, descriptor_storage_t storage, size_t index, SAMPLER_TYPE sampler_type)
-    {
-        uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-
-        D3D12_SAMPLER_DESC samplerdesc = {};
-
-        samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        samplerdesc.MaxAnisotropy = 1;
-        samplerdesc.MinLOD = 0;
-        samplerdesc.MaxLOD = 1000;
-
-        switch (sampler_type)
-        {
-        case SAMPLER_TYPE::TRILINEAR:
-            samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-            break;
-        case SAMPLER_TYPE::BILINEAR:
-            samplerdesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-            samplerdesc.MaxLOD = 0;
-            break;
-        case SAMPLER_TYPE::NEAREST:
-            samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-            samplerdesc.MaxLOD = 0;
-            break;
-        case SAMPLER_TYPE::ANISOTROPIC:
-            samplerdesc.Filter = D3D12_FILTER_ANISOTROPIC;
-            samplerdesc.MaxAnisotropy = 16;
-            break;
-        }
-        dev->CreateSampler(&samplerdesc,CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
-    }
-
-    void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t index, image_t img)
-    {
-        uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-        desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        desc.Texture2D.MipLevels = 9;
-        dev->CreateShaderResourceView(img.Get(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
-    }
-
-    void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage)
-    {
-        command_list->Reset(storage.Get(), nullptr);
-    }
-
-    void make_command_list_executable(device_t dev, command_list_t command_list)
-    {
-        command_list->Close();
-    }
-
-    void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
-    {
-        Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-        CHECK_HRESULT(dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf())));
-        HANDLE completion_event = CreateEvent(0, FALSE, FALSE, 0);
-        fence->SetEventOnCompletion(1, completion_event);
-        command_queue->Signal(fence.Get(), 1);
-        WaitForSingleObject(completion_event, INFINITE);
-        CloseHandle(completion_event);
-    }
-
-    struct framebuffer_t
-    {
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtt_heap;
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsv_heap;
-        size_t NumRTT;
-        bool hasDepthStencil;
-
-        framebuffer_t() {}
-
-        framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil)
-            : NumRTT(RTTs.size()), hasDepthStencil(DepthStencil != nullptr)
-        {
-            D3D12_DESCRIPTOR_HEAP_DESC rtt_desc = {};
-            rtt_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-            rtt_desc.NumDescriptors = NumRTT;
-            CHECK_HRESULT(dev->CreateDescriptorHeap(&rtt_desc, IID_PPV_ARGS(rtt_heap.GetAddressOf())));
-
-            for (unsigned i = 0; i < RTTs.size(); i++)
-            {
-                D3D12_RENDER_TARGET_VIEW_DESC rttvd = {};
-                rttvd.Format = RTTs[i]->GetDesc().Format;
-                rttvd.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-                rttvd.Texture2D.MipSlice = 0;
-                rttvd.Texture2D.PlaneSlice = 0;
-                dev->CreateRenderTargetView(RTTs[i], &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(i, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
-            }
-
-            if (DepthStencil == nullptr)
-                return;
-
-            D3D12_DESCRIPTOR_HEAP_DESC dsv_desc = {};
-            dsv_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-            dsv_desc.NumDescriptors = 1;
-            CHECK_HRESULT(dev->CreateDescriptorHeap(&dsv_desc, IID_PPV_ARGS(dsv_heap.GetAddressOf())));
-            D3D12_DEPTH_STENCIL_VIEW_DESC DSVDescription = {};
-            DSVDescription.Format = DepthStencil->GetDesc().Format;
-            DSVDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-            DSVDescription.Texture2D.MipSlice = 0;
-            dev->CreateDepthStencilView(DepthStencil, &DSVDescription, dsv_heap->GetCPUDescriptorHandleForHeapStart());
-        }
-
-        ~framebuffer_t()
-        {
-
-        }
-    };
-
-
-    struct root_signature_builder
-    {
-    private:
-        std::vector<std::vector<CD3DX12_DESCRIPTOR_RANGE > > all_ranges;
-        std::vector<CD3DX12_ROOT_PARAMETER> root_parameters;
-        D3D12_ROOT_SIGNATURE_DESC desc = {};
-
-        void build_root_parameter(std::vector<CD3DX12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility)
-        {
-            all_ranges.push_back(ranges);
-            root_parameters.push_back(CD3DX12_ROOT_PARAMETER());
-            root_parameters.back().InitAsDescriptorTable(all_ranges.back().size(), all_ranges.back().data(), visibility);
-        }
-
-    public:
-        root_signature_builder(std::vector<std::tuple<std::vector<CD3DX12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags)
-        {
-            for (auto &&rp_parameter : parameters)
-            {
-                build_root_parameter(std::move(std::get<0>(rp_parameter)), std::get<1>(rp_parameter));
-            }
-            desc.Flags = flags;
-            desc.NumParameters = root_parameters.size();
-            desc.pParameters = root_parameters.data();
-        }
-
-        pipeline_layout_t get(device_t dev)
-        {
-            pipeline_layout_t result;
-            std::vector<D3D12_ROOT_PARAMETER> RootParameters;
-
-            Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSig;
-            Microsoft::WRL::ComPtr<ID3DBlob> error;
-            CHECK_HRESULT(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, pSerializedRootSig.GetAddressOf(), error.GetAddressOf()));
-
-            CHECK_HRESULT(dev->CreateRootSignature(1,
-                pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
-                IID_PPV_ARGS(result.GetAddressOf())));
-            return result;
-        }
-    };
 }
 
 root_signature_builder skinned_object_root_signature(
-    {
-        { { { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0 }, {D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL },
-        { { { D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL }
-    },
-    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+{
+    { { { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0 }, {D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL },
+    { { { D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL }
+},
+D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *sig)
 {
@@ -448,21 +194,12 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *si
     return result;
 }
 
-
-struct MipLevelData
-{
-    size_t Offset;
-    size_t Width;
-    size_t Height;
-    size_t RowPitch;
-};
-
 struct Sample
 {
     device_t dev;
     command_queue_t cmdqueue;
-    Microsoft::WRL::ComPtr<IDXGISwapChain3> chain;
-    image_t back_buffer[2];
+    swap_chain_t chain;
+    std::vector<image_t> back_buffer;
     descriptor_storage_t BackBufferDescriptorsHeap;
 
     command_list_storage_t command_allocator;
@@ -670,13 +407,13 @@ struct Sample
             uint32_t miplevel = 0;
             for (const MipLevelData mipmapData : Mips)
             {
-                command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST, miplevel));
+                set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::COPY_DEST, miplevel);
 
 //                command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
 //                    &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset, { getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
 //                    &CD3DX12_BOX());
 
-                command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ, miplevel));
+                set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel);
                 miplevel++;
             }
             textureSet[fixed] = 2 + texture_id;
@@ -696,35 +433,10 @@ public:
         D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
         debugInterface->EnableDebugLayer();
 #endif //  DEBUG
-
-        Microsoft::WRL::ComPtr<IDXGIFactory> fact;
-        CHECK_HRESULT(CreateDXGIFactory(IID_PPV_ARGS(fact.GetAddressOf())));
-        Microsoft::WRL::ComPtr<IDXGIAdapter> adaptater;
-        CHECK_HRESULT(fact->EnumAdapters(0, adaptater.GetAddressOf()));
-
-        CHECK_HRESULT(D3D12CreateDevice(adaptater.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(dev.GetAddressOf())));
-
-        D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
-        CHECK_HRESULT(dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(&cmdqueue)));
-
-        DXGI_SWAP_CHAIN_DESC swapChain = {};
-        swapChain.BufferCount = 2;
-        swapChain.Windowed = true;
-        swapChain.OutputWindow = window;
-        swapChain.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChain.SampleDesc.Count = 1;
-        swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-        swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-
-
-        CHECK_HRESULT(fact->CreateSwapChain(cmdqueue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf()));
-        CHECK_HRESULT(chain->GetBuffer(0, IID_PPV_ARGS(&back_buffer[0])));
-        CHECK_HRESULT(chain->GetBuffer(1, IID_PPV_ARGS(&back_buffer[1])));
-
-        back_buffer[0]->SetName(L"BackBuffer0");
-        back_buffer[1]->SetName(L"BackBuffer1");
-
+        dev = create_device();
+        cmdqueue = create_graphic_command_queue(dev);
+        chain = create_swap_chain(dev, cmdqueue, window);
+        back_buffer = get_image_view_from_swap_chain(dev, chain);
         Init();
     }
 
@@ -757,7 +469,7 @@ public:
         memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));
         unmap_buffer(dev, jointbuffer);
 
-        command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(back_buffer[chain->GetCurrentBackBufferIndex()].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+        set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
 
         float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
         command_list->ClearRenderTargetView(fbo[chain->GetCurrentBackBufferIndex()].rtt_heap->GetCPUDescriptorHandleForHeapStart(), clearColor, 0, nullptr);
@@ -804,18 +516,14 @@ public:
                 .Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
             command_list->DrawIndexedInstanced(std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }
-
-        command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(back_buffer[chain->GetCurrentBackBufferIndex()].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+        set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
         make_command_list_executable(dev, command_list);
         cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
         wait_for_command_queue_idle(dev, cmdqueue);
-        CHECK_HRESULT(chain->Present(1, 0));
+        present(dev, chain);
     }
 };
 
-
-
-GFXAPI *GlobalGFXAPI;
 
 int WINAPI WinMain(HINSTANCE hInstance,
   HINSTANCE hPrevInstance,

@@ -1,93 +1,55 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
-
 #pragma once
 
-#include <API/GfxApi.h>
 #include <d3d12.h>
-#include <D3DAPI/D3DRTTSet.h>
-#include <D3DAPI/VAO.h>
-#include <D3DAPI/D3DS3DVertex.h>
+#include <dxgi1_4.h>
+#include <wrl\client.h>
+#include <vector>
 
-struct WrapperRTTSet
+using command_list_storage_t = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
+using command_list_t = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
+using device_t = Microsoft::WRL::ComPtr<ID3D12Device>;
+using command_queue_t = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;
+using buffer_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
+using image_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
+using descriptor_storage_t = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
+using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
+using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
+using swap_chain_t = Microsoft::WRL::ComPtr<IDXGISwapChain3>;
+
+struct framebuffer_t
 {
-  D3DRTTSet D3DValue;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtt_heap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsv_heap;
+    uint32_t NumRTT;
+    bool hasDepthStencil;
+
+    framebuffer_t();
+    framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil);
+    ~framebuffer_t();
+
+    framebuffer_t(framebuffer_t&&) = delete;
+    framebuffer_t& operator=(framebuffer_t&&);
 };
 
-struct WrapperCommandList
-{
-  struct {
-    ID3D12CommandAllocator* CommandAllocator;
-    ID3D12GraphicsCommandList* CommandList;
-  } D3DValue;
-};
 
-struct WrapperResource
+struct root_signature_builder
 {
+private:
+    std::vector<std::vector<D3D12_DESCRIPTOR_RANGE > > all_ranges;
+    std::vector<D3D12_ROOT_PARAMETER> root_parameters;
+    D3D12_ROOT_SIGNATURE_DESC desc = {};
 
-  struct {
-    ID3D12Resource *resource;
-    union {
-      D3D12_CONSTANT_BUFFER_VIEW_DESC CBV;
-      struct {
-        D3D12_DEPTH_STENCIL_VIEW_DESC DSV;
-        D3D12_SHADER_RESOURCE_VIEW_DESC SRV;
-      } TextureView;
-    } description;
-  } D3DValue;
-};
-
-struct WrapperIndexVertexBuffersSet
-{
-  FormattedVertexStorage D3DValue;
-};
-
-struct WrapperPipelineState
-{
-  struct {
-    ID3D12PipelineState *pipelineStateObject;
-    ID3D12RootSignature *rootSignature;
-  } D3DValue;
-};
-
-struct WrapperDescriptorHeap
-{
-  ID3D12DescriptorHeap *D3DValue;
-};
-
-class D3DAPI : public GFXAPI
-{
+    void build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility);
 public:
-  virtual WrapperResource* createRTT(irr::video::ECOLOR_FORMAT Format, size_t Width, size_t Height, float fastColor[4]) override;
-  virtual struct WrapperResource* createDepthStencilTexture(size_t Width, size_t Height) override;
-  virtual void releaseRTTOrDepthStencilTexture(struct WrapperResource* res) override;
-  virtual struct WrapperRTTSet* createRTTSet(const std::vector<struct WrapperResource*> &RTTs, const std::vector<irr::video::ECOLOR_FORMAT> &formats, size_t Width, size_t Height, struct WrapperResource *DepthStencil) override;
-  virtual void releaseRTTSet(struct WrapperRTTSet *RTTSet) override;
-  virtual void releasePSO(struct WrapperPipelineState *pso) override;
-  virtual void clearRTTSet(struct WrapperCommandList* wrappedCmdList, WrapperRTTSet*, float color[4]) override;
-  virtual void clearDepthStencilFromRTTSet(struct WrapperCommandList* wrappedCmdList, struct WrapperRTTSet*, float Depth, unsigned stencil) override;
-  virtual void setRTTSet(struct WrapperCommandList* wrappedCmdList, WrapperRTTSet*) override;
-  virtual void setBackbufferAsRTTSet(struct WrapperCommandList* wrappedCmdList, size_t width, size_t height) override;
-  virtual void setBackbufferAsPresent(struct WrapperCommandList* wrappedCmdList) override;
-  virtual struct WrapperDescriptorHeap* createCBVSRVUAVDescriptorHeap(const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_VIEW, size_t> > &Resources) override;
-  virtual void releaseCBVSRVUAVDescriptorHeap(struct WrapperDescriptorHeap* Heap) override;
-  virtual struct WrapperDescriptorHeap* createSamplerHeap(const std::vector<std::pair<enum class SAMPLER_TYPE, size_t>> &SamplersDesc) override;
-  virtual void releaseSamplerHeap(struct WrapperDescriptorHeap* Heap) override;
-  virtual void setDescriptorHeap(struct WrapperCommandList* wrappedCmdList, size_t slot, struct WrapperDescriptorHeap *DescriptorHeap) override;
-  virtual void setPipelineState(struct WrapperCommandList* wrappedCmdList, struct WrapperPipelineState* pipelineState) override;
-  virtual struct WrapperResource *createConstantsBuffer(size_t) override;
-  virtual void releaseConstantsBuffers(struct WrapperResource *cbuf) override;
-  virtual void *mapConstantsBuffer(struct WrapperResource *) override;
-  virtual void unmapConstantsBuffers(struct WrapperResource *wrappedConstantsBuffer) override;
-  virtual void setIndexVertexBuffersSet(struct WrapperCommandList* wrappedCmdList, WrapperIndexVertexBuffersSet*) override;
-  virtual void writeResourcesTransitionBarrier(struct WrapperCommandList* wrappedCmdList, const std::vector<std::tuple<struct WrapperResource *, enum class RESOURCE_USAGE, enum class RESOURCE_USAGE> > &barriers) override;
-  virtual struct WrapperCommandList* createCommandList() override;
-  virtual void closeCommandList(struct WrapperCommandList* wrappedCmdList) override;
-  virtual void openCommandList(struct WrapperCommandList* wrappedCmdList) override;
-  virtual void releaseCommandList(struct WrapperCommandList* wrappedCmdList) override;
-  virtual void drawIndexedInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t indexOffset, size_t vertexOffset, size_t instanceOffset) override;
-  virtual void drawInstanced(struct WrapperCommandList *wrappedCmdList, size_t indexCount, size_t instanceCount, size_t vertexOffset, size_t instanceOffset) override;
-  virtual void submitToQueue(struct WrapperCommandList *wrappedCmdList) override;
-  virtual struct WrapperIndexVertexBuffersSet* createFullscreenTri() override;
-  virtual void releaseIndexVertexBuffersSet(struct WrapperIndexVertexBuffersSet *res) override;
+    root_signature_builder(std::vector<std::tuple<std::vector<D3D12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags);
+    pipeline_layout_t get(device_t dev);
 };
+
+device_t create_device();
+command_queue_t create_graphic_command_queue(device_t dev);
+swap_chain_t create_swap_chain(device_t dev, command_queue_t queue, HWND window);
+std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain);
+
+#include "GfxApi.h"
