@@ -6,6 +6,7 @@
 #include <dxgi1_4.h>
 #include <wrl\client.h>
 #include <vector>
+#include <memory>
 
 using command_list_storage_t = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
 using command_list_t = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
@@ -18,20 +19,21 @@ using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
 using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
 using swap_chain_t = Microsoft::WRL::ComPtr<IDXGISwapChain3>;
 
-struct framebuffer_t
+struct d3d12_framebuffer_t
 {
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtt_heap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsv_heap;
     uint32_t NumRTT;
     bool hasDepthStencil;
 
-    framebuffer_t();
-    framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil);
-    ~framebuffer_t();
+    d3d12_framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil);
+    ~d3d12_framebuffer_t();
 
-    framebuffer_t(framebuffer_t&&) = delete;
-    framebuffer_t& operator=(framebuffer_t&&);
+    d3d12_framebuffer_t(d3d12_framebuffer_t&&) = delete;
+    d3d12_framebuffer_t(const d3d12_framebuffer_t&) = delete;
 };
+
+using framebuffer_t = std::shared_ptr<d3d12_framebuffer_t>;
 
 
 struct root_signature_builder

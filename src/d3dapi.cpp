@@ -28,6 +28,17 @@ namespace
         }
         throw;
     }
+
+    D3D12_CLEAR_FLAGS get_clear_flag_from_aspect(depth_stencil_aspect aspect)
+    {
+        switch (aspect)
+        {
+        case depth_stencil_aspect::depth_and_stencil: return D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL;
+        case depth_stencil_aspect::depth_only: return D3D12_CLEAR_FLAG_DEPTH;
+        case depth_stencil_aspect::stencil_only: return D3D12_CLEAR_FLAG_STENCIL;
+        }
+        throw;
+    }
 }
 
 command_list_storage_t create_command_storage(device_t dev)
@@ -174,6 +185,17 @@ void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t res
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), get_resource_state(before), get_resource_state(after), subresource));
 }
 
+void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
+{
+    command_list->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);
+}
+
+void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil)
+{
+    command_list->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
+
+}
+
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
 {
     Microsoft::WRL::ComPtr<ID3D12Fence> fence;
@@ -190,11 +212,7 @@ void present(device_t dev, swap_chain_t chain)
     CHECK_HRESULT(chain->Present(1, 0));
 }
 
-framebuffer_t::framebuffer_t()
-{
-}
-
-framebuffer_t::framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil)
+d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil)
     : NumRTT(static_cast<uint32_t>(RTTs.size())), hasDepthStencil(DepthStencil != nullptr)
 {
     D3D12_DESCRIPTOR_HEAP_DESC rtt_desc = {};
@@ -226,18 +244,9 @@ framebuffer_t::framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &R
     dev->CreateDepthStencilView(DepthStencil, &DSVDescription, dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }
 
-framebuffer_t::~framebuffer_t()
+d3d12_framebuffer_t::~d3d12_framebuffer_t()
 {
 
-}
-
-framebuffer_t& framebuffer_t::operator=(framebuffer_t &&old)
-{
-    rtt_heap = old.rtt_heap;
-    dsv_heap = old.dsv_heap;
-    NumRTT = old.NumRTT;
-    hasDepthStencil = old.hasDepthStencil;
-    return *this;
 }
 
 void root_signature_builder::build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility)

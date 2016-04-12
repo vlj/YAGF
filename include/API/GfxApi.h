@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <tuple>
+#include <array>
 
 enum class RESOURCE_USAGE
 {
@@ -54,3 +55,12 @@ void make_command_list_executable(device_t dev, command_list_t command_list);
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue);
 void present(device_t dev, swap_chain_t chain);
 void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource);
+void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color);
+
+enum class depth_stencil_aspect
+{
+    depth_only,
+    stencil_only,
+    depth_and_stencil
+};
+void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);

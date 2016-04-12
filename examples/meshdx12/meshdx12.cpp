@@ -245,8 +245,8 @@ struct Sample
 
         depth_buffer = create_image(dev, DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, D3D12_RESOURCE_STATE_DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
 
-        fbo[0] = framebuffer_t(dev, { back_buffer[0].Get() }, depth_buffer.Get());
-        fbo[1] = framebuffer_t(dev, { back_buffer[1].Get() }, depth_buffer.Get());
+        fbo[0].reset(new d3d12_framebuffer_t(dev, { back_buffer[0].Get() }, depth_buffer.Get()));
+        fbo[1].reset(new d3d12_framebuffer_t(dev, { back_buffer[1].Get() }, depth_buffer.Get()));
 
         irr::io::CReadFile reader("..\\..\\examples\\assets\\xue.b3d");
         loader = new irr::scene::CB3DMeshFileLoader(&reader);
@@ -471,9 +471,9 @@ public:
 
         set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
 
-        float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
-        command_list->ClearRenderTargetView(fbo[chain->GetCurrentBackBufferIndex()].rtt_heap->GetCPUDescriptorHandleForHeapStart(), clearColor, 0, nullptr);
-        command_list->ClearDepthStencilView(fbo[chain->GetCurrentBackBufferIndex()].dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, nullptr);
+        std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+        clear_color(dev, command_list, fbo[chain->GetCurrentBackBufferIndex()], clearColor);
+        clear_depth_stencil(dev, command_list, fbo[chain->GetCurrentBackBufferIndex()], depth_stencil_aspect::depth_only, 1., 0);
 
         D3D12_RECT rect = {};
         rect.left = 0;
@@ -492,7 +492,7 @@ public:
         command_list->RSSetViewports(1, &view);
         command_list->RSSetScissorRects(1, &rect);
 
-        command_list->OMSetRenderTargets(1, &(fbo[chain->GetCurrentBackBufferIndex()].rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[chain->GetCurrentBackBufferIndex()].dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+        command_list->OMSetRenderTargets(1, &(fbo[chain->GetCurrentBackBufferIndex()]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[chain->GetCurrentBackBufferIndex()]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
         command_list->SetPipelineState(objectpso.Get());
         command_list->SetGraphicsRootSignature(sig.Get());
