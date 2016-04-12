@@ -6,6 +6,30 @@
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
+
+namespace
+{
+    D3D12_RESOURCE_STATES get_resource_state(RESOURCE_USAGE ru)
+    {
+        switch (ru)
+        {
+        case RESOURCE_USAGE::READ_GENERIC:
+            return D3D12_RESOURCE_STATE_GENERIC_READ;
+        case RESOURCE_USAGE::COPY_DEST:
+            return D3D12_RESOURCE_STATE_COPY_DEST;
+        case RESOURCE_USAGE::COPY_SRC:
+            return D3D12_RESOURCE_STATE_COPY_SOURCE;
+        case RESOURCE_USAGE::PRESENT:
+            return D3D12_RESOURCE_STATE_PRESENT;
+        case RESOURCE_USAGE::RENDER_TARGET:
+            return D3D12_RESOURCE_STATE_RENDER_TARGET;
+        case RESOURCE_USAGE::DEPTH_STENCIL:
+            return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        }
+        throw;
+    }
+}
+
 command_list_storage_t create_command_storage(device_t dev)
 {
     command_list_storage_t result;
@@ -144,9 +168,10 @@ void make_command_list_executable(device_t dev, command_list_t command_list)
     command_list->Close();
 }
 
+
 void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource)
 {
-    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST, subresource));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), get_resource_state(before), get_resource_state(after), subresource));
 }
 
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
