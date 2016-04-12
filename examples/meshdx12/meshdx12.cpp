@@ -1,6 +1,7 @@
 //#include <API/d3dapi.h>
 #include <API/GfxApi.h>
-#include <Scene/Shaders.h>
+
+#include <fstream>
 
 //#include <D3DAPI/D3DRTTSet.h>
 //#include <D3DAPI/VAO.h>
@@ -12,6 +13,7 @@
 #include <unordered_map>
 
 #include <d3d12.h>
+#include <d3dcompiler.h>
 #include <dxgi1_4.h>
 #include <wrl\client.h>
 #include <d3dx12.h>
@@ -30,6 +32,7 @@ using buffer_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
 using image_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
 using descriptor_storage_t = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
 using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
+using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
 
 static float timer = 0.;
 
@@ -397,7 +400,106 @@ namespace
 
     return result;
     }*/
+
+    struct root_signature_builder
+    {
+    private:
+        std::vector<std::vector<CD3DX12_DESCRIPTOR_RANGE > > all_ranges;
+        std::vector<CD3DX12_ROOT_PARAMETER> root_parameters;
+        D3D12_ROOT_SIGNATURE_DESC desc = {};
+
+        void build_root_parameter(std::vector<CD3DX12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility)
+        {
+            all_ranges.push_back(ranges);
+            root_parameters.push_back(CD3DX12_ROOT_PARAMETER());
+            root_parameters.back().InitAsDescriptorTable(all_ranges.back().size(), all_ranges.back().data(), visibility);
+        }
+
+    public:
+        root_signature_builder(std::vector<std::tuple<std::vector<CD3DX12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags)
+        {
+            for (auto &&rp_parameter : parameters)
+            {
+                build_root_parameter(std::move(std::get<0>(rp_parameter)), std::get<1>(rp_parameter));
+            }
+            desc.Flags = flags;
+            desc.NumParameters = root_parameters.size();
+            desc.pParameters = root_parameters.data();
+        }
+
+        pipeline_layout_t get(device_t dev)
+        {
+            pipeline_layout_t result;
+            std::vector<D3D12_ROOT_PARAMETER> RootParameters;
+
+            Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSig;
+            Microsoft::WRL::ComPtr<ID3DBlob> error;
+            CHECK_HRESULT(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, pSerializedRootSig.GetAddressOf(), error.GetAddressOf()));
+
+            CHECK_HRESULT(dev->CreateRootSignature(1,
+                pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
+                IID_PPV_ARGS(result.GetAddressOf())));
+            return result;
+        }
+    };
 }
+
+root_signature_builder skinned_object_root_signature(
+    {
+        { { { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0 }, {D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL },
+        { { { D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL }
+    },
+    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *sig)
+{
+    pipeline_state_t result;
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
+    psodesc.pRootSignature = sig;
+    psodesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    psodesc.NumRenderTargets = 2;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    psodesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+
+    psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+    Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
+    CHECK_HRESULT(D3DReadFileToBlob(L"skinnedobject.cso", vtxshaderblob.GetAddressOf()));
+    psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
+    psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
+
+    CHECK_HRESULT(D3DReadFileToBlob(L"object_gbuffer.cso", pxshaderblob.GetAddressOf()));
+    psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
+    psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
+
+    std::vector<D3D12_INPUT_ELEMENT_DESC> IAdesc =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 4, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 3, DXGI_FORMAT_R32_SINT, 1, 8, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 1, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 5, DXGI_FORMAT_R32_SINT, 1, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 6, DXGI_FORMAT_R32_FLOAT, 1, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 7, DXGI_FORMAT_R32_SINT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 8, DXGI_FORMAT_R32_FLOAT, 1, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+    psodesc.InputLayout.pInputElementDescs = IAdesc.data();
+    psodesc.InputLayout.NumElements = IAdesc.size();
+    psodesc.SampleDesc.Count = 1;
+    psodesc.SampleMask = UINT_MAX;
+    psodesc.NodeMask = 1;
+    CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
+    return result;
+}
+
 
 struct MipLevelData
 {
@@ -430,6 +532,7 @@ struct Sample
     std::unordered_map<std::string, uint32_t> textureSet;
 
     pipeline_state_t objectpso;
+    pipeline_layout_t sig;
     framebuffer_t fbo[2];
 
     irr::scene::CB3DMeshFileLoader *loader;
@@ -611,7 +714,8 @@ struct Sample
 
             create_image_view(dev, TexResourceHeaps, texture_id++, texture);
         }
-//        objectpso = createSkinnedObjectShader();
+        sig = skinned_object_root_signature.get(dev);
+        objectpso = createSkinnedObjectShader(dev, sig.Get());
         make_command_list_executable(dev, command_list);
         cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
     }
@@ -693,7 +797,8 @@ public:
 //        fbo[Context::getInstance()->getCurrentBackBufferIndex()]->ClearDepthStencil(cmdlist->D3DValue.CommandList, 1.f, 0);
 
 //        fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(cmdlist->D3DValue.CommandList);
-//        command_list->SetPipelineState(objectpso.Get());
+        command_list->SetPipelineState(objectpso.Get());
+        command_list->SetGraphicsRootSignature(sig.Get());
 
         std::array<ID3D12DescriptorHeap*, 2> descriptors = {constant_buffer_descriptors.Get(), sampler_heap.Get()};
         command_list->SetDescriptorHeaps(2, descriptors.data());
