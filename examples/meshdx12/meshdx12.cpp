@@ -521,9 +521,8 @@ struct Sample
     command_list_t command_list;
     buffer_t cbuffer;
     buffer_t jointbuffer;
-    descriptor_storage_t constant_buffer_descriptors;
+    descriptor_storage_t cbv_srv_descriptors_heap;
 
-    descriptor_storage_t TexResourceHeaps;
     std::vector<image_t> Textures;
     std::vector<buffer_t> upload_buffers;
     descriptor_storage_t sampler_heap;
@@ -537,8 +536,12 @@ struct Sample
 
     irr::scene::CB3DMeshFileLoader *loader;
 
+    std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
+
     buffer_t vertex_buffer_attributes;
+    buffer_t index_buffer;
     D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
+    D3D12_INDEX_BUFFER_VIEW index_buffer_view;
 
     void Init()
     {
@@ -548,9 +551,9 @@ struct Sample
         cbuffer = create_buffer(dev, sizeof(Matrixes));
         jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
-        constant_buffer_descriptors = create_descriptor_storage(dev, 2);
-        create_constant_buffer_view(dev, constant_buffer_descriptors, 0, cbuffer, sizeof(Matrixes));
-        create_constant_buffer_view(dev, constant_buffer_descriptors, 1, jointbuffer, sizeof(JointTransform));
+        cbv_srv_descriptors_heap = create_descriptor_storage(dev, 2);
+        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
+        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
 
         sampler_heap = create_sampler_heap(dev, 1);
         create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
@@ -597,8 +600,22 @@ struct Sample
         size_t bufferSize = total_vertex_cnt * sizeof(irr::video::S3DVertex2TCoords);
 
         vertex_buffer_attributes = create_buffer(dev, bufferSize);
-        void *vertexmap = map_buffer(dev, vertex_buffer_attributes);
-        memcpy(vertexmap, reorg.data(), bufferSize);
+        index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
+        uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer);
+        irr::video::S3DVertex2TCoords *vertexmap = (irr::video::S3DVertex2TCoords*)map_buffer(dev, vertex_buffer_attributes);
+
+        size_t basevertex = 0, baseindex = 0;
+
+        for (const irr::scene::IMeshBuffer<irr::video::S3DVertex2TCoords>& mesh : reorg)
+        {
+            memcpy(&vertexmap[basevertex], mesh.getVertices(), sizeof(irr::video::S3DVertex2TCoords) * mesh.getVertexCount());
+            memcpy(&indexmap[baseindex], mesh.getIndices(), sizeof(unsigned short) * mesh.getIndexCount());
+            meshOffset.push_back(std::make_tuple(mesh.getIndexCount(), basevertex, baseindex));
+            basevertex += mesh.getVertexCount();
+            baseindex += mesh.getIndexCount();
+        }
+
+        unmap_buffer(dev, index_buffer);
         unmap_buffer(dev, vertex_buffer_attributes);
         // TODO: Upload to GPUmem
         /*
@@ -640,11 +657,13 @@ struct Sample
         vertex_buffer_view.SizeInBytes = (UINT)bufferSize;
         vertex_buffer_view.StrideInBytes = sizeof(irr::video::S3DVertex2TCoords);
 
+        index_buffer_view = {};
+        index_buffer_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
+        index_buffer_view.SizeInBytes = total_index_cnt * sizeof(uint16_t);
+
         // Upload to gpudata
 
         // Texture
-        TexResourceHeaps = create_descriptor_storage(dev, 1000);
-        std::vector<std::tuple<std::string, ID3D12Resource*, D3D12_SHADER_RESOURCE_VIEW_DESC> > textureNamePairs;
         command_list_t uploadcmdlist = command_list;
         uint32_t texture_id = 0;
         for (auto Tex : loader->Textures)
@@ -711,8 +730,8 @@ struct Sample
                 command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, miplevel));
                 miplevel++;
             }
-
-            create_image_view(dev, TexResourceHeaps, texture_id++, texture);
+            textureSet[fixed] = 2 + texture_id;
+            create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id++, texture);
         }
         sig = skinned_object_root_signature.get(dev);
         objectpso = createSkinnedObjectShader(dev, sig.Get());
@@ -793,25 +812,46 @@ public:
 
         float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
         command_list->ClearRenderTargetView(fbo[chain->GetCurrentBackBufferIndex()].rtt_heap->GetCPUDescriptorHandleForHeapStart(), clearColor, 0, nullptr);
-//        fbo[chain->GetCurrentBackBufferIndex()]->Clear(cmdlist->D3DValue.CommandList, clearColor);
 //        fbo[Context::getInstance()->getCurrentBackBufferIndex()]->ClearDepthStencil(cmdlist->D3DValue.CommandList, 1.f, 0);
 
-//        fbo[Context::getInstance()->getCurrentBackBufferIndex()]->Bind(cmdlist->D3DValue.CommandList);
+        D3D12_RECT rect = {};
+        rect.left = 0;
+        rect.top = 0;
+        rect.bottom = 1024;
+        rect.right = 1024;
+
+        D3D12_VIEWPORT view = {};
+        view.Height = 1024.f;
+        view.Width = 1024.f;
+        view.TopLeftX = 0;
+        view.TopLeftY = 0;
+        view.MinDepth = 0;
+        view.MaxDepth = 1.;
+
+        command_list->RSSetViewports(1, &view);
+        command_list->RSSetScissorRects(1, &rect);
+
+        command_list->OMSetRenderTargets(1, &(fbo[chain->GetCurrentBackBufferIndex()].rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[chain->GetCurrentBackBufferIndex()].dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+
         command_list->SetPipelineState(objectpso.Get());
         command_list->SetGraphicsRootSignature(sig.Get());
 
-        std::array<ID3D12DescriptorHeap*, 2> descriptors = {constant_buffer_descriptors.Get(), sampler_heap.Get()};
+        std::array<ID3D12DescriptorHeap*, 2> descriptors = {cbv_srv_descriptors_heap.Get(), sampler_heap.Get()};
         command_list->SetDescriptorHeaps(2, descriptors.data());
 
-//        command_list->IASetIndexBuffer(&vao->getIndexBufferView());
+        command_list->IASetIndexBuffer(&index_buffer_view);
         command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
 //        command_list->IASetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
+
+        command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
 
         std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
         for (unsigned i = 0; i < buffers.size(); i++)
         {
-//            command_list->SetGraphicsRootDescriptorTable(1, textureSet[buffers[i].second.TextureNames[0]]);
-//            GlobalGFXAPI->drawIndexedInstanced(cmdlist, std::get<0>(vao->meshOffset[i]), 1, std::get<2>(vao->meshOffset[i]), std::get<1>(vao->meshOffset[i]), 0);
+            command_list->SetGraphicsRootDescriptorTable(0,
+                CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+                .Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+            command_list->DrawIndexedInstanced(std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }
 
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(back_buffer[chain->GetCurrentBackBufferIndex()].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
