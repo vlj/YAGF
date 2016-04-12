@@ -274,6 +274,9 @@ namespace
     {
         uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
         D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+        desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        desc.Texture2D.MipLevels = 9;
         dev->CreateShaderResourceView(img.Get(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
     }
 
@@ -343,63 +346,8 @@ namespace
         {
 
         }
-
-/*        void Bind(ID3D12GraphicsCommandList *cmdlist)
-        {
-            D3D12_RECT rect = {};
-            rect.left = 0;
-            rect.top = 0;
-            rect.bottom = (LONG)width;
-            rect.right = (LONG)height;
-
-            D3D12_VIEWPORT view = {};
-            view.Height = (FLOAT)width;
-            view.Width = (FLOAT)height;
-            view.TopLeftX = 0;
-            view.TopLeftY = 0;
-            view.MinDepth = 0;
-            view.MaxDepth = 1.;
-
-            cmdlist->RSSetViewports(1, &view);
-            cmdlist->RSSetScissorRects(1, &rect);
-
-            if (hasDepthStencil)
-                cmdlist->SetRenderTargets(&DescriptorHeap->GetCPUDescriptorHandleForHeapStart(), true, (UINT)NumRTT, &DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-            else
-                cmdlist->SetRenderTargets(&DescriptorHeap->GetCPUDescriptorHandleForHeapStart(), true, (UINT)NumRTT, nullptr);
-        }
-
-        void Clear(ID3D12GraphicsCommandList *cmdlist, float clearColor[4])
-        {
-            UINT Increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP);
-            for (unsigned i = 0; i < NumRTT; i++)
-            {
-                cmdlist->ClearRenderTargetView(DescriptorHeap->GetCPUDescriptorHandleForHeapStart().MakeOffsetted(i * Increment), clearColor, 0, 0);
-            }
-        }
-
-        void ClearDepthStencil(ID3D12GraphicsCommandList *cmdlist, float Depth, unsigned Stencil)
-        {
-            cmdlist->ClearDepthStencilView(DepthDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_DEPTH, Depth, Stencil, nullptr, 0);
-        }*/
     };
 
-/*    {
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-    dsv.Format = DXGI_FORMAT_D32_FLOAT;
-    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsv.Texture2D.MipSlice = 0;
-    result->D3DValue.description.TextureView.DSV = dsv;
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-    srv.Format = DXGI_FORMAT_R32_FLOAT;
-    srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srv.Texture2D.MipLevels = 1;
-    result->D3DValue.description.TextureView.SRV = srv;
-
-    return result;
-    }*/
 
     struct root_signature_builder
     {
