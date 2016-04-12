@@ -13,11 +13,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "meshdx12", "examples\meshdx
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{0FAB9C00-EBCF-4295-91DB-9D8043FF7290}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "YAGF.shared", "YAGF.shared.vcxitems", "{E9D8E2A8-4043-4163-885C-D44C5BA97CE9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Contrib", "Contrib", "{9512D961-879A-4BC8-8D6C-68DCCF25F17A}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		assimp.shared.vcxitems*{1849de30-433d-4789-bdca-9780033c61d5}*SharedItemsImports = 4
 		assimp.shared.vcxitems*{c4ed9be7-5a08-4bfc-82c3-85e13f9d85ad}*SharedItemsImports = 4
 		assimp.shared.vcxitems*{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}*SharedItemsImports = 9
+		YAGF.shared.vcxitems*{e9d8e2a8-4043-4163-885c-d44c5ba97ce9}*SharedItemsImports = 9
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -75,6 +80,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{45D41ACC-2C3C-43D2-BC10-02AA73FFC7C7} = {9512D961-879A-4BC8-8D6C-68DCCF25F17A}
+		{1849DE30-433D-4789-BDCA-9780033C61D5} = {9512D961-879A-4BC8-8D6C-68DCCF25F17A}
+		{C4ED9BE7-5A08-4BFC-82C3-85E13F9D85AD} = {9512D961-879A-4BC8-8D6C-68DCCF25F17A}
 		{17E575B3-2FFE-467A-B3A0-5CC2F2E6BC74} = {0FAB9C00-EBCF-4295-91DB-9D8043FF7290}
 	EndGlobalSection
 EndGlobal
