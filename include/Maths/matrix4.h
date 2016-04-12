@@ -20,7 +20,7 @@
 
 // For SSE
 #if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
-#define HAS_SSE
+//#define HAS_SSE
 #include <cstdint>
 #if defined(WIN32) && !defined(__MINGW32__)
 #pragma warning( disable : 4316)
@@ -1448,17 +1448,17 @@ namespace irr
       return true;
 #else
 
-      f32 d = (m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0)) * (m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2)) -
+      float d = (m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0)) * (m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2)) -
         (m(0, 0) * m(1, 2) - m(0, 2) * m(1, 0)) * (m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1)) +
         (m(0, 0) * m(1, 3) - m(0, 3) * m(1, 0)) * (m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1)) +
         (m(0, 1) * m(1, 2) - m(0, 2) * m(1, 1)) * (m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0)) -
         (m(0, 1) * m(1, 3) - m(0, 3) * m(1, 1)) * (m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0)) +
         (m(0, 2) * m(1, 3) - m(0, 3) * m(1, 2)) * (m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0));
 
-      if( core::iszero ( d, FLT_MIN ) )
+      if( d == 0. )
         return false;
 
-      d = core::reciprocal ( d );
+      d = 1.f / d;
 
       out(0, 0) = d * (m(1, 1) * (m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2)) +
         m(1, 2) * (m(2, 3) * m(3, 1) - m(2, 1) * m(3, 3)) +

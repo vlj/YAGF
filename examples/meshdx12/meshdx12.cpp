@@ -192,15 +192,15 @@ namespace
         buffer->Unmap(0, nullptr);
     }
 
-    image_t create_image(device_t dev, DXGI_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags)
+    image_t create_image(device_t dev, DXGI_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value)
     {
         image_t result;
         CHECK_HRESULT(dev->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_FLAG_NONE,
             &CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mipmap, 1, 0, flags),
-            D3D12_RESOURCE_STATE_DEPTH_WRITE,
-            &CD3DX12_CLEAR_VALUE(format, 1., 0),
+            initial_state,
+            clear_value,
             IID_PPV_ARGS(result.GetAddressOf())));
         return result;
     }
@@ -459,10 +459,10 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *si
     psodesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
-    psodesc.NumRenderTargets = 2;
-    psodesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-    psodesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    psodesc.NumRenderTargets = 1;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+//    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
     psodesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
     psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -551,19 +551,19 @@ struct Sample
         cbuffer = create_buffer(dev, sizeof(Matrixes));
         jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
-        cbv_srv_descriptors_heap = create_descriptor_storage(dev, 2);
+        cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
         create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
         create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
 
         sampler_heap = create_sampler_heap(dev, 1);
         create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
-        depth_buffer = create_image(dev, DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+        depth_buffer = create_image(dev, DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, D3D12_RESOURCE_STATE_DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
 
         fbo[0] = framebuffer_t(dev, { back_buffer[0].Get() }, depth_buffer.Get());
         fbo[1] = framebuffer_t(dev, { back_buffer[1].Get() }, depth_buffer.Get());
 
-        irr::io::CReadFile reader("..\\examples\\assets\\xue.b3d");
+        irr::io::CReadFile reader("..\\..\\examples\\assets\\xue.b3d");
         loader = new irr::scene::CB3DMeshFileLoader(&reader);
         std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
         std::vector<irr::scene::SMeshBufferLightMap> reorg;
@@ -660,6 +660,7 @@ struct Sample
         index_buffer_view = {};
         index_buffer_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
         index_buffer_view.SizeInBytes = total_index_cnt * sizeof(uint16_t);
+        index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
 
         // Upload to gpudata
 
@@ -668,7 +669,7 @@ struct Sample
         uint32_t texture_id = 0;
         for (auto Tex : loader->Textures)
         {
-            const std::string &fixed = "..\\examples\\assets\\" + Tex.TextureName.substr(0, Tex.TextureName.find_last_of('.')) + ".DDS";
+            const std::string &fixed = "..\\..\\examples\\assets\\" + Tex.TextureName.substr(0, Tex.TextureName.find_last_of('.')) + ".DDS";
             std::ifstream DDSFile(fixed, std::ifstream::binary);
             irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
@@ -694,19 +695,19 @@ struct Sample
                     const IImage &image = DDSPic.getLoadedImage();
                     struct PackedMipMapLevel miplevel = image.Layers[face][i];
                     // Offset needs to be aligned to 512 bytes
-                    offset_in_texram = (offset_in_texram + 511) & ~512;
+                    offset_in_texram = (offset_in_texram + 511) & ~511;
                     // Row pitch is always a multiple of 256
                     size_t height_in_blocks = (image.Layers[face][i].Height + block_height - 1) / block_height;
                     size_t width_in_blocks = (image.Layers[face][i].Width + block_width - 1) / block_width;
                     size_t height_in_texram = height_in_blocks * block_height;
                     size_t width_in_texram = width_in_blocks * block_width;
                     size_t rowPitch = width_in_blocks * block_size;
-                    rowPitch = (rowPitch + 255) & ~256;
+                    rowPitch = (rowPitch + 255) & ~255;
                     MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
                     Mips.push_back(mml);
                     for (unsigned row = 0; row < height_in_blocks; row++)
                     {
-                        memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
+//                        memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
                         offset_in_texram += rowPitch;
                     }
                 }
@@ -714,20 +715,20 @@ struct Sample
             unmap_buffer(dev, upload_buffer);
 
             image_t texture = create_image(dev, getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format),
-                width, height, mipmap_count, D3D12_RESOURCE_FLAG_NONE);
+                width, height, mipmap_count, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
             Textures.push_back(texture);
 
             uint32_t miplevel = 0;
             for (const MipLevelData mipmapData : Mips)
             {
-                command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST, miplevel));
+                command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST, miplevel));
 
-                command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
-                    &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset, { getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
-                    &CD3DX12_BOX());
+//                command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
+//                    &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset, { getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
+//                    &CD3DX12_BOX());
 
-                command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, miplevel));
+                command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ, miplevel));
                 miplevel++;
             }
             textureSet[fixed] = 2 + texture_id;
@@ -812,7 +813,7 @@ public:
 
         float clearColor[] = { .25f, .25f, 0.35f, 1.0f };
         command_list->ClearRenderTargetView(fbo[chain->GetCurrentBackBufferIndex()].rtt_heap->GetCPUDescriptorHandleForHeapStart(), clearColor, 0, nullptr);
-//        fbo[Context::getInstance()->getCurrentBackBufferIndex()]->ClearDepthStencil(cmdlist->D3DValue.CommandList, 1.f, 0);
+        command_list->ClearDepthStencilView(fbo[chain->GetCurrentBackBufferIndex()].dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, nullptr);
 
         D3D12_RECT rect = {};
         rect.left = 0;
@@ -842,6 +843,8 @@ public:
         command_list->IASetIndexBuffer(&index_buffer_view);
         command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
 //        command_list->IASetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
+
+        command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
 
