@@ -39,6 +39,16 @@ namespace
         }
         throw;
     }
+
+    DXGI_FORMAT get_index_type(index_buffer_type type)
+    {
+        switch (type)
+        {
+        case index_buffer_type::u16: return DXGI_FORMAT_R16_UINT;
+        case index_buffer_type::u32: return DXGI_FORMAT_R32_UINT;
+        }
+        throw;
+    }
 }
 
 command_list_storage_t create_command_storage(device_t dev)
@@ -194,6 +204,66 @@ void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_
 {
     command_list->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
 
+}
+
+void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth)
+{
+    D3D12_VIEWPORT view = {};
+    view.Height = height;
+    view.Width = width;
+    view.TopLeftX = x;
+    view.TopLeftY = y;
+    view.MinDepth = min_depth;
+    view.MaxDepth = max_depth;
+
+    command_list->RSSetViewports(1, &view);
+}
+
+void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+{
+    D3D12_RECT rect = {};
+    rect.left = left;
+    rect.top = top;
+    rect.bottom = bottom;
+    rect.right = right;
+
+    command_list->RSSetScissorRects(1, &rect);
+}
+
+void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, index_buffer_type type)
+{
+    D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
+    index_buffer_view.BufferLocation = buffer->GetGPUVirtualAddress() + offset;
+    index_buffer_view.SizeInBytes = size;
+    index_buffer_view.Format = get_index_type(type);
+    command_list->IASetIndexBuffer(&index_buffer_view);
+}
+
+void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
+{
+    std::vector<D3D12_VERTEX_BUFFER_VIEW> buffer_views;
+    for (const auto &vertex_buffer_info : buffer_offset_stride_size)
+    {
+        D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view = {};
+
+        buffer_t buffer;
+        uint64_t offset;
+        std::tie(buffer, offset, vertex_buffer_view.StrideInBytes, vertex_buffer_view.SizeInBytes) = vertex_buffer_info;
+        vertex_buffer_view.BufferLocation = buffer->GetGPUVirtualAddress() + offset;
+        buffer_views.push_back(vertex_buffer_view);
+    }
+    commandlist->IASetVertexBuffers(first_bind, static_cast<uint32_t>(buffer_views.size()), buffer_views.data());
+
+}
+
+void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list)
+{
+    command_queue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
+}
+
+void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
+{
+    command_list->DrawIndexedInstanced(index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)

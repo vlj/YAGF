@@ -225,8 +225,9 @@ struct Sample
 
     buffer_t vertex_buffer_attributes;
     buffer_t index_buffer;
-    D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
-    D3D12_INDEX_BUFFER_VIEW index_buffer_view;
+    size_t total_index_cnt;
+    std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
+
 
     void Init()
     {
@@ -275,7 +276,8 @@ struct Sample
             weightsList.push_back(weights);
         }
 
-        size_t total_vertex_cnt = 0, total_index_cnt = 0;
+        size_t total_vertex_cnt = 0;
+        total_index_cnt = 0;
         for (const irr::scene::IMeshBuffer<irr::video::S3DVertex2TCoords>& mesh : reorg)
         {
             total_vertex_cnt += mesh.getVertexCount();
@@ -337,15 +339,7 @@ struct Sample
         });
         t1.detach();*/
 
-        vertex_buffer_view = {};
-        vertex_buffer_view.BufferLocation = vertex_buffer_attributes->GetGPUVirtualAddress();
-        vertex_buffer_view.SizeInBytes = (UINT)bufferSize;
-        vertex_buffer_view.StrideInBytes = sizeof(irr::video::S3DVertex2TCoords);
-
-        index_buffer_view = {};
-        index_buffer_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
-        index_buffer_view.SizeInBytes = total_index_cnt * sizeof(uint16_t);
-        index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
+        vertex_buffers_info.emplace_back(vertex_buffer_attributes, 0, static_cast<uint32_t>(sizeof(irr::video::S3DVertex2TCoords)), static_cast<uint32_t>(bufferSize));
 
         // Upload to gpudata
 
@@ -422,7 +416,7 @@ struct Sample
         sig = skinned_object_root_signature.get(dev);
         objectpso = createSkinnedObjectShader(dev, sig.Get());
         make_command_list_executable(dev, command_list);
-        cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
+        submit_executable_command_list(cmdqueue, command_list);
     }
 
 public:
@@ -475,22 +469,8 @@ public:
         clear_color(dev, command_list, fbo[chain->GetCurrentBackBufferIndex()], clearColor);
         clear_depth_stencil(dev, command_list, fbo[chain->GetCurrentBackBufferIndex()], depth_stencil_aspect::depth_only, 1., 0);
 
-        D3D12_RECT rect = {};
-        rect.left = 0;
-        rect.top = 0;
-        rect.bottom = 1024;
-        rect.right = 1024;
-
-        D3D12_VIEWPORT view = {};
-        view.Height = 1024.f;
-        view.Width = 1024.f;
-        view.TopLeftX = 0;
-        view.TopLeftY = 0;
-        view.MinDepth = 0;
-        view.MaxDepth = 1.;
-
-        command_list->RSSetViewports(1, &view);
-        command_list->RSSetScissorRects(1, &rect);
+        set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
+        set_scissor(command_list, 0, 1024, 0, 1024);
 
         command_list->OMSetRenderTargets(1, &(fbo[chain->GetCurrentBackBufferIndex()]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[chain->GetCurrentBackBufferIndex()]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
@@ -500,9 +480,9 @@ public:
         std::array<ID3D12DescriptorHeap*, 2> descriptors = {cbv_srv_descriptors_heap.Get(), sampler_heap.Get()};
         command_list->SetDescriptorHeaps(2, descriptors.data());
 
-        command_list->IASetIndexBuffer(&index_buffer_view);
-        command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
-//        command_list->IASetVertexBuffers(1, &vao->getVertexBufferView()[1], 1);
+        bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), index_buffer_type::u16);
+
+        bind_vertex_buffers(command_list, 0, vertex_buffers_info);
 
         command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -514,11 +494,11 @@ public:
             command_list->SetGraphicsRootDescriptorTable(0,
                 CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
                 .Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-            command_list->DrawIndexedInstanced(std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
+            draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }
         set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
         make_command_list_executable(dev, command_list);
-        cmdqueue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
+        submit_executable_command_list(cmdqueue, command_list);
         wait_for_command_queue_idle(dev, cmdqueue);
         present(dev, chain);
     }

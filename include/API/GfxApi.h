@@ -64,3 +64,15 @@ enum class depth_stencil_aspect
     depth_and_stencil
 };
 void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);
+void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth);
+void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
+
+enum class index_buffer_type
+{
+    u16,
+    u32,
+};
+void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, index_buffer_type type);
+void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size);
+void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list);
+void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance);
