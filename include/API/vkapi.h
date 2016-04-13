@@ -18,7 +18,7 @@ namespace vulkan_wrapper
 		const std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 		const std::vector<const char*> layers;
 		const std::vector<const char*> extensions;
-		VkDeviceCreateInfo info;
+		const VkDeviceCreateInfo info;
 		VkPhysicalDevice physical_device;
 
 		device(VkPhysicalDevice phys_dev, const std::vector<VkDeviceQueueCreateInfo> &qci, const std::vector<const char*> &l, const std::vector<const char*> &ext)
@@ -145,7 +145,9 @@ namespace vulkan_wrapper
 
 		~image()
 		{
-			vkDestroyImage(m_device, object, nullptr);
+			// This image was not created
+			if (info.sType)
+				vkDestroyImage(m_device, object, nullptr);
 		}
 
 		image(image&&) = delete;
@@ -257,11 +259,13 @@ namespace vulkan_wrapper
 		VkSwapchainKHR object;
 		VkSwapchainCreateInfoKHR info;
 
-		swapchain()
+		swapchain(VkDevice dev) : m_device(dev)
 		{}
 
 		~swapchain()
-		{}
+		{
+			vkDestroySwapchainKHR(m_device, object, nullptr);
+		}
 
 		swapchain(swapchain&&) = delete;
 		swapchain(const swapchain&) = delete;

@@ -1,6 +1,12 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
 #include "../include/API/vkapi.h"
+#include <sstream>
+
+#include <locale>
+#include <codecvt>
+#include <string>
+
 
 namespace
 {
@@ -15,12 +21,50 @@ namespace
 		}
 		throw;
 	}
+
+
+	VKAPI_ATTR VkBool32 VKAPI_CALL
+		dbgFunc(VkDebugReportFlagsEXT msgFlags, VkDebugReportObjectTypeEXT objType,
+			uint64_t srcObject, size_t location, int32_t msgCode,
+			const char *pLayerPrefix, const char *pMsg, void *pUserData) {
+		std::ostringstream message;
+
+		if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+			message << "ERROR: ";
+		}
+		else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+			message << "WARNING: ";
+		}
+		else if (msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
+			message << "PERFORMANCE WARNING: ";
+		}
+		else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
+			message << "INFO: ";
+		}
+		else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
+			message << "DEBUG: ";
+		}
+		message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
+
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+		std::wstring message_w = converter.from_bytes(message.str());
+
+#ifdef _WIN32
+		MessageBox(NULL, message_w.c_str(), L"Alert", MB_OK);
+#else
+		std::cout << message.str() << std::endl;
+#endif
+		return false;
+	}
+
 }
 
 std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstance, HWND window)
 {
+	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
+	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+
 	VkInstance instance;
-	const char *extension_names[1] = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME };
 
 	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	app_info.pNext = NULL;
@@ -30,9 +74,32 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 	app_info.engineVersion = 1;
 	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 0);
 
-	VkInstanceCreateInfo info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, nullptr, 0, &app_info, 0, nullptr, 1, extension_names };
-
+	VkInstanceCreateInfo info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, nullptr, 0, &app_info, static_cast<uint32_t>(layers.size()), layers.data(), static_cast<uint32_t>(instance_extension.size()), instance_extension.data() };
 	CHECK_VKRESULT(vkCreateInstance(&info, nullptr, &instance));
+
+#ifndef NDEBUG
+	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
+	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback;
+	VkDebugReportCallbackEXT debug_report_callback;
+
+	dbgCreateDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+	assert(dbgCreateDebugReportCallback);
+	dbgDestroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+	assert(dbgDestroyDebugReportCallback);
+
+	VkDebugReportCallbackCreateInfoEXT create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+	create_info.pNext = nullptr;
+	create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+	create_info.pfnCallback = dbgFunc;
+	create_info.pUserData = nullptr;
+
+	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));
+
+	/* Clean up callback */
+//	dbgDestroyDebugReportCallback(instance, debug_report_callback, NULL);
+#endif
+
 	uint32_t device_count;
 	CHECK_VKRESULT(vkEnumeratePhysicalDevices(instance, &device_count, nullptr));
 	std::vector<VkPhysicalDevice> devices(device_count);
@@ -50,10 +117,9 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 	float queue_priorities = 0.f;
 	VkDeviceQueueCreateInfo queue_info = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, find_graphic_queue_family(devices[0], surface, queue_family_properties), 1, &queue_priorities };
 	std::vector<VkDeviceQueueCreateInfo> queue_infos{ queue_info };
-	std::vector<const char*> layers;
-	std::vector<const char*> extension;
 
-	device_t dev= std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, extension);
+	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	device_t dev= std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
 
 	// Get the list of VkFormats that are supported:
 	uint32_t format_count;
@@ -71,7 +137,7 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 
 	VkSwapchainCreateInfoKHR swap_chain = {};
 	swap_chain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swap_chain.pNext = NULL;
+	swap_chain.pNext = nullptr;
 	swap_chain.surface = surface;
 	swap_chain.minImageCount = 2;
 	swap_chain.imageFormat = surface_format[0].format;
@@ -81,17 +147,17 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 	swap_chain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swap_chain.imageArrayLayers = 1;
 	swap_chain.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	swap_chain.oldSwapchain = NULL;
+	swap_chain.oldSwapchain = nullptr;
 	swap_chain.clipped = true;
 	swap_chain.imageColorSpace = surface_format[0].colorSpace;
 	swap_chain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	swap_chain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	swap_chain.queueFamilyIndexCount = 0;
-	swap_chain.pQueueFamilyIndices = NULL;
+	swap_chain.pQueueFamilyIndices = nullptr;
 
-	swap_chain_t result;
+	swap_chain_t result = std::make_shared<vulkan_wrapper::swapchain>(dev->object);
 	VkSwapchainKHR swap_chain_object;
-	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &swap_chain_object));
+	VkResult res = (vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &swap_chain_object));
 	result->object = swap_chain_object;
 	result->info = swap_chain;
 	return std::make_tuple(dev, result);
@@ -99,7 +165,7 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 
 command_queue_t create_graphic_command_queue(device_t dev)
 {
-	command_queue_t result;
+	command_queue_t result = std::make_shared<vulkan_wrapper::queue>();
 	result->info.queue_family = dev->queue_create_infos[0].queueFamilyIndex;
 	result->info.queue_index = 0;
 	vkGetDeviceQueue(dev->object, result->info.queue_family, result->info.queue_index, &(result->object));
