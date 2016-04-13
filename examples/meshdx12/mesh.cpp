@@ -426,16 +426,18 @@ public:
         memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));
         unmap_buffer(dev, jointbuffer);
 
-        set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
+		uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain);
+
+        set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
 
         std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
-        clear_color(dev, command_list, fbo[chain->GetCurrentBackBufferIndex()], clearColor);
-        clear_depth_stencil(dev, command_list, fbo[chain->GetCurrentBackBufferIndex()], depth_stencil_aspect::depth_only, 1., 0);
+        clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
+        clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
 
         set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
         set_scissor(command_list, 0, 1024, 0, 1024);
 
-        command_list->OMSetRenderTargets(1, &(fbo[chain->GetCurrentBackBufferIndex()]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[chain->GetCurrentBackBufferIndex()]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+        command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
         command_list->SetPipelineState(objectpso.Get());
         command_list->SetGraphicsRootSignature(sig.Get());
@@ -459,7 +461,7 @@ public:
                 .Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
             draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }
-        set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
+        set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
         wait_for_command_queue_idle(dev, cmdqueue);

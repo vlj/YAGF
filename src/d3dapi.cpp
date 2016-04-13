@@ -318,6 +318,11 @@ void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t in
     command_list->DrawIndexedInstanced(index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
+uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
+{
+	return chain->GetCurrentBackBufferIndex();
+}
+
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
 {
     Microsoft::WRL::ComPtr<ID3D12Fence> fence;
