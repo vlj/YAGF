@@ -12,6 +12,11 @@
 
 namespace vulkan_wrapper
 {
+	struct device
+	{
+		VkDevice object;
+	};
+
 	struct command_pool
 	{
 		VkCommandPool object;
@@ -81,7 +86,7 @@ namespace vulkan_wrapper
 		VkBuffer object;
 		const VkBufferCreateInfo info;
 
-		buffer(VkDevice dev, VkDeviceSize size, VkBufferUsageFlags flags, VkBufferUsageFlags usage)
+		buffer(VkDevice dev, VkDeviceSize size, VkBufferCreateFlags flags, VkBufferUsageFlags usage)
 			: info({ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, nullptr, flags, size, usage, VK_SHARING_MODE_EXCLUSIVE, 0, nullptr }), m_device(dev)
 		{
 			CHECK_VKRESULT(vkCreateBuffer(m_device, &info, nullptr, &object));
@@ -263,7 +268,7 @@ namespace vulkan_wrapper
 
 using command_list_storage_t = std::shared_ptr<vulkan_wrapper::command_pool>;
 using command_list_t = std::shared_ptr<vulkan_wrapper::command_buffer>;
-using device_t = void*;//Microsoft::WRL::ComPtr<ID3D12Device>;
+using device_t = std::shared_ptr<vulkan_wrapper::device>;
 using command_queue_t = std::shared_ptr<vulkan_wrapper::queue>;
 using buffer_t = std::shared_ptr<vulkan_wrapper::buffer>;
 using image_t = std::shared_ptr<vulkan_wrapper::image>;
