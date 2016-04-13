@@ -23,7 +23,7 @@ namespace
             return D3D12_RESOURCE_STATE_PRESENT;
         case RESOURCE_USAGE::RENDER_TARGET:
             return D3D12_RESOURCE_STATE_RENDER_TARGET;
-        case RESOURCE_USAGE::DEPTH_STENCIL:
+        case RESOURCE_USAGE::DEPTH_WRITE:
             return D3D12_RESOURCE_STATE_DEPTH_WRITE;
         }
         throw;
@@ -129,14 +129,14 @@ void unmap_buffer(device_t dev, buffer_t buffer)
     buffer->Unmap(0, nullptr);
 }
 
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value)
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, RESOURCE_USAGE initial_state, D3D12_CLEAR_VALUE *clear_value)
 {
     image_t result;
     CHECK_HRESULT(dev->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
         &CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, 1, mipmap, 1, 0, flags),
-        initial_state,
+		get_resource_state(initial_state),
         clear_value,
         IID_PPV_ARGS(result.GetAddressOf())));
     return result;

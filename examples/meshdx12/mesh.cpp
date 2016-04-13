@@ -205,7 +205,7 @@ struct Sample
         sampler_heap = create_sampler_heap(dev, 1);
         create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
-        depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, D3D12_RESOURCE_STATE_DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
+        depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, RESOURCE_USAGE::DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
 
 		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
 		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
@@ -355,7 +355,7 @@ struct Sample
             unmap_buffer(dev, upload_buffer);
 
             image_t texture = create_image(dev, DDSPic.getLoadedImage().Format,
-                width, height, mipmap_count, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+                width, height, mipmap_count, D3D12_RESOURCE_FLAG_NONE, RESOURCE_USAGE::READ_GENERIC, nullptr);
 
             Textures.push_back(texture);
 

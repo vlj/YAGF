@@ -26,7 +26,7 @@ enum class RESOURCE_USAGE
 	COPY_SRC,
 	RENDER_TARGET,
 	READ_GENERIC,
-	DEPTH_STENCIL,
+	DEPTH_WRITE,
 };
 enum class RESOURCE_VIEW
 {
@@ -55,7 +55,7 @@ struct MipLevelData
 command_list_storage_t create_command_storage(device_t dev);
 command_list_t create_command_list(device_t dev, command_list_storage_t storage);
 buffer_t create_buffer(device_t dev, size_t size);
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value);
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, RESOURCE_USAGE initial_state, D3D12_CLEAR_VALUE *clear_value);
 descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors);
 descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors);
 framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets);
