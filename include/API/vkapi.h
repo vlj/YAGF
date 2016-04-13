@@ -15,6 +15,30 @@ namespace vulkan_wrapper
 	struct device
 	{
 		VkDevice object;
+		const VkDeviceCreateInfo info;
+		VkPhysicalDevice physical_device;
+		const std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+		const std::vector<const char*> layers;
+		const std::vector<const char*> extensions;
+
+		device(VkPhysicalDevice phys_dev, const std::vector<VkDeviceQueueCreateInfo> &qci, const std::vector<const char*> &l, const std::vector<const char*> &ext)
+			: physical_device(phys_dev), queue_create_infos(qci), layers(l), extensions(ext),
+			info({ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, nullptr, 0,
+				static_cast<uint32_t>(queue_create_infos.size()), queue_create_infos.data(),
+				static_cast<uint32_t>(layers.size()), layers.data(),
+				static_cast<uint32_t>(extensions.size()), extensions.data(),
+				nullptr })
+		{
+			CHECK_VKRESULT(vkCreateDevice(physical_device, &info, nullptr, &object));
+		}
+
+		~device()
+		{
+			vkDestroyDevice(object, nullptr);
+		}
+
+		device(device&&) = delete;
+		device(const device&) = delete;
 	};
 
 	struct command_pool
@@ -106,7 +130,11 @@ namespace vulkan_wrapper
 	struct image
 	{
 		VkImage object;
-		const VkImageCreateInfo info;
+		const VkImageCreateInfo info = {};
+
+		// Swap images are not created
+		image(VkImage img) : object(img)
+		{}
 
 		image(VkDevice dev, VkImageCreateFlags flags, VkImageType type, VkFormat format, VkExtent3D extent, uint32_t miplevels, uint32_t arraylayers,
 			VkSampleCountFlagBits samples, VkImageTiling tiling, VkImageUsageFlags usage, VkImageLayout initial_layout)
@@ -305,9 +333,8 @@ public:
 	pipeline_layout_t get(device_t dev);
 };*/
 
-device_t create_device();
+std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstance, HWND window);
 command_queue_t create_graphic_command_queue(device_t dev);
-swap_chain_t create_swap_chain(device_t dev, command_queue_t queue, HWND window);
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain);
 
 #include "GfxApi.h"

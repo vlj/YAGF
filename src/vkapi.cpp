@@ -2,6 +2,124 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include "../include/API/vkapi.h"
 
+namespace
+{
+	uint32_t find_graphic_queue_family(VkPhysicalDevice phys_dev, VkSurfaceKHR surface, const std::vector<VkQueueFamilyProperties> &queue_family_properties)
+	{
+		for (unsigned int i = 0; i < queue_family_properties.size(); i++) {
+			if (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+				VkBool32 support_presents;
+				vkGetPhysicalDeviceSurfaceSupportKHR(phys_dev, i, surface, &support_presents);
+				if (support_presents) return i;
+			}
+		}
+		throw;
+	}
+}
+
+std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstance, HWND window)
+{
+	VkInstance instance;
+	const char *extension_names[1] = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME };
+
+	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
+	app_info.pNext = NULL;
+	app_info.pApplicationName = "Nameless app";
+	app_info.applicationVersion = 1;
+	app_info.pEngineName = "Nameless app";
+	app_info.engineVersion = 1;
+	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 0);
+
+	VkInstanceCreateInfo info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, nullptr, 0, &app_info, 0, nullptr, 1, extension_names };
+
+	CHECK_VKRESULT(vkCreateInstance(&info, nullptr, &instance));
+	uint32_t device_count;
+	CHECK_VKRESULT(vkEnumeratePhysicalDevices(instance, &device_count, nullptr));
+	std::vector<VkPhysicalDevice> devices(device_count);
+	CHECK_VKRESULT(vkEnumeratePhysicalDevices(instance, &device_count, devices.data()));
+
+	uint32_t queue_count;
+	vkGetPhysicalDeviceQueueFamilyProperties(devices[0], &queue_count, nullptr);
+	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(devices[0], &queue_count, queue_family_properties.data());
+
+	VkSurfaceKHR surface;
+	VkWin32SurfaceCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, nullptr, 0, hinstance, window };
+	CHECK_VKRESULT(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface));
+
+	float queue_priorities = 0.f;
+	VkDeviceQueueCreateInfo queue_info = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, find_graphic_queue_family(devices[0], surface, queue_family_properties), 1, &queue_priorities };
+	std::vector<VkDeviceQueueCreateInfo> queue_infos{ queue_info };
+	std::vector<const char*> layers;
+	std::vector<const char*> extension;
+
+	device_t dev= std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, extension);
+
+	// Get the list of VkFormats that are supported:
+	uint32_t format_count;
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devices[0], surface, &format_count, nullptr));
+	std::vector<VkSurfaceFormatKHR> surface_format(format_count);
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devices[0], surface, &format_count, surface_format.data()));
+
+	VkSurfaceCapabilitiesKHR surface_capabilities;
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[0], surface, &surface_capabilities));
+
+	uint32_t present_mode_count;
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(devices[0], surface, &present_mode_count, nullptr));
+	std::vector<VkPresentModeKHR> present_modes(present_mode_count);
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(devices[0], surface, &present_mode_count, present_modes.data()));
+
+	VkSwapchainCreateInfoKHR swap_chain = {};
+	swap_chain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	swap_chain.pNext = NULL;
+	swap_chain.surface = surface;
+	swap_chain.minImageCount = 2;
+	swap_chain.imageFormat = surface_format[0].format;
+	swap_chain.imageExtent.width = surface_capabilities.currentExtent.width;
+	swap_chain.imageExtent.height = surface_capabilities.currentExtent.height;
+	swap_chain.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	swap_chain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swap_chain.imageArrayLayers = 1;
+	swap_chain.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	swap_chain.oldSwapchain = NULL;
+	swap_chain.clipped = true;
+	swap_chain.imageColorSpace = surface_format[0].colorSpace;
+	swap_chain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	swap_chain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	swap_chain.queueFamilyIndexCount = 0;
+	swap_chain.pQueueFamilyIndices = NULL;
+
+	swap_chain_t result;
+	VkSwapchainKHR swap_chain_object;
+	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &swap_chain_object));
+	result->object = swap_chain_object;
+	result->info = swap_chain;
+	return std::make_tuple(dev, result);
+}
+
+command_queue_t create_graphic_command_queue(device_t dev)
+{
+	command_queue_t result;
+	result->info.queue_family = dev->queue_create_infos[0].queueFamilyIndex;
+	result->info.queue_index = 0;
+	vkGetDeviceQueue(dev->object, result->info.queue_family, result->info.queue_index, &(result->object));
+	return result;
+}
+
+std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)
+{
+	uint32_t swap_chain_count;
+	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, nullptr));
+	std::vector<VkImage> swapchain_image(swap_chain_count);
+	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, swapchain_image.data()));
+	std::vector<image_t> result;
+	for (const auto& img : swapchain_image)
+	{
+		result.emplace_back(std::make_shared<vulkan_wrapper::image>(img));
+	}
+	return result;
+}
+
 command_list_storage_t create_command_storage(device_t dev)
 {
 	// TODO

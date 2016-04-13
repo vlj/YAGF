@@ -388,11 +388,10 @@ struct Sample
     }
 
 public:
-    Sample(HWND window)
+    Sample(HINSTANCE hinstance, HWND window)
     {
-        dev = create_device();
+		std::tie(dev, chain) = create_device_and_swapchain(hinstance, window);
         cmdqueue = create_graphic_command_queue(dev);
-        chain = create_swap_chain(dev, cmdqueue, window);
         back_buffer = get_image_view_from_swap_chain(dev, chain);
         Init();
     }
@@ -478,7 +477,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
   LPSTR lpCmdLine,
   int nCmdShow)
 {
-  Sample app(WindowUtil::Create(hInstance, hPrevInstance, lpCmdLine, nCmdShow));
+  Sample app(hInstance, WindowUtil::Create(hInstance, hPrevInstance, lpCmdLine, nCmdShow));
 
   // this struct holds Windows event messages
   MSG msg = {};
