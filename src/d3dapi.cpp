@@ -84,6 +84,8 @@ namespace
 			return DXGI_FORMAT_BC5_UNORM;
 		case irr::video::ECF_BC5_SNORM:
 			return DXGI_FORMAT_BC5_SNORM;
+		case irr::video::D24U8:
+			return DXGI_FORMAT_D24_UNORM_S8_UINT;
 		}
 		return DXGI_FORMAT_UNKNOWN;
 	}
@@ -133,7 +135,7 @@ namespace
 {
 	D3D12_RESOURCE_FLAGS get_resource_flags(uint32_t flag)
 	{
-		D3D12_RESOURCE_FLAGS result;
+		D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
 		if (flag & usage_render_target)
 			result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		if (flag & usage_depth_stencil)
@@ -144,7 +146,6 @@ namespace
 
 image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state, D3D12_CLEAR_VALUE *clear_value)
 {
-
     image_t result;
     CHECK_HRESULT(dev->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -165,6 +166,11 @@ descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descri
     heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     CHECK_HRESULT(dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(result.GetAddressOf())));
     return result;
+}
+
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture)
+{
+	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
 
 void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uint32_t index, buffer_t buffer, uint32_t buffer_size)
@@ -339,36 +345,34 @@ void present(device_t dev, swap_chain_t chain)
     CHECK_HRESULT(chain->Present(1, 0));
 }
 
-d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil)
-    : NumRTT(static_cast<uint32_t>(RTTs.size())), hasDepthStencil(DepthStencil != nullptr)
+d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)
+    : NumRTT(static_cast<uint32_t>(render_targets.size())), hasDepthStencil(true)
 {
     D3D12_DESCRIPTOR_HEAP_DESC rtt_desc = {};
     rtt_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtt_desc.NumDescriptors = NumRTT;
     CHECK_HRESULT(dev->CreateDescriptorHeap(&rtt_desc, IID_PPV_ARGS(rtt_heap.GetAddressOf())));
 
-    for (unsigned i = 0; i < RTTs.size(); i++)
+	uint32_t idx = 0;
+    for (const auto &rtt : render_targets)
     {
         D3D12_RENDER_TARGET_VIEW_DESC rttvd = {};
-        rttvd.Format = RTTs[i]->GetDesc().Format;
+        rttvd.Format = get_dxgi_format(std::get<1>(rtt));
         rttvd.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
         rttvd.Texture2D.MipSlice = 0;
         rttvd.Texture2D.PlaneSlice = 0;
-        dev->CreateRenderTargetView(RTTs[i], &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(i, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
+        dev->CreateRenderTargetView(std::get<0>(rtt).Get(), &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(idx++, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
     }
-
-    if (DepthStencil == nullptr)
-        return;
 
     D3D12_DESCRIPTOR_HEAP_DESC dsv_desc = {};
     dsv_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsv_desc.NumDescriptors = 1;
     CHECK_HRESULT(dev->CreateDescriptorHeap(&dsv_desc, IID_PPV_ARGS(dsv_heap.GetAddressOf())));
     D3D12_DEPTH_STENCIL_VIEW_DESC DSVDescription = {};
-    DSVDescription.Format = DepthStencil->GetDesc().Format;
+    DSVDescription.Format = get_dxgi_format(std::get<1>(depth_stencil_texture));
     DSVDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     DSVDescription.Texture2D.MipSlice = 0;
-    dev->CreateDepthStencilView(DepthStencil, &DSVDescription, dsv_heap->GetCPUDescriptorHandleForHeapStart());
+    dev->CreateDepthStencilView(std::get<0>(depth_stencil_texture).Get(), &DSVDescription, dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }
 
 d3d12_framebuffer_t::~d3d12_framebuffer_t()

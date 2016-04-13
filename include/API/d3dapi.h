@@ -7,6 +7,7 @@
 #include <wrl\client.h>
 #include <vector>
 #include <memory>
+#include "..\Core\SColor.h"
 
 using command_list_storage_t = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
 using command_list_t = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
@@ -26,7 +27,9 @@ struct d3d12_framebuffer_t
     uint32_t NumRTT;
     bool hasDepthStencil;
 
-    d3d12_framebuffer_t(device_t dev, const std::vector<ID3D12Resource*> &RTTs, ID3D12Resource *DepthStencil);
+	d3d12_framebuffer_t(device_t dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets);
+	d3d12_framebuffer_t(device_t dev, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil_texture);
+	d3d12_framebuffer_t(device_t dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil_texture);
     ~d3d12_framebuffer_t();
 
     d3d12_framebuffer_t(d3d12_framebuffer_t&&) = delete;
