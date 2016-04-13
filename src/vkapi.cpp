@@ -210,8 +210,7 @@ std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t c
 
 command_list_storage_t create_command_storage(device_t dev)
 {
-	// TODO
-	return std::make_shared<vulkan_wrapper::command_pool>(dev->object, 0, 0);
+	return std::make_shared<vulkan_wrapper::command_pool>(dev->object, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev->queue_create_infos[0].queueFamilyIndex);
 }
 
 command_list_t create_command_list(device_t dev, command_list_storage_t storage)
@@ -315,7 +314,14 @@ void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uin
 descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors);
 void create_sampler(device_t dev, descriptor_storage_t storage, uint32_t index, SAMPLER_TYPE sampler_type);
 void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t index, image_t img);
-void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage);
+void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage)
+{
+	VkCommandBufferInheritanceInfo inheritance_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
+
+	VkCommandBufferBeginInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	info.pInheritanceInfo = &inheritance_info;
+	CHECK_VKRESULT(vkBeginCommandBuffer(command_list->object, &info));
+}
 
 void make_command_list_executable(command_list_t command_list)
 {
