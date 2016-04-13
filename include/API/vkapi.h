@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-#define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (cmd != VK_SUCCESS) throw; }
+#define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 
 namespace vulkan_wrapper
 {

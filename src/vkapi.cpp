@@ -156,9 +156,7 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 	swap_chain.pQueueFamilyIndices = nullptr;
 
 	swap_chain_t result = std::make_shared<vulkan_wrapper::swapchain>(dev->object);
-	VkSwapchainKHR swap_chain_object;
-	VkResult res = (vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &swap_chain_object));
-	result->object = swap_chain_object;
+	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &(result->object)));
 	result->info = swap_chain;
 	return std::make_tuple(dev, result);
 }
