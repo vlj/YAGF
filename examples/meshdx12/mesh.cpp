@@ -95,52 +95,6 @@ public:
     }
 };
 
-namespace
-{
-#ifdef D3D12
-    DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
-    {
-        switch (fmt)
-        {
-        case irr::video::ECF_R8G8B8A8_UNORM:
-            return DXGI_FORMAT_R8G8B8A8_UNORM;
-        case irr::video::ECF_R8G8B8A8_UNORM_SRGB:
-            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        case irr::video::ECF_R16G16B16A16F:
-            return DXGI_FORMAT_R16G16B16A16_FLOAT;
-        case irr::video::ECF_R32G32B32A32F:
-            return DXGI_FORMAT_R32G32B32A32_FLOAT;
-        case irr::video::ECF_A8R8G8B8:
-            return DXGI_FORMAT_R8G8B8A8_UNORM;
-        case irr::video::ECF_BC1_UNORM:
-            return DXGI_FORMAT_BC1_UNORM;
-        case irr::video::ECF_BC1_UNORM_SRGB:
-            return DXGI_FORMAT_BC1_UNORM_SRGB;
-        case irr::video::ECF_BC2_UNORM:
-            return DXGI_FORMAT_BC2_UNORM;
-        case irr::video::ECF_BC2_UNORM_SRGB:
-            return DXGI_FORMAT_BC2_UNORM_SRGB;
-        case irr::video::ECF_BC3_UNORM:
-            return DXGI_FORMAT_BC3_UNORM;
-        case irr::video::ECF_BC3_UNORM_SRGB:
-            return DXGI_FORMAT_BC3_UNORM_SRGB;
-        case irr::video::ECF_BC4_UNORM:
-            return DXGI_FORMAT_BC4_UNORM;
-        case irr::video::ECF_BC4_SNORM:
-            return DXGI_FORMAT_BC4_SNORM;
-        case irr::video::ECF_BC5_UNORM:
-            return DXGI_FORMAT_BC5_UNORM;
-        case irr::video::ECF_BC5_SNORM:
-            return DXGI_FORMAT_BC5_SNORM;
-        default:
-            return DXGI_FORMAT_UNKNOWN;
-        }
-    }
-#else
-
-#endif
-}
-
 #ifdef D3D12
 root_signature_builder skinned_object_root_signature(
 {
@@ -251,10 +205,10 @@ struct Sample
         sampler_heap = create_sampler_heap(dev, 1);
         create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
-        depth_buffer = create_image(dev, DXGI_FORMAT_D24_UNORM_S8_UINT, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, D3D12_RESOURCE_STATE_DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
+        depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, D3D12_RESOURCE_STATE_DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
 
-        fbo[0].reset(new d3d12_framebuffer_t(dev, { back_buffer[0].Get() }, depth_buffer.Get()));
-        fbo[1].reset(new d3d12_framebuffer_t(dev, { back_buffer[1].Get() }, depth_buffer.Get()));
+		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
+		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
 
         irr::io::CReadFile reader("..\\..\\examples\\assets\\xue.b3d");
         loader = new irr::scene::CB3DMeshFileLoader(&reader);
@@ -400,7 +354,7 @@ struct Sample
             }
             unmap_buffer(dev, upload_buffer);
 
-            image_t texture = create_image(dev, getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format),
+            image_t texture = create_image(dev, DDSPic.getLoadedImage().Format,
                 width, height, mipmap_count, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
 
             Textures.push_back(texture);

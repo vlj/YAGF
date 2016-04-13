@@ -49,6 +49,44 @@ namespace
         }
         throw;
     }
+
+	DXGI_FORMAT get_dxgi_format(irr::video::ECOLOR_FORMAT fmt)
+	{
+		switch (fmt)
+		{
+		case irr::video::ECF_R8G8B8A8_UNORM:
+			return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case irr::video::ECF_R8G8B8A8_UNORM_SRGB:
+			return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		case irr::video::ECF_R16G16B16A16F:
+			return DXGI_FORMAT_R16G16B16A16_FLOAT;
+		case irr::video::ECF_R32G32B32A32F:
+			return DXGI_FORMAT_R32G32B32A32_FLOAT;
+		case irr::video::ECF_A8R8G8B8:
+			return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case irr::video::ECF_BC1_UNORM:
+			return DXGI_FORMAT_BC1_UNORM;
+		case irr::video::ECF_BC1_UNORM_SRGB:
+			return DXGI_FORMAT_BC1_UNORM_SRGB;
+		case irr::video::ECF_BC2_UNORM:
+			return DXGI_FORMAT_BC2_UNORM;
+		case irr::video::ECF_BC2_UNORM_SRGB:
+			return DXGI_FORMAT_BC2_UNORM_SRGB;
+		case irr::video::ECF_BC3_UNORM:
+			return DXGI_FORMAT_BC3_UNORM;
+		case irr::video::ECF_BC3_UNORM_SRGB:
+			return DXGI_FORMAT_BC3_UNORM_SRGB;
+		case irr::video::ECF_BC4_UNORM:
+			return DXGI_FORMAT_BC4_UNORM;
+		case irr::video::ECF_BC4_SNORM:
+			return DXGI_FORMAT_BC4_SNORM;
+		case irr::video::ECF_BC5_UNORM:
+			return DXGI_FORMAT_BC5_UNORM;
+		case irr::video::ECF_BC5_SNORM:
+			return DXGI_FORMAT_BC5_SNORM;
+		}
+		return DXGI_FORMAT_UNKNOWN;
+	}
 }
 
 command_list_storage_t create_command_storage(device_t dev)
@@ -91,13 +129,13 @@ void unmap_buffer(device_t dev, buffer_t buffer)
     buffer->Unmap(0, nullptr);
 }
 
-image_t create_image(device_t dev, DXGI_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value)
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value)
 {
     image_t result;
     CHECK_HRESULT(dev->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mipmap, 1, 0, flags),
+        &CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, 1, mipmap, 1, 0, flags),
         initial_state,
         clear_value,
         IID_PPV_ARGS(result.GetAddressOf())));

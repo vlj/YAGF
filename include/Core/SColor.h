@@ -13,7 +13,7 @@ namespace irr
 {
   namespace video
   {
-    //! An enum for the color format of textures used by the Irrlicht Engine.
+    //! An enum for the color and depth stencil format of textures.
     /** A color format specifies how color information is stored. */
     enum ECOLOR_FORMAT
     {
@@ -67,6 +67,9 @@ namespace irr
       ECF_BC3_UNORM, ECF_BC3_UNORM_SRGB,
       ECF_BC4_UNORM, ECF_BC4_SNORM,
       ECF_BC5_UNORM, ECF_BC5_SNORM,
+
+	  //! 24 bits depth and 8 bits stencil
+	  D24U8,
 
 
       //! Unknown color format:
