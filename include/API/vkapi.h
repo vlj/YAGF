@@ -105,6 +105,28 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct memory
+	{
+		VkDeviceMemory object;
+		const VkMemoryAllocateInfo info;
+
+		memory(VkDevice dev, uint64_t size, uint32_t memory_type)
+			: info({ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, size, memory_type }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkAllocateMemory(dev, &info, nullptr, &object));
+		}
+
+		~memory()
+		{
+			vkFreeMemory(m_device, object, nullptr);
+		}
+
+		memory(memory&&) = delete;
+		memory(const memory&) = delete;
+	private:
+		VkDevice m_device;
+	};
+
 	struct buffer
 	{
 		VkBuffer object;
