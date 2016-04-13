@@ -409,3 +409,20 @@ void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t in
 {
 	vkCmdDrawIndexed(command_list->object, index_count, instance_count, base_index, base_vertex, base_instance);
 }
+
+uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
+{
+	uint32_t index;
+	CHECK_VKRESULT(vkAcquireNextImageKHR(dev->object, chain->object, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &index));
+	return index;
+}
+
+void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index)
+{
+	VkPresentInfoKHR info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	info.swapchainCount = 1;
+	info.pSwapchains = &(chain->object);
+	info.pImageIndices = &backbuffer_index;
+
+	CHECK_VKRESULT(vkQueuePresentKHR(cmdqueue->object, &info));
+}
