@@ -184,9 +184,9 @@ void start_command_list_recording(device_t dev, command_list_t command_list, com
     command_list->Reset(storage.Get(), nullptr);
 }
 
-void make_command_list_executable(device_t dev, command_list_t command_list)
+void make_command_list_executable(command_list_t command_list)
 {
-    command_list->Close();
+    CHECK_HRESULT(command_list->Close());
 }
 
 

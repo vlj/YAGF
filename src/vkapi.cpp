@@ -34,7 +34,11 @@ descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors)
 void create_sampler(device_t dev, descriptor_storage_t storage, uint32_t index, SAMPLER_TYPE sampler_type);
 void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t index, image_t img);
 void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage);
-void make_command_list_executable(device_t dev, command_list_t command_list);
+
+void make_command_list_executable(command_list_t command_list)
+{
+	vkEndCommandBuffer(command_list->object);
+}
 
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
 {
@@ -88,11 +92,9 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 
 void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list)
 {
-	VkPipelineStageFlags stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	VkSubmitInfo info{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	info.commandBufferCount = 1;
 	info.pCommandBuffers = &(command_list->object);
-	info.pWaitDstStageMask = &stage;
 	vkQueueSubmit(command_queue->object, 1, &info, VK_NULL_HANDLE);
 }
 

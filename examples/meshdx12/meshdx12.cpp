@@ -415,7 +415,7 @@ struct Sample
         }
         sig = skinned_object_root_signature.get(dev);
         objectpso = createSkinnedObjectShader(dev, sig.Get());
-        make_command_list_executable(dev, command_list);
+        make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
     }
 
@@ -497,7 +497,7 @@ public:
             draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }
         set_pipeline_barrier(dev, command_list, back_buffer[chain->GetCurrentBackBufferIndex()], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
-        make_command_list_executable(dev, command_list);
+        make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
         wait_for_command_queue_idle(dev, cmdqueue);
         present(dev, chain);
