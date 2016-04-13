@@ -129,13 +129,27 @@ void unmap_buffer(device_t dev, buffer_t buffer)
     buffer->Unmap(0, nullptr);
 }
 
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, RESOURCE_USAGE initial_state, D3D12_CLEAR_VALUE *clear_value)
+namespace
 {
+	D3D12_RESOURCE_FLAGS get_resource_flags(uint32_t flag)
+	{
+		D3D12_RESOURCE_FLAGS result;
+		if (flag & usage_render_target)
+			result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		if (flag & usage_depth_stencil)
+			result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		return result;
+	}
+}
+
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state, D3D12_CLEAR_VALUE *clear_value)
+{
+
     image_t result;
     CHECK_HRESULT(dev->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, 1, mipmap, 1, 0, flags),
+        &CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, 1, mipmap, 1, 0, get_resource_flags(flags)),
 		get_resource_state(initial_state),
         clear_value,
         IID_PPV_ARGS(result.GetAddressOf())));
