@@ -40,12 +40,12 @@ namespace
         throw;
     }
 
-    DXGI_FORMAT get_index_type(index_buffer_type type)
+    DXGI_FORMAT get_index_type(irr::video::E_INDEX_TYPE type)
     {
         switch (type)
         {
-        case index_buffer_type::u16: return DXGI_FORMAT_R16_UINT;
-        case index_buffer_type::u32: return DXGI_FORMAT_R32_UINT;
+		case irr::video::E_INDEX_TYPE::EIT_16BIT: return DXGI_FORMAT_R16_UINT;
+		case irr::video::E_INDEX_TYPE::EIT_32BIT: return DXGI_FORMAT_R32_UINT;
         }
         throw;
     }
@@ -230,7 +230,7 @@ void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uin
     command_list->RSSetScissorRects(1, &rect);
 }
 
-void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, index_buffer_type type)
+void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
     D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
     index_buffer_view.BufferLocation = buffer->GetGPUVirtualAddress() + offset;

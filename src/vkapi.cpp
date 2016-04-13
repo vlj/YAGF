@@ -56,18 +56,18 @@ void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uin
 
 namespace
 {
-	VkIndexType get_index_type(index_buffer_type type)
+	VkIndexType get_index_type(irr::video::E_INDEX_TYPE type)
 	{
 		switch (type)
 		{
-		case index_buffer_type::u16: return VK_INDEX_TYPE_UINT16;
-		case index_buffer_type::u32: return VK_INDEX_TYPE_UINT32;
+		case irr::video::E_INDEX_TYPE::EIT_16BIT: return VK_INDEX_TYPE_UINT16;
+		case irr::video::E_INDEX_TYPE::EIT_32BIT: return VK_INDEX_TYPE_UINT32;
 		}
 		throw;
 	}
 };
 
-void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, index_buffer_type type)
+void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
 	vkCmdBindIndexBuffer(command_list->object, buffer->object, offset, get_index_type(type));
 }

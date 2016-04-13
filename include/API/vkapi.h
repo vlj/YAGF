@@ -246,9 +246,9 @@ namespace vulkan_wrapper
 		const VkFramebufferCreateInfo info;
 		const std::vector<VkImageView> attachements;
 
-		framebuffer(VkDevice dev, VkFramebufferCreateFlags flags, VkRenderPass render_pass, const std::vector<VkImageView> &att, uint32_t width, uint32_t height, uint32_t layers)
+		framebuffer(VkDevice dev, VkRenderPass render_pass, const std::vector<VkImageView> &att, uint32_t width, uint32_t height, uint32_t layers)
 			: attachements(att),
-			info({ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr, flags, render_pass, static_cast<uint32_t>(attachements.size()), attachements.data(), width, height, layers }),
+			info({ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr, 0, render_pass, static_cast<uint32_t>(attachements.size()), attachements.data(), width, height, layers }),
 			m_device(dev)
 		{
 			CHECK_VKRESULT(vkCreateFramebuffer(m_device, &info, nullptr, &object));
@@ -276,7 +276,20 @@ using descriptor_storage_t = std::shared_ptr<vulkan_wrapper::descriptor_pool>;
 using pipeline_state_t = std::shared_ptr<vulkan_wrapper::pipeline>;
 using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
 using swap_chain_t = std::shared_ptr<vulkan_wrapper::swapchain>;
-using framebuffer_t = std::shared_ptr<vulkan_wrapper::framebuffer>;
+using render_pass_t = VkRenderPass;
+
+struct vk_framebuffer
+{
+	std::vector<VkImageView> image_views;
+	vulkan_wrapper::framebuffer fbo;
+
+	vk_framebuffer(device_t dev, render_pass_t render_pass, uint32_t width, uint32_t height, uint32_t layers)
+		: fbo(dev->object, render_pass, image_views, width, height, layers)
+	{
+	}
+};
+
+using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 
 /*struct root_signature_builder
 {

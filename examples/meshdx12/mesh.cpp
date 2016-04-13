@@ -489,7 +489,7 @@ public:
         std::array<ID3D12DescriptorHeap*, 2> descriptors = {cbv_srv_descriptors_heap.Get(), sampler_heap.Get()};
         command_list->SetDescriptorHeaps(2, descriptors.data());
 
-        bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), index_buffer_type::u16);
+        bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
 
         bind_vertex_buffers(command_list, 0, vertex_buffers_info);
 
