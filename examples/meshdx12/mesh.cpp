@@ -1,13 +1,10 @@
-
-//#include <D3DAPI/D3DRTTSet.h>
-//#include <D3DAPI/VAO.h>
-//#include <D3DAPI/D3DTexture.h>
 #include <Loaders/B3D.h>
 #include <Loaders/DDS.h>
 #include <tuple>
 #include <array>
 #include <unordered_map>
 
+#ifdef D3D12
 #include <API/d3dapi.h>
 #include <d3dx12.h>
 #include <d3dcompiler.h>
@@ -15,6 +12,9 @@
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
 #pragma comment (lib, "d3dcompiler.lib")
+#else
+#include <API/vkapi.h>
+#endif
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
@@ -97,6 +97,7 @@ public:
 
 namespace
 {
+#ifdef D3D12
     DXGI_FORMAT getDXGIFormatFromColorFormat(irr::video::ECOLOR_FORMAT fmt)
     {
         switch (fmt)
@@ -135,9 +136,12 @@ namespace
             return DXGI_FORMAT_UNKNOWN;
         }
     }
+#else
 
+#endif
 }
 
+#ifdef D3D12
 root_signature_builder skinned_object_root_signature(
 {
     { { { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0, 0, 0 }, {D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, 3 } }, D3D12_SHADER_VISIBILITY_ALL },
@@ -193,6 +197,9 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *si
     CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
     return result;
 }
+#else
+
+#endif
 
 struct Sample
 {
@@ -413,8 +420,10 @@ struct Sample
             textureSet[fixed] = 2 + texture_id;
             create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id++, texture);
         }
+#ifdef D3D12
         sig = skinned_object_root_signature.get(dev);
         objectpso = createSkinnedObjectShader(dev, sig.Get());
+#endif
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
     }
