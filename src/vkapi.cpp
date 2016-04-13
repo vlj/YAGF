@@ -75,7 +75,7 @@ namespace
 	}
 }
 
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state)//, D3D12_CLEAR_VALUE *clear_value)
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state, clear_value_structure_t*)
 {
 	VkExtent3D extent{ width, height, 1 };
 	// TODO: Storage

@@ -277,6 +277,7 @@ using pipeline_state_t = std::shared_ptr<vulkan_wrapper::pipeline>;
 using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
 using swap_chain_t = std::shared_ptr<vulkan_wrapper::swapchain>;
 using render_pass_t = VkRenderPass;
+using clear_value_structure_t = void*;
 
 struct vk_framebuffer
 {

@@ -205,7 +205,12 @@ struct Sample
         sampler_heap = create_sampler_heap(dev, 1);
         create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
-        depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0));
+		clear_value_structure_t clear_val = {};
+#ifdef D3D12
+		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
+#endif
+
+        depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
 		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
 		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
