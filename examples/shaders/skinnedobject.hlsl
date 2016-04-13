@@ -35,7 +35,7 @@ PS_INPUT main(VS_INPUT In)
 {
   PS_INPUT result;
   float4 IdlePosition = float4(In.pos.x, In.pos.y, In.pos.z, 1.);
-  float4 SkinnedPosition = float4(0., 0., 0., 0.);
+/*  float4 SkinnedPosition = float4(0., 0., 0., 0.);
 
   float4 SingleBoneInfluencedPosition;
   if (In.index0 >= 0)
@@ -72,9 +72,9 @@ PS_INPUT main(VS_INPUT In)
   }
   else
     SingleBoneInfluencedPosition = IdlePosition;
-  SkinnedPosition += In.weight3 * SingleBoneInfluencedPosition;
+  SkinnedPosition += In.weight3 * SingleBoneInfluencedPosition;*/
 
-  float4 position = mul(ModelMatrix, SkinnedPosition);
+  float4 position = mul(ModelMatrix, IdlePosition);
   result.pos = mul(ViewProjectionMatrix, position);
   result.uv = In.texc;
   result.normal = In.normal;

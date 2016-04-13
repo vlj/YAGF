@@ -21,7 +21,69 @@ buffer_t create_buffer(device_t dev, size_t size)
 
 void* map_buffer(device_t dev, buffer_t buffer);
 void unmap_buffer(device_t dev, buffer_t buffer);
-//image_t create_image(device_t dev, DXGI_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, D3D12_CLEAR_VALUE *clear_value);
+
+namespace
+{
+	VkFormat get_vk_format(irr::video::ECOLOR_FORMAT format)
+	{
+		switch (format)
+		{
+		case irr::video::ECF_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+		case irr::video::ECF_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+		case irr::video::ECF_R16G16B16A16F: return VK_FORMAT_R16G16B16A16_SSCALED;
+		case irr::video::ECF_R32G32B32A32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case irr::video::ECF_A8R8G8B8: return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
+		case irr::video::ECF_BC1_UNORM: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		case irr::video::ECF_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+		case irr::video::ECF_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
+		case irr::video::ECF_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
+		case irr::video::ECF_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
+		case irr::video::ECF_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
+		case irr::video::ECF_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
+		case irr::video::ECF_BC4_SNORM: return VK_FORMAT_BC4_SNORM_BLOCK;
+		case irr::video::ECF_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
+		case irr::video::ECF_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
+		case irr::video::D24U8: return VK_FORMAT_D24_UNORM_S8_UINT;
+		}
+		return VK_FORMAT_UNDEFINED;
+	}
+
+	VkImageUsageFlags get_image_usage_flag(uint32_t flags)
+	{
+		VkImageUsageFlags result = 0;
+		if (flags & usage_depth_stencil)
+			result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		if (flags & usage_render_target)
+			result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (flags & usage_transfer_src)
+			result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		if (flags & usage_transfer_dst)
+			result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		if (flags & usage_input_attachment)
+			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+		if (flags & usage_sampled)
+			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		return result;
+	}
+
+	VkImageCreateFlags get_image_create_flag(uint32_t flags)
+	{
+		VkImageUsageFlags result = 0;
+		if (flags & usage_cube)
+			result |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		return result;
+	}
+}
+
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state)//, D3D12_CLEAR_VALUE *clear_value)
+{
+	VkExtent3D extent{ width, height, 1 };
+	// TODO: Storage
+	return std::make_shared<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, 1,
+		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, get_image_usage_flag(flags), VK_IMAGE_LAYOUT_UNDEFINED);
+}
+
+
 descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors)
 {
 	// TODO
@@ -37,12 +99,12 @@ void start_command_list_recording(device_t dev, command_list_t command_list, com
 
 void make_command_list_executable(command_list_t command_list)
 {
-	vkEndCommandBuffer(command_list->object);
+	CHECK_VKRESULT(vkEndCommandBuffer(command_list->object));
 }
 
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
 {
-	vkQueueWaitIdle(command_queue->object);
+	CHECK_VKRESULT(vkQueueWaitIdle(command_queue->object));
 }
 
 void present(device_t dev, swap_chain_t chain);
@@ -51,8 +113,27 @@ void clear_color(device_t dev, command_list_t command_list, framebuffer_t frameb
 
 
 void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);
-void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth);
-void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
+void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth)
+{
+	VkViewport viewport = {};
+	viewport.x = x;
+	viewport.y = y;
+	viewport.width = width;
+	viewport.height = height;
+	viewport.minDepth = min_depth;
+	viewport.maxDepth = max_depth;
+	vkCmdSetViewport(command_list->object, 0, 1, &viewport);
+}
+
+void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+{
+	VkRect2D scissor = {};
+	scissor.offset.x = left;
+	scissor.offset.y = top;
+	scissor.extent.width = right - left;
+	scissor.extent.height = bottom - top;
+	vkCmdSetScissor(command_list->object, 0, 1, &scissor);
+}
 
 namespace
 {

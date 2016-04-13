@@ -385,11 +385,6 @@ struct Sample
 public:
     Sample(HWND window)
     {
-#ifndef NDEBUG
-        Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
-        D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
-        debugInterface->EnableDebugLayer();
-#endif //  DEBUG
         dev = create_device();
         cmdqueue = create_graphic_command_queue(dev);
         chain = create_swap_chain(dev, cmdqueue, window);
@@ -437,6 +432,10 @@ public:
         set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
         set_scissor(command_list, 0, 1024, 0, 1024);
 
+		bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+		bind_vertex_buffers(command_list, 0, vertex_buffers_info);
+
+#ifdef D3D12
         command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
         command_list->SetPipelineState(objectpso.Get());
@@ -445,20 +444,19 @@ public:
         std::array<ID3D12DescriptorHeap*, 2> descriptors = {cbv_srv_descriptors_heap.Get(), sampler_heap.Get()};
         command_list->SetDescriptorHeaps(2, descriptors.data());
 
-        bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-
-        bind_vertex_buffers(command_list, 0, vertex_buffers_info);
-
         command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
+#endif
 
         std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
         for (unsigned i = 0; i < buffers.size(); i++)
         {
-            command_list->SetGraphicsRootDescriptorTable(0,
-                CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-                .Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#ifdef D3D12
+			command_list->SetGraphicsRootDescriptorTable(0,
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+				.Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#endif
             draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }
         set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);

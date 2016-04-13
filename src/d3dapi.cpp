@@ -414,6 +414,13 @@ pipeline_layout_t root_signature_builder::get(device_t dev)
 
 device_t create_device()
 {
+
+#ifndef NDEBUG
+	Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
+	D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
+	debugInterface->EnableDebugLayer();
+#endif //  DEBUG
+
     device_t dev;
     Microsoft::WRL::ComPtr<IDXGIFactory> fact;
     CHECK_HRESULT(CreateDXGIFactory(IID_PPV_ARGS(fact.GetAddressOf())));
