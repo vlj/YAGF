@@ -57,6 +57,20 @@ namespace
 		return false;
 	}
 
+	bool is_device_local_memory(uint32_t properties)
+	{
+		return !!(properties & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	}
+
+	bool is_host_visible(uint32_t properties)
+	{
+		return !!(properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+	}
+
+	bool is_host_coherent(uint32_t properties)
+	{
+		return !!(properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	}
 }
 
 std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstance, HWND window)
@@ -120,6 +134,16 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 
 	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	device_t dev= std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
+
+	VkPhysicalDeviceMemoryProperties mem_properties;
+	vkGetPhysicalDeviceMemoryProperties(devices[0], &mem_properties);
+	for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
+	{
+		if (mem_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			dev->default_memory_index = i;
+		if (is_host_visible(mem_properties.memoryTypes[i].propertyFlags) & is_host_coherent(mem_properties.memoryTypes[i].propertyFlags))
+			dev->upload_memory_index = i;
+	}
 
 	// Get the list of VkFormats that are supported:
 	uint32_t format_count;
@@ -198,11 +222,25 @@ command_list_t create_command_list(device_t dev, command_list_storage_t storage)
 buffer_t create_buffer(device_t dev, size_t size)
 {
 	// TODO: Usage
-	return std::make_shared<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	auto buffer = std::make_shared<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	VkMemoryRequirements mem_req;
+	vkGetBufferMemoryRequirements(dev->object, buffer->object, &mem_req);
+	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->upload_memory_index);
+	vkBindBufferMemory(dev->object, buffer->object, buffer->baking_memory->object, 0);
+	return buffer;
 }
 
-void* map_buffer(device_t dev, buffer_t buffer);
-void unmap_buffer(device_t dev, buffer_t buffer);
+void* map_buffer(device_t dev, buffer_t buffer)
+{
+	void* ptr;
+	CHECK_VKRESULT(vkMapMemory(dev->object, buffer->baking_memory->object, 0, buffer->baking_memory->info.allocationSize, 0, &ptr));
+	return ptr;
+}
+
+void unmap_buffer(device_t dev, buffer_t buffer)
+{
+	vkUnmapMemory(dev->object, buffer->baking_memory->object);
+}
 
 namespace
 {

@@ -18,8 +18,10 @@ namespace vulkan_wrapper
 		const std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 		const std::vector<const char*> layers;
 		const std::vector<const char*> extensions;
-		const VkDeviceCreateInfo info;
 		VkPhysicalDevice physical_device;
+		uint32_t upload_memory_index;
+		uint32_t default_memory_index;
+		const VkDeviceCreateInfo info;
 
 		device(VkPhysicalDevice phys_dev, const std::vector<VkDeviceQueueCreateInfo> &qci, const std::vector<const char*> &l, const std::vector<const char*> &ext)
 			: physical_device(phys_dev), queue_create_infos(qci), layers(l), extensions(ext),
@@ -131,6 +133,7 @@ namespace vulkan_wrapper
 	{
 		VkBuffer object;
 		const VkBufferCreateInfo info;
+		std::shared_ptr<memory> baking_memory;
 
 		buffer(VkDevice dev, VkDeviceSize size, VkBufferCreateFlags flags, VkBufferUsageFlags usage)
 			: info({ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, nullptr, flags, size, usage, VK_SHARING_MODE_EXCLUSIVE, 0, nullptr }), m_device(dev)
@@ -153,6 +156,7 @@ namespace vulkan_wrapper
 	{
 		VkImage object;
 		const VkImageCreateInfo info = {};
+		std::shared_ptr<memory> baking_memory;
 
 		// Swap images are not created
 		image(VkImage img) : object(img)
