@@ -15,11 +15,11 @@ namespace vulkan_wrapper
 	struct device
 	{
 		VkDevice object;
-		const VkDeviceCreateInfo info;
-		VkPhysicalDevice physical_device;
 		const std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 		const std::vector<const char*> layers;
 		const std::vector<const char*> extensions;
+		VkDeviceCreateInfo info;
+		VkPhysicalDevice physical_device;
 
 		device(VkPhysicalDevice phys_dev, const std::vector<VkDeviceQueueCreateInfo> &qci, const std::vector<const char*> &l, const std::vector<const char*> &ext)
 			: physical_device(phys_dev), queue_create_infos(qci), layers(l), extensions(ext),
@@ -157,8 +157,8 @@ namespace vulkan_wrapper
 	struct descriptor_pool
 	{
 		VkDescriptorPool object;
-		const VkDescriptorPoolCreateInfo info;
 		const std::vector<VkDescriptorPoolSize> pool_size;
+		const VkDescriptorPoolCreateInfo info;
 
 		descriptor_pool(VkDevice dev, VkDescriptorPoolCreateFlags flags, uint32_t max_sets, const std::vector<VkDescriptorPoolSize> &ps)
 			: pool_size(ps), info({ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, flags, max_sets, static_cast<uint32_t>(pool_size.size()), pool_size.data() }), m_device(dev)
@@ -180,7 +180,6 @@ namespace vulkan_wrapper
 	struct pipeline
 	{
 		VkPipeline object;
-		const VkGraphicsPipelineCreateInfo info;
 		const std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
 		const VkPipelineVertexInputStateCreateInfo vertex_input_state;
 		const VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
@@ -191,6 +190,8 @@ namespace vulkan_wrapper
 		const VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
 		const VkPipelineColorBlendStateCreateInfo color_blend_state;
 		const VkPipelineDynamicStateCreateInfo dynamic_state;
+		const VkGraphicsPipelineCreateInfo info;
+
 
 		pipeline(VkDevice dev, VkPipelineCreateFlags flags, const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
 			const VkPipelineVertexInputStateCreateInfo &vis,
@@ -228,9 +229,9 @@ namespace vulkan_wrapper
 	struct pipeline_layout
 	{
 		VkPipelineLayout object;
-		const VkPipelineLayoutCreateInfo info;
 		const std::vector<VkDescriptorSetLayout> set_layouts;
 		const std::vector<VkPushConstantRange> push_constant_ranges;
+		const VkPipelineLayoutCreateInfo info;
 
 		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, const std::vector<VkDescriptorSetLayout> &sets, const std::vector<VkPushConstantRange> &pcr)
 			: set_layouts(sets), push_constant_ranges(pcr),
@@ -271,8 +272,8 @@ namespace vulkan_wrapper
 	struct framebuffer
 	{
 		VkFramebuffer object;
-		const VkFramebufferCreateInfo info;
 		const std::vector<VkImageView> attachements;
+		const VkFramebufferCreateInfo info;
 
 		framebuffer(VkDevice dev, VkRenderPass render_pass, const std::vector<VkImageView> &att, uint32_t width, uint32_t height, uint32_t layers)
 			: attachements(att),
