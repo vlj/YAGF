@@ -8,184 +8,257 @@
 #include <memory>
 #include <vector>
 
+#define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (cmd != VK_SUCCESS) throw; }
+
 namespace vulkan_wrapper
 {
-    struct command_pool
-    {
-        VkCommandPool object;
-        VkCommandPoolCreateInfo info;
+	struct command_pool
+	{
+		VkCommandPool object;
+		const VkCommandPoolCreateInfo info;
 
-        command_pool()
-        {
+		command_pool(VkDevice dev, VkCommandPoolCreateFlags flags, uint32_t queue_family)
+			: info({ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr, flags, queue_family }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateCommandPool(m_device, &info, nullptr, &object));
+		}
 
-        }
+		~command_pool()
+		{
+			vkDestroyCommandPool(m_device, object, nullptr);
+		}
 
-        ~command_pool()
-        {
+		command_pool(command_pool&&) = delete;
+		command_pool(const command_pool&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        }
+	struct command_buffer
+	{
+		VkCommandBuffer object;
+		const VkCommandBufferAllocateInfo info;
 
-        command_pool(command_pool&&) = delete;
-        command_pool(const command_pool&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		command_buffer(VkDevice dev, VkCommandPool command_pool, VkCommandBufferLevel level)
+			: info({ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr, command_pool, level, 1 }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkAllocateCommandBuffers(m_device, &info, &object));
+		}
 
-    struct command_buffer
-    {
-        VkCommandBuffer object;
-        VkCommandBufferAllocateInfo info;
+		~command_buffer()
+		{
+			vkFreeCommandBuffers(m_device, info.commandPool, 1, &object);
+		}
 
-        command_buffer()
-        {}
+		command_buffer(command_buffer&&) = delete;
+		command_buffer(const command_buffer&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~command_buffer()
-        {}
+	struct queue
+	{
+		VkQueue object;
+		struct {
+			uint32_t queue_family;
+			uint32_t queue_index;
+		} info;
 
-        command_buffer(command_buffer&&) = delete;
-        command_buffer(const command_buffer&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		queue()
+		{}
 
-    struct queue
-    {
-        VkQueue object;
-        struct {
-            uint32_t queue_family;
-            uint32_t queue_index;
-        } info;
+		~queue()
+		{}
 
-        queue()
-        {}
+		queue(queue&&) = delete;
+		queue(const queue&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~queue()
-        {}
+	struct buffer
+	{
+		VkBuffer object;
+		const VkBufferCreateInfo info;
 
-        queue(queue&&) = delete;
-        queue(const queue&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		buffer(VkDevice dev, VkDeviceSize size, VkBufferUsageFlags flags, VkBufferUsageFlags usage)
+			: info({ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, nullptr, flags, size, usage, VK_SHARING_MODE_EXCLUSIVE, 0, nullptr }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateBuffer(m_device, &info, nullptr, &object));
+		}
 
-    struct buffer
-    {
-        VkBuffer object;
-        VkBufferCreateInfo info;
+		~buffer()
+		{
+			vkDestroyBuffer(m_device, object, nullptr);
+		}
 
-        buffer()
-        {}
+		buffer(buffer&&) = delete;
+		buffer(const buffer&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~buffer()
-        {}
+	struct image
+	{
+		VkImage object;
+		const VkImageCreateInfo info;
 
-        buffer(buffer&&) = delete;
-        buffer(const buffer&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		image(VkDevice dev, VkImageCreateFlags flags, VkImageType type, VkFormat format, VkExtent3D extent, uint32_t miplevels, uint32_t arraylayers,
+			VkSampleCountFlagBits samples, VkImageTiling tiling, VkImageUsageFlags usage, VkImageLayout initial_layout)
+			: info({ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, nullptr, flags, type, format, extent, miplevels, arraylayers, samples, tiling, usage, VK_SHARING_MODE_EXCLUSIVE, 0, nullptr, initial_layout }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateImage(m_device, &info, nullptr, &object));
+		}
 
-    struct image
-    {
-        VkImage object;
-        VkImageCreateInfo info;
+		~image()
+		{
+			vkDestroyImage(m_device, object, nullptr);
+		}
 
-        image()
-        {}
+		image(image&&) = delete;
+		image(const image&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~image()
-        {}
+	struct descriptor_pool
+	{
+		VkDescriptorPool object;
+		const VkDescriptorPoolCreateInfo info;
+		const std::vector<VkDescriptorPoolSize> pool_size;
 
-        image(image&&) = delete;
-        image(const image&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		descriptor_pool(VkDevice dev, VkDescriptorPoolCreateFlags flags, uint32_t max_sets, const std::vector<VkDescriptorPoolSize> &ps)
+			: pool_size(ps), info({ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, flags, max_sets, static_cast<uint32_t>(pool_size.size()), pool_size.data() }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateDescriptorPool(m_device, &info, nullptr, &object));
+		}
 
-    struct descriptor_pool
-    {
-        VkDescriptorPool object;
-        VkDescriptorPoolCreateInfo info;
+		~descriptor_pool()
+		{
+			vkDestroyDescriptorPool(m_device, object, nullptr);
+		}
 
-        descriptor_pool()
-        {}
+		descriptor_pool(descriptor_pool&&) = delete;
+		descriptor_pool(const descriptor_pool&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~descriptor_pool()
-        {}
+	struct pipeline
+	{
+		VkPipeline object;
+		const VkGraphicsPipelineCreateInfo info;
+		const std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
+		const VkPipelineVertexInputStateCreateInfo vertex_input_state;
+		const VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
+		const VkPipelineTessellationStateCreateInfo tessellation_state;
+		const VkPipelineViewportStateCreateInfo viewport_state;
+		const VkPipelineRasterizationStateCreateInfo rasterization_state;
+		const VkPipelineMultisampleStateCreateInfo multisample_state;
+		const VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
+		const VkPipelineColorBlendStateCreateInfo color_blend_state;
+		const VkPipelineDynamicStateCreateInfo dynamic_state;
 
-        descriptor_pool(descriptor_pool&&) = delete;
-        descriptor_pool(const descriptor_pool&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		pipeline(VkDevice dev, VkPipelineCreateFlags flags, const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
+			const VkPipelineVertexInputStateCreateInfo &vis,
+			const VkPipelineInputAssemblyStateCreateInfo &ias,
+			const VkPipelineTessellationStateCreateInfo &ts,
+			const VkPipelineViewportStateCreateInfo &vs,
+			const VkPipelineRasterizationStateCreateInfo &rs,
+			const VkPipelineMultisampleStateCreateInfo &ms,
+			const VkPipelineDepthStencilStateCreateInfo &dss,
+			const VkPipelineColorBlendStateCreateInfo &cbs,
+			const VkPipelineDynamicStateCreateInfo &ds,
+			VkPipelineLayout layout, VkRenderPass render_pass, uint32_t subpass, VkPipeline base_pipeline, int32_t base_pipeline_index)
+			: shader_stages(shaders), vertex_input_state(vis), input_assembly_state(ias), tessellation_state(ts), viewport_state(vs), rasterization_state(rs),
+			multisample_state(ms), depth_stencil_state(dss), color_blend_state(cbs), dynamic_state(ds),
+			info(
+				{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, nullptr, flags, static_cast<uint32_t>(shader_stages.size()), shader_stages.data(),
+				&vertex_input_state, &input_assembly_state, &tessellation_state, &viewport_state, &rasterization_state, &multisample_state, &depth_stencil_state, &color_blend_state, &dynamic_state,
+				layout, render_pass, subpass, base_pipeline, base_pipeline_index }
+			), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &info, nullptr, &object));
+		}
 
-    struct pipeline
-    {
-        VkPipeline object;
-        VkPipelineCreateFlags info;
+		~pipeline()
+		{
+			vkDestroyPipeline(m_device, VK_NULL_HANDLE, nullptr);
+		}
 
-        pipeline()
-        {}
+		pipeline(pipeline&&) = delete;
+		pipeline(const pipeline&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~pipeline()
-        {}
+	struct pipeline_layout
+	{
+		VkPipelineLayout object;
+		const VkPipelineLayoutCreateInfo info;
+		const std::vector<VkDescriptorSetLayout> set_layouts;
+		const std::vector<VkPushConstantRange> push_constant_ranges;
 
-        pipeline(pipeline&&) = delete;
-        pipeline(const pipeline&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, const std::vector<VkDescriptorSetLayout> &sets, const std::vector<VkPushConstantRange> &pcr)
+			: set_layouts(sets), push_constant_ranges(pcr),
+			info({ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, flags, static_cast<uint32_t>(set_layouts.size()), set_layouts.data(), static_cast<uint32_t>(push_constant_ranges.size()), push_constant_ranges.data() }),
+			m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreatePipelineLayout(m_device, &info, nullptr, &object));
+		}
 
-    struct pipeline_layout
-    {
-        VkPipelineLayout object;
-        VkPipelineLayoutCreateInfo info;
+		~pipeline_layout()
+		{
+			vkDestroyPipelineLayout(m_device, object, nullptr);
+		}
 
-        pipeline_layout()
-        {}
+		pipeline_layout(pipeline_layout&&) = delete;
+		pipeline_layout(const pipeline_layout&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~pipeline_layout()
-        {}
+	struct swapchain
+	{
+		VkSwapchainKHR object;
+		VkSwapchainCreateInfoKHR info;
 
-        pipeline_layout(pipeline_layout&&) = delete;
-        pipeline_layout(const pipeline_layout&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		swapchain()
+		{}
 
-    struct swapchain
-    {
-        VkSwapchainKHR object;
-        VkSwapchainCreateInfoKHR info;
+		~swapchain()
+		{}
 
-        swapchain()
-        {}
+		swapchain(swapchain&&) = delete;
+		swapchain(const swapchain&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
-        ~swapchain()
-        {}
+	struct framebuffer
+	{
+		VkFramebuffer object;
+		const VkFramebufferCreateInfo info;
+		const std::vector<VkImageView> attachements;
 
-        swapchain(swapchain&&) = delete;
-        swapchain(const swapchain&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		framebuffer(VkDevice dev, VkFramebufferCreateFlags flags, VkRenderPass render_pass, const std::vector<VkImageView> &att, uint32_t width, uint32_t height, uint32_t layers)
+			: attachements(att),
+			info({ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr, flags, render_pass, static_cast<uint32_t>(attachements.size()), attachements.data(), width, height, layers }),
+			m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateFramebuffer(m_device, &info, nullptr, &object));
+		}
 
-    struct framebuffer
-    {
-        VkFramebuffer object;
-        VkFramebufferCreateInfo info;
+		~framebuffer()
+		{
+			vkDestroyFramebuffer(m_device, object, nullptr);
+		}
 
-        framebuffer()
-        {}
-
-        ~framebuffer()
-        {}
-
-        framebuffer(framebuffer&&) = delete;
-        framebuffer(const framebuffer&) = delete;
-    private:
-        VkDevice m_device;
-    };
+		framebuffer(framebuffer&&) = delete;
+		framebuffer(const framebuffer&) = delete;
+	private:
+		VkDevice m_device;
+	};
 }
 
 using command_list_storage_t = std::shared_ptr<vulkan_wrapper::command_pool>;
@@ -203,14 +276,14 @@ using framebuffer_t = std::shared_ptr<vulkan_wrapper::framebuffer>;
 /*struct root_signature_builder
 {
 private:
-    std::vector<std::vector<D3D12_DESCRIPTOR_RANGE > > all_ranges;
-    std::vector<D3D12_ROOT_PARAMETER> root_parameters;
-    D3D12_ROOT_SIGNATURE_DESC desc = {};
+	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE > > all_ranges;
+	std::vector<D3D12_ROOT_PARAMETER> root_parameters;
+	D3D12_ROOT_SIGNATURE_DESC desc = {};
 
-    void build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility);
+	void build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility);
 public:
-    root_signature_builder(std::vector<std::tuple<std::vector<D3D12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags);
-    pipeline_layout_t get(device_t dev);
+	root_signature_builder(std::vector<std::tuple<std::vector<D3D12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags);
+	pipeline_layout_t get(device_t dev);
 };*/
 
 device_t create_device();
