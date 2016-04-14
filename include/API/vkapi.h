@@ -231,6 +231,31 @@ namespace vulkan_wrapper
 	struct render_pass
 	{
 		VkRenderPass object;
+		const std::vector<VkAttachmentDescription> attachments;
+		const std::vector<VkSubpassDescription> subpasses;
+		const std::vector<VkSubpassDependency> dependencies;
+		const VkRenderPassCreateInfo info;
+
+		render_pass(VkDevice dev, std::vector<VkAttachmentDescription> attachments_desc, std::vector<VkSubpassDescription> subpass_desc, std::vector<VkSubpassDependency> dependency)
+			: attachments(attachments_desc), subpasses(subpass_desc), dependencies(dependency),
+			info({VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, nullptr, 0,
+				static_cast<uint32_t>(attachments.size()), attachments.data(),
+				static_cast<uint32_t>(subpasses.size()), subpasses.data(),
+				static_cast<uint32_t>(dependencies.size()), dependencies.data(),
+		}), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateRenderPass(m_device, &info, nullptr, &object))
+		}
+
+		~render_pass()
+		{
+			vkDestroyRenderPass(m_device, object, nullptr);
+		}
+
+		render_pass(render_pass&&) = delete;
+		render_pass(const render_pass&) = delete;
+	private:
+		VkDevice m_device;
 	};
 
 	struct pipeline
