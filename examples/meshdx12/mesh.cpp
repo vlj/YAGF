@@ -195,15 +195,22 @@ struct Sample
         command_allocator = create_command_storage(dev);
         command_list = create_command_list(dev, command_allocator);
 
+
+#ifndef D3D12
+		start_command_list_recording(dev, command_list, command_allocator);
+		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0);
+		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0);
+#endif // !D3D12
+
         cbuffer = create_buffer(dev, sizeof(Matrixes));
         jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
         cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
-        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
+/*        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
         create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
 
         sampler_heap = create_sampler_heap(dev, 1);
-        create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
+        create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);*/
 
 		clear_value_structure_t clear_val = {};
 #ifdef D3D12
@@ -212,8 +219,8 @@ struct Sample
 
         depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
-		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
-		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
+/*		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
+		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });*/
 
         irr::io::CReadFile reader("..\\..\\examples\\assets\\xue.b3d");
         loader = new irr::scene::CB3DMeshFileLoader(&reader);
@@ -271,46 +278,13 @@ struct Sample
         unmap_buffer(dev, index_buffer);
         unmap_buffer(dev, vertex_buffer_attributes);
         // TODO: Upload to GPUmem
-        /*
-        hr = Context::getInstance()->dev->CreateCommittedResource(
-            &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_MISC_NONE,
-            &CD3D12_RESOURCE_DESC::Buffer(bufferSize),
-            D3D12_RESOURCE_USAGE_COPY_DEST,
-            nullptr,
-            IID_PPV_ARGS(&vertexbuffers[0]));
-
-        memcpy(vertexmap, meshes.data(), bufferSize);
-
-        ID3D12CommandAllocator* temporarycommandalloc;
-        ID3D12GraphicsCommandList *uploadcmdlist;
-        hr = Context::getInstance()->dev->CreateCommandAllocator(queue->GetDesc().Type, IID_PPV_ARGS(&temporarycommandalloc));
-        hr = Context::getInstance()->dev->CreateCommandList(1, queue->GetDesc().Type, temporarycommandalloc, nullptr, IID_PPV_ARGS(&uploadcmdlist));
-
-        uploadcmdlist->CopyBufferRegion(vertexbuffers[0], 0, cpuvertexdata, 0, bufferSize, D3D12_COPY_NONE);
-
-        D3D12_RESOURCE_BARRIER_DESC barriers = setResourceTransitionBarrier(vertexbuffers[0], D3D12_RESOURCE_USAGE_COPY_DEST, D3D12_RESOURCE_USAGE_GENERIC_READ);
-        uploadcmdlist->ResourceBarrier(1, &barriers);
-
-        uploadcmdlist->Close();
-        queue->ExecuteCommandLists(1, (ID3D12CommandList**)&uploadcmdlist);
-
-        std::thread t1([=]() {
-            HANDLE handle = getCPUSyncHandle(queue);
-            WaitForSingleObject(handle, INFINITE);
-            CloseHandle(handle);
-            temporarycommandalloc->Release();
-            uploadcmdlist->Release();
-            cpuvertexdata->Release();
-        });
-        t1.detach();*/
 
         vertex_buffers_info.emplace_back(vertex_buffer_attributes, 0, static_cast<uint32_t>(sizeof(irr::video::S3DVertex2TCoords)), static_cast<uint32_t>(bufferSize));
 
         // Upload to gpudata
 
         // Texture
-        command_list_t uploadcmdlist = command_list;
+        /*command_list_t uploadcmdlist = command_list;
         uint32_t texture_id = 0;
         for (auto Tex : loader->Textures)
         {
@@ -382,9 +356,10 @@ struct Sample
 #ifdef D3D12
         sig = skinned_object_root_signature.get(dev);
         objectpso = createSkinnedObjectShader(dev, sig.Get());
-#endif
+#endif*/
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
+		wait_for_command_queue_idle(dev, cmdqueue);
     }
 
 public:
@@ -429,7 +404,7 @@ public:
 
         set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
 
-        std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+/*        std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
         clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
         clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
 
@@ -462,12 +437,12 @@ public:
 				.Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #endif
             draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
-        }
+        }*/
         set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
         wait_for_command_queue_idle(dev, cmdqueue);
-        present(dev, chain);
+        present(dev, cmdqueue, chain, current_backbuffer);
     }
 };
 

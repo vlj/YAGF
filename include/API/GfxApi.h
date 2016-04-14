@@ -27,6 +27,7 @@ enum class RESOURCE_USAGE
 	RENDER_TARGET,
 	READ_GENERIC,
 	DEPTH_WRITE,
+	undefined,
 };
 
 enum image_flags
