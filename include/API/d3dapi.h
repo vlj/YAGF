@@ -19,6 +19,7 @@ using descriptor_storage_t = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;
 using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
 using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
 using swap_chain_t = Microsoft::WRL::ComPtr<IDXGISwapChain3>;
+using render_pass_t = void*;
 using clear_value_structure_t = D3D12_CLEAR_VALUE;
 
 struct d3d12_framebuffer_t

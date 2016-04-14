@@ -7,6 +7,7 @@
 #include <vulkan\vk_platform.h>
 #include <memory>
 #include <vector>
+#include "..\Core\SColor.h"
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 
@@ -182,6 +183,28 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct image_view
+	{
+		VkImageView object;
+		const VkImageViewCreateInfo info;
+
+		image_view(VkDevice dev, VkImage image, VkImageViewType viewtype, VkFormat format, VkComponentMapping mapping, VkImageSubresourceRange range)
+			: info({ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, nullptr, 0, image, viewtype, format, mapping, range }), m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateImageView(m_device, &info, nullptr, &object));
+		}
+
+		~image_view()
+		{
+			vkDestroyImageView(m_device, object, nullptr);
+		}
+
+		image_view(image_view&&) = delete;
+		image_view(const image_view&) = delete;
+	private:
+		VkDevice m_device;
+	};
+
 	struct descriptor_pool
 	{
 		VkDescriptorPool object;
@@ -203,6 +226,11 @@ namespace vulkan_wrapper
 		descriptor_pool(const descriptor_pool&) = delete;
 	private:
 		VkDevice m_device;
+	};
+
+	struct render_pass
+	{
+		VkRenderPass object;
 	};
 
 	struct pipeline
@@ -335,18 +363,17 @@ using descriptor_storage_t = std::shared_ptr<vulkan_wrapper::descriptor_pool>;
 using pipeline_state_t = std::shared_ptr<vulkan_wrapper::pipeline>;
 using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
 using swap_chain_t = std::shared_ptr<vulkan_wrapper::swapchain>;
-using render_pass_t = VkRenderPass;
+using render_pass_t = std::shared_ptr<vulkan_wrapper::render_pass>;
 using clear_value_structure_t = void*;
 
 struct vk_framebuffer
 {
-	std::vector<VkImageView> image_views;
+	const std::vector<std::shared_ptr<vulkan_wrapper::image_view> > image_views;
 	vulkan_wrapper::framebuffer fbo;
 
-	vk_framebuffer(device_t dev, render_pass_t render_pass, uint32_t width, uint32_t height, uint32_t layers)
-		: fbo(dev->object, render_pass, image_views, width, height, layers)
-	{
-	}
+	vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
+private:
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets);
 };
 
 using framebuffer_t = std::shared_ptr<vk_framebuffer>;

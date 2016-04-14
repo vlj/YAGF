@@ -219,8 +219,13 @@ struct Sample
 
         depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
-/*		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });
-		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 });*/
+		render_pass_t render_pass;
+#ifndef D3D12
+
+#endif
+
+		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
+		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
 
         irr::io::CReadFile reader("..\\..\\examples\\assets\\xue.b3d");
         loader = new irr::scene::CB3DMeshFileLoader(&reader);
@@ -404,14 +409,14 @@ public:
 
         set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
 
-/*        std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+        std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
         clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
-        clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
+//        clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
 
         set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
         set_scissor(command_list, 0, 1024, 0, 1024);
 
-		bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+		/*bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
 		bind_vertex_buffers(command_list, 0, vertex_buffers_info);
 
 #ifdef D3D12

@@ -133,7 +133,7 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 	std::vector<VkDeviceQueueCreateInfo> queue_infos{ queue_info };
 
 	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	device_t dev= std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
+	device_t dev = std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
 
 	VkPhysicalDeviceMemoryProperties mem_properties;
 	vkGetPhysicalDeviceMemoryProperties(devices[0], &mem_properties);
@@ -324,6 +324,11 @@ void start_command_list_recording(device_t dev, command_list_t command_list, com
 	CHECK_VKRESULT(vkBeginCommandBuffer(command_list->object, &info));
 }
 
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t render_pass)
+{
+	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, width, height, 1);
+}
+
 void make_command_list_executable(command_list_t command_list)
 {
 	CHECK_VKRESULT(vkEndCommandBuffer(command_list->object));
@@ -399,7 +404,19 @@ void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t res
 	vkCmdPipelineBarrier(command_list->object, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color);
+void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
+{
+	VkClearValue clear_val = {};
+	memcpy(clear_val.color.float32, color.data(), 4 * sizeof(float));
+	VkClearAttachment attachments = { VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_val };
+
+	VkClearRect clear_rect = {};
+	clear_rect.rect.extent.width = 1024;
+	clear_rect.rect.extent.height = 1024;
+	clear_rect.layerCount = 1;
+
+	vkCmdClearAttachments(command_list->object, static_cast<uint32_t>(framebuffer->fbo.attachements.size()), &attachments, 1, &clear_rect);
+}
 
 
 void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);
@@ -489,4 +506,37 @@ void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_
 	info.pImageIndices = &backbuffer_index;
 
 	CHECK_VKRESULT(vkQueuePresentKHR(cmdqueue->object, &info));
+}
+
+namespace
+{
+	std::vector<VkImageView> get_image_view_vector(const std::vector<std::shared_ptr<vulkan_wrapper::image_view> > &vectors)
+	{
+		std::vector<VkImageView> result;
+		for (const auto& iv : vectors)
+		{
+			result.emplace_back(iv->object);
+		}
+		return result;
+	}
+}
+
+vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
+	: image_views(build_image_views(dev->object, render_targets)),
+	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)
+{
+}
+
+std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets)
+{
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> >  result;
+	for (const auto & rtt_info : render_targets)
+	{
+		VkComponentMapping default_mapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+		VkImageSubresourceRange ranges{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		result.emplace_back(
+			std::make_shared<vulkan_wrapper::image_view>(dev, std::get<0>(rtt_info)->object, VK_IMAGE_VIEW_TYPE_2D, get_vk_format(std::get<1>(rtt_info)), default_mapping, ranges)
+		);
+	}
+	return result;
 }
