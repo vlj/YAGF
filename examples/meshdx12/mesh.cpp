@@ -433,8 +433,8 @@ public:
 		VkClearValue clear_values{};
 		memcpy(clear_values.color.float32, clearColor.data(), 4 * sizeof(float));
 		info.pClearValues = &clear_values;
-		info.renderArea.extent.width = 1024;
-		info.renderArea.extent.height = 1024;
+		info.renderArea.extent.width = 900;
+		info.renderArea.extent.height = 900;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 #else // !D3D12
 		clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
