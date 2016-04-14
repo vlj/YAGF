@@ -231,9 +231,13 @@ struct Sample
 		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-		VkSubpassDescription subpass{};
-		subpass
-		render_pass = std::make_shared<vulkan_wrapper::render_pass>(dev->object, { attachment }, {}, {});
+
+		render_pass.reset(new vulkan_wrapper::render_pass(dev->object,
+			{ attachment },
+			{ 
+				subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
+					.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+			}, {VkSubpassDependency()}));
 #endif
 
 		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);

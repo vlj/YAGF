@@ -18,6 +18,9 @@
     <ClInclude Include="include\API\vkapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\VKAPI\renderpass_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\vkapi.cpp">
