@@ -178,6 +178,7 @@ struct Sample
 
     pipeline_state_t objectpso;
     pipeline_layout_t sig;
+	render_pass_t render_pass;
     framebuffer_t fbo[2];
 
     irr::scene::CB3DMeshFileLoader *loader;
@@ -219,7 +220,6 @@ struct Sample
 
         depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
-		render_pass_t render_pass;
 #ifndef D3D12
 		VkAttachmentDescription attachment{};
 		attachment.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -230,7 +230,6 @@ struct Sample
 		attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-
 
 		render_pass.reset(new vulkan_wrapper::render_pass(dev->object,
 			{ attachment },
@@ -425,9 +424,25 @@ public:
 
         set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
 
-        std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
-        clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
-//        clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
+		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+#ifndef D3D12
+		VkRenderPassBeginInfo info{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+		info.renderPass = render_pass->object;
+		info.framebuffer = fbo[current_backbuffer]->fbo.object;
+		info.clearValueCount = 1;
+		VkClearValue clear_values{};
+		memcpy(clear_values.color.float32, clearColor.data(), 4 * sizeof(float));
+		info.pClearValues = &clear_values;
+		info.renderArea.extent.width = 1024;
+		info.renderArea.extent.height = 1024;
+		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
+#else // !D3D12
+		clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
+		//        clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
+#endif
+
+
+
 
         set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
         set_scissor(command_list, 0, 1024, 0, 1024);
@@ -459,6 +474,10 @@ public:
 #endif
             draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
         }*/
+
+#ifndef D3D12
+		vkCmdEndRenderPass(command_list->object);
+#endif // !D3D12
         set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
