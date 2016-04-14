@@ -228,16 +228,78 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+
+	struct subpass_description
+	{
+		VkPipelineBindPoint pipeline_bind_point;
+		std::vector<VkAttachmentReference> input_attachments;
+		std::vector<VkAttachmentReference> color_attachments;
+		std::vector<VkAttachmentReference> resolve_attachments;
+		std::vector<VkAttachmentReference> depth_stencil;
+		std::vector<uint32_t> preserve_attachments;
+
+		subpass_description(VkPipelineBindPoint binding_point) : pipeline_bind_point(binding_point)
+		{
+		}
+
+		subpass_description& set_input_attachments(std::vector<VkAttachmentReference> att)
+		{
+			input_attachments = att;
+		}
+
+		subpass_description& set_color_attachments(std::vector<VkAttachmentReference> att)
+		{
+			color_attachments = att;
+		}
+
+		subpass_description& set_resolves_attachments(std::vector<VkAttachmentReference> att)
+		{
+			resolve_attachments = att;
+		}
+
+		subpass_description& set_depth_stencil_attachment(VkAttachmentReference att)
+		{
+			depth_stencil.push_back(att);
+		}
+
+		subpass_description& set_preserve_attachments(std::vector<uint32_t> att)
+		{
+			preserve_attachments = att;
+		}
+
+	private:
+		friend struct render_pass;
+		VkSubpassDescription get_subpass_description() const
+		{
+			VkSubpassDescription desc{ 0, pipeline_bind_point };
+			assert(color_attachments.size() == resolve_attachments.size() || resolve_attachments.empty());
+			desc.inputAttachmentCount = static_cast<uint32_t>(input_attachments.size());
+			desc.pInputAttachments = input_attachments.data();
+			desc.colorAttachmentCount = static_cast<uint32_t>(color_attachments.size());
+			desc.pColorAttachments = color_attachments.data();
+			if (!resolve_attachments.empty())
+				desc.pResolveAttachments = resolve_attachments.data();
+			if (!depth_stencil.empty())
+				desc.pDepthStencilAttachment = depth_stencil.data();
+			desc.preserveAttachmentCount = static_cast<uint32_t>(preserve_attachments.size());
+			desc.pPreserveAttachments = preserve_attachments.data();
+
+			return desc;
+		};
+	};
+
 	struct render_pass
 	{
+
 		VkRenderPass object;
 		const std::vector<VkAttachmentDescription> attachments;
+		const std::vector<subpass_description> higher_level_subpass_descriptions;
 		const std::vector<VkSubpassDescription> subpasses;
 		const std::vector<VkSubpassDependency> dependencies;
 		const VkRenderPassCreateInfo info;
 
-		render_pass(VkDevice dev, std::vector<VkAttachmentDescription> attachments_desc, std::vector<VkSubpassDescription> subpass_desc, std::vector<VkSubpassDependency> dependency)
-			: attachments(attachments_desc), subpasses(subpass_desc), dependencies(dependency),
+		render_pass(VkDevice dev, std::vector<VkAttachmentDescription> attachments_desc, std::vector<subpass_description> subpass_desc, std::vector<VkSubpassDependency> dependency)
+			: attachments(attachments_desc), higher_level_subpass_descriptions(subpass_desc), dependencies(dependency),
 			info({VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, nullptr, 0,
 				static_cast<uint32_t>(attachments.size()), attachments.data(),
 				static_cast<uint32_t>(subpasses.size()), subpasses.data(),
