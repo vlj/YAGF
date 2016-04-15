@@ -418,6 +418,11 @@ void clear_color(device_t dev, command_list_t command_list, framebuffer_t frameb
 	vkCmdClearAttachments(command_list->object, static_cast<uint32_t>(framebuffer->fbo.attachements.size()), &attachments, 1, &clear_rect);
 }
 
+void set_graphic_pipeline(command_list_t command_list, pipeline_state_t pipeline)
+{
+	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);
+}
+
 
 void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);
 void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth)

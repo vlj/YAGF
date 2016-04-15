@@ -95,13 +95,15 @@ public:
     }
 };
 
+
+
+auto tmp = pipeline_layout_description({
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 2), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) }),
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 2, 1)})
+});
+
+
 #ifdef D3D12
-root_signature_builder skinned_object_root_signature(
-{
-    { { { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0, 0, 0 }, {D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, 3 } }, D3D12_SHADER_VISIBILITY_ALL },
-    { { { D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0 } }, D3D12_SHADER_VISIBILITY_ALL }
-},
-D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *sig)
 {
@@ -437,32 +439,27 @@ public:
 		info.renderArea.extent.height = 900;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 #else // !D3D12
+		command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+
+		command_list->SetGraphicsRootSignature(sig.Get());
+
+		std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap.Get(), sampler_heap.Get() };
+		command_list->SetDescriptorHeaps(2, descriptors.data());
+
+		command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
+
 		clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
-		//        clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
+		clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
 #endif
-
-
-
+		set_graphic_pipeline(command_list, objectpso);
 
         set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
         set_scissor(command_list, 0, 1024, 0, 1024);
 
-		/*bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+		bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
 		bind_vertex_buffers(command_list, 0, vertex_buffers_info);
-
-#ifdef D3D12
-        command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
-
-        command_list->SetPipelineState(objectpso.Get());
-        command_list->SetGraphicsRootSignature(sig.Get());
-
-        std::array<ID3D12DescriptorHeap*, 2> descriptors = {cbv_srv_descriptors_heap.Get(), sampler_heap.Get()};
-        command_list->SetDescriptorHeaps(2, descriptors.data());
-
-        command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
-#endif
 
         std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
         for (unsigned i = 0; i < buffers.size(); i++)
@@ -473,7 +470,7 @@ public:
 				.Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #endif
             draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
-        }*/
+        }
 
 #ifndef D3D12
 		vkCmdEndRenderPass(command_list->object);

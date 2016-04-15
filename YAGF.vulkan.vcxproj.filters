@@ -21,6 +21,9 @@
     <ClInclude Include="include\VKAPI\renderpass_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\VKAPI\pipeline_layout_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\vkapi.cpp">

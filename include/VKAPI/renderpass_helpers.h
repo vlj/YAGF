@@ -57,7 +57,7 @@ struct subpass_description
 	}
 
 	template<size_t N>
-	constexpr subpass_description& set_preserve_attachments(const uint32_t(&att)[N]) const
+	constexpr subpass_description set_preserve_attachments(const uint32_t(&att)[N]) const
 	{
 		return subpass_description(pipeline_bind_point,
 			input_attachements_count, input_attachments,

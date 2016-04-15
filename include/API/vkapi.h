@@ -9,9 +9,12 @@
 #include <vector>
 #include "..\Core\SColor.h"
 
-#include "../VKAPI/renderpass_helpers.h"
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
+
+#include "../VKAPI/renderpass_helpers.h"
+#include "../VKAPI/pipeline_layout_helpers.h"
+
 
 namespace vulkan_wrapper
 {
@@ -311,6 +314,7 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+
 	struct pipeline_layout
 	{
 		VkPipelineLayout object;
@@ -406,19 +410,6 @@ private:
 };
 
 using framebuffer_t = std::shared_ptr<vk_framebuffer>;
-
-/*struct root_signature_builder
-{
-private:
-	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE > > all_ranges;
-	std::vector<D3D12_ROOT_PARAMETER> root_parameters;
-	D3D12_ROOT_SIGNATURE_DESC desc = {};
-
-	void build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility);
-public:
-	root_signature_builder(std::vector<std::tuple<std::vector<D3D12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags);
-	pipeline_layout_t get(device_t dev);
-};*/
 
 std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstance, HWND window);
 command_queue_t create_graphic_command_queue(device_t dev);
