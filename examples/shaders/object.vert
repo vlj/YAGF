@@ -1,13 +1,14 @@
-#version 400
+#version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
 
-layout(std140) uniform ObjectData
+layout(binding = 0, set = 0, std140) uniform ObjectData
 {
   mat4 ModelMatrix;
   mat4 InverseModelMatrix;
 };
 
-layout(std140) uniform ViewMatrices
+layout(binding = 1, set = 0, std140) uniform ViewMatrices
 {
   mat4 ViewProjectionMatrix;
 };

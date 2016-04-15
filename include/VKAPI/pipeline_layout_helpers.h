@@ -25,7 +25,7 @@ struct range_of_descriptors
 
 	constexpr operator VkDescriptorSetLayoutBinding() const
 	{
-		return{ bind_point, get_descriptor_type(range_type), count };
+		return{ bind_point, get_descriptor_type(range_type), count, VK_SHADER_STAGE_ALL_GRAPHICS };
 	}
 
 private:
@@ -39,23 +39,26 @@ private:
 
 struct descriptor_set
 {
-	const std::initializer_list<VkDescriptorSetLayoutBinding> descriptors_ranges;
+	const std::vector<VkDescriptorSetLayoutBinding> descriptors_ranges;
 
-	descriptor_set(const std::initializer_list<VkDescriptorSetLayoutBinding> &dr) : descriptors_ranges(dr)
+	descriptor_set(std::vector<VkDescriptorSetLayoutBinding> &&dr) : descriptors_ranges(dr)
 	{ }
 
 	operator VkDescriptorSetLayoutCreateInfo() const
 	{
-		return{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(descriptors_ranges.size()), descriptors_ranges.begin() };
+		return{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(descriptors_ranges.size()), descriptors_ranges.data() };
 	}
 };
 
 struct pipeline_layout_description
 {
-	const std::initializer_list<descriptor_set> descriptor_sets;
+	const std::vector<descriptor_set> descriptor_sets;
 
-	pipeline_layout_description(const std::initializer_list<descriptor_set> &descriptor) : descriptor_sets(descriptor)
+	pipeline_layout_description(std::vector<descriptor_set> &&descriptor) : descriptor_sets(descriptor)
 	{}
+
+	pipeline_layout_description(const pipeline_layout_description&) = delete;
+	pipeline_layout_description(pipeline_layout_description&&) = delete;
 
 	VkPipelineLayout get(VkDevice dev)
 	{

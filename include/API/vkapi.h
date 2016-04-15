@@ -277,7 +277,7 @@ namespace vulkan_wrapper
 
 		shader_module(VkDevice dev, const std::string &filename) :
 			spirv_code(load_binary_file(filename)),
-			info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0, spirv_code.size(), spirv_code.data()},
+			info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0, spirv_code.size() * sizeof(uint32_t), spirv_code.data()},
 			m_device(dev)
 		{
 			CHECK_VKRESULT(vkCreateShaderModule(dev, &info, nullptr, &object));

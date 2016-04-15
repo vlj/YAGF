@@ -1,7 +1,10 @@
-#version 330
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
 
-uniform sampler2D tex;
-uniform sampler2D glosstex;
+layout(binding = 2) uniform texture2D tex;
+layout(set = 1, binding = 3) uniform sampler s;
+//uniform sampler2D glosstex;
 
 in vec3 nor;
 in vec2 uv;
@@ -19,11 +22,12 @@ vec2 EncodeNormal(vec3 n)
 
 void main(void)
 {
-  Colors = vec4(texture(tex, uv).rgb * pow(color.rgb, vec3(2.2)), 1.);
-  float glossmap = texture(glosstex, uv).r;
+  vec4 texel = texture(sampler2D(tex, s), uv);
+  Colors = vec4(texel.rgb * pow(color.rgb, vec3(2.2)), 1.);
+/*  float glossmap = texture(glosstex, uv).r;
   float reflectance = texture(glosstex, uv).g;
   EncodedNormal_Roughness_Metalness.xy = 0.5 * EncodeNormal(normalize(nor)) + 0.5;
   EncodedNormal_Roughness_Metalness.z = 1.;
   EncodedNormal_Roughness_Metalness.w = 0.;
-  EmitMap = texture(glosstex, uv).b;
+  EmitMap = texture(glosstex, uv).b;*/
 }

@@ -97,9 +97,9 @@ public:
 
 
 
-auto skinned_mesh_layout = pipeline_layout_description({
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 2), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) }),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 2, 1)})
+pipeline_layout_description skinned_mesh_layout({
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1)})
 });
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layout, render_pass_t rp)
@@ -120,11 +120,12 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
 	VkPipelineMultisampleStateCreateInfo multisample_info{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, nullptr, 0, VK_SAMPLE_COUNT_1_BIT};
 
-	vulkan_wrapper::shader_module module(dev->object, "..\\..\\vert.spv");
+	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\vert.spv");
+	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\frag.spv");
 
 	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
-		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module.object, "main", nullptr },
-		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module.object, "main", nullptr }
+		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
+		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
 	};
 
 	vulkan_wrapper::pipeline tmp(dev->object, 0, shader_stages, vertex_input, input_assembly_info, tesselation_info, viewport_info, raster, multisample_info, depth_stencil, blend, dynamic_state_info, layout->object, rp->object, 0, VK_NULL_HANDLE, 0);

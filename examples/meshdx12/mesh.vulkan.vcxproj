@@ -120,7 +120,8 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object.vert -o $(SolutionDir)\vert.spv</Command>
+      <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object.vert -o $(SolutionDir)\vert.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbuffer.frag -o $(SolutionDir)\frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -160,7 +161,8 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object.vert -o $(SolutionDir)\vert.spv</Command>
+      <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object.vert -o $(SolutionDir)\vert.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbuffer.frag -o $(SolutionDir)\frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
