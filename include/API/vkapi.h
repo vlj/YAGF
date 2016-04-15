@@ -280,7 +280,7 @@ namespace vulkan_wrapper
 			info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0, spirv_code.size(), spirv_code.data()},
 			m_device(dev)
 		{
-
+			CHECK_VKRESULT(vkCreateShaderModule(dev, &info, nullptr, &object));
 		}
 
 		~shader_module()
@@ -296,7 +296,7 @@ namespace vulkan_wrapper
 
 		static std::vector<uint32_t> load_binary_file(const std::string &filename)
 		{
-			std::ifstream file(filename);
+			std::ifstream file(filename, std::ios::binary | std::ios::in | std::ios::ate);
 			if (!file.is_open()) throw;
 
 			std::vector<uint32_t> code(file.tellg() / sizeof(uint32_t));

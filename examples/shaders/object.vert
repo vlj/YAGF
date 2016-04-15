@@ -1,4 +1,5 @@
-#version 330
+#version 400
+#extension GL_ARB_separate_shader_objects : enable
 
 layout(std140) uniform ObjectData
 {
