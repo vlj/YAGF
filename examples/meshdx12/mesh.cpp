@@ -103,11 +103,31 @@ auto tmp = pipeline_layout_description({
 });
 
 
-#ifdef D3D12
-
-pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *sig)
+pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
     pipeline_state_t result;
+
+	constexpr rasterisation_state raster = rasterisation_state::get();
+	constexpr depth_stencil_state depth_stencil = depth_stencil_state::get();
+	const blend_state blend = blend_state::get();
+
+	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+	VkPipelineInputAssemblyStateCreateInfo input_assembly_info{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
+	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+	VkPipelineMultisampleStateCreateInfo multisample_info{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+
+	VkShaderModule module;
+
+	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
+		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module, "main", nullptr },
+		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module, "main", nullptr }
+	};
+
+	vulkan_wrapper::pipeline tmp(dev->object, 0, shader_stages, vertex_input, input_assembly_info, tesselation_info, viewport_info, raster, multisample_info, depth_stencil, blend, dynamic_state_info, layout->object, rp->object, 0, VK_NULL_HANDLE, 0);
+
+#ifdef D3D12
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
     psodesc.pRootSignature = sig;
     psodesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -151,11 +171,10 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, ID3D12RootSignature *si
     psodesc.SampleMask = UINT_MAX;
     psodesc.NodeMask = 1;
     CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
+#endif
     return result;
 }
-#else
 
-#endif
 
 struct Sample
 {

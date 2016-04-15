@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\API\vkapi.h" />
+    <ClInclude Include="include\VKAPI\pipeline_helpers.h" />
     <ClInclude Include="include\VKAPI\pipeline_layout_helpers.h" />
     <ClInclude Include="include\VKAPI\renderpass_helpers.h" />
   </ItemGroup>

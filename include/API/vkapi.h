@@ -8,12 +8,14 @@
 #include <memory>
 #include <vector>
 #include "..\Core\SColor.h"
+#include <fstream>
 
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 
 #include "../VKAPI/renderpass_helpers.h"
 #include "../VKAPI/pipeline_layout_helpers.h"
+#include "../VKAPI/pipeline_helpers.h"
 
 
 namespace vulkan_wrapper
@@ -264,6 +266,48 @@ namespace vulkan_wrapper
 	private:
 		VkDevice m_device;
 	};
+
+
+	struct shader_module
+	{
+		VkShaderModule object;
+		const std::vector<uint32_t> spirv_code;
+		const VkShaderModuleCreateInfo info;
+
+
+		shader_module(VkDevice dev, const std::string &filename) :
+			spirv_code(load_binary_file(filename)),
+			info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0, spirv_code.size(), spirv_code.data()},
+			m_device(dev)
+		{
+
+		}
+
+		~shader_module()
+		{
+			vkDestroyShaderModule(m_device, object, nullptr);
+		}
+
+		shader_module(shader_module&&) = delete;
+		shader_module(const shader_module&) = delete;
+
+	private:
+		VkDevice m_device;
+
+		static std::vector<uint32_t> load_binary_file(const std::string &filename)
+		{
+			std::ifstream file(filename);
+			if (!file.is_open()) throw;
+
+			std::vector<uint32_t> code(file.tellg() / sizeof(uint32_t));
+			// go back to the beginning
+			file.seekg(0, std::ios::beg);
+			file.read((char*)code.data(), code.size() * sizeof(uint32_t));
+			file.close();
+			return code;
+		}
+	};
+
 
 	struct pipeline
 	{
