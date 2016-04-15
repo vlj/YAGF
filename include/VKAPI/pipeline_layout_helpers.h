@@ -31,7 +31,9 @@ struct range_of_descriptors
 private:
 	static constexpr VkDescriptorType get_descriptor_type(const RESOURCE_VIEW type)
 	{
-		return (type == RESOURCE_VIEW::CONSTANTS_BUFFER) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : throw;
+		return (type == RESOURCE_VIEW::CONSTANTS_BUFFER) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER :
+			(type == RESOURCE_VIEW::SHADER_RESOURCE) ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE :
+				(type == RESOURCE_VIEW::SAMPLER) ? VK_DESCRIPTOR_TYPE_SAMPLER : throw;
 	}
 };
 
@@ -69,7 +71,7 @@ struct pipeline_layout_description
 			set_layouts.push_back(sl);
 		}
 
-		info.setLayoutCount = set_layouts.size();
+		info.setLayoutCount = static_cast<uint32_t>(set_layouts.size());
 		info.pSetLayouts = set_layouts.data();
 		CHECK_VKRESULT(vkCreatePipelineLayout(dev, &info, nullptr, &result));
 		return result;

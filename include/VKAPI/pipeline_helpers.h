@@ -15,7 +15,7 @@ struct rasterisation_state
 			false, 0.f, 0.f, 0.f, 1.f);
 	}
 
-	constexpr operator VkPipelineRasterizationStateCreateInfo()
+	constexpr operator VkPipelineRasterizationStateCreateInfo() const
 	{
 		return info;
 	}
@@ -37,7 +37,7 @@ struct depth_stencil_state
 		return depth_stencil_state(true, true, VK_COMPARE_OP_LESS, false, false, {}, {}, 0.f, 1.f);
 	}
 
-	constexpr operator VkPipelineDepthStencilStateCreateInfo()
+	constexpr operator VkPipelineDepthStencilStateCreateInfo() const
 	{
 		return info;
 	}
@@ -51,10 +51,10 @@ private:
 
 struct blend_state
 {
+	const std::vector<VkPipelineColorBlendAttachmentState> blend_attachments;
 	const VkPipelineColorBlendStateCreateInfo info;
-	const std::initializer_list<VkPipelineColorBlendAttachmentState> blend_attachments;
 
-	static constexpr blend_state get()
+	static blend_state get()
 	{
 		return blend_state(false, VK_LOGIC_OP_NO_OP, {
 			{ false,
@@ -63,14 +63,14 @@ struct blend_state
 		}, { 1., 1., 1., 1. });
 	}
 
-	constexpr operator VkPipelineColorBlendStateCreateInfo()
+	operator VkPipelineColorBlendStateCreateInfo() const
 	{
 		return info;
 	}
 private:
-	constexpr blend_state(bool logicop_enable, VkLogicOp op, const std::initializer_list<VkPipelineColorBlendAttachmentState> att, const std::array<float, 4> blend_constants)
+	blend_state(bool logicop_enable, VkLogicOp op, const std::vector<VkPipelineColorBlendAttachmentState> att, const std::array<float, 4> blend_constants)
 		: blend_attachments(att),
-		info{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, logicop_enable, op, static_cast<uint32_t> (blend_attachments.size()), blend_attachments.begin(),
+		info{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, logicop_enable, op, static_cast<uint32_t> (blend_attachments.size()), blend_attachments.data(),
 		{ blend_constants[0], blend_constants[1], blend_constants[2], blend_constants[3] } }
 	{ }
 };
