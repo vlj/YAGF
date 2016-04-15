@@ -5,12 +5,12 @@
 layout(binding = 0, set = 0, std140) uniform ObjectData
 {
   mat4 ModelMatrix;
-  mat4 InverseModelMatrix;
+  mat4 ViewProjectionMatrix;
 };
 
 layout(binding = 1, set = 0, std140) uniform ViewMatrices
 {
-  mat4 ViewProjectionMatrix;
+mat4 tobeset;
 };
 
 layout(location = 0) in vec3 Position;

@@ -60,10 +60,8 @@ struct pipeline_layout_description
 	pipeline_layout_description(const pipeline_layout_description&) = delete;
 	pipeline_layout_description(pipeline_layout_description&&) = delete;
 
-	VkPipelineLayout get(VkDevice dev)
+	std::vector<VkDescriptorSetLayout> get(VkDevice dev) const
 	{
-		VkPipelineLayout result;
-		VkPipelineLayoutCreateInfo info{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		// TODO: Store externally
 		std::vector<VkDescriptorSetLayout> set_layouts;
 		for (const descriptor_set &ds : descriptor_sets)
@@ -73,10 +71,6 @@ struct pipeline_layout_description
 			CHECK_VKRESULT(vkCreateDescriptorSetLayout(dev, &set_info, nullptr, &sl));
 			set_layouts.push_back(sl);
 		}
-
-		info.setLayoutCount = static_cast<uint32_t>(set_layouts.size());
-		info.pSetLayouts = set_layouts.data();
-		CHECK_VKRESULT(vkCreatePipelineLayout(dev, &info, nullptr, &result));
-		return result;
+		return set_layouts;
 	}
 };

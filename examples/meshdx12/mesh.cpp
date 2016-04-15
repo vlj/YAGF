@@ -192,6 +192,10 @@ struct Sample
     std::vector<image_t> back_buffer;
     descriptor_storage_t BackBufferDescriptorsHeap;
 
+#ifndef D3D12
+	VkDescriptorSet descriptor_set;
+#endif // !D3D12
+
     command_list_storage_t command_allocator;
     command_list_t command_list;
     buffer_t cbuffer;
@@ -230,12 +234,12 @@ struct Sample
 		start_command_list_recording(dev, command_list, command_allocator);
 		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0);
 		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0);
+
 #endif // !D3D12
 
         cbuffer = create_buffer(dev, sizeof(Matrixes));
         jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
-        cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
 /*        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
         create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
 
@@ -244,12 +248,27 @@ struct Sample
 
 		clear_value_structure_t clear_val = {};
 #ifdef D3D12
+		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif
 
         depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
 #ifndef D3D12
+		sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, skinned_mesh_layout.get(dev->object), std::vector<VkPushConstantRange>());
+		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1 } };
+		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 3, size);
+
+		VkDescriptorSetAllocateInfo info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, sig->info.pSetLayouts };
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &descriptor_set));
+		VkDescriptorBufferInfo cbuffer_info{cbuffer->object, 0, sizeof(Matrixes)};
+		VkWriteDescriptorSet update_info{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr};
+		vkUpdateDescriptorSets(dev->object, 1, &update_info, 0, nullptr);
+
+		VkDescriptorBufferInfo cbuffer2_info{ jointbuffer->object, 0, sizeof(JointTransform) };
+		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
+		vkUpdateDescriptorSets(dev->object, 1, &update2_info, 0, nullptr);
+
 		VkAttachmentDescription attachment{};
 		attachment.format = VK_FORMAT_R8G8B8A8_UNORM;
 		attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -404,7 +423,7 @@ struct Sample
         }
 		*/
 //        sig = skinned_object_root_signature.get(dev);
-		pipeline_layout_t sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, skinned_mesh_layout.get(dev->object));
+
         objectpso = createSkinnedObjectShader(dev, sig, render_pass);
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
@@ -465,6 +484,8 @@ public:
 		info.renderArea.extent.width = 900;
 		info.renderArea.extent.height = 900;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &descriptor_set, 0, nullptr);
 #else // !D3D12
 		command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
