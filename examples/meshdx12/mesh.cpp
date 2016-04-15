@@ -104,8 +104,6 @@ pipeline_layout_description skinned_mesh_layout({
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
-    pipeline_state_t result;
-
 	constexpr rasterisation_state raster = rasterisation_state::get();
 	constexpr depth_stencil_state depth_stencil = depth_stencil_state::get();
 	const blend_state blend = blend_state::get();
@@ -136,7 +134,7 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	const VkVertexInputAttributeDescription attribute{ 0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 };
 	vertex_input.pVertexAttributeDescriptions = &attribute;
 
-	vulkan_wrapper::pipeline tmp(dev->object, 0, shader_stages, vertex_input, input_assembly_info, tesselation_info, viewport_info, raster, multisample_info, depth_stencil, blend, dynamic_state_info, layout->object, rp->object, 0, VK_NULL_HANDLE, 0);
+	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, input_assembly_info, tesselation_info, viewport_info, raster, multisample_info, depth_stencil, blend, dynamic_state_info, layout->object, rp->object, 0,VkPipeline(VK_NULL_HANDLE), 0);
 
 #ifdef D3D12
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
@@ -183,7 +181,6 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
     psodesc.NodeMask = 1;
     CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 #endif
-    return result;
 }
 
 

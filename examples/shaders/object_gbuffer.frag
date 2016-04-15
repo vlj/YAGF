@@ -11,8 +11,8 @@ in vec2 uv;
 in vec4 color;
 
 layout(location = 0) out vec4 EncodedNormal_Roughness_Metalness;
-layout(location = 1) out vec4 Colors;
-layout(location = 2) out float EmitMap;
+//layout(location = 1) out vec4 Colors;
+//layout(location = 2) out float EmitMap;
 
 // from Crytek "a bit more deferred CryEngine"
 vec2 EncodeNormal(vec3 n)
@@ -22,8 +22,9 @@ vec2 EncodeNormal(vec3 n)
 
 void main(void)
 {
-  vec4 texel = texture(sampler2D(tex, s), uv);
-  Colors = vec4(texel.rgb * pow(color.rgb, vec3(2.2)), 1.);
+    EncodedNormal_Roughness_Metalness = vec4(1.);
+//  vec4 texel = texture(sampler2D(tex, s), uv);
+//  Colors = vec4(texel.rgb * pow(color.rgb, vec3(2.2)), 1.);
 /*  float glossmap = texture(glosstex, uv).r;
   float reflectance = texture(glosstex, uv).g;
   EncodedNormal_Roughness_Metalness.xy = 0.5 * EncodeNormal(normalize(nor)) + 0.5;
