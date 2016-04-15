@@ -110,7 +110,7 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	constexpr depth_stencil_state depth_stencil = depth_stencil_state::get();
 	const blend_state blend = blend_state::get();
 
-	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_info{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false };
 	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
 	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
@@ -127,6 +127,14 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
 		{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
 	};
+
+	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+	vertex_input.vertexBindingDescriptionCount = 1;
+	const VkVertexInputBindingDescription vertex_buffer{0, static_cast<uint32_t>(sizeof(irr::video::S3DVertex2TCoords)), VK_VERTEX_INPUT_RATE_VERTEX};
+	vertex_input.pVertexBindingDescriptions = &vertex_buffer;
+	vertex_input.vertexAttributeDescriptionCount = 1;
+	const VkVertexInputAttributeDescription attribute{ 0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 };
+	vertex_input.pVertexAttributeDescriptions = &attribute;
 
 	vulkan_wrapper::pipeline tmp(dev->object, 0, shader_stages, vertex_input, input_assembly_info, tesselation_info, viewport_info, raster, multisample_info, depth_stencil, blend, dynamic_state_info, layout->object, rp->object, 0, VK_NULL_HANDLE, 0);
 
