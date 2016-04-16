@@ -15,7 +15,6 @@
 
 #include "../VKAPI/renderpass_helpers.h"
 #include "../VKAPI/pipeline_layout_helpers.h"
-#include "../VKAPI/pipeline_helpers.h"
 
 
 namespace vulkan_wrapper
@@ -460,3 +459,4 @@ command_queue_t create_graphic_command_queue(device_t dev);
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain);
 
 #include "GfxApi.h"
+#include "../VKAPI/pipeline_helpers.h"
