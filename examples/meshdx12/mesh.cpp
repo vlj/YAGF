@@ -97,10 +97,10 @@ public:
 
 
 
-/*pipeline_layout_description skinned_mesh_layout({
+pipeline_layout_description skinned_mesh_layout({
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1)})
-});*/
+});
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
@@ -428,8 +428,7 @@ struct Sample
 public:
     Sample(HINSTANCE hinstance, HWND window)
     {
-		std::tie(dev, chain) = create_device_and_swapchain(hinstance, window);
-        cmdqueue = create_graphic_command_queue(dev);
+		std::tie(dev, chain, cmdqueue) = create_device_swapchain_and_graphic_presentable_queue(hinstance, window);
         back_buffer = get_image_view_from_swap_chain(dev, chain);
         Init();
     }

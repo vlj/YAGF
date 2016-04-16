@@ -73,7 +73,7 @@ namespace
 	}
 }
 
-std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstance, HWND window)
+std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
 	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
@@ -179,19 +179,16 @@ std::tuple<device_t, swap_chain_t> create_device_and_swapchain(HINSTANCE hinstan
 	swap_chain.queueFamilyIndexCount = 0;
 	swap_chain.pQueueFamilyIndices = nullptr;
 
-	swap_chain_t result = std::make_shared<vulkan_wrapper::swapchain>(dev->object);
-	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &(result->object)));
-	result->info = swap_chain;
-	return std::make_tuple(dev, result);
-}
+	swap_chain_t chain = std::make_shared<vulkan_wrapper::swapchain>(dev->object);
+	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &(chain->object)));
+	chain->info = swap_chain;
 
-command_queue_t create_graphic_command_queue(device_t dev)
-{
-	command_queue_t result = std::make_shared<vulkan_wrapper::queue>();
-	result->info.queue_family = dev->queue_create_infos[0].queueFamilyIndex;
-	result->info.queue_index = 0;
-	vkGetDeviceQueue(dev->object, result->info.queue_family, result->info.queue_index, &(result->object));
-	return result;
+	command_queue_t queue = std::make_shared<vulkan_wrapper::queue>();
+	queue->info.queue_family = dev->queue_create_infos[0].queueFamilyIndex;
+	queue->info.queue_index = 0;
+	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
+
+	return std::make_tuple(dev, chain, queue);
 }
 
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)

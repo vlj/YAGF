@@ -412,9 +412,8 @@ pipeline_layout_t root_signature_builder::get(device_t dev)
     return result;
 }
 
-device_t create_device()
+std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
-
 #ifndef NDEBUG
 	Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
 	D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
@@ -428,35 +427,23 @@ device_t create_device()
     CHECK_HRESULT(fact->EnumAdapters(0, adaptater.GetAddressOf()));
     CHECK_HRESULT(D3D12CreateDevice(adaptater.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(dev.GetAddressOf())));
 
-    return dev;
-}
+	command_queue_t queue;
+	D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
+	CHECK_HRESULT(dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(queue.GetAddressOf())));
 
-command_queue_t create_graphic_command_queue(device_t dev)
-{
-    command_queue_t result;
-    D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
-    CHECK_HRESULT(dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(result.GetAddressOf())));
-    return result;
-}
+	swap_chain_t chain;
+	DXGI_SWAP_CHAIN_DESC swapChain = {};
+	swapChain.BufferCount = 2;
+	swapChain.Windowed = true;
+	swapChain.OutputWindow = window;
+	swapChain.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChain.SampleDesc.Count = 1;
+	swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
-swap_chain_t create_swap_chain(device_t dev, command_queue_t queue, HWND window)
-{
-    swap_chain_t chain;
-    Microsoft::WRL::ComPtr<IDXGIFactory> fact;
-    CHECK_HRESULT(CreateDXGIFactory(IID_PPV_ARGS(fact.GetAddressOf())));
-
-    DXGI_SWAP_CHAIN_DESC swapChain = {};
-    swapChain.BufferCount = 2;
-    swapChain.Windowed = true;
-    swapChain.OutputWindow = window;
-    swapChain.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChain.SampleDesc.Count = 1;
-    swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-
-    CHECK_HRESULT(fact->CreateSwapChain(queue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf()));
-    return chain;
+	CHECK_HRESULT(fact->CreateSwapChain(queue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf()));
+	return std::make_tuple(dev, chain, queue);
 }
 
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)
