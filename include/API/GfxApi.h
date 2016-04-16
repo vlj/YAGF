@@ -284,6 +284,7 @@ private:
 
 command_list_storage_t create_command_storage(device_t dev);
 command_list_t create_command_list(device_t dev, command_list_storage_t storage);
+void reset_command_list_storage(device_t dev, command_list_storage_t storage);
 buffer_t create_buffer(device_t dev, size_t size);
 image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state, clear_value_structure_t *clear_value);
 descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors);

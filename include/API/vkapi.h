@@ -13,10 +13,6 @@
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 
-#include "../VKAPI/renderpass_helpers.h"
-#include "../VKAPI/pipeline_layout_helpers.h"
-
-
 namespace vulkan_wrapper
 {
 	struct device
@@ -457,3 +453,5 @@ using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 
 #include "GfxApi.h"
 #include "../VKAPI/pipeline_helpers.h"
+#include "../VKAPI/pipeline_layout_helpers.h"
+#include "../VKAPI/renderpass_helpers.h"

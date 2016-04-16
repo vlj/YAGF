@@ -182,6 +182,11 @@ void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uin
     dev->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
+void reset_command_list_storage(device_t, command_list_storage_t storage)
+{
+	storage->Reset();
+}
+
 descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors)
 {
     descriptor_storage_t result;

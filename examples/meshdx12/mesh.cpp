@@ -223,7 +223,7 @@ struct Sample
     {
         command_allocator = create_command_storage(dev);
         command_list = create_command_list(dev, command_allocator);
-
+		sig = get_pipeline_layout_from_desc(dev, skinned_mesh_layout);
 
 #ifndef D3D12
 		start_command_list_recording(dev, command_list, command_allocator);
@@ -252,7 +252,6 @@ struct Sample
         depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
 #ifndef D3D12
-		sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, skinned_mesh_layout.get(dev->object), std::vector<VkPushConstantRange>());
 		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1 } };
 		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 3, size);
 
@@ -419,7 +418,7 @@ struct Sample
             create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id++, texture);
         }
 		*/
-        sig = get_pipeline_layout_from_desc(dev, skinned_mesh_layout);
+
         objectpso = createSkinnedObjectShader(dev, sig, render_pass);
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
@@ -522,6 +521,7 @@ public:
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);
         wait_for_command_queue_idle(dev, cmdqueue);
+		reset_command_list_storage(dev, command_allocator);
         present(dev, cmdqueue, chain, current_backbuffer);
     }
 };
