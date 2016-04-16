@@ -116,7 +116,7 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	viewport_info.scissorCount = 1;
 	std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
 	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
-	VkPipelineMultisampleStateCreateInfo multisample_info{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, nullptr, 0, VK_SAMPLE_COUNT_1_BIT};
+
 
 	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\vert.spv");
 	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\frag.spv");

@@ -15,6 +15,5 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)include\API\GfxApi.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)include\API\glapi.h" />
   </ItemGroup>
 </Project>
