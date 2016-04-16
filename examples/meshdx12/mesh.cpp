@@ -153,8 +153,6 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 #else
 	const blend_state blend = blend_state::get();
 
-
-	VkPipelineInputAssemblyStateCreateInfo input_assembly_info{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false };
 	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
 	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 	viewport_info.viewportCount = 1;
@@ -179,7 +177,7 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	const VkVertexInputAttributeDescription attribute{ 0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 };
 	vertex_input.pVertexAttributeDescriptions = &attribute;
 
-	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, input_assembly_info, tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
+	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
 
 #endif
 }

@@ -89,6 +89,21 @@ constexpr VkPipelineDepthStencilStateCreateInfo get_pipeline_depth_stencil_state
 		desc.depth_stencil_max_depth_clip };
 }
 
+constexpr VkPrimitiveTopology get_primitive_topology(const irr::video::E_PRIMITIVE_TYPE ept)
+{
+	return (ept == irr::video::E_PRIMITIVE_TYPE::EPT_LINES) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST :
+		(ept == irr::video::E_PRIMITIVE_TYPE::EPT_POINTS) ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST :
+		(ept == irr::video::E_PRIMITIVE_TYPE::EPT_LINE_STRIP) ? VK_PRIMITIVE_TOPOLOGY_LINE_STRIP :
+		(ept == irr::video::E_PRIMITIVE_TYPE::EPT_TRIANGLE_STRIP) ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP :
+		(ept == irr::video::E_PRIMITIVE_TYPE::EPT_TRIANGLES) ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST : throw;
+}
+
+constexpr VkPipelineInputAssemblyStateCreateInfo get_pipeline_input_assembly_state_info(const pipeline_state_description desc)
+{
+	return{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
+		get_primitive_topology(desc.input_assembly_topology), desc.input_assembly_primitive_restart };
+}
+
 
 struct blend_state
 {
