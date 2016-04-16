@@ -1237,5 +1237,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\unzip\unzip.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrXML\irrXML.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -414,6 +414,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\code\XGLLoader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\clipper\clipper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\convertutf\ConvertUTF.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\irrXML\irrXML.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\DDLNode.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\OpenDDLCommon.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)deps\assimp\contrib\openddlparser\code\OpenDDLExport.cpp" />

@@ -1,8 +1,12 @@
-#include <Loaders/B3D.h>
+#include <assimp/Importer.hpp>
+#include <Maths/matrix4.h>
+#include <assimp/scene.h>
 #include <Loaders/DDS.h>
 #include <tuple>
 #include <array>
 #include <unordered_map>
+
+
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -167,10 +171,10 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 
 	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 	vertex_input.vertexBindingDescriptionCount = 1;
-	const VkVertexInputBindingDescription vertex_buffer{ 0, static_cast<uint32_t>(sizeof(irr::video::S3DVertex2TCoords)), VK_VERTEX_INPUT_RATE_VERTEX };
+	const VkVertexInputBindingDescription vertex_buffer{ 0, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX };
 	vertex_input.pVertexBindingDescriptions = &vertex_buffer;
 	vertex_input.vertexAttributeDescriptionCount = 1;
-	const VkVertexInputAttributeDescription attribute{ 0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 };
+	const VkVertexInputAttributeDescription attribute{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 };
 	vertex_input.pVertexAttributeDescriptions = &attribute;
 
 	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
@@ -209,7 +213,7 @@ struct Sample
 	render_pass_t render_pass;
     framebuffer_t fbo[2];
 
-    irr::scene::CB3DMeshFileLoader *loader;
+	const aiScene* model;
 
     std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
 
@@ -286,17 +290,13 @@ struct Sample
 		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
 		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
 
-        irr::io::CReadFile reader("..\\..\\examples\\assets\\xue.b3d");
-        loader = new irr::scene::CB3DMeshFileLoader(&reader);
-        std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
-        std::vector<irr::scene::SMeshBufferLightMap> reorg;
+		Assimp::Importer importer;
+		model = importer.ReadFile("..\\..\\examples\\assets\\xue.b3d", 0);
 
-        for (auto buf : buffers)
-            reorg.push_back(buf.first);
 
         // Format Weight
 
-        std::vector<std::vector<irr::video::SkinnedVertexData> > weightsList;
+/*        std::vector<std::vector<irr::video::SkinnedVertexData> > weightsList;
         for (auto weightbuffer : loader->AnimatedMesh.WeightBuffers)
         {
             std::vector<irr::video::SkinnedVertexData> weights;
@@ -311,39 +311,50 @@ struct Sample
                 weights.push_back(tmp);
             }
             weightsList.push_back(weights);
-        }
+        }*/
+
 
         size_t total_vertex_cnt = 0;
         total_index_cnt = 0;
-        for (const irr::scene::IMeshBuffer<irr::video::S3DVertex2TCoords>& mesh : reorg)
+        for (int i = 0; i < model->mNumMeshes; ++i)
         {
-            total_vertex_cnt += mesh.getVertexCount();
-            total_index_cnt += mesh.getIndexCount();
+			const aiMesh *mesh = model->mMeshes[i];
+			total_vertex_cnt += mesh->mNumVertices;
+            total_index_cnt += mesh->mNumFaces * 3;
         }
         //vao = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
-        size_t bufferSize = total_vertex_cnt * sizeof(irr::video::S3DVertex2TCoords);
+        size_t bufferSize = total_vertex_cnt * (sizeof(aiVector3D));
 
         vertex_buffer_attributes = create_buffer(dev, bufferSize);
         index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
         uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer);
-        irr::video::S3DVertex2TCoords *vertexmap = (irr::video::S3DVertex2TCoords*)map_buffer(dev, vertex_buffer_attributes);
+        aiVector3D *vertexmap = (aiVector3D*)map_buffer(dev, vertex_buffer_attributes);
 
         size_t basevertex = 0, baseindex = 0;
 
-        for (const irr::scene::IMeshBuffer<irr::video::S3DVertex2TCoords>& mesh : reorg)
-        {
-            memcpy(&vertexmap[basevertex], mesh.getVertices(), sizeof(irr::video::S3DVertex2TCoords) * mesh.getVertexCount());
-            memcpy(&indexmap[baseindex], mesh.getIndices(), sizeof(unsigned short) * mesh.getIndexCount());
-            meshOffset.push_back(std::make_tuple(mesh.getIndexCount(), basevertex, baseindex));
-            basevertex += mesh.getVertexCount();
-            baseindex += mesh.getIndexCount();
+		for (int i = 0; i < model->mNumMeshes; ++i)
+		{
+			const aiMesh *mesh = model->mMeshes[i];
+			for (int vtx = 0; vtx < mesh->mNumVertices; ++vtx)
+			{
+				vertexmap[basevertex + vtx] = mesh->mVertices[vtx];
+			}
+			for (int idx = 0; idx < mesh->mNumFaces; ++idx)
+			{
+				indexmap[baseindex + 3 * idx] = mesh->mFaces[idx].mIndices[0];
+				indexmap[baseindex + 3 * idx + 1] = mesh->mFaces[idx].mIndices[1];
+				indexmap[baseindex + 3 * idx + 2] = mesh->mFaces[idx].mIndices[2];
+			}
+            meshOffset.push_back(std::make_tuple(mesh->mNumFaces * 3, basevertex, baseindex));
+            basevertex += mesh->mNumVertices;
+            baseindex += mesh->mNumFaces * 3;
         }
 
         unmap_buffer(dev, index_buffer);
         unmap_buffer(dev, vertex_buffer_attributes);
         // TODO: Upload to GPUmem
 
-        vertex_buffers_info.emplace_back(vertex_buffer_attributes, 0, static_cast<uint32_t>(sizeof(irr::video::S3DVertex2TCoords)), static_cast<uint32_t>(bufferSize));
+        vertex_buffers_info.emplace_back(vertex_buffer_attributes, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(bufferSize));
 
         // Upload to gpudata
 
@@ -456,10 +467,10 @@ public:
         double intpart;
         float frame = (float)modf(timer / 10000., &intpart);
         frame *= 300.f;
-        loader->AnimatedMesh.animateMesh(frame, 1.f);
+/*        loader->AnimatedMesh.animateMesh(frame, 1.f);
         loader->AnimatedMesh.skinMesh(1.f);
 
-        memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));
+        memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
         unmap_buffer(dev, jointbuffer);
 
 		uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain);
@@ -503,8 +514,9 @@ public:
 		bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
 		bind_vertex_buffers(command_list, 0, vertex_buffers_info);
 
-        std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
-        for (unsigned i = 0; i < buffers.size(); i++)
+
+//        std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
+        for (unsigned i = 0; i < meshOffset.size(); i++)
         {
 #ifdef D3D12
 			command_list->SetGraphicsRootDescriptorTable(0,
