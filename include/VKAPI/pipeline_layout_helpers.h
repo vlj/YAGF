@@ -33,7 +33,9 @@ pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_lay
 			range.binding = rod.bind_point;
 			range.descriptorCount = rod.count;
 			range.descriptorType = get_descriptor_type(rod.range_type);
+			range.stageFlags = VK_SHADER_STAGE_ALL;
 			descriptor_range_storage.emplace_back(range);
+
 		}
 		all_descriptor_range_storage.emplace_back(descriptor_range_storage);
 		VkDescriptorSetLayoutCreateInfo set_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
