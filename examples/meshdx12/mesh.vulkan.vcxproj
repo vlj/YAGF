@@ -26,6 +26,7 @@
   <ItemGroup>
     <None Include="..\shaders\object.vert" />
     <None Include="..\shaders\object_gbuffer.frag" />
+    <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{15D57052-73AD-4977-AB53-FBD0E92C4DDF}</ProjectGuid>
@@ -167,5 +168,14 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbu
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\packages\Microsoft.Gsl.0.1.2.1\build\native\Microsoft.Gsl.targets" Condition="Exists('..\..\packages\Microsoft.Gsl.0.1.2.1\build\native\Microsoft.Gsl.targets')" />
+    <Import Project="..\..\packages\CppCheckTask.1.5.3\build\CppCheckTask.targets" Condition="Exists('..\..\packages\CppCheckTask.1.5.3\build\CppCheckTask.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\packages\Microsoft.Gsl.0.1.2.1\build\native\Microsoft.Gsl.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Gsl.0.1.2.1\build\native\Microsoft.Gsl.targets'))" />
+    <Error Condition="!Exists('..\..\packages\CppCheckTask.1.5.3\build\CppCheckTask.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\CppCheckTask.1.5.3\build\CppCheckTask.targets'))" />
+  </Target>
 </Project>
