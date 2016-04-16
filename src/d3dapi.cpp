@@ -385,38 +385,6 @@ d3d12_framebuffer_t::~d3d12_framebuffer_t()
 
 }
 
-void root_signature_builder::build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility)
-{
-    all_ranges.push_back(ranges);
-    CD3DX12_ROOT_PARAMETER rp;
-    rp.InitAsDescriptorTable(static_cast<uint32_t>(all_ranges.back().size()), all_ranges.back().data(), visibility);
-    root_parameters.push_back(rp);
-}
-
-root_signature_builder::root_signature_builder(std::vector<std::tuple<std::vector<D3D12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags)
-{
-    for (auto &&rp_parameter : parameters)
-    {
-        build_root_parameter(std::move(std::get<0>(rp_parameter)), std::get<1>(rp_parameter));
-    }
-    desc.Flags = flags;
-    desc.NumParameters = static_cast<uint32_t>(root_parameters.size());
-    desc.pParameters = root_parameters.data();
-}
-
-pipeline_layout_t root_signature_builder::get(device_t dev)
-{
-    pipeline_layout_t result;
-    Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSig;
-    Microsoft::WRL::ComPtr<ID3DBlob> error;
-    CHECK_HRESULT(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, pSerializedRootSig.GetAddressOf(), error.GetAddressOf()));
-
-    CHECK_HRESULT(dev->CreateRootSignature(1,
-        pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
-        IID_PPV_ARGS(result.GetAddressOf())));
-    return result;
-}
-
 std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 #ifndef NDEBUG

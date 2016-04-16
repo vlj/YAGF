@@ -1,10 +1,10 @@
-cbuffer Matrixes : register(b0)
+cbuffer Matrixes : register(b0, space0)
 {
   float4x4 ModelMatrix;
   float4x4 ViewProjectionMatrix;
 }
 
-cbuffer Matrixes : register(b1)
+cbuffer Matrixes : register(b0, space1)
 {
   float4x4 JointTransform[48];
 }

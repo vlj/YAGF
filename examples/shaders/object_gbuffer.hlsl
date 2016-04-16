@@ -1,5 +1,5 @@
-Texture2D<float4> Tex : register(t0);
-sampler TexSampler : register(s0);
+Texture2D<float4> Tex : register(t0, space2);
+sampler TexSampler : register(s0, space3);
 
 struct PS_INPUT
 {

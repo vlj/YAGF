@@ -106,6 +106,59 @@ struct MipLevelData
 	size_t RowPitch;
 };
 
+
+enum class RESOURCE_VIEW
+{
+	CONSTANTS_BUFFER,
+	SHADER_RESOURCE,
+	SAMPLER,
+	UAV,
+};
+
+
+
+struct range_of_descriptors
+{
+	const RESOURCE_VIEW range_type;
+	const uint32_t bind_point;
+	const uint32_t count;
+
+	constexpr range_of_descriptors(const RESOURCE_VIEW rt, const uint32_t bindpoint, const uint32_t range_size)
+		: range_type(rt), bind_point(bindpoint), count(range_size)
+	{}
+};
+
+struct descriptor_set_
+{
+	const range_of_descriptors *descriptors_ranges;
+	const uint32_t count;
+
+	constexpr descriptor_set_(const range_of_descriptors * ptr, const uint32_t cnt) : descriptors_ranges(ptr), count(cnt)
+	{ }
+};
+
+template<size_t N>
+constexpr descriptor_set_ descriptor_set(const range_of_descriptors (&arr)[N])
+{
+	return descriptor_set_(arr, N);
+}
+
+template<int N>
+struct pipeline_layout_description_
+{
+	const std::array<descriptor_set_, N> descriptors_sets;
+
+	constexpr pipeline_layout_description_(const std::array<descriptor_set_, N> arr) : descriptors_sets(arr)
+	{}
+};
+
+template<typename...T>
+constexpr pipeline_layout_description_<sizeof...(T)> pipeline_layout_description(const T...args)
+{
+	return pipeline_layout_description_<sizeof...(T)>({ args... });
+}
+
+
 struct pipeline_state_description
 {
 	const bool rasterization_depth_clamp_enable;

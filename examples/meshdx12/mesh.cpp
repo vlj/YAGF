@@ -94,13 +94,13 @@ public:
         return hWnd;
     }
 };
+//constexpr auto test = pipeline_layout_description(descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1) }));
 
 
-
-pipeline_layout_description skinned_mesh_layout({
+constexpr auto skinned_mesh_layout = pipeline_layout_description(
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1)})
-});
+);
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
@@ -235,15 +235,17 @@ struct Sample
         cbuffer = create_buffer(dev, sizeof(Matrixes));
         jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
-/*        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
-        create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
-
-        sampler_heap = create_sampler_heap(dev, 1);
-        create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);*/
 
 		clear_value_structure_t clear_val = {};
 #ifdef D3D12
 		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
+
+		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
+		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
+
+		sampler_heap = create_sampler_heap(dev, 1);
+		create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
+
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif
 
@@ -417,8 +419,7 @@ struct Sample
             create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id++, texture);
         }
 		*/
-//        sig = skinned_object_root_signature.get(dev);
-
+        sig = get_pipeline_layout_from_desc(dev, skinned_mesh_layout);
         objectpso = createSkinnedObjectShader(dev, sig, render_pass);
         make_command_list_executable(command_list);
         submit_executable_command_list(cmdqueue, command_list);

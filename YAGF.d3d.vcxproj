@@ -24,6 +24,7 @@
   <ItemGroup>
     <ClInclude Include="include\API\d3dapi.h" />
     <ClInclude Include="include\D3DAPI\pipeline_helpers.h" />
+    <ClInclude Include="include\D3DAPI\pipeline_layout_helpers.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C005CA5D-8870-49DF-8FCC-DAB6D1C5AD80}</ProjectGuid>

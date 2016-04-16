@@ -40,19 +40,6 @@ struct d3d12_framebuffer_t
 
 using framebuffer_t = std::shared_ptr<d3d12_framebuffer_t>;
 
-
-struct root_signature_builder
-{
-private:
-    std::vector<std::vector<D3D12_DESCRIPTOR_RANGE > > all_ranges;
-    std::vector<D3D12_ROOT_PARAMETER> root_parameters;
-    D3D12_ROOT_SIGNATURE_DESC desc = {};
-
-    void build_root_parameter(std::vector<D3D12_DESCRIPTOR_RANGE > &&ranges, D3D12_SHADER_VISIBILITY visibility);
-public:
-    root_signature_builder(std::vector<std::tuple<std::vector<D3D12_DESCRIPTOR_RANGE >, D3D12_SHADER_VISIBILITY> > &&parameters, D3D12_ROOT_SIGNATURE_FLAGS flags);
-    pipeline_layout_t get(device_t dev);
-};
-
 #include "GfxApi.h"
 #include "../D3DAPI/pipeline_helpers.h"
+#include "../D3DAPI/pipeline_layout_helpers.h"

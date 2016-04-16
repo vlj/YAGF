@@ -26,5 +26,8 @@
     <ClInclude Include="include\D3DAPI\pipeline_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\D3DAPI\pipeline_layout_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
