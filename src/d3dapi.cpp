@@ -168,7 +168,7 @@ descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descri
     return result;
 }
 
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture)
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t)
 {
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
@@ -314,6 +314,11 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 
 }
 
+void set_graphic_pipeline(command_list_t command_list, pipeline_state_t pipeline)
+{
+	command_list->SetPipelineState(pipeline.Get());
+}
+
 void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list)
 {
     command_queue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
@@ -340,7 +345,7 @@ void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
     CloseHandle(completion_event);
 }
 
-void present(device_t dev, swap_chain_t chain)
+void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index)
 {
     CHECK_HRESULT(chain->Present(1, 0));
 }
