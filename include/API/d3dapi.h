@@ -60,3 +60,4 @@ swap_chain_t create_swap_chain(device_t dev, command_queue_t queue, HWND window)
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain);
 
 #include "GfxApi.h"
+#include "../D3DAPI/pipeline_helpers.h"

@@ -97,25 +97,23 @@ public:
 
 
 
-pipeline_layout_description skinned_mesh_layout({
+/*pipeline_layout_description skinned_mesh_layout({
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1)})
-});
+});*/
 
 pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
 #ifdef D3D12
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {};
-    psodesc.pRootSignature = sig;
-    psodesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipeline_state_t result;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
+    psodesc.pRootSignature = layout.Get();
 
     psodesc.NumRenderTargets = 1;
     psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 //    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    psodesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
     psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
@@ -145,8 +143,6 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 
     psodesc.InputLayout.pInputElementDescs = IAdesc.data();
     psodesc.InputLayout.NumElements = IAdesc.size();
-    psodesc.SampleDesc.Count = 1;
-    psodesc.SampleMask = UINT_MAX;
     psodesc.NodeMask = 1;
     CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
