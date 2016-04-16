@@ -32,7 +32,7 @@ pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_lay
 			VkDescriptorSetLayoutBinding range{};
 			range.binding = rod.bind_point;
 			range.descriptorCount = rod.count;
-			range.descriptorCount = get_descriptor_type(rod.range_type);
+			range.descriptorType = get_descriptor_type(rod.range_type);
 			descriptor_range_storage.emplace_back(range);
 		}
 		all_descriptor_range_storage.emplace_back(descriptor_range_storage);
