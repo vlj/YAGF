@@ -507,6 +507,8 @@ uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
 	CHECK_VKRESULT(vkCreateFence(dev->object, &info, nullptr, &fence));
 	CHECK_VKRESULT(vkAcquireNextImageKHR(dev->object, chain->object, UINT64_MAX, VK_NULL_HANDLE, fence, &index));
 	CHECK_VKRESULT(vkWaitForFences(dev->object, 1, &fence, true, UINT64_MAX));
+	// TODO: Reuse accross call to gnbi
+	vkDestroyFence(dev->object, fence, nullptr);
 	return index;
 }
 

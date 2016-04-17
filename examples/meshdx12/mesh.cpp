@@ -218,10 +218,11 @@ struct Sample
 
     std::unordered_map<std::string, uint32_t> textureSet;
 
-    pipeline_state_t objectpso;
-    pipeline_layout_t sig;
+
+	pipeline_layout_t sig;
 	render_pass_t render_pass;
     framebuffer_t fbo[2];
+	pipeline_state_t objectpso;
 
 	const aiScene* model;
 
@@ -490,7 +491,7 @@ public:
         loader->AnimatedMesh.skinMesh(1.f);
 
         memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
-        unmap_buffer(dev, jointbuffer);
+        //unmap_buffer(dev, jointbuffer);
 
 		uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain);
 

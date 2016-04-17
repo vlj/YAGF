@@ -344,7 +344,7 @@ namespace vulkan_wrapper
 
 		~pipeline()
 		{
-			vkDestroyPipeline(m_device, VK_NULL_HANDLE, nullptr);
+			vkDestroyPipeline(m_device, object, nullptr);
 		}
 
 		pipeline(pipeline&&) = delete;
