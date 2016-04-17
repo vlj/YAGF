@@ -189,7 +189,8 @@ private:
 	descriptor_storage_t BackBufferDescriptorsHeap;
 
 #ifndef D3D12
-	VkDescriptorSet descriptor_set;
+	VkDescriptorSet cbuffer_descriptor_set;
+	std::vector<VkDescriptorSet> texture_descriptor_set;
 #endif // !D3D12
 
 	command_list_storage_t command_allocator;
@@ -261,17 +262,17 @@ protected:
 		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
 #ifndef D3D12
-		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1 } };
+		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10 } };
 		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 3, size);
 
 		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, sig->info.pSetLayouts };
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &descriptor_set));
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &cbuffer_descriptor_set));
 		VkDescriptorBufferInfo cbuffer_info{ cbuffer->object, 0, sizeof(Matrixes) };
-		VkWriteDescriptorSet update_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr };
+		VkWriteDescriptorSet update_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr };
 		vkUpdateDescriptorSets(dev->object, 1, &update_info, 0, nullptr);
 
 		VkDescriptorBufferInfo cbuffer2_info{ jointbuffer->object, 0, sizeof(JointTransform) };
-		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
+		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
 		vkUpdateDescriptorSets(dev->object, 1, &update2_info, 0, nullptr);
 
 		VkAttachmentDescription attachment{};
@@ -461,7 +462,14 @@ protected:
 #ifdef D3D12
 			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
 #else
+			VkDescriptorSetAllocateInfo allocate_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &sig->info.pSetLayouts[1] };
+			VkDescriptorSet texture_descriptor;
+			CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &allocate_info, &texture_descriptor));
+			texture_descriptor_set.push_back(texture_descriptor);
+			VkDescriptorImageInfo image_view{ VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
+			VkWriteDescriptorSet write_info{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, texture_descriptor, 2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &image_view, nullptr, nullptr};
+			vkUpdateDescriptorSets(dev->object, 1, &write_info, 0, nullptr);
 #endif
 		}
 
@@ -512,7 +520,7 @@ protected:
 		info.renderArea.extent.height = 900;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &descriptor_set, 0, nullptr);
+		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
 #else // !D3D12
 		command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
