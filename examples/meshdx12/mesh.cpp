@@ -39,7 +39,8 @@ struct JointTransform
 
 
 constexpr auto skinned_mesh_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) }),
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) })
 );
 
@@ -202,6 +203,7 @@ private:
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
 
+	std::vector<uint32_t> texture_mapping;
 	std::unordered_map<std::string, uint32_t> textureSet;
 
 	pipeline_layout_t sig;
@@ -356,10 +358,13 @@ protected:
 			meshOffset.push_back(std::make_tuple(mesh->mNumFaces * 3, basevertex, baseindex));
 			basevertex += mesh->mNumVertices;
 			baseindex += mesh->mNumFaces * 3;
+			texture_mapping.push_back(mesh->mMaterialIndex);
 		}
 
 		unmap_buffer(dev, index_buffer);
 		unmap_buffer(dev, vertex_pos);
+		unmap_buffer(dev, vertex_normal);
+		unmap_buffer(dev, vertex_uv0);
 		// TODO: Upload to GPUmem
 
 		vertex_buffers_info.emplace_back(vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
@@ -369,10 +374,10 @@ protected:
 		// Upload to gpudata
 
 		// Texture
-		uint32_t texture_id = 0;
-		aiString path;
-		model->mMaterials[0]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
+		for (int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
 		{
+			aiString path;
+			model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 			std::string texture_path(path.C_Str());
 			const std::string &fixed = "..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 			std::ifstream DDSFile(fixed, std::ifstream::binary);
@@ -383,7 +388,7 @@ protected:
 			uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
 			uint16_t layer_count = 1;
 
-			buffer_t upload_buffer = create_buffer(dev, width * height * 4 * 3 * 6);
+			buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
 			upload_buffers.push_back(upload_buffer);
 			void *pointer = map_buffer(dev, upload_buffer);
 
@@ -437,7 +442,7 @@ protected:
 				miplevel++;
 			}
 			textureSet[fixed] = 2 + texture_id;
-			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id++, texture);
+			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
 		}
 
 		objectpso = createSkinnedObjectShader(dev, sig, render_pass);
@@ -503,7 +508,7 @@ protected:
 		clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
 		clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
 
-		command_list->SetGraphicsRootDescriptorTable(1,
+		command_list->SetGraphicsRootDescriptorTable(2,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(command_list, objectpso);
@@ -519,9 +524,9 @@ protected:
 		for (unsigned i = 0; i < meshOffset.size(); i++)
 		{
 #ifdef D3D12
-//			command_list->SetGraphicsRootDescriptorTable(0,
-//				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-//				.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+			command_list->SetGraphicsRootDescriptorTable(1,
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+				.Offset(texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #endif
 			draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
 		}
