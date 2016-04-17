@@ -353,16 +353,39 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct pipeline_descriptor_set
+	{
+		VkDescriptorSetLayout object;
+		const std::vector<VkDescriptorSetLayoutBinding> bindings;
+		const VkDescriptorSetLayoutCreateInfo info;
+
+		pipeline_descriptor_set(VkDevice dev, const std::vector<VkDescriptorSetLayoutBinding> &b)
+			: bindings(b),
+			info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(bindings.size()), bindings.data() },
+			m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateDescriptorSetLayout(dev, &info, nullptr, &object));
+		}
+
+		~pipeline_descriptor_set()
+		{
+			vkDestroyDescriptorSetLayout(m_device, object, nullptr);
+		}
+	private:
+		VkDevice m_device;
+	};
+
 
 	struct pipeline_layout
 	{
 		VkPipelineLayout object;
+		const std::vector<pipeline_descriptor_set> set_layouts_wraper;
 		const std::vector<VkDescriptorSetLayout> set_layouts;
 		const std::vector<VkPushConstantRange> push_constant_ranges;
 		const VkPipelineLayoutCreateInfo info;
 
-		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, const std::vector<VkDescriptorSetLayout> &sets, const std::vector<VkPushConstantRange> &pcr)
-			: set_layouts(sets), push_constant_ranges(pcr),
+		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, std::vector<pipeline_descriptor_set> &&sets, const std::vector<VkPushConstantRange> &pcr)
+			: set_layouts_wraper(std::move(sets)), set_layouts(get_set_layout_object_set(set_layouts_wraper)), push_constant_ranges(pcr),
 			info({ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, flags, static_cast<uint32_t>(set_layouts.size()), set_layouts.data(), static_cast<uint32_t>(push_constant_ranges.size()), push_constant_ranges.data() }),
 			m_device(dev)
 		{
@@ -378,6 +401,16 @@ namespace vulkan_wrapper
 		pipeline_layout(const pipeline_layout&) = delete;
 	private:
 		VkDevice m_device;
+
+		std::vector<VkDescriptorSetLayout> get_set_layout_object_set(const std::vector<pipeline_descriptor_set> &sets)
+		{
+			std::vector<VkDescriptorSetLayout> result;
+			for (const pipeline_descriptor_set& descriptor_set : sets)
+			{
+				result.emplace_back(descriptor_set.object);
+			}
+			return result;
+		}
 	};
 
 	struct swapchain

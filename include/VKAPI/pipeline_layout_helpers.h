@@ -16,11 +16,7 @@ template<size_t N>
 pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_layout_description_<N> desc)
 {
 	pipeline_layout_t result;
-
-	std::vector<std::vector<VkDescriptorSetLayoutBinding> > all_descriptor_range_storage;
-	all_descriptor_range_storage.reserve(N);
-	// TODO: Store externally
-	std::vector<VkDescriptorSetLayout> set_layouts;
+	std::vector<vulkan_wrapper::pipeline_descriptor_set> set_layouts;
 	set_layouts.reserve(N);
 	for (const descriptor_set_ &ds : desc.descriptors_sets)
 	{
@@ -37,14 +33,8 @@ pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_lay
 			descriptor_range_storage.emplace_back(range);
 
 		}
-		all_descriptor_range_storage.emplace_back(descriptor_range_storage);
-		VkDescriptorSetLayoutCreateInfo set_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			static_cast<uint32_t>(all_descriptor_range_storage.back().size()),
-			all_descriptor_range_storage.back().data() };
-		VkDescriptorSetLayout sl;
-		CHECK_VKRESULT(vkCreateDescriptorSetLayout(dev->object, &set_info, nullptr, &sl));
-		set_layouts.push_back(sl);
+		set_layouts.emplace_back(dev->object, descriptor_range_storage);
 	}
 
-	return std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, set_layouts, std::vector<VkPushConstantRange>());
+	return std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::move(set_layouts), std::vector<VkPushConstantRange>());
 }
