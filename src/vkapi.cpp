@@ -218,7 +218,7 @@ command_list_t create_command_list(device_t dev, command_list_storage_t storage)
 buffer_t create_buffer(device_t dev, size_t size)
 {
 	// TODO: Usage
-	auto buffer = std::make_shared<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	auto buffer = std::make_shared<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	VkMemoryRequirements mem_req;
 	vkGetBufferMemoryRequirements(dev->object, buffer->object, &mem_req);
 	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->upload_memory_index);
@@ -294,9 +294,13 @@ namespace
 image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, RESOURCE_USAGE initial_state, clear_value_structure_t*)
 {
 	VkExtent3D extent{ width, height, 1 };
-	// TODO: Storage
-	return std::make_shared<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, 1,
+	auto image = std::make_shared<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, 1,
 		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, get_image_usage_flag(flags), VK_IMAGE_LAYOUT_UNDEFINED);
+	VkMemoryRequirements mem_req;
+	vkGetImageMemoryRequirements(dev->object, image->object, &mem_req);
+	image->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->default_memory_index);
+	vkBindImageMemory(dev->object, image->object, image->baking_memory->object, 0);
+	return image;
 }
 
 
@@ -352,6 +356,7 @@ namespace
 		case RESOURCE_USAGE::RENDER_TARGET: return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		case RESOURCE_USAGE::READ_GENERIC: return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		case RESOURCE_USAGE::DEPTH_WRITE: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		case RESOURCE_USAGE::COPY_DEST: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		case RESOURCE_USAGE::undefined: return VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 		throw;

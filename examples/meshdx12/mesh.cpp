@@ -129,7 +129,7 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 
 #endif
 }
-
+#ifdef D3D12
 DXGI_FORMAT get_dxgi_format(irr::video::ECOLOR_FORMAT fmt)
 {
 	switch (fmt)
@@ -169,7 +169,7 @@ DXGI_FORMAT get_dxgi_format(irr::video::ECOLOR_FORMAT fmt)
 	}
 	return DXGI_FORMAT_UNKNOWN;
 }
-
+#endif
 
 struct MeshSample : Sample
 {
@@ -425,24 +425,44 @@ protected:
 			unmap_buffer(dev, upload_buffer);
 
 			image_t texture = create_image(dev, DDSPic.getLoadedImage().Format,
-				width, height, mipmap_count, usage_sampled | usage_transfer_dst, RESOURCE_USAGE::READ_GENERIC, nullptr);
+				width, height, mipmap_count, usage_sampled | usage_transfer_dst,
+				RESOURCE_USAGE::READ_GENERIC,
+				nullptr);
+
 
 			Textures.push_back(texture);
 
 			uint32_t miplevel = 0;
 			for (const MipLevelData mipmapData : Mips)
 			{
+#ifdef D3D12
 				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::COPY_DEST, miplevel);
 
 				command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
-					&CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset, { get_dxgi_format(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
+					&CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset,{ get_dxgi_format(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
 					&CD3DX12_BOX(0, 0, (UINT)mipmapData.Width, (UINT)mipmapData.Height));
+#else
+				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel);
+				VkBufferImageCopy info{};
+				info.bufferOffset = mipmapData.Offset;
+				info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				info.imageSubresource.mipLevel = miplevel;
+				info.imageSubresource.layerCount = 1;
+				info.imageExtent.width = mipmapData.Width;
+				info.imageExtent.height = mipmapData.Height;
+				info.imageExtent.depth = 1;
+				vkCmdCopyBufferToImage(command_list->object, upload_buffer->object, texture->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
 
+#endif // !D3D12
 				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel);
 				miplevel++;
 			}
 			textureSet[fixed] = 2 + texture_id;
+#ifdef D3D12
 			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
+#else
+
+#endif
 		}
 
 		objectpso = createSkinnedObjectShader(dev, sig, render_pass);
