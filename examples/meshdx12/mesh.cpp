@@ -129,6 +129,46 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 #endif
 }
 
+DXGI_FORMAT get_dxgi_format(irr::video::ECOLOR_FORMAT fmt)
+{
+	switch (fmt)
+	{
+	case irr::video::ECF_R8G8B8A8_UNORM:
+		return DXGI_FORMAT_R8G8B8A8_UNORM;
+	case irr::video::ECF_R8G8B8A8_UNORM_SRGB:
+		return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	case irr::video::ECF_R16G16B16A16F:
+		return DXGI_FORMAT_R16G16B16A16_FLOAT;
+	case irr::video::ECF_R32G32B32A32F:
+		return DXGI_FORMAT_R32G32B32A32_FLOAT;
+	case irr::video::ECF_A8R8G8B8:
+		return DXGI_FORMAT_R8G8B8A8_UNORM;
+	case irr::video::ECF_BC1_UNORM:
+		return DXGI_FORMAT_BC1_UNORM;
+	case irr::video::ECF_BC1_UNORM_SRGB:
+		return DXGI_FORMAT_BC1_UNORM_SRGB;
+	case irr::video::ECF_BC2_UNORM:
+		return DXGI_FORMAT_BC2_UNORM;
+	case irr::video::ECF_BC2_UNORM_SRGB:
+		return DXGI_FORMAT_BC2_UNORM_SRGB;
+	case irr::video::ECF_BC3_UNORM:
+		return DXGI_FORMAT_BC3_UNORM;
+	case irr::video::ECF_BC3_UNORM_SRGB:
+		return DXGI_FORMAT_BC3_UNORM_SRGB;
+	case irr::video::ECF_BC4_UNORM:
+		return DXGI_FORMAT_BC4_UNORM;
+	case irr::video::ECF_BC4_SNORM:
+		return DXGI_FORMAT_BC4_SNORM;
+	case irr::video::ECF_BC5_UNORM:
+		return DXGI_FORMAT_BC5_UNORM;
+	case irr::video::ECF_BC5_SNORM:
+		return DXGI_FORMAT_BC5_SNORM;
+	case irr::video::D24U8:
+		return DXGI_FORMAT_D24_UNORM_S8_UINT;
+	}
+	return DXGI_FORMAT_UNKNOWN;
+}
+
 
 struct MeshSample : Sample
 {
@@ -329,11 +369,12 @@ protected:
 		// Upload to gpudata
 
 		// Texture
-		/*command_list_t uploadcmdlist = command_list;
 		uint32_t texture_id = 0;
-		for (auto Tex : loader->Textures)
+		aiString path;
+		model->mMaterials[0]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 		{
-			const std::string &fixed = "..\\..\\examples\\assets\\" + Tex.TextureName.substr(0, Tex.TextureName.find_last_of('.')) + ".DDS";
+			std::string texture_path(path.C_Str());
+			const std::string &fixed = "..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 			std::ifstream DDSFile(fixed, std::ifstream::binary);
 			irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
@@ -342,15 +383,15 @@ protected:
 			uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
 			uint16_t layer_count = 1;
 
-			buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
+			buffer_t upload_buffer = create_buffer(dev, width * height * 4 * 3 * 6);
 			upload_buffers.push_back(upload_buffer);
 			void *pointer = map_buffer(dev, upload_buffer);
 
 			size_t offset_in_texram = 0;
 
-			size_t block_height = 1;
-			size_t block_width = 1;
-			size_t block_size = 4;
+			size_t block_height = 4;
+			size_t block_width = 4;
+			size_t block_size = 8;
 			std::vector<MipLevelData> Mips;
 			for (unsigned face = 0; face < layer_count; face++)
 			{
@@ -371,7 +412,7 @@ protected:
 					Mips.push_back(mml);
 					for (unsigned row = 0; row < height_in_blocks; row++)
 					{
-//                        memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
+						memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
 						offset_in_texram += rowPitch;
 					}
 				}
@@ -388,9 +429,9 @@ protected:
 			{
 				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::COPY_DEST, miplevel);
 
-//                command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
-//                    &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset, { getDXGIFormatFromColorFormat(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
-//                    &CD3DX12_BOX());
+				command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
+					&CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset, { get_dxgi_format(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
+					&CD3DX12_BOX(0, 0, (UINT)mipmapData.Width, (UINT)mipmapData.Height));
 
 				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel);
 				miplevel++;
@@ -398,7 +439,6 @@ protected:
 			textureSet[fixed] = 2 + texture_id;
 			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id++, texture);
 		}
-		*/
 
 		objectpso = createSkinnedObjectShader(dev, sig, render_pass);
 		make_command_list_executable(command_list);
@@ -462,6 +502,9 @@ protected:
 
 		clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
 		clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
+
+		command_list->SetGraphicsRootDescriptorTable(1,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(command_list, objectpso);
 
@@ -476,9 +519,9 @@ protected:
 		for (unsigned i = 0; i < meshOffset.size(); i++)
 		{
 #ifdef D3D12
-			//			command_list->SetGraphicsRootDescriptorTable(0,
-			//				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-			//				.Offset(textureSet[buffers[i].second.TextureNames[0]], dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+//			command_list->SetGraphicsRootDescriptorTable(0,
+//				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+//				.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #endif
 			draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
 		}
