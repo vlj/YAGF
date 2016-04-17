@@ -14,14 +14,14 @@ struct VS_INPUT
   float3 pos : POSITION;
   float2 texc : TEXCOORD0;
   float3 normal : NORMAL;
-  int index0 : TEXCOORD1;
+/*  int index0 : TEXCOORD1;
   float weight0 : TEXCOORD2;
   int index1 : TEXCOORD3;
   float weight1 : TEXCOORD4;
   int index2 : TEXCOORD5;
   float weight2 : TEXCOORD6;
   int index3 : TEXCOORD7;
-  float weight3 : TEXCOORD8;
+  float weight3 : TEXCOORD8;*/
 };
 
 struct PS_INPUT

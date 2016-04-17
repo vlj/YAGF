@@ -132,17 +132,17 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> IAdesc =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+/*        { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 4, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 3, DXGI_FORMAT_R32_SINT, 1, 8, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 1, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 5, DXGI_FORMAT_R32_SINT, 1, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 6, DXGI_FORMAT_R32_FLOAT, 1, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 7, DXGI_FORMAT_R32_SINT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 8, DXGI_FORMAT_R32_FLOAT, 1, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "TEXCOORD", 8, DXGI_FORMAT_R32_FLOAT, 1, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }*/
     };
 
     psodesc.InputLayout.pInputElementDescs = IAdesc.data();
@@ -170,12 +170,22 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	};
 
 	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-	vertex_input.vertexBindingDescriptionCount = 1;
-	const VkVertexInputBindingDescription vertex_buffer{ 0, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX };
-	vertex_input.pVertexBindingDescriptions = &vertex_buffer;
-	vertex_input.vertexAttributeDescriptionCount = 1;
-	const VkVertexInputAttributeDescription attribute{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 };
-	vertex_input.pVertexAttributeDescriptions = &attribute;
+
+	const std::vector<VkVertexInputBindingDescription> vertex_buffers{
+		{ 0, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX },
+		{ 1, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX },
+		{ 2, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX }
+	};
+	vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
+	vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
+
+	const std::vector<VkVertexInputAttributeDescription> attribute{
+		{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },
+		{ 1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0 },
+		{ 2, 2, VK_FORMAT_R32G32_SFLOAT, 0 },
+	};
+	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
+	vertex_input.pVertexAttributeDescriptions = attribute.data();
 
 	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
 
@@ -217,7 +227,9 @@ struct Sample
 
     std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
 
-    buffer_t vertex_buffer_attributes;
+    buffer_t vertex_pos;
+	buffer_t vertex_uv0;
+	buffer_t vertex_normal;
     buffer_t index_buffer;
     size_t total_index_cnt;
     std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
@@ -323,12 +335,15 @@ struct Sample
             total_index_cnt += mesh->mNumFaces * 3;
         }
         //vao = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
-        size_t bufferSize = total_vertex_cnt * (sizeof(aiVector3D));
 
-        vertex_buffer_attributes = create_buffer(dev, bufferSize);
         index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
         uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer);
-        aiVector3D *vertexmap = (aiVector3D*)map_buffer(dev, vertex_buffer_attributes);
+		vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
+        aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, vertex_pos);
+		vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
+		aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, vertex_normal);
+		vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
+		aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0);
 
         size_t basevertex = 0, baseindex = 0;
 
@@ -337,7 +352,9 @@ struct Sample
 			const aiMesh *mesh = model->mMeshes[i];
 			for (int vtx = 0; vtx < mesh->mNumVertices; ++vtx)
 			{
-				vertexmap[basevertex + vtx] = mesh->mVertices[vtx];
+				vertex_pos_map[basevertex + vtx] = mesh->mVertices[vtx];
+				vertex_normal_map[basevertex + vtx] = mesh->mNormals[vtx];
+				vertex_uv_map[basevertex + vtx] = mesh->mTextureCoords[0][vtx];
 			}
 			for (int idx = 0; idx < mesh->mNumFaces; ++idx)
 			{
@@ -351,10 +368,12 @@ struct Sample
         }
 
         unmap_buffer(dev, index_buffer);
-        unmap_buffer(dev, vertex_buffer_attributes);
+        unmap_buffer(dev, vertex_pos);
         // TODO: Upload to GPUmem
 
-        vertex_buffers_info.emplace_back(vertex_buffer_attributes, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(bufferSize));
+        vertex_buffers_info.emplace_back(vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
+		vertex_buffers_info.emplace_back(vertex_normal, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
+		vertex_buffers_info.emplace_back(vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
 
         // Upload to gpudata
 

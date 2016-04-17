@@ -10,8 +10,8 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 normal_and_depth : SV_TARGET0;
-  float4 base_color : SV_TARGET1;
+  float4 normal_and_depth : SV_TARGET1;
+  float4 base_color : SV_TARGET0;
 };
 
 
