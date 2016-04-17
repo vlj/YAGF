@@ -23,7 +23,7 @@ float2 EncodeNormal(float3 n)
 PS_OUTPUT main(PS_INPUT In)
 {
   PS_OUTPUT result;
-  result.base_color = Tex.Sample(TexSampler, In.uv);
+  result.base_color = Tex.Sample(TexSampler, float2(In.uv.x, 1. - In.uv.y));
   result.normal_and_depth.xy = 0.5 * EncodeNormal(normalize(In.normal)) + 0.5;
   result.normal_and_depth.z = 1.;
   result.normal_and_depth.w = 0.;
