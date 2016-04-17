@@ -502,7 +502,11 @@ void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t in
 uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
 {
 	uint32_t index;
-	CHECK_VKRESULT(vkAcquireNextImageKHR(dev->object, chain->object, UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &index));
+	VkFenceCreateInfo info{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 };
+	VkFence fence;
+	CHECK_VKRESULT(vkCreateFence(dev->object, &info, nullptr, &fence));
+	CHECK_VKRESULT(vkAcquireNextImageKHR(dev->object, chain->object, UINT64_MAX, VK_NULL_HANDLE, fence, &index));
+	CHECK_VKRESULT(vkWaitForFences(dev->object, 1, &fence, true, UINT64_MAX));
 	return index;
 }
 
