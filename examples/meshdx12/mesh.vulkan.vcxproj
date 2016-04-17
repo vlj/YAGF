@@ -25,6 +25,9 @@
     <ProjectReference Include="..\..\YAGF.vulkan.vcxproj">
       <Project>{c4b16266-ab39-4716-9057-90ff799088d7}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\helper\helper.vcxproj">
+      <Project>{02decf01-2c82-488d-be23-23d1143174a4}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\object.vert" />
