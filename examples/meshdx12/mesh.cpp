@@ -505,8 +505,8 @@ protected:
 		clear_values[1].depthStencil.depth = 1.f;
 		clear_values[1].depthStencil.stencil = 0;
 		info.pClearValues = clear_values;
-		info.renderArea.extent.width = 900;
-		info.renderArea.extent.height = 900;
+		info.renderArea.extent.width = 1008;
+		info.renderArea.extent.height = 985;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
