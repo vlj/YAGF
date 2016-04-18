@@ -200,6 +200,11 @@ private:
 	descriptor_storage_t cbv_srv_descriptors_heap;
 
 	std::vector<image_t> Textures;
+#ifndef D3D12
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
+	std::shared_ptr<vulkan_wrapper::sampler> sampler;
+	VkDescriptorSet sampler_descriptors;
+#endif
 	std::vector<buffer_t> upload_buffers;
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
@@ -262,8 +267,20 @@ protected:
 		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
 #ifndef D3D12
-		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10 } };
-		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 3, size);
+		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 } };
+		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 100, size);
+
+		std::vector<VkDescriptorPoolSize> sampler_heap_size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 } };
+		sampler_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 1, sampler_heap_size);
+
+		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
+		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &sig->info.pSetLayouts[2] };
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &sampler_allocate, &sampler_descriptors));
+
+		VkDescriptorImageInfo sampler_view{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		VkWriteDescriptorSet write_info2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, sampler_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
+		vkUpdateDescriptorSets(dev->object, 1, &write_info2, 0, nullptr);
 
 		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, sig->info.pSetLayouts };
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &cbuffer_descriptor_set));
@@ -466,7 +483,11 @@ protected:
 			VkDescriptorSet texture_descriptor;
 			CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &allocate_info, &texture_descriptor));
 			texture_descriptor_set.push_back(texture_descriptor);
-			VkDescriptorImageInfo image_view{ VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+			auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
+				VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
+				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, mipmap_count, 0, 1 });
+			VkDescriptorImageInfo image_view{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+			Textures_views.push_back(img_view);
 
 			VkWriteDescriptorSet write_info{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, texture_descriptor, 2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &image_view, nullptr, nullptr};
 			vkUpdateDescriptorSets(dev->object, 1, &write_info, 0, nullptr);
@@ -521,6 +542,7 @@ protected:
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
+		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
 		command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
@@ -555,6 +577,8 @@ protected:
 			command_list->SetGraphicsRootDescriptorTable(1,
 				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
 				.Offset(texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#else
+			vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 1, 1, &texture_descriptor_set[texture_mapping[i]], 0, nullptr);
 #endif
 			draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
 		}

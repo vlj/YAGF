@@ -207,6 +207,33 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct sampler
+	{
+		VkSampler object;
+		const VkSamplerCreateInfo info;
+
+		sampler(VkDevice dev, VkFilter mag_filter, VkFilter min_filter, VkSamplerMipmapMode mipmap_mode,
+			VkSamplerAddressMode address_mode_U, VkSamplerAddressMode address_mode_V, VkSamplerAddressMode address_mode_W, float lod_bias,
+			bool anisotropy, float max_anisotropy)
+			: info{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, nullptr, 0, mag_filter, min_filter, mipmap_mode,
+			address_mode_U, address_mode_V, address_mode_W, lod_bias, anisotropy, max_anisotropy },
+			m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateSampler(dev, &info, nullptr, &object));
+		}
+
+		~sampler()
+		{
+			vkDestroySampler(m_device, object, nullptr);
+		}
+
+		sampler(sampler&&) = delete;
+		sampler(const sampler&) = delete;
+
+	private:
+		VkDevice m_device;
+	};
+
 	struct descriptor_pool
 	{
 		VkDescriptorPool object;

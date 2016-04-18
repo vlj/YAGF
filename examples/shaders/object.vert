@@ -30,11 +30,11 @@ layout(location = 12) in float weight2;
 layout(location = 13) in int index3;
 layout(location = 14) in float weight3;*/
 
-out vec3 nor;
+layout(location = 0) out vec3 nor;
 /*out vec3 tangent;
-out vec3 bitangent;
-out vec2 uv;
-out vec2 uv_bis;
+out vec3 bitangent;*/
+layout(location = 1) out vec2 uv;
+/*out vec2 uv_bis;
 out vec4 color;*/
 
 void main()
@@ -47,6 +47,6 @@ void main()
 //  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
   //  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
   //  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
-//  uv = vec4(Texcoord, 1., 1.).xy;
+  uv = vec4(Texcoord, 1., 1.).xy;
   //  uv_bis = SecondTexcoord;
 }
