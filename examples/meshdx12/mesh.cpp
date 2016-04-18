@@ -127,47 +127,6 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 
 #endif
 }
-#ifdef D3D12
-DXGI_FORMAT get_dxgi_format(irr::video::ECOLOR_FORMAT fmt)
-{
-	switch (fmt)
-	{
-	case irr::video::ECF_R8G8B8A8_UNORM:
-		return DXGI_FORMAT_R8G8B8A8_UNORM;
-	case irr::video::ECF_R8G8B8A8_UNORM_SRGB:
-		return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	case irr::video::ECF_R16G16B16A16F:
-		return DXGI_FORMAT_R16G16B16A16_FLOAT;
-	case irr::video::ECF_R32G32B32A32F:
-		return DXGI_FORMAT_R32G32B32A32_FLOAT;
-	case irr::video::ECF_A8R8G8B8:
-		return DXGI_FORMAT_R8G8B8A8_UNORM;
-	case irr::video::ECF_BC1_UNORM:
-		return DXGI_FORMAT_BC1_UNORM;
-	case irr::video::ECF_BC1_UNORM_SRGB:
-		return DXGI_FORMAT_BC1_UNORM_SRGB;
-	case irr::video::ECF_BC2_UNORM:
-		return DXGI_FORMAT_BC2_UNORM;
-	case irr::video::ECF_BC2_UNORM_SRGB:
-		return DXGI_FORMAT_BC2_UNORM_SRGB;
-	case irr::video::ECF_BC3_UNORM:
-		return DXGI_FORMAT_BC3_UNORM;
-	case irr::video::ECF_BC3_UNORM_SRGB:
-		return DXGI_FORMAT_BC3_UNORM_SRGB;
-	case irr::video::ECF_BC4_UNORM:
-		return DXGI_FORMAT_BC4_UNORM;
-	case irr::video::ECF_BC4_SNORM:
-		return DXGI_FORMAT_BC4_SNORM;
-	case irr::video::ECF_BC5_UNORM:
-		return DXGI_FORMAT_BC5_UNORM;
-	case irr::video::ECF_BC5_SNORM:
-		return DXGI_FORMAT_BC5_SNORM;
-	case irr::video::D24U8:
-		return DXGI_FORMAT_D24_UNORM_S8_UINT;
-	}
-	return DXGI_FORMAT_UNKNOWN;
-}
-#endif
 
 struct MeshSample : Sample
 {
