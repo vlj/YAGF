@@ -267,7 +267,7 @@ namespace vulkan_wrapper
 		const std::vector<VkSubpassDependency> dependencies;
 		const VkRenderPassCreateInfo info;
 
-		render_pass(VkDevice dev, std::vector<VkAttachmentDescription> attachments_desc, std::vector<VkSubpassDescription> subpass_desc, std::vector<VkSubpassDependency> dependency)
+		render_pass(VkDevice dev, const std::vector<VkAttachmentDescription> &attachments_desc, std::vector<VkSubpassDescription> subpass_desc, std::vector<VkSubpassDependency> dependency)
 			: attachments(attachments_desc), subpasses(subpass_desc), dependencies(dependency),
 			info({VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, nullptr, 0,
 				static_cast<uint32_t>(attachments.size()), attachments.data(),
@@ -504,7 +504,9 @@ struct vk_framebuffer
 	vulkan_wrapper::framebuffer fbo;
 
 	vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
 private:
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil);
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets);
 };
 

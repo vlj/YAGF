@@ -267,6 +267,23 @@ protected:
 		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
 
 #ifndef D3D12
+
+		//Prepare an image to match the new layout..
+		VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.image = depth_buffer->object;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.layerCount = 1;
+
+
+		vkCmdPipelineBarrier(command_list->object, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 } };
 		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 100, size);
 
@@ -302,12 +319,23 @@ protected:
 		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+		VkAttachmentDescription depth_att{};
+		depth_att.format = VK_FORMAT_D24_UNORM_S8_UINT;
+		depth_att.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depth_att.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
+		depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_att.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
 		render_pass.reset(new vulkan_wrapper::render_pass(dev->object,
-		{ attachment },
+		{ attachment, depth_att },
 		{
 			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
 				.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-		}, { VkSubpassDependency() }));
+				.set_depth_stencil_attachment(VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL})
+		}, std::vector<VkSubpassDependency>()));
 #endif
 
 		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
@@ -533,10 +561,12 @@ protected:
 		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		info.renderPass = render_pass->object;
 		info.framebuffer = fbo[current_backbuffer]->fbo.object;
-		info.clearValueCount = 1;
-		VkClearValue clear_values{};
-		memcpy(clear_values.color.float32, clearColor.data(), 4 * sizeof(float));
-		info.pClearValues = &clear_values;
+		info.clearValueCount = 2;
+		VkClearValue clear_values[2];
+		memcpy(clear_values[0].color.float32, clearColor.data(), 4 * sizeof(float));
+		clear_values[1].depthStencil.depth = 1.f;
+		clear_values[1].depthStencil.stencil = 0;
+		info.pClearValues = clear_values;
 		info.renderArea.extent.width = 900;
 		info.renderArea.extent.height = 900;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);

@@ -333,7 +333,7 @@ void reset_command_list_storage(device_t dev, command_list_storage_t storage)
 
 framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t render_pass)
 {
-	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, width, height, 1);
+	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
 
 void make_command_list_executable(command_list_t command_list)
@@ -546,6 +546,13 @@ vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, std::vec
 {
 }
 
+vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets,
+	const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
+	: image_views(build_image_views(dev->object, render_targets, depth_stencil)),
+	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)
+{
+}
+
 std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets)
 {
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> >  result;
@@ -557,5 +564,15 @@ std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_
 			std::make_shared<vulkan_wrapper::image_view>(dev, std::get<0>(rtt_info)->object, VK_IMAGE_VIEW_TYPE_2D, get_vk_format(std::get<1>(rtt_info)), default_mapping, ranges)
 		);
 	}
+	return result;
+}
+
+std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets,
+	const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil)
+{
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> >  result = build_image_views(dev, render_targets);
+	VkImageSubresourceRange ranges{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 };
+	VkComponentMapping default_mapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+	result.emplace_back(std::make_shared<vulkan_wrapper::image_view>(dev, std::get<0>(depth_stencil)->object, VK_IMAGE_VIEW_TYPE_2D, get_vk_format(std::get<1>(depth_stencil)), default_mapping, ranges));
 	return result;
 }

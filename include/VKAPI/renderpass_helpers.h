@@ -47,7 +47,7 @@ struct subpass_description
 			depth_stencil, preserve_attachments_count, preserve_attachments);
 	}
 
-	constexpr subpass_description set_depth_stencil_attachment(const VkAttachmentReference att) const
+	constexpr subpass_description set_depth_stencil_attachment(const VkAttachmentReference &att) const
 	{
 		return subpass_description(pipeline_bind_point,
 			input_attachements_count, input_attachments,
