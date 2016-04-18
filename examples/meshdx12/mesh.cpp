@@ -264,7 +264,7 @@ protected:
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif
 
-		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, RESOURCE_USAGE::DEPTH_WRITE, &clear_val);
+		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, &clear_val);
 
 #ifndef D3D12
 
@@ -472,7 +472,6 @@ protected:
 
 			image_t texture = create_image(dev, DDSPic.getLoadedImage().Format,
 				width, height, mipmap_count, usage_sampled | usage_transfer_dst,
-				RESOURCE_USAGE::READ_GENERIC,
 				nullptr);
 
 
@@ -481,14 +480,12 @@ protected:
 			uint32_t miplevel = 0;
 			for (const MipLevelData mipmapData : Mips)
 			{
+				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel);
 #ifdef D3D12
-				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::COPY_DEST, miplevel);
-
 				command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
 					&CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset,{ get_dxgi_format(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
 					&CD3DX12_BOX(0, 0, (UINT)mipmapData.Width, (UINT)mipmapData.Height));
 #else
-				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel);
 				VkBufferImageCopy info{};
 				info.bufferOffset = mipmapData.Offset;
 				info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
