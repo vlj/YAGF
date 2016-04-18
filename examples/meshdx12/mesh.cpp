@@ -35,8 +35,6 @@ struct JointTransform
 	float Model[16 * 48];
 };
 
-//constexpr auto test = pipeline_layout_description(descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1) }));
-
 
 constexpr auto skinned_mesh_layout = pipeline_layout_description(
 	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) }),
@@ -373,7 +371,6 @@ protected:
 			total_vertex_cnt += mesh->mNumVertices;
 			total_index_cnt += mesh->mNumFaces * 3;
 		}
-		//vao = new FormattedVertexStorage(Context::getInstance()->cmdqueue.Get(), reorg, weightsList);
 
 		index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
 		uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer);
@@ -481,22 +478,7 @@ protected:
 			for (const MipLevelData mipmapData : Mips)
 			{
 				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel);
-#ifdef D3D12
-				command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture.Get(), miplevel), 0, 0, 0,
-					&CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer.Get(), { mipmapData.Offset,{ get_dxgi_format(DDSPic.getLoadedImage().Format), (UINT)mipmapData.Width, (UINT)mipmapData.Height, 1, (UINT16)mipmapData.RowPitch } }),
-					&CD3DX12_BOX(0, 0, (UINT)mipmapData.Width, (UINT)mipmapData.Height));
-#else
-				VkBufferImageCopy info{};
-				info.bufferOffset = mipmapData.Offset;
-				info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				info.imageSubresource.mipLevel = miplevel;
-				info.imageSubresource.layerCount = 1;
-				info.imageExtent.width = mipmapData.Width;
-				info.imageExtent.height = mipmapData.Height;
-				info.imageExtent.depth = 1;
-				vkCmdCopyBufferToImage(command_list->object, upload_buffer->object, texture->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
-
-#endif // !D3D12
+				copy_buffer_to_image_subresource(command_list, texture, miplevel, upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, DDSPic.getLoadedImage().Format);
 				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel);
 				miplevel++;
 			}
@@ -597,7 +579,6 @@ protected:
 		bind_vertex_buffers(command_list, 0, vertex_buffers_info);
 
 
-		//        std::vector<std::pair<irr::scene::SMeshBufferLightMap, irr::video::SMaterial> > buffers = loader->AnimatedMesh.getMeshBuffers();
 		for (unsigned i = 0; i < meshOffset.size(); i++)
 		{
 #ifdef D3D12

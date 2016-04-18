@@ -303,6 +303,19 @@ image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t wi
 	return image;
 }
 
+void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
+{
+	VkBufferImageCopy info{};
+	info.bufferOffset = offset_in_buffer;
+	info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	info.imageSubresource.mipLevel = destination_subresource;
+	info.imageSubresource.layerCount = 1;
+	info.imageExtent.width = width;
+	info.imageExtent.height = height;
+	info.imageExtent.depth = 1;
+	vkCmdCopyBufferToImage(list->object, source->object, destination_image->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
+}
+
 
 descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors)
 {
