@@ -105,7 +105,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 }
 
 constexpr auto sunlight_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) })
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 0, 1), range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1) })
 );
 
 
@@ -189,7 +189,7 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 
 	const std::vector<VkVertexInputAttributeDescription> attribute{
 		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
-		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
+		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float) },
 	};
 	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 	vertex_input.pVertexAttributeDescriptions = attribute.data();

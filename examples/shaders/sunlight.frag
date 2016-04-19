@@ -1,7 +1,11 @@
-#version 330
-uniform sampler2D ntex;
-uniform sampler2D ctex;
-uniform sampler2D dtex;
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+layout(input_attachment_index = 1, binding = 0) uniform subpassInput ctex;
+layout(input_attachment_index = 0, binding = 1) uniform subpassInput ntex;
+
+/*uniform sampler2D dtex;
 
 layout(std140) uniform VIEWDATA
 {
@@ -104,12 +108,15 @@ vec3 SunMRP(vec3 normal, vec3 eyedir)
     float DdotR = dot(D, R);
     vec3 S = R - DdotR * D;
     return (DdotR < d) ? normalize(d * D + normalize (S) * r) : R;
-}
+}*/
 
 in vec2 uv;
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
 void main() {
+    FragColor = subpassLoad(ctex);
+
+/*
     float z = texture(dtex, uv).x;
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
 
@@ -125,5 +132,5 @@ void main() {
 
     vec3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, vec3(.04), roughness);
     vec3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
-    FragColor = vec4(NdotL * sun_col * mix(Dielectric, Metal, metalness), 0.);
+    FragColor = vec4(NdotL * sun_col * mix(Dielectric, Metal, metalness), 0.);*/
 }

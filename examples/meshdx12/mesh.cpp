@@ -62,6 +62,7 @@ private:
 	command_list_storage_t command_allocator;
 	buffer_t cbuffer;
 	buffer_t jointbuffer;
+	buffer_t big_triangle;
 	descriptor_storage_t cbv_srv_descriptors_heap;
 
 	std::vector<image_t> Textures;
@@ -71,6 +72,9 @@ private:
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
 	VkDescriptorSet sampler_descriptors;
+	VkDescriptorSet input_attachment_descriptors;
+	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
+	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
 #endif
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
@@ -99,10 +103,11 @@ protected:
 		command_list_t command_list = create_command_list(dev, command_allocator);
 		start_command_list_recording(dev, command_list, command_allocator);
 		object_sig = get_skinned_object_pipeline_layout(dev);
+		sunlight_sig = get_sunlight_pipeline_layout(dev);
 		cbuffer = create_buffer(dev, sizeof(Matrixes));
 		jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
-		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 2 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000} });
+		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 2 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 2 } });
 		sampler_heap = create_descriptor_storage(dev, 1, { {RESOURCE_VIEW::SAMPLER, 1 } });
 
 		clear_value_structure_t clear_val = {};
@@ -175,6 +180,22 @@ protected:
 		VkDescriptorBufferInfo cbuffer2_info{ jointbuffer->object, 0, sizeof(JointTransform) };
 		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
 		vkUpdateDescriptorSets(dev->object, 1, &update2_info, 0, nullptr);
+
+		diffuse_color_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, diffuse_color->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+			VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
+			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+		normal_roughness_metalness_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, normal_roughness_metalness->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+			VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
+			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+		VkDescriptorSetAllocateInfo input_attach_alloc{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &sunlight_sig->info.pSetLayouts[0] };
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &input_attach_alloc, &input_attachment_descriptors));
+		VkDescriptorImageInfo input1_attach_desc{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		VkDescriptorImageInfo input2_attach_desc{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		VkWriteDescriptorSet updata_input1{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, input_attachment_descriptors, 0, 0, 1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, &input1_attach_desc, nullptr, nullptr };
+		VkWriteDescriptorSet updata_input2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, input_attachment_descriptors, 1, 0, 1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, &input2_attach_desc, nullptr, nullptr };
+		vkUpdateDescriptorSets(dev->object, 1, &updata_input1, 0, nullptr);
+		vkUpdateDescriptorSets(dev->object, 1, &updata_input2, 0, nullptr);
 #endif
 
 		Assimp::Importer importer;
@@ -214,6 +235,20 @@ protected:
 		}
 
 		objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);
+		sunlightpso = get_sunlight_pipeline_state(dev, sunlight_sig, render_pass);
+
+
+		big_triangle = create_buffer(dev, 4 * 3 * sizeof(float));
+		float fullscreen_tri[]
+		{
+			-1., -3., 0., 0.,
+			3., 1., 1., 1.,
+			-1., 1., 0., 1.
+		};
+
+		memcpy(map_buffer(dev, big_triangle), fullscreen_tri, 4 * 3 * sizeof(float));
+		unmap_buffer(dev, big_triangle);
+
 		make_command_list_executable(command_list);
 		submit_executable_command_list(cmdqueue, command_list);
 		wait_for_command_queue_idle(dev, cmdqueue);
@@ -288,8 +323,12 @@ protected:
 #endif
 				draw_indexed(current_cmd_list, std::get<0>(xue->meshOffset[i]), 1, std::get<2>(xue->meshOffset[i]), std::get<1>(xue->meshOffset[i]), 0);
 			}
-
+			vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 			set_graphic_pipeline(current_cmd_list, sunlightpso);
+			size_t offsets[1] = {};
+			vkCmdBindVertexBuffers(current_cmd_list->object, 0, 1, &big_triangle->object, offsets);
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &input_attachment_descriptors, 0, nullptr);
+			vkCmdDraw(current_cmd_list->object, 3, 1, 0, 0);
 //			draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 
 #ifndef D3D12
