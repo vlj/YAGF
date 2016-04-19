@@ -97,3 +97,10 @@ private:
 		return (color_attachements_count == resolve_attachments_count) || (resolve_attachments_count == 0);
 	}
 };
+
+
+constexpr VkSubpassDependency get_subpass_dependency(uint32_t src_subpass, uint32_t dst_subpass, VkPipelineStageFlags src_stages, VkPipelineStageFlags dst_stages,
+	VkAccessFlags src_access, VkAccessFlags dst_access, VkDependencyFlags flags = 0)
+{
+	return{ src_subpass, dst_subpass, src_stages, dst_stages, src_access, dst_access, flags };
+}

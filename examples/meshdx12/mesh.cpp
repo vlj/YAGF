@@ -74,13 +74,18 @@ private:
 #endif
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
+	image_t diffuse_color;
+	image_t normal_roughness_metalness;
 
 	std::unique_ptr<object> xue;
 
-	pipeline_layout_t sig;
+
 	render_pass_t render_pass;
 	framebuffer_t fbo[2];
+	pipeline_layout_t object_sig;
 	pipeline_state_t objectpso;
+	pipeline_layout_t sunlight_sig;
+	pipeline_state_t sunlightpso;
 
 protected:
 
@@ -93,7 +98,7 @@ protected:
 		command_allocator = create_command_storage(dev);
 		command_list_t command_list = create_command_list(dev, command_allocator);
 		start_command_list_recording(dev, command_list, command_allocator);
-		sig = get_skinned_object_pipeline_layout(dev);
+		object_sig = get_skinned_object_pipeline_layout(dev);
 		cbuffer = create_buffer(dev, sizeof(Matrixes));
 		jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
@@ -126,12 +131,15 @@ protected:
 		depth_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 		render_pass.reset(new vulkan_wrapper::render_pass(dev->object,
-		{ attachment, depth_att },
+		{ attachment, attachment, attachment, depth_att },
 		{
 			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-			.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-			.set_depth_stencil_attachment(VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
-		}, std::vector<VkSubpassDependency>()));
+				.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }, VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+				.set_depth_stencil_attachment(VkAttachmentReference{ 3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
+			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
+				.set_color_attachments({ VkAttachmentReference{ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+				.set_input_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }, VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } })
+		}, { get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) }));
 #else
 		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
 		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
@@ -140,21 +148,25 @@ protected:
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
 		depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil, &clear_val);
+		diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target, &clear_val);
+		normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target, &clear_val);
 		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+		set_pipeline_barrier(dev, command_list, diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, command_list, normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+		fbo[0] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+		fbo[1] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 #ifndef D3D12
 		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
-		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &sig->info.pSetLayouts[2] };
+		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &object_sig->info.pSetLayouts[2] };
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &sampler_allocate, &sampler_descriptors));
 
 		VkDescriptorImageInfo sampler_view{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 		VkWriteDescriptorSet write_info2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, sampler_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
 		vkUpdateDescriptorSets(dev->object, 1, &write_info2, 0, nullptr);
 
-		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, sig->info.pSetLayouts };
+		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, object_sig->info.pSetLayouts };
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &cbuffer_descriptor_set));
 		VkDescriptorBufferInfo cbuffer_info{ cbuffer->object, 0, sizeof(Matrixes) };
 		VkWriteDescriptorSet update_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr };
@@ -186,7 +198,7 @@ protected:
 #ifdef D3D12
 			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
 #else
-			VkDescriptorSetAllocateInfo allocate_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &sig->info.pSetLayouts[1] };
+			VkDescriptorSetAllocateInfo allocate_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &object_sig->info.pSetLayouts[1] };
 			VkDescriptorSet texture_descriptor;
 			CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &allocate_info, &texture_descriptor));
 			texture_descriptor_set.push_back(texture_descriptor);
@@ -201,7 +213,7 @@ protected:
 #endif
 		}
 
-		objectpso = get_skinned_object_pipeline_state(dev, sig, render_pass);
+		objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);
 		make_command_list_executable(command_list);
 		submit_executable_command_list(cmdqueue, command_list);
 		wait_for_command_queue_idle(dev, cmdqueue);
@@ -236,12 +248,12 @@ protected:
 			info.renderArea.extent.height = height;
 			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
-			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
 			current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
-			current_cmd_list->SetGraphicsRootSignature(sig.Get());
+			current_cmd_list->SetGraphicsRootSignature(object_sig.Get());
 
 			std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap.Get(), sampler_heap.Get() };
 			current_cmd_list->SetDescriptorHeaps(2, descriptors.data());
@@ -272,10 +284,13 @@ protected:
 					CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
 					.Offset(xue->texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
-				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 1, 1, &texture_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
+				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &texture_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
 #endif
 				draw_indexed(current_cmd_list, std::get<0>(xue->meshOffset[i]), 1, std::get<2>(xue->meshOffset[i]), std::get<1>(xue->meshOffset[i]), 0);
 			}
+
+			set_graphic_pipeline(current_cmd_list, sunlightpso);
+//			draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 
 #ifndef D3D12
 			vkCmdEndRenderPass(current_cmd_list->object);

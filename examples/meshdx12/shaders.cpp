@@ -105,8 +105,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 }
 
 constexpr auto sunlight_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) }),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) })
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) })
 );
 
 
@@ -195,7 +194,7 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 	vertex_input.pVertexAttributeDescriptions = attribute.data();
 
-	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
+	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 1, VkPipeline(VK_NULL_HANDLE), 0);
 
 #endif
 }
