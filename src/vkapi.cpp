@@ -73,7 +73,7 @@ namespace
 	}
 }
 
-std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
 	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
@@ -188,7 +188,7 @@ std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_
 	queue->info.queue_index = 0;
 	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
 
-	return std::make_tuple(dev, chain, queue);
+	return std::make_tuple(dev, chain, queue, surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)
@@ -260,6 +260,9 @@ namespace
 		case irr::video::ECF_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
 		case irr::video::ECF_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
 		case irr::video::D24U8: return VK_FORMAT_D24_UNORM_S8_UINT;
+		case irr::video::ECF_B8G8R8A8: return VK_FORMAT_B8G8R8A8_UINT;
+		case irr::video::ECF_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
+		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
 		}
 		return VK_FORMAT_UNDEFINED;
 	}
@@ -387,6 +390,7 @@ namespace
 		case irr::video::E_ASPECT::EA_STENCIL: return VK_IMAGE_ASPECT_STENCIL_BIT;
 		case irr::video::E_ASPECT::EA_DEPTH_STENCIL: return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
+		throw;
 	}
 }
 

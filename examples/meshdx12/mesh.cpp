@@ -139,6 +139,9 @@ struct MeshSample : Sample
 	}
 
 private:
+	size_t width;
+	size_t height;
+
 	device_t dev;
 	command_queue_t cmdqueue;
 	swap_chain_t chain;
@@ -189,7 +192,8 @@ protected:
 
 	virtual void Init(HINSTANCE hinstance, HWND window) override
 	{
-		std::tie(dev, chain, cmdqueue) = create_device_swapchain_and_graphic_presentable_queue(hinstance, window);
+		irr::video::ECOLOR_FORMAT swap_chain_format;
+		std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) = create_device_swapchain_and_graphic_presentable_queue(hinstance, window);
 		back_buffer = get_image_view_from_swap_chain(dev, chain);
 
 
@@ -220,7 +224,7 @@ protected:
 
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif
-		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, &clear_val);
+		depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil, &clear_val);
 		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 #ifndef D3D12
 		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 } };
@@ -277,8 +281,8 @@ protected:
 		}, std::vector<VkSubpassDependency>()));
 #endif
 
-		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
-		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], irr::video::ECOLOR_FORMAT::ECF_A8R8G8B8 } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, 1024, 1024, render_pass);
+		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 
 		Assimp::Importer importer;
 		model = importer.ReadFile("..\\..\\examples\\assets\\xue.b3d", 0);
@@ -487,8 +491,8 @@ protected:
 		clear_values[1].depthStencil.depth = 1.f;
 		clear_values[1].depthStencil.stencil = 0;
 		info.pClearValues = clear_values;
-		info.renderArea.extent.width = 1008;
-		info.renderArea.extent.height = 985;
+		info.renderArea.extent.width = width;
+		info.renderArea.extent.height = height;
 		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);

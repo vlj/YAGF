@@ -33,6 +33,9 @@ namespace irr
       ECF_A8R8G8B8,
       ECF_R8G8B8A8_UNORM,
       ECF_R8G8B8A8_UNORM_SRGB,
+	  ECF_B8G8R8A8,
+	  ECF_B8G8R8A8_UNORM,
+	  ECF_B8G8R8A8_UNORM_SRGB,
 
       //! The normalized non-float formats from the _rg extension
       ECF_R8,
