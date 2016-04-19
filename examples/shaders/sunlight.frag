@@ -2,8 +2,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(input_attachment_index = 1, binding = 0) uniform subpassInput ctex;
-layout(input_attachment_index = 0, binding = 1) uniform subpassInput ntex;
+layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput ctex;
+layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput ntex;
 
 /*uniform sampler2D dtex;
 

@@ -144,7 +144,7 @@ protected:
 			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
 				.set_color_attachments({ VkAttachmentReference{ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
 				.set_input_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }, VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } })
-		}, { get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) }));
+		}, { get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) }));
 #else
 		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
 		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
@@ -153,8 +153,8 @@ protected:
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
 		depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil, &clear_val);
-		diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target, &clear_val);
-		normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target, &clear_val);
+		diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target | usage_input_attachment, &clear_val);
+		normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target | usage_input_attachment, &clear_val);
 		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 		set_pipeline_barrier(dev, command_list, diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev, command_list, normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -273,11 +273,13 @@ protected:
 			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 			info.renderPass = render_pass->object;
 			info.framebuffer = fbo[i]->fbo.object;
-			info.clearValueCount = 2;
-			VkClearValue clear_values[2];
+			info.clearValueCount = 4;
+			VkClearValue clear_values[4];
 			memcpy(clear_values[0].color.float32, clearColor.data(), 4 * sizeof(float));
-			clear_values[1].depthStencil.depth = 1.f;
-			clear_values[1].depthStencil.stencil = 0;
+			memcpy(clear_values[1].color.float32, clearColor.data(), 4 * sizeof(float));
+			memcpy(clear_values[2].color.float32, clearColor.data(), 4 * sizeof(float));
+			clear_values[3].depthStencil.depth = 1.f;
+			clear_values[3].depthStencil.stencil = 0;
 			info.pClearValues = clear_values;
 			info.renderArea.extent.width = width;
 			info.renderArea.extent.height = height;
