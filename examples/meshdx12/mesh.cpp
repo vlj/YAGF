@@ -8,6 +8,7 @@
 
 #include "../helper/SampleClass.h"
 #include "shaders.h"
+#include "geometry.h"
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -73,24 +74,13 @@ private:
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
 
-	std::vector<uint32_t> texture_mapping;
+	std::unique_ptr<object> xue;
 	std::unordered_map<std::string, uint32_t> textureSet;
 
 	pipeline_layout_t sig;
 	render_pass_t render_pass;
 	framebuffer_t fbo[2];
 	pipeline_state_t objectpso;
-
-	const aiScene* model;
-
-	std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
-
-	buffer_t vertex_pos;
-	buffer_t vertex_uv0;
-	buffer_t vertex_normal;
-	buffer_t index_buffer;
-	size_t total_index_cnt;
-	std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
 
 protected:
 
@@ -176,7 +166,8 @@ protected:
 #endif
 
 		Assimp::Importer importer;
-		model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
+		auto model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
+		xue = std::make_unique<object>(dev, model);
 
 		// Format Weight
 
@@ -198,56 +189,6 @@ protected:
 		}*/
 
 
-		size_t total_vertex_cnt = 0;
-		total_index_cnt = 0;
-		for (int i = 0; i < model->mNumMeshes; ++i)
-		{
-			const aiMesh *mesh = model->mMeshes[i];
-			total_vertex_cnt += mesh->mNumVertices;
-			total_index_cnt += mesh->mNumFaces * 3;
-		}
-
-		index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
-		uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer);
-		vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
-		aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, vertex_pos);
-		vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
-		aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, vertex_normal);
-		vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
-		aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0);
-
-		size_t basevertex = 0, baseindex = 0;
-
-		for (int i = 0; i < model->mNumMeshes; ++i)
-		{
-			const aiMesh *mesh = model->mMeshes[i];
-			for (int vtx = 0; vtx < mesh->mNumVertices; ++vtx)
-			{
-				vertex_pos_map[basevertex + vtx] = mesh->mVertices[vtx];
-				vertex_normal_map[basevertex + vtx] = mesh->mNormals[vtx];
-				vertex_uv_map[basevertex + vtx] = mesh->mTextureCoords[0][vtx];
-			}
-			for (int idx = 0; idx < mesh->mNumFaces; ++idx)
-			{
-				indexmap[baseindex + 3 * idx] = mesh->mFaces[idx].mIndices[0];
-				indexmap[baseindex + 3 * idx + 1] = mesh->mFaces[idx].mIndices[1];
-				indexmap[baseindex + 3 * idx + 2] = mesh->mFaces[idx].mIndices[2];
-			}
-			meshOffset.push_back(std::make_tuple(mesh->mNumFaces * 3, basevertex, baseindex));
-			basevertex += mesh->mNumVertices;
-			baseindex += mesh->mNumFaces * 3;
-			texture_mapping.push_back(mesh->mMaterialIndex);
-		}
-
-		unmap_buffer(dev, index_buffer);
-		unmap_buffer(dev, vertex_pos);
-		unmap_buffer(dev, vertex_normal);
-		unmap_buffer(dev, vertex_uv0);
-		// TODO: Upload to GPUmem
-
-		vertex_buffers_info.emplace_back(vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
-		vertex_buffers_info.emplace_back(vertex_normal, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
-		vertex_buffers_info.emplace_back(vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
 
 		// Upload to gpudata
 
@@ -397,20 +338,20 @@ protected:
 			set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 			set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
-			bind_index_buffer(current_cmd_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
+			bind_index_buffer(current_cmd_list, xue->index_buffer, 0, xue->total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+			bind_vertex_buffers(current_cmd_list, 0, xue->vertex_buffers_info);
 
 
-			for (unsigned i = 0; i < meshOffset.size(); i++)
+			for (unsigned i = 0; i < xue->meshOffset.size(); i++)
 			{
 #ifdef D3D12
 				current_cmd_list->SetGraphicsRootDescriptorTable(1,
 					CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-					.Offset(texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+					.Offset(xue->texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
-				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 1, 1, &texture_descriptor_set[texture_mapping[i]], 0, nullptr);
+				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 1, 1, &texture_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
 #endif
-				draw_indexed(current_cmd_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
+				draw_indexed(current_cmd_list, std::get<0>(xue->meshOffset[i]), 1, std::get<2>(xue->meshOffset[i]), std::get<1>(xue->meshOffset[i]), 0);
 			}
 
 #ifndef D3D12
