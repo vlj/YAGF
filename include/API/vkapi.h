@@ -257,7 +257,49 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct semaphore
+	{
+		VkSemaphore object;
+		const VkSemaphoreCreateInfo info;
 
+		semaphore(VkDevice dev)
+			: info {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0}, m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateSemaphore(m_device, &info, nullptr, &object));
+		}
+
+		~semaphore()
+		{
+			vkDestroySemaphore(m_device, object, nullptr);
+		}
+
+		semaphore(semaphore&&) = delete;
+		semaphore(const semaphore&) = delete;
+	private:
+		VkDevice m_device;
+	};
+
+	struct fence
+	{
+		VkFence object;
+		const VkFenceCreateInfo info;
+
+		fence(VkDevice dev)
+			: info{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 }, m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateFence(m_device, &info, nullptr, &object));
+		}
+
+		~fence()
+		{
+			vkDestroyFence(m_device, object, nullptr);
+		}
+
+		fence(semaphore&&) = delete;
+		fence(const semaphore&) = delete;
+	private:
+		VkDevice m_device;
+	};
 
 	struct render_pass
 	{
