@@ -104,6 +104,7 @@ command_list_t create_command_list(device_t dev, command_list_storage_t storage)
 {
 	command_list_t result;
 	CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage.Get(), nullptr, IID_PPV_ARGS(result.GetAddressOf())));
+	CHECK_HRESULT(result->Close());
 	return result;
 }
 
@@ -263,7 +264,7 @@ void make_command_list_executable(command_list_t command_list)
 }
 
 
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource)
+void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT)
 {
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), get_resource_state(before), get_resource_state(after), subresource));
 }
@@ -400,7 +401,7 @@ d3d12_framebuffer_t::~d3d12_framebuffer_t()
 
 }
 
-std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 #ifndef NDEBUG
 	Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
@@ -431,7 +432,10 @@ std::tuple<device_t, swap_chain_t, command_queue_t> create_device_swapchain_and_
 	swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
 	CHECK_HRESULT(fact->CreateSwapChain(queue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf()));
-	return std::make_tuple(dev, chain, queue);
+
+	uint32_t w, h;
+	CHECK_HRESULT(chain->GetSourceSize(&w, &h));
+	return std::make_tuple(dev, chain, queue, w, h, irr::video::ECOLOR_FORMAT::ECF_R8G8B8A8_UNORM);
 }
 
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)

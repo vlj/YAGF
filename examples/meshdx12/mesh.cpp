@@ -146,7 +146,7 @@ private:
 	command_queue_t cmdqueue;
 	swap_chain_t chain;
 	std::vector<image_t> back_buffer;
-	descriptor_storage_t BackBufferDescriptorsHeap;
+	std::vector<command_list_t> command_list_for_back_buffer;
 
 #ifndef D3D12
 	VkDescriptorSet cbuffer_descriptor_set;
@@ -199,19 +199,15 @@ protected:
 
 		command_allocator = create_command_storage(dev);
 		command_list = create_command_list(dev, command_allocator);
-		sig = get_pipeline_layout_from_desc(dev, skinned_mesh_layout);
-
-#ifndef D3D12
 		start_command_list_recording(dev, command_list, command_allocator);
-		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-
-#endif // !D3D12
-
+		sig = get_pipeline_layout_from_desc(dev, skinned_mesh_layout);
 		cbuffer = create_buffer(dev, sizeof(Matrixes));
 		jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
-
+#ifndef D3D12
+		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+#endif // !D3D12
 		clear_value_structure_t clear_val = {};
 #ifdef D3D12
 		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
@@ -450,11 +446,88 @@ protected:
 		make_command_list_executable(command_list);
 		submit_executable_command_list(cmdqueue, command_list);
 		wait_for_command_queue_idle(dev, cmdqueue);
+		fill_draw_commands();
+	}
+
+
+	void fill_draw_commands()
+	{
+		for (unsigned i = 0; i < 2; i++)
+		{
+			command_list_for_back_buffer.push_back(create_command_list(dev, command_allocator));
+			command_list_t current_cmd_list = command_list_for_back_buffer.back();
+
+
+			start_command_list_recording(dev, current_cmd_list, command_allocator);
+
+			set_pipeline_barrier(dev, current_cmd_list, back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+
+			std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+#ifndef D3D12
+			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			info.renderPass = render_pass->object;
+			info.framebuffer = fbo[i]->fbo.object;
+			info.clearValueCount = 2;
+			VkClearValue clear_values[2];
+			memcpy(clear_values[0].color.float32, clearColor.data(), 4 * sizeof(float));
+			clear_values[1].depthStencil.depth = 1.f;
+			clear_values[1].depthStencil.stencil = 0;
+			info.pClearValues = clear_values;
+			info.renderArea.extent.width = width;
+			info.renderArea.extent.height = height;
+			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
+#else // !D3D12
+			current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+
+			current_cmd_list->SetGraphicsRootSignature(sig.Get());
+
+			std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap.Get(), sampler_heap.Get() };
+			current_cmd_list->SetDescriptorHeaps(2, descriptors.data());
+
+			current_cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+			current_cmd_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
+
+			clear_color(dev, current_cmd_list, fbo[i], clearColor);
+			clear_depth_stencil(dev, current_cmd_list, fbo[i], depth_stencil_aspect::depth_only, 1., 0);
+
+			current_cmd_list->SetGraphicsRootDescriptorTable(2,
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
+#endif
+			set_graphic_pipeline(current_cmd_list, objectpso);
+
+			set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
+			set_scissor(current_cmd_list, 0, 1024, 0, 1024);
+
+			bind_index_buffer(current_cmd_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
+
+
+			for (unsigned i = 0; i < meshOffset.size(); i++)
+			{
+#ifdef D3D12
+				current_cmd_list->SetGraphicsRootDescriptorTable(1,
+					CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+					.Offset(texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#else
+				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 1, 1, &texture_descriptor_set[texture_mapping[i]], 0, nullptr);
+#endif
+				draw_indexed(current_cmd_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
+			}
+
+#ifndef D3D12
+			vkCmdEndRenderPass(current_cmd_list->object);
+#endif // !D3D12
+			set_pipeline_barrier(dev, current_cmd_list, back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+			make_command_list_executable(current_cmd_list);
+		}
 	}
 
 	virtual void Draw() override
 	{
-		start_command_list_recording(dev, command_list, command_allocator);
 		Matrixes *cbufdata = static_cast<Matrixes*>(map_buffer(dev, cbuffer));
 		irr::core::matrix4 Model, View;
 		View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
@@ -477,73 +550,8 @@ protected:
 				//unmap_buffer(dev, jointbuffer);
 
 		uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain);
-
-		set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
-
-		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
-#ifndef D3D12
-		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		info.renderPass = render_pass->object;
-		info.framebuffer = fbo[current_backbuffer]->fbo.object;
-		info.clearValueCount = 2;
-		VkClearValue clear_values[2];
-		memcpy(clear_values[0].color.float32, clearColor.data(), 4 * sizeof(float));
-		clear_values[1].depthStencil.depth = 1.f;
-		clear_values[1].depthStencil.stencil = 0;
-		info.pClearValues = clear_values;
-		info.renderArea.extent.width = width;
-		info.renderArea.extent.height = height;
-		vkCmdBeginRenderPass(command_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
-
-		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
-		vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
-#else // !D3D12
-		command_list->OMSetRenderTargets(1, &(fbo[current_backbuffer]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[current_backbuffer]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
-
-		command_list->SetGraphicsRootSignature(sig.Get());
-
-		std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap.Get(), sampler_heap.Get() };
-		command_list->SetDescriptorHeaps(2, descriptors.data());
-
-		command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
-
-		clear_color(dev, command_list, fbo[current_backbuffer], clearColor);
-		clear_depth_stencil(dev, command_list, fbo[current_backbuffer], depth_stencil_aspect::depth_only, 1., 0);
-
-		command_list->SetGraphicsRootDescriptorTable(2,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
-#endif
-		set_graphic_pipeline(command_list, objectpso);
-
-		set_viewport(command_list, 0., 1024.f, 0., 1024.f, 0., 1.);
-		set_scissor(command_list, 0, 1024, 0, 1024);
-
-		bind_index_buffer(command_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-		bind_vertex_buffers(command_list, 0, vertex_buffers_info);
-
-
-		for (unsigned i = 0; i < meshOffset.size(); i++)
-		{
-#ifdef D3D12
-			command_list->SetGraphicsRootDescriptorTable(1,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-				.Offset(texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-#else
-			vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, 1, 1, &texture_descriptor_set[texture_mapping[i]], 0, nullptr);
-#endif
-			draw_indexed(command_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
-		}
-
-#ifndef D3D12
-		vkCmdEndRenderPass(command_list->object);
-#endif // !D3D12
-		set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-		make_command_list_executable(command_list);
-		submit_executable_command_list(cmdqueue, command_list);
+		submit_executable_command_list(cmdqueue, command_list_for_back_buffer[current_backbuffer]);
 		wait_for_command_queue_idle(dev, cmdqueue);
-		reset_command_list_storage(dev, command_allocator);
 		present(dev, cmdqueue, chain, current_backbuffer);
 	}
 };
