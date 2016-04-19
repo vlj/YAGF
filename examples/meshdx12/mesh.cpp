@@ -97,8 +97,8 @@ pipeline_state_t createSkinnedObjectShader(device_t dev, pipeline_layout_t layou
 	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
 
 
-	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\vert.spv");
-	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\frag.spv");
+	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\vert.spv");
+	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\frag.spv");
 
 	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
 		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
@@ -270,7 +270,7 @@ protected:
 		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 
 		Assimp::Importer importer;
-		model = importer.ReadFile("..\\..\\examples\\assets\\xue.b3d", 0);
+		model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
 
 
 		// Format Weight
@@ -353,7 +353,7 @@ protected:
 			aiString path;
 			model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 			std::string texture_path(path.C_Str());
-			const std::string &fixed = "..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
+			const std::string &fixed = "..\\..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 			std::ifstream DDSFile(fixed, std::ifstream::binary);
 			irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
