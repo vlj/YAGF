@@ -15,5 +15,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)mesh.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)shaders.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)shaders.h" />
   </ItemGroup>
 </Project>
