@@ -200,18 +200,17 @@ protected:
 		cbuffer = create_buffer(dev, sizeof(Matrixes));
 		jointbuffer = create_buffer(dev, sizeof(JointTransform));
 
+		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 2 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000} });
+		sampler_heap = create_descriptor_storage(dev, 1, { {RESOURCE_VIEW::SAMPLER, 1 } });
+
 #ifndef D3D12
 		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 #endif // !D3D12
 		clear_value_structure_t clear_val = {};
 #ifdef D3D12
-		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 1000);
-
 		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
 		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
-
-		sampler_heap = create_sampler_heap(dev, 1);
 		create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
@@ -219,12 +218,6 @@ protected:
 		depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil, &clear_val);
 		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 #ifndef D3D12
-		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 } };
-		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 100, size);
-
-		std::vector<VkDescriptorPoolSize> sampler_heap_size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLER, 1 } };
-		sampler_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 1, sampler_heap_size);
-
 		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
 		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &sig->info.pSetLayouts[2] };

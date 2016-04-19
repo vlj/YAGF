@@ -226,6 +226,16 @@ buffer_t create_buffer(device_t dev, size_t size)
 	return buffer;
 }
 
+descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
+{
+	std::vector<VkDescriptorPoolSize> size;
+	for (const auto& set_size : num_descriptors)
+	{
+		size.push_back({ get_descriptor_type(std::get<0>(set_size)), std::get<1>(set_size) });
+	}
+	return std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, num_sets, size);
+}
+
 void* map_buffer(device_t dev, buffer_t buffer)
 {
 	void* ptr;

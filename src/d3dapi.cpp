@@ -168,17 +168,6 @@ void copy_buffer_to_image_subresource(command_list_t list, image_t destination_i
 		&CD3DX12_BOX(0, 0, width, height));
 }
 
-descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors)
-{
-	descriptor_storage_t result;
-	D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-	heapdesc.NumDescriptors = num_descriptors;
-	heapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	CHECK_HRESULT(dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(result.GetAddressOf())));
-	return result;
-}
-
 framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t)
 {
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
@@ -198,12 +187,32 @@ void reset_command_list_storage(device_t, command_list_storage_t storage)
 	storage->Reset();
 }
 
-descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors)
+namespace
 {
+	D3D12_DESCRIPTOR_HEAP_TYPE get_descriptor_heap_type(RESOURCE_VIEW type)
+	{
+		switch (type)
+		{
+		case RESOURCE_VIEW::CONSTANTS_BUFFER:
+		case RESOURCE_VIEW::UAV:
+		case RESOURCE_VIEW::SHADER_RESOURCE: return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		case RESOURCE_VIEW::SAMPLER: return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		}
+		throw;
+	}
+}
+
+descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
+{
+	uint32_t total_size = 0;
+	for (const auto &set_size : num_descriptors)
+	{
+		total_size += std::get<1>(set_size);
+	}
 	descriptor_storage_t result;
 	D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
-	heapdesc.NumDescriptors = num_descriptors;
-	heapdesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	heapdesc.NumDescriptors = total_size;
+	heapdesc.Type = get_descriptor_heap_type(std::get<0>(num_descriptors[0]));
 	heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CHECK_HRESULT(dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;

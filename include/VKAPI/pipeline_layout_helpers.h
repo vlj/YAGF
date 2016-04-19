@@ -5,7 +5,7 @@
 #include "../API/GfxApi.h"
 
 
-static constexpr VkDescriptorType get_descriptor_type(const RESOURCE_VIEW type)
+constexpr VkDescriptorType get_descriptor_type(const RESOURCE_VIEW type)
 {
 	return (type == RESOURCE_VIEW::CONSTANTS_BUFFER) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER :
 		(type == RESOURCE_VIEW::SHADER_RESOURCE) ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE :
