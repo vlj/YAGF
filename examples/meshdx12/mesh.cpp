@@ -203,39 +203,10 @@ protected:
 		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 2 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000} });
 		sampler_heap = create_descriptor_storage(dev, 1, { {RESOURCE_VIEW::SAMPLER, 1 } });
 
+		clear_value_structure_t clear_val = {};
 #ifndef D3D12
 		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-#endif // !D3D12
-		clear_value_structure_t clear_val = {};
-#ifdef D3D12
-		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
-		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
-		create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
-
-		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
-#endif
-		depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil, &clear_val);
-		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-#ifndef D3D12
-		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
-		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &sig->info.pSetLayouts[2] };
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &sampler_allocate, &sampler_descriptors));
-
-		VkDescriptorImageInfo sampler_view{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		VkWriteDescriptorSet write_info2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, sampler_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &write_info2, 0, nullptr);
-
-		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, sig->info.pSetLayouts };
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &cbuffer_descriptor_set));
-		VkDescriptorBufferInfo cbuffer_info{ cbuffer->object, 0, sizeof(Matrixes) };
-		VkWriteDescriptorSet update_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &update_info, 0, nullptr);
-
-		VkDescriptorBufferInfo cbuffer2_info{ jointbuffer->object, 0, sizeof(JointTransform) };
-		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &update2_info, 0, nullptr);
 
 		VkAttachmentDescription attachment{};
 		attachment.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -261,17 +232,44 @@ protected:
 		{ attachment, depth_att },
 		{
 			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-				.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-				.set_depth_stencil_attachment(VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL})
+			.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+			.set_depth_stencil_attachment(VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
 		}, std::vector<VkSubpassDependency>()));
-#endif
+#else
+		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
+		create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
+		create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
+
+		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
+#endif // !D3D12
+		depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil, &clear_val);
+		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 
 		fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 		fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+#ifndef D3D12
+		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
+		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &sig->info.pSetLayouts[2] };
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &sampler_allocate, &sampler_descriptors));
+
+		VkDescriptorImageInfo sampler_view{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+		VkWriteDescriptorSet write_info2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, sampler_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
+		vkUpdateDescriptorSets(dev->object, 1, &write_info2, 0, nullptr);
+
+		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, sig->info.pSetLayouts };
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &cbuffer_descriptor_set));
+		VkDescriptorBufferInfo cbuffer_info{ cbuffer->object, 0, sizeof(Matrixes) };
+		VkWriteDescriptorSet update_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr };
+		vkUpdateDescriptorSets(dev->object, 1, &update_info, 0, nullptr);
+
+		VkDescriptorBufferInfo cbuffer2_info{ jointbuffer->object, 0, sizeof(JointTransform) };
+		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
+		vkUpdateDescriptorSets(dev->object, 1, &update2_info, 0, nullptr);
+#endif
 
 		Assimp::Importer importer;
 		model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
-
 
 		// Format Weight
 
