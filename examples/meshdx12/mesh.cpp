@@ -199,8 +199,8 @@ protected:
 
 #ifndef D3D12
 		start_command_list_recording(dev, command_list, command_allocator);
-		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0);
-		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0);
+		set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
 #endif // !D3D12
 
@@ -220,27 +220,9 @@ protected:
 
 		clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif
-
 		depth_buffer = create_image(dev, irr::video::D24U8, 1024, 1024, 1, usage_depth_stencil, &clear_val);
-
+		set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 #ifndef D3D12
-
-		//Prepare an image to match the new layout..
-		VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-		barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		barrier.image = depth_buffer->object;
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.layerCount = 1;
-
-
-		vkCmdPipelineBarrier(command_list->object, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 		std::vector<VkDescriptorPoolSize> size = { VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 }, VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 } };
 		cbv_srv_descriptors_heap = std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 100, size);
 
@@ -369,9 +351,9 @@ protected:
 		unmap_buffer(dev, vertex_uv0);
 		// TODO: Upload to GPUmem
 
-		vertex_buffers_info.emplace_back(vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
-		vertex_buffers_info.emplace_back(vertex_normal, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
-		vertex_buffers_info.emplace_back(vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), total_vertex_cnt * sizeof(aiVector3D));
+		vertex_buffers_info.emplace_back(vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+		vertex_buffers_info.emplace_back(vertex_normal, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+		vertex_buffers_info.emplace_back(vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
 
 		// Upload to gpudata
 
@@ -436,9 +418,9 @@ protected:
 			uint32_t miplevel = 0;
 			for (const MipLevelData mipmapData : Mips)
 			{
-				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel);
+				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
 				copy_buffer_to_image_subresource(command_list, texture, miplevel, upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, DDSPic.getLoadedImage().Format);
-				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel);
+				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
 				miplevel++;
 			}
 			textureSet[fixed] = 2 + texture_id;
@@ -492,7 +474,7 @@ protected:
 
 		uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain);
 
-		set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0);
+		set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
 #ifndef D3D12
@@ -553,7 +535,7 @@ protected:
 #ifndef D3D12
 		vkCmdEndRenderPass(command_list->object);
 #endif // !D3D12
-		set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0);
+		set_pipeline_barrier(dev, command_list, back_buffer[current_backbuffer], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 		make_command_list_executable(command_list);
 		submit_executable_command_list(cmdqueue, command_list);
 		wait_for_command_queue_idle(dev, cmdqueue);

@@ -376,7 +376,21 @@ namespace
 	}
 }
 
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource)
+namespace
+{
+	VkImageAspectFlags get_image_aspect(irr::video::E_ASPECT aspect)
+	{
+		switch (aspect)
+		{
+		case irr::video::E_ASPECT::EA_COLOR: return VK_IMAGE_ASPECT_COLOR_BIT;
+		case irr::video::E_ASPECT::EA_DEPTH: return VK_IMAGE_ASPECT_DEPTH_BIT;
+		case irr::video::E_ASPECT::EA_STENCIL: return VK_IMAGE_ASPECT_STENCIL_BIT;
+		case irr::video::E_ASPECT::EA_DEPTH_STENCIL: return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+	}
+}
+
+void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
 	//Prepare an image to match the new layout..
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -387,7 +401,7 @@ void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t res
 	barrier.dstAccessMask = 0;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.aspectMask = get_image_aspect(aspect);
 	barrier.subresourceRange.baseMipLevel = subresource;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.layerCount = 1;

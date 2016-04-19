@@ -65,6 +65,14 @@ namespace irr
 		{
 			ESO_KEEP,
 		};
+
+		enum class E_ASPECT
+		{
+			EA_COLOR,
+			EA_DEPTH,
+			EA_STENCIL,
+			EA_DEPTH_STENCIL
+		};
 	}
 }
 
@@ -304,7 +312,7 @@ void start_command_list_recording(device_t dev, command_list_t command_list, com
 void make_command_list_executable(command_list_t command_list);
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue);
 void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index);
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource);
+void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
 void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color);
 
 enum class depth_stencil_aspect
