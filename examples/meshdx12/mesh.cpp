@@ -9,6 +9,7 @@
 #include "../helper/SampleClass.h"
 #include "shaders.h"
 #include "geometry.h"
+#include "textures.h"
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -75,7 +76,6 @@ private:
 	image_t depth_buffer;
 
 	std::unique_ptr<object> xue;
-	std::unordered_map<std::string, uint32_t> textureSet;
 
 	pipeline_layout_t sig;
 	render_pass_t render_pass;
@@ -177,66 +177,12 @@ protected:
 			model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 			std::string texture_path(path.C_Str());
 			const std::string &fixed = "..\\..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
-			std::ifstream DDSFile(fixed, std::ifstream::binary);
-			irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-			uint32_t width = DDSPic.getLoadedImage().Layers[0][0].Width;
-			uint32_t height = DDSPic.getLoadedImage().Layers[0][0].Height;
-			uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
-			uint16_t layer_count = 1;
-
-			buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
-			upload_buffers.push_back(upload_buffer);
-			void *pointer = map_buffer(dev, upload_buffer);
-
-			size_t offset_in_texram = 0;
-
-			size_t block_height = 4;
-			size_t block_width = 4;
-			size_t block_size = 8;
-			std::vector<MipLevelData> Mips;
-			for (unsigned face = 0; face < layer_count; face++)
-			{
-				for (unsigned i = 0; i < mipmap_count; i++)
-				{
-					const IImage &image = DDSPic.getLoadedImage();
-					struct PackedMipMapLevel miplevel = image.Layers[face][i];
-					// Offset needs to be aligned to 512 bytes
-					offset_in_texram = (offset_in_texram + 511) & ~511;
-					// Row pitch is always a multiple of 256
-					size_t height_in_blocks = (image.Layers[face][i].Height + block_height - 1) / block_height;
-					size_t width_in_blocks = (image.Layers[face][i].Width + block_width - 1) / block_width;
-					size_t height_in_texram = height_in_blocks * block_height;
-					size_t width_in_texram = width_in_blocks * block_width;
-					size_t rowPitch = width_in_blocks * block_size;
-					rowPitch = (rowPitch + 255) & ~255;
-					MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
-					Mips.push_back(mml);
-					for (unsigned row = 0; row < height_in_blocks; row++)
-					{
-						memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
-						offset_in_texram += rowPitch;
-					}
-				}
-			}
-			unmap_buffer(dev, upload_buffer);
-
-			image_t texture = create_image(dev, DDSPic.getLoadedImage().Format,
-				width, height, mipmap_count, usage_sampled | usage_transfer_dst,
-				nullptr);
-
-
+			image_t texture;
+			buffer_t upload_buffer;
+			std::tie(texture, upload_buffer) = load_texture(dev, fixed, command_list);
 			Textures.push_back(texture);
-
-			uint32_t miplevel = 0;
-			for (const MipLevelData mipmapData : Mips)
-			{
-				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
-				copy_buffer_to_image_subresource(command_list, texture, miplevel, upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, DDSPic.getLoadedImage().Format);
-				set_pipeline_barrier(dev, command_list, texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
-				miplevel++;
-			}
-			textureSet[fixed] = 2 + texture_id;
+			upload_buffers.push_back(upload_buffer);
 #ifdef D3D12
 			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
 #else
@@ -246,7 +192,7 @@ protected:
 			texture_descriptor_set.push_back(texture_descriptor);
 			auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 				VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
-				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, mipmap_count, 0, 1 });
+				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels, 0, 1 });
 			VkDescriptorImageInfo image_view{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 			Textures_views.push_back(img_view);
 
