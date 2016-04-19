@@ -17,9 +17,9 @@ constexpr VkPolygonMode get_polygon_mode(const irr::video::E_POLYGON_MODE epm)
 constexpr VkCullModeFlags get_cull_mode(const irr::video::E_CULL_MODE ecm)
 {
 	return (ecm == irr::video::E_CULL_MODE::ECM_NONE) ? VK_CULL_MODE_NONE :
-		(ecm == irr::video::E_CULL_MODE::ECM_BACK) ? VK_CULL_MODE_BACK_BIT :
-		(ecm == irr::video::E_CULL_MODE::ECM_FRONT) ? VK_CULL_MODE_FRONT_BIT :
-		(ecm == irr::video::E_CULL_MODE::ECM_FRONT_AND_BACK) ? VK_CULL_MODE_FRONT_AND_BACK : throw;
+		(ecm == irr::video::E_CULL_MODE::ECM_BACK) ? VK_CULL_MODE_NONE :
+		(ecm == irr::video::E_CULL_MODE::ECM_FRONT) ? VK_CULL_MODE_NONE :
+		(ecm == irr::video::E_CULL_MODE::ECM_FRONT_AND_BACK) ? VK_CULL_MODE_NONE : throw;
 }
 
 constexpr VkFrontFace get_front_face(const irr::video::E_FRONT_FACE eff)
