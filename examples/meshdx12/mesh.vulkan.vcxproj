@@ -24,6 +24,8 @@
   <ItemGroup>
     <None Include="..\shaders\object.vert" />
     <None Include="..\shaders\object_gbuffer.frag" />
+    <None Include="..\shaders\screenquad.vert" />
+    <None Include="..\shaders\sunlight.frag" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

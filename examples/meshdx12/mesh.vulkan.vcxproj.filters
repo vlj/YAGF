@@ -22,5 +22,11 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="..\shaders\screenquad.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\sunlight.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
