@@ -169,29 +169,6 @@ protected:
 		auto model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
 		xue = std::make_unique<object>(dev, model);
 
-		// Format Weight
-
-/*        std::vector<std::vector<irr::video::SkinnedVertexData> > weightsList;
-		for (auto weightbuffer : loader->AnimatedMesh.WeightBuffers)
-		{
-			std::vector<irr::video::SkinnedVertexData> weights;
-			for (unsigned j = 0; j < weightbuffer.size(); j += 4)
-			{
-				irr::video::SkinnedVertexData tmp = {
-					weightbuffer[j].Index, weightbuffer[j].Weight,
-					weightbuffer[j + 1].Index, weightbuffer[j + 1].Weight,
-					weightbuffer[j + 2].Index, weightbuffer[j + 2].Weight,
-					weightbuffer[j + 3].Index, weightbuffer[j + 3].Weight,
-				};
-				weights.push_back(tmp);
-			}
-			weightsList.push_back(weights);
-		}*/
-
-
-
-		// Upload to gpudata
-
 		// Texture
 		std::vector<buffer_t> upload_buffers;
 		for (int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
