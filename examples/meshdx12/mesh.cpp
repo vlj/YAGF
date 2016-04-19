@@ -148,11 +148,6 @@ private:
 	std::vector<image_t> back_buffer;
 	std::vector<command_list_t> command_list_for_back_buffer;
 
-#ifndef D3D12
-	VkDescriptorSet cbuffer_descriptor_set;
-	std::vector<VkDescriptorSet> texture_descriptor_set;
-#endif // !D3D12
-
 	command_list_storage_t command_allocator;
 	command_list_t command_list;
 	buffer_t cbuffer;
@@ -161,11 +156,12 @@ private:
 
 	std::vector<image_t> Textures;
 #ifndef D3D12
+	VkDescriptorSet cbuffer_descriptor_set;
+	std::vector<VkDescriptorSet> texture_descriptor_set;
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
 	VkDescriptorSet sampler_descriptors;
 #endif
-	std::vector<buffer_t> upload_buffers;
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
 
@@ -358,6 +354,7 @@ protected:
 		// Upload to gpudata
 
 		// Texture
+		std::vector<buffer_t> upload_buffers;
 		for (int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
 		{
 			aiString path;
