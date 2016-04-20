@@ -25,6 +25,7 @@ void main(void)
 {
   Colors = texture(sampler2D(tex, s), vec2(uv.x, 1. - uv.y));
   EncodedNormal_Roughness_Metalness.xy = 0.5 * EncodeNormal(normalize(nor)) + 0.5;
+  EncodedNormal_Roughness_Metalness.zw = vec2(0., 1.);
 
 //  Colors = vec4(texel.rgb * pow(color.rgb, vec3(2.2)), 1.);
 /*  float glossmap = texture(glosstex, uv).r;

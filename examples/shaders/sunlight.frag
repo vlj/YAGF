@@ -115,7 +115,7 @@ in vec2 uv;
 layout(location = 0) out vec4 FragColor;
 
 void main() {
-    FragColor = textureLod(sampler2D(ctex, s), uv, 0);
+    FragColor = textureLod(sampler2D(ntex, s), uv, 0);
 
 /*
     float z = texture(dtex, uv).x;

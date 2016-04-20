@@ -48,6 +48,6 @@ void main()
 //  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
   //  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
   //  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
-  uv = vec4(Texcoord, 1., 1.).xy;
+  uv = Texcoord;
   //  uv_bis = SecondTexcoord;
 }
