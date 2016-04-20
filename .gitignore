@@ -12,6 +12,10 @@ glfw_config.h
 *.exp
 pnglibconf.h
 *.res
+*.spv
+*.targets
+*.nupkg
+packages/
 
 *CMakeCache.txt
 *.check_cache
