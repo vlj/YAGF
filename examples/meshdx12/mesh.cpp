@@ -175,8 +175,9 @@ protected:
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
 			&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[0] }),
 			&cbuffer_descriptor_set));
-		VkDescriptorSetAllocateInfo input_attach_alloc{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &sunlight_sig->info.pSetLayouts[0] };
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &input_attach_alloc, &input_attachment_descriptors));
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+			&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { sunlight_sig->info.pSetLayouts[0] }),
+			&input_attachment_descriptors));
 
 		util::update_descriptor_sets(dev->object,
 		{
@@ -221,11 +222,11 @@ protected:
 			texture_descriptor_set.push_back(texture_descriptor);
 			auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 				structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
-			VkDescriptorImageInfo image_view{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 			Textures_views.push_back(img_view);
-
-			VkWriteDescriptorSet write_info{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, texture_descriptor, 2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &image_view, nullptr, nullptr};
-			vkUpdateDescriptorSets(dev->object, 1, &write_info, 0, nullptr);
+			util::update_descriptor_sets(dev->object,
+			{
+				structures::write_descriptor_set(texture_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
+			});
 #endif
 		}
 
