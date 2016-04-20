@@ -519,3 +519,39 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 }
+
+namespace structures
+{
+	inline VkDescriptorSetAllocateInfo descriptor_set_allocate_info(VkDescriptorPool descriptor_pool, const std::vector<VkDescriptorSetLayout> &set_layouts)
+	{
+		return{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, static_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
+	}
+
+	constexpr VkComponentMapping component_mapping(const VkComponentSwizzle r = VK_COMPONENT_SWIZZLE_R, const VkComponentSwizzle g = VK_COMPONENT_SWIZZLE_G, const VkComponentSwizzle b = VK_COMPONENT_SWIZZLE_B, const VkComponentSwizzle a = VK_COMPONENT_SWIZZLE_A)
+	{
+		return{ r, g, b, a };
+	}
+
+	constexpr VkImageSubresourceRange image_subresource_range(VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t base_mip_level = 0, uint32_t mip_level_count = 1, uint32_t base_layer = 0, uint32_t layer_count = 1)
+	{
+		return{ aspect, base_mip_level, mip_level_count, base_layer, layer_count };
+	}
+
+	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorImageInfo> &image_descriptors,
+		uint32_t dst_binding, uint32_t dst_array_element = 0)
+	{
+		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(image_descriptors.size()), descriptor_type, image_descriptors.data(), nullptr, nullptr };
+	}
+
+	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorBufferInfo> &buffer_descriptors,
+		uint32_t dst_binding, uint32_t dst_array_element = 0)
+	{
+		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(buffer_descriptors.size()), descriptor_type, nullptr, buffer_descriptors.data(), nullptr };
+	}
+
+	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkBufferView> &texel_buffer_view_descriptors,
+		uint32_t dst_binding, uint32_t dst_array_element = 0)
+	{
+		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(texel_buffer_view_descriptors.size()), descriptor_type, nullptr, nullptr, texel_buffer_view_descriptors.data() };
+	}
+}

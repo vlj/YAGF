@@ -164,38 +164,40 @@ protected:
 #ifndef D3D12
 		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
-		VkDescriptorSetAllocateInfo sampler_allocate{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, sampler_heap->object, 1, &object_sig->info.pSetLayouts[2] };
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &sampler_allocate, &sampler_descriptors));
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+			&structures::descriptor_set_allocate_info(sampler_heap->object, { object_sig->info.pSetLayouts[2] }),
+			&sampler_descriptors));
 
 		VkDescriptorImageInfo sampler_view{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		VkWriteDescriptorSet write_info2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, sampler_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &write_info2, 0, nullptr);
+		vkUpdateDescriptorSets(dev->object, 1,
+			&structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER, { sampler_view }, 3),
+			0, nullptr);
 
-		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, object_sig->info.pSetLayouts };
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &info, &cbuffer_descriptor_set));
-		VkDescriptorBufferInfo cbuffer_info{ cbuffer->object, 0, sizeof(Matrixes) };
-		VkWriteDescriptorSet update_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer_info, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &update_info, 0, nullptr);
-
-		VkDescriptorBufferInfo cbuffer2_info{ jointbuffer->object, 0, sizeof(JointTransform) };
-		VkWriteDescriptorSet update2_info{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, cbuffer_descriptor_set, 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nullptr, &cbuffer2_info, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &update2_info, 0, nullptr);
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+			&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[0] }),
+			&cbuffer_descriptor_set));
+		vkUpdateDescriptorSets(dev->object, 1,
+			&structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, { VkDescriptorBufferInfo{ cbuffer->object, 0, sizeof(Matrixes) } }, 0),
+			0, nullptr);
+		vkUpdateDescriptorSets(dev->object, 1,
+			&structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, { VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),
+			0, nullptr);
 
 		diffuse_color_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, diffuse_color->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-			VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
-			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+			structures::component_mapping(), structures::image_subresource_range());
 		normal_roughness_metalness_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, normal_roughness_metalness->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-			VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
-			VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+			structures::component_mapping(), structures::image_subresource_range());
 
 		VkDescriptorSetAllocateInfo input_attach_alloc{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &sunlight_sig->info.pSetLayouts[0] };
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &input_attach_alloc, &input_attachment_descriptors));
 		VkDescriptorImageInfo input1_attach_desc{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 		VkDescriptorImageInfo input2_attach_desc{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		VkWriteDescriptorSet updata_input1{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, input_attachment_descriptors, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &input1_attach_desc, nullptr, nullptr };
-		VkWriteDescriptorSet updata_input2{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, input_attachment_descriptors, 1, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &input2_attach_desc, nullptr, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &updata_input1, 0, nullptr);
-		vkUpdateDescriptorSets(dev->object, 1, &updata_input2, 0, nullptr);
+		vkUpdateDescriptorSets(dev->object, 1,
+			&structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { input1_attach_desc }, 0),
+			0, nullptr);
+		vkUpdateDescriptorSets(dev->object, 1,
+			&structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { input1_attach_desc }, 1),
+			0, nullptr);
 
 
 		VkWriteDescriptorSet write_info3{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, input_attachment_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
@@ -223,13 +225,11 @@ protected:
 #ifdef D3D12
 			create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
 #else
-			VkDescriptorSetAllocateInfo allocate_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &object_sig->info.pSetLayouts[1] };
 			VkDescriptorSet texture_descriptor;
-			CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &allocate_info, &texture_descriptor));
+			CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[1] }), &texture_descriptor));
 			texture_descriptor_set.push_back(texture_descriptor);
 			auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
-				VkComponentMapping{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
-				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels, 0, 1 });
+				structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
 			VkDescriptorImageInfo image_view{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 			Textures_views.push_back(img_view);
 
