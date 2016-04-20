@@ -15,6 +15,7 @@
     <ClInclude Include="include\VKAPI\pipeline_helpers.h" />
     <ClInclude Include="include\VKAPI\pipeline_layout_helpers.h" />
     <ClInclude Include="include\VKAPI\renderpass_helpers.h" />
+    <ClInclude Include="include\VKAPI\vulkan_helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\vkapi.cpp" />
