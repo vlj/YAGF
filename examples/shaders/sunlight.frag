@@ -5,9 +5,9 @@
 
 layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput ctex;
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput ntex;
+layout(input_attachment_index = 3, set = 0, binding = 2) uniform subpassInput dtex;
 
-/*uniform sampler2D dtex;
-
+/*
 layout(std140) uniform VIEWDATA
 {
   mat4 ViewMatrix;
@@ -20,7 +20,7 @@ layout(std140) uniform LIGHTDATA
   vec3 sun_direction;
   float sun_angle;
   vec3 sun_col;
-};
+};*/
 
 vec3 DecodeNormal(vec2 n)
 {
@@ -28,7 +28,7 @@ vec3 DecodeNormal(vec2 n)
   vec2 xy = normalize(n) * sqrt(1. - z * z);
   return vec3(xy,z);
 }
-
+/*
 // Burley model from Frostbite going pbr paper
 vec3 DiffuseBRDF(vec3 normal, vec3 eyedir, vec3 lightdir, vec3 color, float roughness)
 {
@@ -115,14 +115,14 @@ in vec2 uv;
 layout(location = 0) out vec4 FragColor;
 
 void main() {
-    FragColor = subpassLoad(ctex);
+    vec3 color = subpassLoad(ctex).xyz;
+    vec3 norm = normalize(DecodeNormal(2. * subpassLoad(ntex).xy - 1.));
+
+    FragColor = subpassLoad(dtex);
 
 /*
     float z = texture(dtex, uv).x;
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
-
-    vec3 norm = normalize(DecodeNormal(2. * texture(ntex, uv).xy - 1.));
-    vec3 color = texture(ctex, uv).xyz;
     float roughness = texture(ntex, uv).z;
     vec3 eyedir = -normalize(xpos.xyz);
 

@@ -113,7 +113,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 }
 
 constexpr auto sunlight_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 0, 1), range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1), range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader)
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 0, 1), range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1), range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 2, 1), range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader)
 );
 
 
