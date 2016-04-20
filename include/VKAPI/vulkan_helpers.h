@@ -555,3 +555,11 @@ namespace structures
 		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(texel_buffer_view_descriptors.size()), descriptor_type, nullptr, nullptr, texel_buffer_view_descriptors.data() };
 	}
 }
+
+namespace util
+{
+	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
+	{
+		vkUpdateDescriptorSets(dev, static_cast<uint32_t>(update_info.size()), update_info.data(),0, nullptr);
+	}
+}

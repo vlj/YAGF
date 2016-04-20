@@ -164,44 +164,35 @@ protected:
 #ifndef D3D12
 		sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-			&structures::descriptor_set_allocate_info(sampler_heap->object, { object_sig->info.pSetLayouts[2] }),
-			&sampler_descriptors));
-
-		VkDescriptorImageInfo sampler_view{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		vkUpdateDescriptorSets(dev->object, 1,
-			&structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER, { sampler_view }, 3),
-			0, nullptr);
-
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-			&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[0] }),
-			&cbuffer_descriptor_set));
-		vkUpdateDescriptorSets(dev->object, 1,
-			&structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, { VkDescriptorBufferInfo{ cbuffer->object, 0, sizeof(Matrixes) } }, 0),
-			0, nullptr);
-		vkUpdateDescriptorSets(dev->object, 1,
-			&structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, { VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),
-			0, nullptr);
-
 		diffuse_color_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, diffuse_color->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 			structures::component_mapping(), structures::image_subresource_range());
 		normal_roughness_metalness_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, normal_roughness_metalness->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 			structures::component_mapping(), structures::image_subresource_range());
 
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+			&structures::descriptor_set_allocate_info(sampler_heap->object, { object_sig->info.pSetLayouts[2] }),
+			&sampler_descriptors));
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+			&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[0] }),
+			&cbuffer_descriptor_set));
 		VkDescriptorSetAllocateInfo input_attach_alloc{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, cbv_srv_descriptors_heap->object, 1, &sunlight_sig->info.pSetLayouts[0] };
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &input_attach_alloc, &input_attachment_descriptors));
-		VkDescriptorImageInfo input1_attach_desc{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		VkDescriptorImageInfo input2_attach_desc{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-		vkUpdateDescriptorSets(dev->object, 1,
-			&structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { input1_attach_desc }, 0),
-			0, nullptr);
-		vkUpdateDescriptorSets(dev->object, 1,
-			&structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { input1_attach_desc }, 1),
-			0, nullptr);
 
-
-		VkWriteDescriptorSet write_info3{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, input_attachment_descriptors, 3, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_view, nullptr, nullptr };
-		vkUpdateDescriptorSets(dev->object, 1, &write_info3, 0, nullptr);
+		util::update_descriptor_sets(dev->object,
+		{
+			structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				{ VkDescriptorBufferInfo{ cbuffer->object, 0, sizeof(Matrixes) } }, 0),
+			structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),
+			structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
+			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
+			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
+			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
+		});
 #endif
 
 		Assimp::Importer importer;
