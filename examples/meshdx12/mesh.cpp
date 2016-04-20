@@ -336,8 +336,7 @@ protected:
 			set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 			set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &input_attachment_descriptors, 0, nullptr);
-			vkCmdDraw(current_cmd_list->object, 3, 1, 0, 0);
-//			draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+			draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 
 #ifndef D3D12
 			vkCmdEndRenderPass(current_cmd_list->object);

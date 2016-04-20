@@ -545,6 +545,11 @@ void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t in
 	vkCmdDrawIndexed(command_list->object, index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
+void draw_non_indexed(command_list_t command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
+{
+	vkCmdDraw(command_list->object, vertex_count, instance_count, base_vertex, base_instance);
+}
+
 uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
 {
 	uint32_t index;
