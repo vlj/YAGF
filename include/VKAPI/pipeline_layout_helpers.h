@@ -13,6 +13,13 @@ constexpr VkDescriptorType get_descriptor_type(const RESOURCE_VIEW type)
 		(type == RESOURCE_VIEW::INPUT_ATTACHMENT) ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT : throw;
 }
 
+constexpr VkShaderStageFlags get_shader_stage(const shader_stage stage)
+{
+	return (stage == shader_stage::vertex_shader) ? VK_SHADER_STAGE_VERTEX_BIT :
+		(stage == shader_stage::fragment_shader) ? VK_SHADER_STAGE_FRAGMENT_BIT :
+		(stage == shader_stage::all) ? VK_SHADER_STAGE_ALL : throw;
+}
+
 template<size_t N>
 pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_layout_description_<N> desc)
 {
@@ -30,7 +37,7 @@ pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_lay
 			range.binding = rod.bind_point;
 			range.descriptorCount = rod.count;
 			range.descriptorType = get_descriptor_type(rod.range_type);
-			range.stageFlags = VK_SHADER_STAGE_ALL;
+			range.stageFlags = get_shader_stage(ds.stage);
 			descriptor_range_storage.emplace_back(range);
 
 		}

@@ -124,6 +124,13 @@ enum class RESOURCE_VIEW
 	UAV,
 };
 
+enum class shader_stage
+{
+	vertex_shader,
+	fragment_shader,
+	all,
+};
+
 
 
 struct range_of_descriptors
@@ -141,15 +148,16 @@ struct descriptor_set_
 {
 	const range_of_descriptors *descriptors_ranges;
 	const uint32_t count;
+	shader_stage stage;
 
-	constexpr descriptor_set_(const range_of_descriptors * ptr, const uint32_t cnt) : descriptors_ranges(ptr), count(cnt)
+	constexpr descriptor_set_(const range_of_descriptors * ptr, const uint32_t cnt, shader_stage st) : descriptors_ranges(ptr), count(cnt), stage(st)
 	{ }
 };
 
 template<size_t N>
-constexpr descriptor_set_ descriptor_set(const range_of_descriptors (&arr)[N])
+constexpr descriptor_set_ descriptor_set(const range_of_descriptors (&arr)[N], const shader_stage stage)
 {
-	return descriptor_set_(arr, N);
+	return descriptor_set_(arr, N, stage);
 }
 
 template<int N>

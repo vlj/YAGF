@@ -8,9 +8,9 @@
 #include <assimp/Importer.hpp>
 
 constexpr auto skinned_mesh_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) }),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) })
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) }, shader_stage::vertex_shader),
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }, shader_stage::fragment_shader),
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader)
 );
 
 pipeline_layout_t get_skinned_object_pipeline_layout(device_t dev)
@@ -105,7 +105,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 }
 
 constexpr auto sunlight_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1), range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) })
+	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1), range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader)
 );
 
 
