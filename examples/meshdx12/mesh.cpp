@@ -270,12 +270,12 @@ protected:
 			info.renderPass = render_pass->object;
 			info.framebuffer = fbo[i]->fbo.object;
 			info.clearValueCount = 4;
-			VkClearValue clear_values[4];
-			memcpy(clear_values[0].color.float32, clearColor.data(), 4 * sizeof(float));
-			memcpy(clear_values[1].color.float32, clearColor.data(), 4 * sizeof(float));
-			memcpy(clear_values[2].color.float32, clearColor.data(), 4 * sizeof(float));
-			clear_values[3].depthStencil.depth = 1.f;
-			clear_values[3].depthStencil.stencil = 0;
+			VkClearValue clear_values[4] = {
+				structures::clear_value(clearColor),
+				structures::clear_value(clearColor),
+				structures::clear_value(clearColor),
+				structures::clear_value(1.f, 0)
+			};
 			info.pClearValues = clear_values;
 			info.renderArea.extent.width = width;
 			info.renderArea.extent.height = height;

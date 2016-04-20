@@ -2,6 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #pragma once
 #include <vulkan\vulkan.h>
+#include <array>
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 
@@ -553,6 +554,24 @@ namespace structures
 		uint32_t dst_binding, uint32_t dst_array_element = 0)
 	{
 		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(texel_buffer_view_descriptors.size()), descriptor_type, nullptr, nullptr, texel_buffer_view_descriptors.data() };
+	}
+
+	inline VkClearValue clear_value(const std::array<float, 4> &rgba)
+	{
+		VkClearValue result;
+		result.color.float32[0] = rgba[0];
+		result.color.float32[1] = rgba[1];
+		result.color.float32[2] = rgba[2];
+		result.color.float32[3] = rgba[3];
+		return result;
+	}
+
+	inline VkClearValue clear_value(float depth, uint8_t stencil)
+	{
+		VkClearValue result;
+		result.depthStencil.depth = depth;
+		result.depthStencil.stencil = stencil;
+		return result;
 	}
 }
 
