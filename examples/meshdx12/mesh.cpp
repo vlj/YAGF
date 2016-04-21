@@ -30,6 +30,7 @@ static float timer = 0.;
 struct Matrixes
 {
 	float Model[16];
+	float InvModel[16];
 	float ViewProj[16];
 };
 
@@ -360,12 +361,14 @@ protected:
 	virtual void Draw() override
 	{
 		Matrixes *cbufdata = static_cast<Matrixes*>(map_buffer(dev, cbuffer));
-		irr::core::matrix4 Model, View;
+		irr::core::matrix4 Model, View, InvModel;
 		View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
 		Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
 		Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
+		Model.getInverse(InvModel);
 
 		memcpy(cbufdata->Model, Model.pointer(), 16 * sizeof(float));
+		memcpy(cbufdata->InvModel, InvModel.pointer(), 16 * sizeof(float));
 		memcpy(cbufdata->ViewProj, View.pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, cbuffer);
 
@@ -378,9 +381,9 @@ protected:
 		unmap_buffer(dev, view_matrixes);
 
 		float * sun_tmp = (float*)map_buffer(dev, sun_data);
-		sun_tmp[0] = 0.;
+		sun_tmp[0] = 1.;
 		sun_tmp[1] = 1.;
-		sun_tmp[2] = 0.;
+		sun_tmp[2] = -1.;
 		sun_tmp[3] = .5f;
 		sun_tmp[4] = .5;
 		sun_tmp[5] = .5;

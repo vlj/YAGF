@@ -121,7 +121,7 @@ void main() {
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
 
 //    float roughness = texture(ntex, uv).z;
-float roughness = .2;
+float roughness = .3;
     vec3 eyedir = -normalize(xpos.xyz);
 
     vec3 Lightdir = SunMRP(norm, eyedir);
@@ -129,7 +129,7 @@ float roughness = .2;
 
 
 //    float metalness = texture(ntex, uv).a;
-float metalness = .5;
+float metalness = 0.;
 
     vec3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, vec3(.04), roughness);
     vec3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);

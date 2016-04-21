@@ -5,6 +5,7 @@
 layout(binding = 0, set = 0, std140) uniform ObjectData
 {
   mat4 ModelMatrix;
+  mat4 InverseModelMatrix;
   mat4 ViewProjectionMatrix;
 };
 
@@ -41,11 +42,10 @@ void main()
 {
 //  color = Color.zyxw;
   mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
-//  mat4 TransposeInverseModelView = transpose(InverseModelMatrix);// *InverseViewMatrix);
+  mat4 TransposeInverseModelView = transpose(InverseModelMatrix);
   gl_Position = ModelViewProjectionMatrix * vec4(Position.xyz, 1.);
   gl_Position.y *= -1.;
-  nor = Normal;
-//  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
+  nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;
   //  tangent = (TransposeInverseModelView * vec4(Tangent, 0.)).xyz;
   //  bitangent = (TransposeInverseModelView * vec4(Bitangent, 0.)).xyz;
   uv = Texcoord;
