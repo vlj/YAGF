@@ -7,15 +7,14 @@ layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput ct
 layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput ntex;
 layout(input_attachment_index = 3, set = 0, binding = 2) uniform subpassInput dtex;
 
-/*
-layout(std140) uniform VIEWDATA
+layout(set = 0, binding = 3, std140) uniform VIEWDATA
 {
   mat4 ViewMatrix;
   mat4 InverseViewMatrix;
   mat4 InverseProjectionMatrix;
 };
 
-layout(std140) uniform LIGHTDATA
+/*layout(std140) uniform LIGHTDATA
 {
   vec3 sun_direction;
   float sun_angle;
@@ -85,7 +84,7 @@ vec3 SpecularBRDF(vec3 normal, vec3 eyedir, vec3 lightdir, vec3 color, float rou
 
     // Microfacet model
     return Fresnel(eyedir, H, color) * ReducedGeometric(lightdir, eyedir, normal, biaised_roughness) * Distribution(biaised_roughness, normal, H) / 4.;
-}
+}*/
 
 vec4 getPosFromUVDepth(vec3 uvDepth, mat4 InverseProjectionMatrix)
 {
@@ -98,7 +97,7 @@ vec4 getPosFromUVDepth(vec3 uvDepth, mat4 InverseProjectionMatrix)
 
 // Sun Most Representative Point (used for MRP area lighting method)
 // From "Frostbite going PBR" paper
-vec3 SunMRP(vec3 normal, vec3 eyedir)
+/*vec3 SunMRP(vec3 normal, vec3 eyedir)
 {
     vec3 local_sundir = normalize((transpose(InverseViewMatrix) * vec4(sun_direction, 0.)).xyz);
     vec3 R = reflect(-eyedir, normal);
@@ -111,25 +110,26 @@ vec3 SunMRP(vec3 normal, vec3 eyedir)
     return (DdotR < d) ? normalize(d * D + normalize (S) * r) : R;
 }*/
 
-in vec2 uv;
 layout(location = 0) out vec4 FragColor;
 
 void main() {
     vec3 color = subpassLoad(ctex).xyz;
     vec3 norm = normalize(DecodeNormal(2. * subpassLoad(ntex).xy - 1.));
+    vec2 uv = gl_FragCoord.xy;
+    float z = subpassLoad(dtex).x;
 
-    FragColor = subpassLoad(dtex);
-
-/*
-    float z = texture(dtex, uv).x;
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
-    float roughness = texture(ntex, uv).z;
+
+//    float roughness = texture(ntex, uv).z;
     vec3 eyedir = -normalize(xpos.xyz);
 
-    vec3 Lightdir = SunMRP(norm, eyedir);
-    float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
 
-    float metalness = texture(ntex, uv).a;
+//    vec3 Lightdir = SunMRP(norm, eyedir);
+//    float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
+
+    FragColor = vec4(color * clamp(dot(norm, eyedir), 0., 1.), 1.);
+
+/*    float metalness = texture(ntex, uv).a;
 
     vec3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, vec3(.04), roughness);
     vec3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
