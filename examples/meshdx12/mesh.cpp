@@ -65,6 +65,7 @@ private:
 	buffer_t cbuffer;
 	buffer_t jointbuffer;
 	buffer_t big_triangle;
+	std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > big_triangle_info;
 	descriptor_storage_t cbv_srv_descriptors_heap;
 
 	std::vector<image_t> Textures;
@@ -260,6 +261,7 @@ protected:
 
 		memcpy(map_buffer(dev, big_triangle), fullscreen_tri, 4 * 3 * sizeof(float));
 		unmap_buffer(dev, big_triangle);
+		big_triangle_info = { std::make_tuple(big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
 
 		make_command_list_executable(command_list);
 		submit_executable_command_list(cmdqueue, command_list);
@@ -337,15 +339,16 @@ protected:
 #endif
 				draw_indexed(current_cmd_list, std::get<0>(xue->meshOffset[i]), 1, std::get<2>(xue->meshOffset[i]), std::get<1>(xue->meshOffset[i]), 0);
 			}
+#ifndef D3D12
 			vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &input_attachment_descriptors, 0, nullptr);
+#endif // !D3D12
 			set_graphic_pipeline(current_cmd_list, sunlightpso);
 			size_t offsets[1] = {};
-			vkCmdBindVertexBuffers(current_cmd_list->object, 0, 1, &big_triangle->object, offsets);
+			bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 			set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 			set_scissor(current_cmd_list, 0, 1024, 0, 1024);
-			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &input_attachment_descriptors, 0, nullptr);
 			draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
-
 #ifndef D3D12
 			vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
