@@ -60,6 +60,7 @@ private:
 	std::vector<command_list_t> command_list_for_back_buffer;
 
 	command_list_storage_t command_allocator;
+	buffer_t sun_data;
 	buffer_t view_matrixes;
 	buffer_t cbuffer;
 	buffer_t jointbuffer;
@@ -109,8 +110,9 @@ protected:
 		cbuffer = create_buffer(dev, sizeof(Matrixes));
 		jointbuffer = create_buffer(dev, sizeof(JointTransform));
 		view_matrixes = create_buffer(dev, 16 * 3 * sizeof(float));
+		sun_data = create_buffer(dev, 7 * sizeof(float));
 
-		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 3 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::SAMPLER, 10 } });
+		cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 4 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::SAMPLER, 10 } });
 		sampler_heap = create_descriptor_storage(dev, 1, { {RESOURCE_VIEW::SAMPLER, 10 } });
 
 		clear_value_structure_t clear_val = {};
@@ -203,8 +205,10 @@ protected:
 				{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
 			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				{ VkDescriptorBufferInfo{ view_matrixes->object, 0, 3 * 16 * sizeof(float) } }, 3),
+			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4),
 			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 4),
+				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 5),
 		});
 #endif
 
@@ -365,8 +369,20 @@ protected:
 		irr::core::matrix4 InvPerspective;
 		View.getInverse(InvPerspective);
 		void * tmp = map_buffer(dev, view_matrixes);
+		irr::core::matrix4 identity;
+		memcpy((char*)tmp + 16 * sizeof(float), identity.pointer(), 16 * sizeof(float));
 		memcpy((char*)tmp + 2 * 16 * sizeof(float), InvPerspective.pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, view_matrixes);
+
+		float * sun_tmp = (float*)map_buffer(dev, sun_data);
+		sun_tmp[0] = 0.;
+		sun_tmp[1] = 1.;
+		sun_tmp[2] = 0.;
+		sun_tmp[3] = .5f;
+		sun_tmp[4] = .5;
+		sun_tmp[5] = .5;
+		sun_tmp[6] = .5;
+		unmap_buffer(dev, sun_data);
 
 		timer += 16.f;
 
