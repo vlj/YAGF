@@ -252,13 +252,14 @@ void create_sampler(device_t dev, descriptor_storage_t storage, uint32_t index, 
 	dev->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
-void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t index, image_t img)
+void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t index, image_t img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt)
 {
 	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	desc.Texture2D.MipLevels = 9;
+	desc.Texture2D.MipLevels = mip_levels;
+	desc.Format = get_dxgi_format(fmt);
 	dev->CreateShaderResourceView(img.Get(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 

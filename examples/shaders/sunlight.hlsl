@@ -113,7 +113,7 @@ float3 SpecularBRDF(float3 normal, float3 eyedir, float3 lightdir, float3 color,
 float4 main(PS_INPUT In) : SV_TARGET
 {
 	int3 uv;
-	uv.xy = In.uv;
+	uv.xy = In.uv * 1024;
 	uv.z = 0;
   float z = DepthTex.Load(uv).x;
   float3 projectedPos= float3(In.uv, z);
@@ -121,13 +121,14 @@ float4 main(PS_INPUT In) : SV_TARGET
 
   float3 norm = normalize(DecodeNormal(2. * NormalTex.Load(uv).xy - 1.));
   float3 color = ColorTex.Load(uv).xyz;
-  float roughness = NormalTex.Load(uv).z;
+
+  float roughness = .3;//NormalTex.Load(uv).z;
   float3 eyedir = -normalize(xpos.xyz);
 
   float3 Lightdir = SunMRP(norm, eyedir);
   float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
 
-  float metalness = NormalTex.Load(uv).a;
+  float metalness = 0;//NormalTex.Load(uv).a;
 
   float3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, float3(.04, .04, .04), roughness);
   float3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);

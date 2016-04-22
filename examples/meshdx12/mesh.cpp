@@ -93,14 +93,6 @@ void MeshSample::Init()
 #ifndef D3D12
 	fbo[0] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 	fbo[1] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-#else
-	fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-	fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-
-	g_buffer = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-#endif // !D3D12
-
-#ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
 	diffuse_color_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, diffuse_color->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
@@ -123,22 +115,36 @@ void MeshSample::Init()
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ cbuffer->object, 0, sizeof(Matrixes) } }, 0),
+		{ VkDescriptorBufferInfo{ cbuffer->object, 0, sizeof(Matrixes) } }, 0),
 		structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),
+		{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
+		{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
 		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
+		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
 		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
-			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
+		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
+		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
 		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ view_matrixes->object, 0, 3 * 16 * sizeof(float) } }, 3),
+		{ VkDescriptorBufferInfo{ view_matrixes->object, 0, 3 * 16 * sizeof(float) } }, 3),
 		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4)
+		{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4)
 	});
+#else
+	fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+	fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+
+	g_buffer = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+	create_image_view(dev, cbv_srv_descriptors_heap, 2, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM);
+	create_image_view(dev, cbv_srv_descriptors_heap, 3, normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM);
+	create_image_view(dev, cbv_srv_descriptors_heap, 4, depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8);
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 5, view_matrixes, sizeof(16 * 3 * sizeof(float)));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 6, sun_data, sizeof(7 * sizeof(float)));
+#endif // !D3D12
+
+#ifndef D3D12
+
 #endif
 
 	Assimp::Importer importer;
@@ -168,7 +174,7 @@ void MeshSample::Init()
 		Textures.push_back(texture);
 		upload_buffers.push_back(upload_buffer);
 #ifdef D3D12
-		create_image_view(dev, cbv_srv_descriptors_heap, 2 + texture_id, texture);
+		create_image_view(dev, cbv_srv_descriptors_heap, 7 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB);
 #else
 		VkDescriptorSet texture_descriptor;
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[1] }), &texture_descriptor));
@@ -237,7 +243,7 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
-		current_cmd_list->OMSetRenderTargets(1, &(g_buffer->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(g_buffer->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		current_cmd_list->OMSetRenderTargets(2, &(g_buffer->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(g_buffer->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
 		current_cmd_list->SetGraphicsRootSignature(object_sig.Get());
 
@@ -248,8 +254,8 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
 
-		clear_color(dev, current_cmd_list, fbo[i], clearColor);
-		clear_depth_stencil(dev, current_cmd_list, fbo[i], depth_stencil_aspect::depth_only, 1., 0);
+		clear_color(dev, current_cmd_list, g_buffer, clearColor);
+		clear_depth_stencil(dev, current_cmd_list, g_buffer, depth_stencil_aspect::depth_only, 1., 0);
 
 		current_cmd_list->SetGraphicsRootDescriptorTable(2,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
@@ -268,7 +274,7 @@ void MeshSample::fill_draw_commands()
 #ifdef D3D12
 			current_cmd_list->SetGraphicsRootDescriptorTable(1,
 				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-				.Offset(xue->texture_mapping[i] + 2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+				.Offset(xue->texture_mapping[i] + 7, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &texture_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
 #endif
@@ -280,6 +286,13 @@ void MeshSample::fill_draw_commands()
 #else
 		current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, nullptr);
 		current_cmd_list->SetGraphicsRootSignature(sunlight_sig.Get());
+		current_cmd_list->SetGraphicsRootDescriptorTable(0,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+			.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+
+		set_pipeline_barrier(dev, current_cmd_list, diffuse_color, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, current_cmd_list, normal_roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, current_cmd_list, depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
 		size_t offsets[1] = {};
