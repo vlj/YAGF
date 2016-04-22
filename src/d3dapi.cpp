@@ -419,8 +419,8 @@ std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::
 #endif //  DEBUG
 
 	device_t dev;
-	Microsoft::WRL::ComPtr<IDXGIFactory> fact;
-	CHECK_HRESULT(CreateDXGIFactory(IID_PPV_ARGS(fact.GetAddressOf())));
+	Microsoft::WRL::ComPtr<IDXGIFactory4> fact;
+	CHECK_HRESULT(CreateDXGIFactory1(IID_PPV_ARGS(fact.GetAddressOf())));
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adaptater;
 	CHECK_HRESULT(fact->EnumAdapters(0, adaptater.GetAddressOf()));
 	CHECK_HRESULT(D3D12CreateDevice(adaptater.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(dev.GetAddressOf())));

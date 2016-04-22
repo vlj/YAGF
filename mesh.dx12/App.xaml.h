@@ -6,6 +6,7 @@
 #pragma once
 
 #include "App.g.h"
+#include "mesh.h"
 
 namespace mesh_dx12
 {
@@ -23,5 +24,8 @@ namespace mesh_dx12
 	private:
 		void OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ e);
 		void OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Navigation::NavigationFailedEventArgs ^e);
+
+		std::unique_ptr<MeshSample> sample;
+		Windows::Foundation::IAsyncAction^ render_loop;
 	};
 }

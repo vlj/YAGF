@@ -45,7 +45,6 @@ Global
 		assimp.shared.vcxitems*{c4ed9be7-5a08-4bfc-82c3-85e13f9d85ad}*SharedItemsImports = 4
 		examples\meshdx12\mesh.shared.vcxitems*{17e575b3-2ffe-467a-b3a0-5cc2f2e6bc74}*SharedItemsImports = 4
 		assimp.shared.vcxitems*{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}*SharedItemsImports = 9
-		YAGF.shared.vcxitems*{28a41c30-8009-4d21-8976-c56d3049dd57}*SharedItemsImports = 4
 		examples\meshdx12\mesh.shared.vcxitems*{28a41c30-8009-4d21-8976-c56d3049dd57}*SharedItemsImports = 4
 		YAGF.shared.vcxitems*{e9d8e2a8-4043-4163-885c-d44c5ba97ce9}*SharedItemsImports = 9
 	EndGlobalSection

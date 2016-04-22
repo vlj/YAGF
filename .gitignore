@@ -16,6 +16,9 @@ pnglibconf.h
 *.targets
 *.nupkg
 packages/
+mesh.dx12/Generated*
+mesh.dx12/x64
+x64/*
 
 *CMakeCache.txt
 *.check_cache

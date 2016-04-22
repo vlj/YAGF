@@ -6,6 +6,7 @@
 #pragma once
 
 #include "MainPage.g.h"
+#include <windows.ui.xaml.media.dxinterop.h>
 
 namespace mesh_dx12
 {
@@ -16,6 +17,6 @@ namespace mesh_dx12
 	{
 	public:
 		MainPage();
-
+		Windows::UI::Xaml::Controls::SwapChainPanel^ get_swap_chain_native();
 	};
 }

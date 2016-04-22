@@ -18,10 +18,17 @@ using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
+using namespace Windows::UI::Xaml::Media;
+using namespace Microsoft::WRL;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
 MainPage::MainPage()
 {
 	InitializeComponent();
+}
+
+Windows::UI::Xaml::Controls::SwapChainPanel^ MainPage::get_swap_chain_native()
+{
+	return swap_chain_panel;
 }
