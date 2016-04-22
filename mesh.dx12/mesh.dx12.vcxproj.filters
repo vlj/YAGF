@@ -50,8 +50,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="mesh.dx12_TemporaryKey.pfx" />
+    <None Include="..\examples\assets\xue.b3d">
+      <Filter>Assets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Page Include="MainPage.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\examples\shaders\object_gbuffer.hlsl" />
+    <FxCompile Include="..\examples\shaders\skinnedobject.hlsl" />
   </ItemGroup>
 </Project>
