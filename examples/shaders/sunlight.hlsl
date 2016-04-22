@@ -1,5 +1,6 @@
 cbuffer VIEWDATA : register(b0, space3)
 {
+  float4x4 ViewMatrix;
   float4x4 InverseViewMatrix;
   float4x4 InverseProjectionMatrix;
 }
