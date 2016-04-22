@@ -8,6 +8,9 @@
       <UniqueIdentifier>484e4356-54ad-4afe-9306-ab7ebae6da47</UniqueIdentifier>
       <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{11405624-8d7b-4d7f-ac00-7bb42fa67b97}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
@@ -67,7 +70,17 @@
     <Page Include="MainPage.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\examples\shaders\object_gbuffer.hlsl" />
-    <FxCompile Include="..\examples\shaders\skinnedobject.hlsl" />
+    <FxCompile Include="..\examples\shaders\skinnedobject.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\object_gbuffer.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\screenquad.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\sunlight.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

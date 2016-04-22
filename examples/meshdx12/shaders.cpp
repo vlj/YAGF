@@ -26,12 +26,13 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
 	psodesc.pRootSignature = layout.Get();
 
-	psodesc.NumRenderTargets = 1;
+	psodesc.NumRenderTargets = 2;
 	psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	//    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psodesc.BlendState.RenderTarget[1].RenderTargetWriteMask = -1;
 
 	Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
 	CHECK_HRESULT(D3DReadFileToBlob(L"skinnedobject.cso", vtxshaderblob.GetAddressOf()));
@@ -139,33 +140,21 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 
 	psodesc.NumRenderTargets = 1;
 	psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	//    psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
 	psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
 	Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
-	CHECK_HRESULT(D3DReadFileToBlob(L"skinnedobject.cso", vtxshaderblob.GetAddressOf()));
+	CHECK_HRESULT(D3DReadFileToBlob(L"screenquad.cso", vtxshaderblob.GetAddressOf()));
 	psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
 	psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
 
-	CHECK_HRESULT(D3DReadFileToBlob(L"object_gbuffer.cso", pxshaderblob.GetAddressOf()));
+	CHECK_HRESULT(D3DReadFileToBlob(L"sunlight.cso", pxshaderblob.GetAddressOf()));
 	psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
 	psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> IAdesc =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		/*        { "TEXCOORD", 1, DXGI_FORMAT_R32_SINT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 4, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 3, DXGI_FORMAT_R32_SINT, 1, 8, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 1, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 5, DXGI_FORMAT_R32_SINT, 1, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 6, DXGI_FORMAT_R32_FLOAT, 1, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 7, DXGI_FORMAT_R32_SINT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 8, DXGI_FORMAT_R32_FLOAT, 1, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }*/
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 2 * sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
 	psodesc.InputLayout.pInputElementDescs = IAdesc.data();

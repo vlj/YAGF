@@ -1,20 +1,19 @@
-cbuffer VIEWDATA : register(b0)
+cbuffer VIEWDATA : register(b0, space3)
 {
   float4x4 InverseViewMatrix;
   float4x4 InverseProjectionMatrix;
 }
 
-cbuffer LIGHTDATA : register(b1)
+cbuffer LIGHTDATA : register(b0, space4)
 {
   float3 sun_direction;
   float sun_angle;
   float3 sun_col;
 }
 
-Texture2D NormalTex : register(t0);
-Texture2D ColorTex : register(t1);
-Texture2D DepthTex : register(t2);
-sampler NearestSampler : register(s0);
+Texture2D ColorTex : register(t0, space0);
+Texture2D NormalTex : register(t0, space1);
+Texture2D DepthTex : register(t0, space2);
 
 struct PS_INPUT
 {
@@ -113,19 +112,22 @@ float3 SpecularBRDF(float3 normal, float3 eyedir, float3 lightdir, float3 color,
 
 float4 main(PS_INPUT In) : SV_TARGET
 {
-  float z = DepthTex.Sample(NearestSampler, In.uv).x;
+	int3 uv;
+	uv.xy = In.uv;
+	uv.z = 0;
+  float z = DepthTex.Load(uv).x;
   float3 projectedPos= float3(In.uv, z);
   float4 xpos = getPosFromUVDepth(projectedPos, InverseProjectionMatrix);
 
-  float3 norm = normalize(DecodeNormal(2. * NormalTex.Sample(NearestSampler, In.uv).xy - 1.));
-  float3 color = ColorTex.Sample(NearestSampler, In.uv).xyz;
-  float roughness = NormalTex.Sample(NearestSampler, In.uv).z;
+  float3 norm = normalize(DecodeNormal(2. * NormalTex.Load(uv).xy - 1.));
+  float3 color = ColorTex.Load(uv).xyz;
+  float roughness = NormalTex.Load(uv).z;
   float3 eyedir = -normalize(xpos.xyz);
 
   float3 Lightdir = SunMRP(norm, eyedir);
   float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
 
-  float metalness = NormalTex.Sample(NearestSampler, In.uv).a;
+  float metalness = NormalTex.Load(uv).a;
 
   float3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, float3(.04, .04, .04), roughness);
   float3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);

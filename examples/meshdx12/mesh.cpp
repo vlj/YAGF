@@ -25,9 +25,7 @@ void MeshSample::Init()
 	command_list_t command_list = create_command_list(dev, command_allocator);
 	start_command_list_recording(dev, command_list, command_allocator);
 	object_sig = get_skinned_object_pipeline_layout(dev);
-#ifndef D3D12
 	sunlight_sig = get_sunlight_pipeline_layout(dev);
-#endif // !D3D12
 	cbuffer = create_buffer(dev, sizeof(Matrixes));
 	jointbuffer = create_buffer(dev, sizeof(JointTransform));
 	view_matrixes = create_buffer(dev, 16 * 3 * sizeof(float));
@@ -92,13 +90,14 @@ void MeshSample::Init()
 	set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	set_pipeline_barrier(dev, command_list, diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev, command_list, normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
-
 #ifndef D3D12
 	fbo[0] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 	fbo[1] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 #else
 	fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 	fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+
+	g_buffer = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 #endif // !D3D12
 
 #ifndef D3D12
@@ -185,9 +184,7 @@ void MeshSample::Init()
 	}
 
 	objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);
-#ifndef D3D12
 	sunlightpso = get_sunlight_pipeline_state(dev, sunlight_sig, render_pass);
-#endif // !D3D12
 
 	big_triangle = create_buffer(dev, 4 * 3 * sizeof(float));
 	float fullscreen_tri[]
@@ -240,7 +237,7 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
-		current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		current_cmd_list->OMSetRenderTargets(1, &(g_buffer->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(g_buffer->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
 		current_cmd_list->SetGraphicsRootSignature(object_sig.Get());
 
@@ -280,14 +277,17 @@ void MeshSample::fill_draw_commands()
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &input_attachment_descriptors, 0, nullptr);
-//#endif // !D3D12
+#else
+		current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, nullptr);
+		current_cmd_list->SetGraphicsRootSignature(sunlight_sig.Get());
+#endif // !D3D12
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
 		size_t offsets[1] = {};
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
-//#ifndef D3D12
+#ifndef D3D12
 		vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
 		set_pipeline_barrier(dev, current_cmd_list, back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
