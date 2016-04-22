@@ -331,13 +331,13 @@ void MeshSample::Draw()
 	unmap_buffer(dev, view_matrixes);
 
 	float * sun_tmp = (float*)map_buffer(dev, sun_data);
-	sun_tmp[0] = 1.;
+	sun_tmp[0] = 0.;
 	sun_tmp[1] = 1.;
-	sun_tmp[2] = -1.;
+	sun_tmp[2] = 0.;
 	sun_tmp[3] = .5f;
-	sun_tmp[4] = .5;
-	sun_tmp[5] = .5;
-	sun_tmp[6] = .5;
+	sun_tmp[4] = 1.;
+	sun_tmp[5] = 1.;
+	sun_tmp[6] = 1.;
 	unmap_buffer(dev, sun_data);
 
 	timer += 16.f;

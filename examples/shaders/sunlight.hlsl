@@ -117,13 +117,13 @@ float4 main(PS_INPUT In) : SV_TARGET
 	uv.xy = In.uv * 1024;
 	uv.z = 0;
   float z = DepthTex.Load(uv).x;
-  float3 projectedPos= float3(In.uv, z);
+  float3 projectedPos= float3(In.uv.x, 1. - In.uv.y, z);
   float4 xpos = getPosFromUVDepth(projectedPos, InverseProjectionMatrix);
 
   float3 norm = normalize(DecodeNormal(2. * NormalTex.Load(uv).xy - 1.));
   float3 color = ColorTex.Load(uv).xyz;
 
-  float roughness = .3;//NormalTex.Load(uv).z;
+  float roughness = .1;//NormalTex.Load(uv).z;
   float3 eyedir = -normalize(xpos.xyz);
 
   float3 Lightdir = SunMRP(norm, eyedir);
