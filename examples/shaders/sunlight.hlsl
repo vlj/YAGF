@@ -128,7 +128,7 @@ float4 main(PS_INPUT In) : SV_TARGET
   float3 Lightdir = SunMRP(norm, eyedir);
   float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
 
-  float metalness = 0;//NormalTex.Load(uv).a;
+  float metalness = 0.;//NormalTex.Load(uv).a;
 
   float3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, float3(.04, .04, .04), roughness);
   float3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
