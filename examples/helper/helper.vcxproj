@@ -10,12 +10,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="SampleClass.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="SampleClass.cpp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{02DECF01-2C82-488D-BE23-23D1143174A4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

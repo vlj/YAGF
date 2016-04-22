@@ -28,5 +28,11 @@
     <None Include="..\shaders\sunlight.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\assets\xue.b3d" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

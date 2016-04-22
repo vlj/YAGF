@@ -17,16 +17,19 @@
     <ProjectReference Include="..\..\YAGF.vulkan.vcxproj">
       <Project>{c4b16266-ab39-4716-9057-90ff799088d7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\helper\helper.vcxproj">
-      <Project>{02decf01-2c82-488d-be23-23d1143174a4}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\assets\xue.b3d">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="..\shaders\object.vert" />
     <None Include="..\shaders\object_gbuffer.frag" />
     <None Include="..\shaders\screenquad.vert" />
     <None Include="..\shaders\sunlight.frag" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{15D57052-73AD-4977-AB53-FBD0E92C4DDF}</ProjectGuid>

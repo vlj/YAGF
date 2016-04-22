@@ -19,8 +19,6 @@ struct JointTransform
 
 void MeshSample::Init()
 {
-	irr::video::ECOLOR_FORMAT swap_chain_format;
-//	std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) = create_device_swapchain_and_graphic_presentable_queue(hinstance, window);
 	back_buffer = get_image_view_from_swap_chain(dev, chain);
 
 	command_allocator = create_command_storage(dev);
@@ -339,15 +337,3 @@ void MeshSample::Draw()
 	wait_for_command_queue_idle(dev, cmdqueue);
 	present(dev, cmdqueue, chain, current_backbuffer);
 }
-
-
-#if 0
-int WINAPI WinMain(HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR lpCmdLine,
-	int nCmdShow)
-{
-	MeshSample app(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
-	return app.run();
-}
-#endif
