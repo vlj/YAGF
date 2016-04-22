@@ -6,11 +6,11 @@
 std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &texture_name, command_list_t upload_command_list)
 {
 	std::ifstream DDSFile(texture_name, std::ifstream::binary);
-//	irr::video::CImageLoaderDDS DDSPic(DDSFile);
+	irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-	uint32_t width = 256;//DDSPic.getLoadedImage().Layers[0][0].Width;
-	uint32_t height = 256;//DDSPic.getLoadedImage().Layers[0][0].Height;
-	uint16_t mipmap_count = 1;//DDSPic.getLoadedImage().Layers[0].size();
+	uint32_t width = DDSPic.getLoadedImage().Layers[0][0].Width;
+	uint32_t height = DDSPic.getLoadedImage().Layers[0][0].Height;
+	uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
 	uint16_t layer_count = 1;
 
 	buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
@@ -27,7 +27,7 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 	{
 		for (unsigned i = 0; i < mipmap_count; i++)
 		{
-/*			const IImage &image = DDSPic.getLoadedImage();
+			const IImage &image = DDSPic.getLoadedImage();
 			struct PackedMipMapLevel miplevel = image.Layers[face][i];
 			// Offset needs to be aligned to 512 bytes
 			offset_in_texram = (offset_in_texram + 511) & ~511;
@@ -44,7 +44,7 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 			{
 				memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
 				offset_in_texram += rowPitch;
-			}*/
+			}
 		}
 	}
 	unmap_buffer(dev, upload_buffer);

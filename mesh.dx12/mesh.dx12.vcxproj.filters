@@ -44,6 +44,15 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
+    <Image Include="..\examples\assets\hc_body.DDS">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="..\examples\assets\skirt.DDS">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="..\examples\assets\mouse_texture.DDS">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />

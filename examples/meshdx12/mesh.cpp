@@ -33,7 +33,7 @@ void MeshSample::Init()
 	view_matrixes = create_buffer(dev, 16 * 3 * sizeof(float));
 	sun_data = create_buffer(dev, 7 * sizeof(float));
 
-	cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 4 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::SAMPLER, 10 } });
+	cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 4 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 } });
 	sampler_heap = create_descriptor_storage(dev, 1, { {RESOURCE_VIEW::SAMPLER, 10 } });
 
 	clear_value_structure_t clear_val = {};
@@ -138,14 +138,16 @@ void MeshSample::Init()
 		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ VkDescriptorBufferInfo{ view_matrixes->object, 0, 3 * 16 * sizeof(float) } }, 3),
 		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4),
-			//			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			//				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 5),
+			{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4)
 	});
 #endif
 
 	Assimp::Importer importer;
+#ifdef D3D12
 	auto model = importer.ReadFile("xue.b3d", 0);
+#else
+	auto model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
+#endif
 	xue = std::make_unique<object>(dev, model);
 
 	// Texture
@@ -155,7 +157,11 @@ void MeshSample::Init()
 		aiString path;
 		model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 		std::string texture_path(path.C_Str());
+#ifdef D3D12
+		const std::string &fixed = texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
+#else
 		const std::string &fixed = "..\\..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
+#endif
 
 		image_t texture;
 		buffer_t upload_buffer;

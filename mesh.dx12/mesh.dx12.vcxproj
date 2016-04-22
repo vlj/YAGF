@@ -185,6 +185,9 @@
     <None Include="mesh.dx12_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\examples\assets\hc_body.DDS" />
+    <Image Include="..\examples\assets\mouse_texture.DDS" />
+    <Image Include="..\examples\assets\skirt.DDS" />
     <Image Include="Assets\LockScreenLogo.scale-200.png" />
     <Image Include="Assets\SplashScreen.scale-200.png" />
     <Image Include="Assets\Square150x150Logo.scale-200.png" />
