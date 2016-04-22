@@ -89,8 +89,8 @@
     <PostBuildEvent>
       <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object.vert -o $(SolutionDir)\vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbuffer.frag -o $(SolutionDir)\frag.spv
-C:\VulkanSDK\1.0.8.0\Bin\glslangValidator -V C:\Users\vlj\Documents\GitHub\YAGF\\examples\shaders\screenquad.vert -o C:\Users\vlj\Documents\GitHub\YAGF\sunlight_vert.spv
-C:\VulkanSDK\1.0.8.0\Bin\glslangValidator -V C:\Users\vlj\Documents\GitHub\YAGF\\examples\shaders\sunlight.frag -o C:\Users\vlj\Documents\GitHub\YAGF\sunlight_frag.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad.vert -o $(SolutionDir)\sunlight_vert.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -115,8 +115,8 @@ C:\VulkanSDK\1.0.8.0\Bin\glslangValidator -V C:\Users\vlj\Documents\GitHub\YAGF\
     <PostBuildEvent>
       <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object.vert -o $(SolutionDir)\vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbuffer.frag -o $(SolutionDir)\frag.spv
-C:\VulkanSDK\1.0.8.0\Bin\glslangValidator -V C:\Users\vlj\Documents\GitHub\YAGF\\examples\shaders\screenquad.vert -o C:\Users\vlj\Documents\GitHub\YAGF\sunlight_vert.spv
-C:\VulkanSDK\1.0.8.0\Bin\glslangValidator -V C:\Users\vlj\Documents\GitHub\YAGF\\examples\shaders\sunlight.frag -o C:\Users\vlj\Documents\GitHub\YAGF\sunlight_frag.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad.vert -o $(SolutionDir)\sunlight_vert.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

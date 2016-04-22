@@ -4,6 +4,8 @@
 
 #ifdef D3D12
 #include <API/d3dapi.h>
+#include <d3dx12.h>
+#include <d3dcompiler.h>
 #else
 #include <API/vkapi.h>
 #endif

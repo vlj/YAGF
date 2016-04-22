@@ -117,8 +117,8 @@ constexpr auto sunlight_layout = pipeline_layout_description(
 		range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1),
 		range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 2, 1),
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 3, 1),
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 4, 1),
-		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 5, 1) }, shader_stage::fragment_shader)
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 4, 1) },
+		shader_stage::fragment_shader)
 );
 
 

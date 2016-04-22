@@ -133,7 +133,7 @@ protected:
 		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 		VkAttachmentDescription depth_att{};
-		depth_att.format = VK_FORMAT_D24_UNORM_S8_UINT;
+		depth_att.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 		depth_att.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depth_att.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -178,7 +178,7 @@ protected:
 			structures::component_mapping(), structures::image_subresource_range());
 		normal_roughness_metalness_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, normal_roughness_metalness->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 			structures::component_mapping(), structures::image_subresource_range());
-		depth_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, depth_buffer->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D24_UNORM_S8_UINT,
+		depth_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, depth_buffer->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT,
 			structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
@@ -209,8 +209,8 @@ protected:
 				{ VkDescriptorBufferInfo{ view_matrixes->object, 0, 3 * 16 * sizeof(float) } }, 3),
 			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4),
-			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 5),
+//			structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+//				{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 5),
 		});
 #endif
 
