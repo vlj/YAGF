@@ -1,6 +1,7 @@
 cbuffer Matrixes : register(b0, space0)
 {
   float4x4 ModelMatrix;
+  float4x4 InverseModelMatrix;
   float4x4 ViewProjectionMatrix;
 }
 
