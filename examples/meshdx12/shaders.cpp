@@ -7,16 +7,11 @@
 #include <unordered_map>
 #include <assimp/Importer.hpp>
 
-constexpr auto skinned_mesh_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) }, shader_stage::vertex_shader),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) }, shader_stage::fragment_shader),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader)
-);
 
-pipeline_layout_t get_skinned_object_pipeline_layout(device_t dev)
-{
-	return get_pipeline_layout_from_desc(dev, skinned_mesh_layout);
-}
+
+
+//constexpr auto skinned_mesh_layout = pipeline_layout_description(object_descriptors, sampler_descriptors);
+
 
 pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
@@ -113,21 +108,6 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 #endif
 }
 
-constexpr auto sunlight_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 0, 1),
-		range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1),
-		range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 2, 1),
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 3, 1),
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 4, 1) },
-		shader_stage::fragment_shader)
-);
-
-
-pipeline_layout_t get_sunlight_pipeline_layout(device_t dev)
-{
-	return get_pipeline_layout_from_desc(dev, sunlight_layout);
-}
-
 
 pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {
@@ -201,16 +181,6 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 #endif
 }
 
-
-constexpr auto skybox_layout = pipeline_layout_description(
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1), range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) }, shader_stage::fragment_shader),
-	descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 0, 1) }, shader_stage::fragment_shader)
-);
-
-pipeline_layout_t get_skybox_pipeline_layout(device_t dev)
-{
-	return get_pipeline_layout_from_desc(dev, skybox_layout);
-}
 
 pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp)
 {

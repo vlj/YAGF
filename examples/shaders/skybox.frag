@@ -2,14 +2,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 0, binding = 0, std140) uniform Matrixes
-{
-  mat4 ViewMatrix;
-  mat4 InvView;
-  mat4 InvProj;
-};
 
-layout(set = 0, binding = 1) uniform textureCube skytexture;
+layout(set = 0, binding = 2) uniform textureCube skytexture;
 layout(set = 1, binding = 0) uniform sampler s;
 
 layout(location = 0)in vec2 uv;

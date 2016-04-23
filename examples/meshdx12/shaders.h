@@ -10,12 +10,6 @@
 #include <API/vkapi.h>
 #endif
 
-
-pipeline_layout_t get_skinned_object_pipeline_layout(device_t dev);
 pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp);
-
-pipeline_layout_t get_sunlight_pipeline_layout(device_t dev);
 pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp);
-
-pipeline_layout_t get_skybox_pipeline_layout(device_t dev);
 pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp);

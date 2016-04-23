@@ -2,16 +2,18 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(binding = 0, set = 0, std140) uniform ObjectData
+layout(set = 2, binding = 0, std140) uniform SceneData
+{
+  mat4 ViewMatrix;
+  mat4 InverseViewMatrix;
+  mat4 ProjectionMatrix;
+  mat4 InverseProjectionMatrix;
+};
+
+layout(set = 1, binding = 0, std140) uniform ObjectData
 {
   mat4 ModelMatrix;
   mat4 InverseModelMatrix;
-  mat4 ViewProjectionMatrix;
-};
-
-layout(binding = 1, set = 0, std140) uniform ViewMatrices
-{
-mat4 tobeset;
 };
 
 layout(location = 0) in vec3 Position;
@@ -41,8 +43,8 @@ out vec4 color;*/
 void main()
 {
 //  color = Color.zyxw;
-  mat4 ModelViewProjectionMatrix = ViewProjectionMatrix * ModelMatrix;
-  mat4 TransposeInverseModelView = transpose(InverseModelMatrix);
+  mat4 ModelViewProjectionMatrix = ProjectionMatrix * ViewMatrix * ModelMatrix;
+  mat4 TransposeInverseModelView = transpose(InverseModelMatrix * InverseViewMatrix);
   gl_Position = ModelViewProjectionMatrix * vec4(Position.xyz, 1.);
   gl_Position.y *= -1.;
   nor = (TransposeInverseModelView * vec4(Normal, 0.)).xyz;

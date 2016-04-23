@@ -10,17 +10,135 @@
 
 static float timer = 0.;
 
-struct Matrixes
+struct SceneData
 {
-	float Model[16];
-	float InvModel[16];
-	float ViewProj[16];
+	float ViewMatrix[16];
+	float InverseViewMatrix[16];
+	float ProjectionMatrix[16];
+	float InverseProjectionMatrix[16];
 };
 
-struct JointTransform
+struct ObjectData
+{
+	float ModelMatrix[16];
+	float InverseModelMatrix[16];
+};
+
+/*struct JointTransform
 {
 	float Model[16 * 48];
-};
+};*/
+
+namespace
+{
+
+	// (inv)modelmatrix, jointmatrix, diffuse texture
+	constexpr auto object_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+		shader_stage::all);
+
+	constexpr auto model_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1) },
+		shader_stage::fragment_shader);
+
+	constexpr auto sampler_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 0, 1) },
+	shader_stage::fragment_shader);
+
+	// color, normal, depth
+	constexpr auto rtt_descriptor_set_type = descriptor_set({ range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 0, 1),
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1),
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 2, 1) },
+			shader_stage::fragment_shader);
+
+	// view/proj matrixes, sunlight data, skybox
+	constexpr auto scene_descriptor_set_type = descriptor_set({
+			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
+			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1),
+			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+			shader_stage::all);
+
+
+
+	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> get_object_descriptor_set(device_t dev, const descriptor_set_ &ds)
+	{
+		std::vector<VkDescriptorSetLayoutBinding> descriptor_range_storage;
+		descriptor_range_storage.reserve(ds.count);
+		for (uint32_t i = 0; i < ds.count; i++)
+		{
+			const range_of_descriptors &rod = ds.descriptors_ranges[i];
+			VkDescriptorSetLayoutBinding range{};
+			range.binding = rod.bind_point;
+			range.descriptorCount = rod.count;
+			range.descriptorType = get_descriptor_type(rod.range_type);
+			range.stageFlags = get_shader_stage(ds.stage);
+			descriptor_range_storage.emplace_back(range);
+		}
+		return std::make_shared<vulkan_wrapper::pipeline_descriptor_set>(dev->object, descriptor_range_storage);
+	}
+
+
+	std::tuple<image_t, buffer_t> load_skybox(device_t dev, command_list_t command_list)
+	{
+		std::ifstream DDSFile(SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), std::ifstream::binary);
+		irr::video::CImageLoaderDDS DDSPic(DDSFile);
+
+		uint32_t width = DDSPic.getLoadedImage().Layers[0][0].Width;
+		uint32_t height = DDSPic.getLoadedImage().Layers[0][0].Height;
+		uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
+		uint16_t layer_count = 6;
+
+		buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
+
+		void *pointer = map_buffer(dev, upload_buffer);
+
+		size_t offset_in_texram = 0;
+
+		size_t block_height = 4;
+		size_t block_width = 4;
+		size_t block_size = 8;
+		std::vector<MipLevelData> Mips;
+		for (unsigned face = 0; face < layer_count; face++)
+		{
+			for (unsigned i = 0; i < mipmap_count; i++)
+			{
+				const IImage &image = DDSPic.getLoadedImage();
+				struct PackedMipMapLevel miplevel = image.Layers[face][i];
+				// Offset needs to be aligned to 512 bytes
+				offset_in_texram = (offset_in_texram + 511) & ~511;
+				// Row pitch is always a multiple of 256
+				size_t height_in_blocks = (image.Layers[face][i].Height + block_height - 1) / block_height;
+				size_t width_in_blocks = (image.Layers[face][i].Width + block_width - 1) / block_width;
+				size_t height_in_texram = height_in_blocks * block_height;
+				size_t width_in_texram = width_in_blocks * block_width;
+				size_t rowPitch = width_in_blocks * block_size;
+				rowPitch = (rowPitch + 255) & ~255;
+				MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
+				Mips.push_back(mml);
+				for (unsigned row = 0; row < height_in_blocks; row++)
+				{
+					memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
+					offset_in_texram += rowPitch;
+				}
+			}
+		}
+		unmap_buffer(dev, upload_buffer);
+		image_t skybox_texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB, 1024, 1024, 11, 6, usage_cube | usage_sampled | usage_transfer_dst, nullptr);
+
+		uint32_t miplevel = 0;
+		for (const MipLevelData mipmapData : Mips)
+		{
+			set_pipeline_barrier(dev, command_list, skybox_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
+			copy_buffer_to_image_subresource(command_list, skybox_texture, miplevel, upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, irr::video::ECF_BC1_UNORM_SRGB);
+			set_pipeline_barrier(dev, command_list, skybox_texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
+			miplevel++;
+		}
+
+		return std::make_tuple(skybox_texture, upload_buffer);
+	}
+}
 
 
 void MeshSample::Init()
@@ -30,12 +148,19 @@ void MeshSample::Init()
 	command_allocator = create_command_storage(dev);
 	command_list_t command_list = create_command_list(dev, command_allocator);
 	start_command_list_recording(dev, command_list, command_allocator);
-	object_sig = get_skinned_object_pipeline_layout(dev);
-	sunlight_sig = get_sunlight_pipeline_layout(dev);
-	skybox_sig = get_skybox_pipeline_layout(dev);
-	cbuffer = create_buffer(dev, sizeof(Matrixes));
-	jointbuffer = create_buffer(dev, sizeof(JointTransform));
-	view_matrixes = create_buffer(dev, 16 * 3 * sizeof(float));
+
+	sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
+	object_set = get_object_descriptor_set(dev, object_descriptor_set_type);
+	scene_set = get_object_descriptor_set(dev, scene_descriptor_set_type);
+	rtt_set = get_object_descriptor_set(dev, rtt_descriptor_set_type);
+	model_set = get_object_descriptor_set(dev, model_descriptor_set_type);
+
+	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
+	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
+	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
+
+	object_matrix = create_buffer(dev, sizeof(ObjectData));
+	scene_matrix = create_buffer(dev, sizeof(SceneData));
 	sun_data = create_buffer(dev, 7 * sizeof(float));
 
 	cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 } });
@@ -100,33 +225,36 @@ void MeshSample::Init()
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
 	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(sampler_heap->object, { object_sig->info.pSetLayouts[2] }),
+		&structures::descriptor_set_allocate_info(sampler_heap->object, { sampler_set->object }),
 		&sampler_descriptors));
 	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[0] }),
-		&cbuffer_descriptor_set));
+		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { scene_set->object }),
+		&scene_descriptor));
 	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { sunlight_sig->info.pSetLayouts[0] }),
-		&input_attachment_descriptors));
+		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { rtt_set->object }),
+		&rtt));
+	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_set->object }),
+		&object_descriptor_set));
 
 	util::update_descriptor_sets(dev->object,
 	{
-		structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		{ VkDescriptorBufferInfo{ cbuffer->object, 0, sizeof(Matrixes) } }, 0),
-		structures::write_descriptor_set(cbuffer_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),
+		structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ VkDescriptorBufferInfo{ object_matrix->object, 0, sizeof(ObjectData) } }, 0),
+/*		structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),*/
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-		{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
-		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
-		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
-		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
-		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		{ VkDescriptorBufferInfo{ view_matrixes->object, 0, 3 * 16 * sizeof(float) } }, 3),
-		structures::write_descriptor_set(input_attachment_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 4)
+			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
+		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
+		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
+		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
+		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ VkDescriptorBufferInfo{ scene_matrix->object, 0, sizeof(SceneData) } }, 0),
+		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 1)
 	});
 #else
 	fbo[0] = create_frame_buffer(dev, { { back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
@@ -161,90 +289,29 @@ void MeshSample::Init()
 #ifdef D3D12
 		create_image_view(dev, cbv_srv_descriptors_heap, 7 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB);
 #else
-		VkDescriptorSet texture_descriptor;
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_sig->info.pSetLayouts[1] }), &texture_descriptor));
-		texture_descriptor_set.push_back(texture_descriptor);
+		VkDescriptorSet mesh_descriptor;
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { model_set->object }), &mesh_descriptor));
+		mesh_descriptor_set.push_back(mesh_descriptor);
 		auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 			structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
 		Textures_views.push_back(img_view);
 		util::update_descriptor_sets(dev->object,
 		{
-			structures::write_descriptor_set(texture_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
+			structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0)
 		});
 #endif
 	}
-
-
-	std::ifstream DDSFile(SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), std::ifstream::binary);
-	irr::video::CImageLoaderDDS DDSPic(DDSFile);
-
-	uint32_t width = DDSPic.getLoadedImage().Layers[0][0].Width;
-	uint32_t height = DDSPic.getLoadedImage().Layers[0][0].Height;
-	uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
-	uint16_t layer_count = 6;
-
-	buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
-
-	void *pointer = map_buffer(dev, upload_buffer);
-
-	size_t offset_in_texram = 0;
-
-	size_t block_height = 4;
-	size_t block_width = 4;
-	size_t block_size = 8;
-	std::vector<MipLevelData> Mips;
-	for (unsigned face = 0; face < layer_count; face++)
-	{
-		for (unsigned i = 0; i < mipmap_count; i++)
-		{
-			const IImage &image = DDSPic.getLoadedImage();
-			struct PackedMipMapLevel miplevel = image.Layers[face][i];
-			// Offset needs to be aligned to 512 bytes
-			offset_in_texram = (offset_in_texram + 511) & ~511;
-			// Row pitch is always a multiple of 256
-			size_t height_in_blocks = (image.Layers[face][i].Height + block_height - 1) / block_height;
-			size_t width_in_blocks = (image.Layers[face][i].Width + block_width - 1) / block_width;
-			size_t height_in_texram = height_in_blocks * block_height;
-			size_t width_in_texram = width_in_blocks * block_width;
-			size_t rowPitch = width_in_blocks * block_size;
-			rowPitch = (rowPitch + 255) & ~255;
-			MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
-			Mips.push_back(mml);
-			for (unsigned row = 0; row < height_in_blocks; row++)
-			{
-				memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
-				offset_in_texram += rowPitch;
-			}
-		}
-	}
-	unmap_buffer(dev, upload_buffer);
-	skybox_texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB, 1024, 1024, 11, 6, usage_cube | usage_sampled | usage_transfer_dst, nullptr);
+	buffer_t upload_buffer;
+	std::tie(skybox_texture, upload_buffer) = load_skybox(dev, command_list);
 	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
 
-	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { skybox_sig->info.pSetLayouts[0] }),
-		&skybox_descriptors0));
-	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(sampler_heap->object, { skybox_sig->info.pSetLayouts[1] }),
-		&skybox_descriptors1));
 	util::update_descriptor_sets(dev->object,
 	{
-		structures::write_descriptor_set(skybox_descriptors0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, skybox_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
-		structures::write_descriptor_set(skybox_descriptors1, VK_DESCRIPTOR_TYPE_SAMPLER,
-		{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
+		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, skybox_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
 	});
 
-
-	uint32_t miplevel = 0;
-	for (const MipLevelData mipmapData : Mips)
-	{
-		set_pipeline_barrier(dev, command_list, skybox_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
-		copy_buffer_to_image_subresource(command_list, skybox_texture, miplevel, upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, irr::video::ECF_BC1_UNORM_SRGB);
-		set_pipeline_barrier(dev, command_list, skybox_texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
-		miplevel++;
-	}
 
 	objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);
 	sunlightpso = get_sunlight_pipeline_state(dev, sunlight_sig, render_pass);
@@ -298,8 +365,9 @@ void MeshSample::fill_draw_commands()
 		info.renderArea.extent.height = height;
 		vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &cbuffer_descriptor_set, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &sampler_descriptors, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &object_descriptor_set, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &scene_descriptor, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 3, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
 		current_cmd_list->OMSetRenderTargets(2, &(g_buffer->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(g_buffer->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 
@@ -334,13 +402,14 @@ void MeshSample::fill_draw_commands()
 				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
 				.Offset(xue->texture_mapping[i] + 7, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
-			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &texture_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
+			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &mesh_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
 #endif
 			draw_indexed(current_cmd_list, std::get<0>(xue->meshOffset[i]), 1, std::get<2>(xue->meshOffset[i]), std::get<1>(xue->meshOffset[i]), 0);
 		}
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &input_attachment_descriptors, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &rtt, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 1, 1, &scene_descriptor, 0, nullptr);
 #else
 		current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, nullptr);
 		current_cmd_list->SetGraphicsRootSignature(sunlight_sig.Get());
@@ -359,8 +428,8 @@ void MeshSample::fill_draw_commands()
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &skybox_descriptors0, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &skybox_descriptors1, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &scene_descriptor, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #endif
 		set_graphic_pipeline(current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
@@ -377,25 +446,28 @@ void MeshSample::fill_draw_commands()
 
 void MeshSample::Draw()
 {
-	Matrixes *cbufdata = static_cast<Matrixes*>(map_buffer(dev, cbuffer));
-	irr::core::matrix4 Model, View, InvModel;
-	View.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+	ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, object_matrix));
+	irr::core::matrix4 Model;
+	irr::core::matrix4 InvModel;
 	Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
 	Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
 	Model.getInverse(InvModel);
 
-	memcpy(cbufdata->Model, Model.pointer(), 16 * sizeof(float));
-	memcpy(cbufdata->InvModel, InvModel.pointer(), 16 * sizeof(float));
-	memcpy(cbufdata->ViewProj, View.pointer(), 16 * sizeof(float));
-	unmap_buffer(dev, cbuffer);
+	memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
+	memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
+	unmap_buffer(dev, object_matrix);
 
+	SceneData * tmp = static_cast<SceneData*>(map_buffer(dev, scene_matrix));
+	irr::core::matrix4 Perspective;
 	irr::core::matrix4 InvPerspective;
-	View.getInverse(InvPerspective);
-	void * tmp = map_buffer(dev, view_matrixes);
 	irr::core::matrix4 identity;
-	memcpy((char*)tmp + 16 * sizeof(float), identity.pointer(), 16 * sizeof(float));
-	memcpy((char*)tmp + 2 * 16 * sizeof(float), InvPerspective.pointer(), 16 * sizeof(float));
-	unmap_buffer(dev, view_matrixes);
+	Perspective.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+	Perspective.getInverse(InvPerspective);
+	memcpy(tmp->ProjectionMatrix, Perspective.pointer(), 16 * sizeof(float));
+	memcpy(tmp->InverseProjectionMatrix, InvPerspective.pointer(), 16 * sizeof(float));
+	memcpy(tmp->ViewMatrix, identity.pointer(), 16 * sizeof(float));
+	memcpy(tmp->InverseViewMatrix, identity.pointer(), 16 * sizeof(float));
+	unmap_buffer(dev, scene_matrix);
 
 	float * sun_tmp = (float*)map_buffer(dev, sun_data);
 	sun_tmp[0] = 0.;

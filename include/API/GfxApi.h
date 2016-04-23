@@ -226,7 +226,7 @@ struct pipeline_state_description
 			0.f, 1.f);
 	}
 
-	constexpr pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare)
+	constexpr pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare) const
 	{
 		return pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
@@ -263,7 +263,7 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	constexpr pipeline_state_description set_depth_write(bool depthwrite)
+	constexpr pipeline_state_description set_depth_write(bool depthwrite) const
 	{
 		return pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
