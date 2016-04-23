@@ -2,6 +2,12 @@
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
+#ifdef D3D12
+#define SAMPLE_PATH ""
+#else
+#define SAMPLE_PATH "..\\..\\..\\examples\\assets\\"
+#endif
+
 static float timer = 0.;
 
 struct Matrixes
@@ -148,11 +154,7 @@ void MeshSample::Init()
 #endif
 
 	Assimp::Importer importer;
-#ifdef D3D12
-	auto model = importer.ReadFile("xue.b3d", 0);
-#else
-	auto model = importer.ReadFile("..\\..\\..\\examples\\assets\\xue.b3d", 0);
-#endif
+	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
 	xue = std::make_unique<object>(dev, model);
 
 	// Texture
@@ -162,11 +164,7 @@ void MeshSample::Init()
 		aiString path;
 		model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 		std::string texture_path(path.C_Str());
-#ifdef D3D12
-		const std::string &fixed = texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
-#else
-		const std::string &fixed = "..\\..\\..\\examples\\assets\\" + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
-#endif
+		const std::string &fixed = SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 
 		image_t texture;
 		buffer_t upload_buffer;
