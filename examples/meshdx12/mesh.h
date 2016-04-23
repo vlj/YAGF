@@ -58,6 +58,7 @@ private:
 	descriptor_storage_t cbv_srv_descriptors_heap;
 
 	std::vector<image_t> Textures;
+	image_t skybox_texture;
 #ifndef D3D12
 	VkDescriptorSet cbuffer_descriptor_set;
 	std::vector<VkDescriptorSet> texture_descriptor_set;
@@ -84,6 +85,8 @@ private:
 	pipeline_state_t objectpso;
 	pipeline_layout_t sunlight_sig;
 	pipeline_state_t sunlightpso;
+	pipeline_layout_t skybox_sig;
+	pipeline_state_t skybox_pso;
 	void fill_draw_commands();
 	void Init();
 public:

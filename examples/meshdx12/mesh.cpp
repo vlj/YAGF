@@ -32,6 +32,7 @@ void MeshSample::Init()
 	start_command_list_recording(dev, command_list, command_allocator);
 	object_sig = get_skinned_object_pipeline_layout(dev);
 	sunlight_sig = get_sunlight_pipeline_layout(dev);
+	skybox_sig = get_skybox_pipeline_layout(dev);
 	cbuffer = create_buffer(dev, sizeof(Matrixes));
 	jointbuffer = create_buffer(dev, sizeof(JointTransform));
 	view_matrixes = create_buffer(dev, 16 * 3 * sizeof(float));
@@ -85,14 +86,14 @@ void MeshSample::Init()
 
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
-	depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
+	depth_buffer = create_image(dev, irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
 
 #ifdef D3D12
 	float clear_color[4] = {};
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clear_color);
 #endif
-	diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	set_pipeline_barrier(dev, command_list, diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev, command_list, normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -183,8 +184,11 @@ void MeshSample::Init()
 #endif
 	}
 
+	skybox_texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB, 1024, 1024, 9, 6, usage_cube | usage_sampled, nullptr);
+
 	objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);
 	sunlightpso = get_sunlight_pipeline_state(dev, sunlight_sig, render_pass);
+	skybox_pso = get_skybox_pipeline_state(dev, skybox_sig, render_pass);
 
 	big_triangle = create_buffer(dev, 4 * 3 * sizeof(float));
 	float fullscreen_tri[]

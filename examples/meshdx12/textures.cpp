@@ -50,7 +50,7 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 	unmap_buffer(dev, upload_buffer);
 
 	image_t texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB,
-		width, height, mipmap_count, usage_sampled | usage_transfer_dst,
+		width, height, mipmap_count, 1, usage_sampled | usage_transfer_dst,
 		nullptr);
 
 	uint32_t miplevel = 0;
