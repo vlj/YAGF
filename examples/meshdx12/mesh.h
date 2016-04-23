@@ -66,6 +66,9 @@ private:
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
 	VkDescriptorSet sampler_descriptors;
 	VkDescriptorSet input_attachment_descriptors;
+	VkDescriptorSet skybox_descriptors0;
+	VkDescriptorSet skybox_descriptors1;
+	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;

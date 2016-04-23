@@ -38,8 +38,8 @@ void MeshSample::Init()
 	view_matrixes = create_buffer(dev, 16 * 3 * sizeof(float));
 	sun_data = create_buffer(dev, 7 * sizeof(float));
 
-	cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 4 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 } });
-	sampler_heap = create_descriptor_storage(dev, 1, { {RESOURCE_VIEW::SAMPLER, 10 } });
+	cbv_srv_descriptors_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 } });
+	sampler_heap = create_descriptor_storage(dev, 10, { {RESOURCE_VIEW::SAMPLER, 10 } });
 
 	clear_value_structure_t clear_val = {};
 #ifndef D3D12
@@ -219,6 +219,23 @@ void MeshSample::Init()
 	}
 	unmap_buffer(dev, upload_buffer);
 	skybox_texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB, 1024, 1024, 11, 6, usage_cube | usage_sampled | usage_transfer_dst, nullptr);
+	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
+		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
+
+	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { skybox_sig->info.pSetLayouts[0] }),
+		&skybox_descriptors0));
+	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
+		&structures::descriptor_set_allocate_info(sampler_heap->object, { skybox_sig->info.pSetLayouts[1] }),
+		&skybox_descriptors1));
+	util::update_descriptor_sets(dev->object,
+	{
+		structures::write_descriptor_set(skybox_descriptors0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, skybox_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
+		structures::write_descriptor_set(skybox_descriptors1, VK_DESCRIPTOR_TYPE_SAMPLER,
+		{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0),
+	});
+
 
 	uint32_t miplevel = 0;
 	for (const MipLevelData mipmapData : Mips)
