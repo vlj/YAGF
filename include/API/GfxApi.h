@@ -58,6 +58,7 @@ namespace irr
 		enum class E_COMPARE_FUNCTION
 		{
 			ECF_LESS,
+			ECF_LEQUAL,
 			ECF_NEVER,
 		};
 
@@ -223,6 +224,80 @@ struct pipeline_state_description
 			irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_COMPARE_FUNCTION::ECF_NEVER,
 			irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_COMPARE_FUNCTION::ECF_NEVER,
 			0.f, 1.f);
+	}
+
+	constexpr pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare)
+	{
+		return pipeline_state_description(rasterization_depth_clamp_enable,
+			rasterization_discard_enable,
+			rasterization_polygon_mode,
+			rasterization_cull_mode,
+			rasterization_front_face,
+			rasterization_depth_bias_enable,
+			rasterization_depth_bias_constant_factor,
+			rasterization_depth_bias_clamp,
+			rasterization_depth_bias_slope_factor,
+			rasterization_line_width,
+			rasterization_conservative_enable,
+			multisample_multisample_enable,
+			multisample_sample_count,
+			multisample_min_sample_shading,
+			multisample_alpha_to_coverage,
+			multisample_alpha_to_one,
+			input_assembly_topology,
+			input_assembly_primitive_restart,
+			depth_stencil_depth_test,
+			depth_stencil_depth_write,
+			depth_compare,
+			depth_stencil_depth_clip_enable,
+			depth_stencil_stencil_test,
+			depth_stencil_front_stencil_fail_op,
+			depth_stencil_front_stencil_depth_fail_op,
+			depth_stencil_front_stencil_pass_op,
+			depth_stencil_front_stencil_compare_op,
+			depth_stencil_back_stencil_fail_op,
+			depth_stencil_back_stencil_depth_fail_op,
+			depth_stencil_back_stencil_pass_op,
+			depth_stencil_back_stencil_compare_op,
+			depth_stencil_min_depth_clip,
+			depth_stencil_max_depth_clip);
+	}
+
+	constexpr pipeline_state_description set_depth_write(bool depthwrite)
+	{
+		return pipeline_state_description(rasterization_depth_clamp_enable,
+			rasterization_discard_enable,
+			rasterization_polygon_mode,
+			rasterization_cull_mode,
+			rasterization_front_face,
+			rasterization_depth_bias_enable,
+			rasterization_depth_bias_constant_factor,
+			rasterization_depth_bias_clamp,
+			rasterization_depth_bias_slope_factor,
+			rasterization_line_width,
+			rasterization_conservative_enable,
+			multisample_multisample_enable,
+			multisample_sample_count,
+			multisample_min_sample_shading,
+			multisample_alpha_to_coverage,
+			multisample_alpha_to_one,
+			input_assembly_topology,
+			input_assembly_primitive_restart,
+			depth_stencil_depth_test,
+			depthwrite,
+			depth_stencil_depth_compare_op,
+			depth_stencil_depth_clip_enable,
+			depth_stencil_stencil_test,
+			depth_stencil_front_stencil_fail_op,
+			depth_stencil_front_stencil_depth_fail_op,
+			depth_stencil_front_stencil_pass_op,
+			depth_stencil_front_stencil_compare_op,
+			depth_stencil_back_stencil_fail_op,
+			depth_stencil_back_stencil_depth_fail_op,
+			depth_stencil_back_stencil_pass_op,
+			depth_stencil_back_stencil_compare_op,
+			depth_stencil_min_depth_clip,
+			depth_stencil_max_depth_clip);
 	}
 
 private:

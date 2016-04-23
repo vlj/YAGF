@@ -67,6 +67,7 @@ constexpr VkPipelineMultisampleStateCreateInfo get_pipeline_multisample_state_cr
 constexpr VkCompareOp get_compare_op(const irr::video::E_COMPARE_FUNCTION ecf)
 {
 	return (ecf == irr::video::E_COMPARE_FUNCTION::ECF_LESS) ? VK_COMPARE_OP_LESS :
+		(ecf == irr::video::E_COMPARE_FUNCTION::ECF_LEQUAL) ? VK_COMPARE_OP_LESS_OR_EQUAL :
 		(ecf == irr::video::E_COMPARE_FUNCTION::ECF_NEVER) ? VK_COMPARE_OP_NEVER : throw;
 }
 
