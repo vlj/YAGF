@@ -149,10 +149,6 @@ void MeshSample::Init()
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 6, sun_data, sizeof(7 * sizeof(float)));
 #endif // !D3D12
 
-#ifndef D3D12
-
-#endif
-
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
 	xue = std::make_unique<object>(dev, model);
