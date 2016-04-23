@@ -115,7 +115,8 @@ layout(location = 0) out vec4 FragColor;
 void main() {
     vec3 color = subpassLoad(ctex).xyz;
     vec3 norm = normalize(DecodeNormal(2. * subpassLoad(ntex).xy - 1.));
-    vec2 uv = gl_FragCoord.xy;
+    vec2 uv = gl_FragCoord.xy / 1024.;
+    uv.y = 1. - uv.y;
     float z = subpassLoad(dtex).x;
 
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
@@ -133,6 +134,5 @@ float metalness = 0.;
 
     vec3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, vec3(.04), roughness);
     vec3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
-//    FragColor = vec4(NdotL * sun_col * mix(Dielectric, Metal, metalness), 0.);
-    FragColor = vec4(NdotL * sun_col * mix(Dielectric, Metal, metalness), 1.);
+    FragColor = vec4(NdotL * sun_col * mix(Dielectric, Metal, metalness), 0.);
 }
