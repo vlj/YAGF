@@ -416,7 +416,8 @@ void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t res
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange.aspectMask = get_image_aspect(aspect);
-	barrier.subresourceRange.baseMipLevel = subresource;
+	barrier.subresourceRange.baseMipLevel = subresource % max(resource->info.mipLevels, 1);
+	barrier.subresourceRange.baseArrayLayer = subresource / max(resource->info.mipLevels, 1);
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.layerCount = 1;
 
