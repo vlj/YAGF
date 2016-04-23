@@ -353,7 +353,16 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(dev, current_cmd_list, depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
-		size_t offsets[1] = {};
+		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
+		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
+		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
+		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+#ifndef D3D12
+		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &skybox_descriptors0, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &skybox_descriptors1, 0, nullptr);
+#endif
+		set_graphic_pipeline(current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);

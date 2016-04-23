@@ -321,7 +321,8 @@ void copy_buffer_to_image_subresource(command_list_t list, image_t destination_i
 	VkBufferImageCopy info{};
 	info.bufferOffset = offset_in_buffer;
 	info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	info.imageSubresource.mipLevel = destination_subresource;
+	info.imageSubresource.mipLevel = destination_subresource % max(destination_image->info.mipLevels, 1);
+	info.imageSubresource.baseArrayLayer = destination_subresource / max(destination_image->info.mipLevels, 1);
 	info.imageSubresource.layerCount = 1;
 	info.imageExtent.width = width;
 	info.imageExtent.height = height;

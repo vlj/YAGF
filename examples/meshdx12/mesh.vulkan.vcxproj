@@ -26,6 +26,7 @@
     <None Include="..\shaders\object_gbuffer.frag" />
     <None Include="..\shaders\screenquad.vert" />
     <None Include="..\shaders\skybox.frag" />
+    <None Include="..\shaders\skybox.vert" />
     <None Include="..\shaders\sunlight.frag" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -95,6 +96,7 @@
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbuffer.frag -o $(SolutionDir)\frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad.vert -o $(SolutionDir)\sunlight_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.vert -o $(SolutionDir)\skybox_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -122,6 +124,7 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.fra
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbuffer.frag -o $(SolutionDir)\frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad.vert -o $(SolutionDir)\sunlight_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.vert -o $(SolutionDir)\skybox_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

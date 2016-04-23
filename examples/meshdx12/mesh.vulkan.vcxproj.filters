@@ -32,6 +32,9 @@
     <None Include="..\shaders\skybox.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\skybox.vert">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

@@ -256,7 +256,7 @@ pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layou
 	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
 
 
-	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\sunlight_vert.spv");
+	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\skybox_vert.spv");
 	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\skybox_frag.spv");
 
 	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{

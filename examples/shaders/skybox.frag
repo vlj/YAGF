@@ -19,9 +19,9 @@ void main(void)
 {
     vec3 eyedir = vec3(uv, 1.);
     eyedir = 2.0 * eyedir - 1.0;
-    vec4 tmp = (InvProj * vec4(eyedir, 1.));
-    tmp /= tmp.w;
-    eyedir = (InvView * vec4(tmp.xyz, 0.)).xyz;
+//    vec4 tmp = (InvProj * vec4(eyedir, 1.));
+//    tmp /= tmp.w;
+//    eyedir = (InvView * vec4(tmp.xyz, 0.)).xyz;
     vec4 color = texture(samplerCube(skytexture, s), eyedir);
     FragColor = vec4(color.xyz, 1.);
 }
