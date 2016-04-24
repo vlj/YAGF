@@ -433,6 +433,8 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &scene_descriptor, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #else
+		current_cmd_list->OMSetRenderTargets(1, &(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(g_buffer->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		set_pipeline_barrier(dev, current_cmd_list, depth_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->SetGraphicsRootSignature(skybox_sig.Get());
 		current_cmd_list->SetGraphicsRootDescriptorTable(0,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart()));
@@ -482,9 +484,9 @@ void MeshSample::Draw()
 	sun_tmp[1] = 1.;
 	sun_tmp[2] = 0.;
 	sun_tmp[3] = .5f;
-	sun_tmp[4] = 1.;
-	sun_tmp[5] = 1.;
-	sun_tmp[6] = 1.;
+	sun_tmp[4] = 10.;
+	sun_tmp[5] = 10.;
+	sun_tmp[6] = 10.;
 	unmap_buffer(dev, sun_data);
 
 	timer += 16.f;
