@@ -3,8 +3,8 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(set = 0, binding = 2) uniform textureCube skytexture;
-layout(set = 1, binding = 0) uniform sampler s;
+layout(set = 0, binding = 9) uniform textureCube skytexture;
+layout(set = 1, binding = 3) uniform sampler s;
 
 layout(location = 0)in vec2 uv;
 layout(location = 0) out vec4 FragColor;

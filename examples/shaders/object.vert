@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 2, binding = 0, std140) uniform SceneData
+layout(set = 2, binding = 7, std140) uniform SceneData
 {
   mat4 ViewMatrix;
   mat4 InverseViewMatrix;

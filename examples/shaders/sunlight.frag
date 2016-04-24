@@ -3,18 +3,18 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput ctex;
-layout(input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput ntex;
-layout(input_attachment_index = 3, set = 0, binding = 2) uniform subpassInput dtex;
+layout(input_attachment_index = 0, set = 0, binding = 4) uniform subpassInput ctex;
+layout(input_attachment_index = 1, set = 0, binding = 5) uniform subpassInput ntex;
+layout(input_attachment_index = 3, set = 0, binding = 6) uniform subpassInput dtex;
 
-layout(set = 1, binding = 0, std140) uniform VIEWDATA
+layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
   mat4 ViewMatrix;
   mat4 InverseViewMatrix;
   mat4 InverseProjectionMatrix;
 };
 
-layout(set = 1, binding = 1, std140) uniform LIGHTDATA
+layout(set = 1, binding = 8, std140) uniform LIGHTDATA
 {
   vec3 sun_direction;
   float sun_angle;
