@@ -32,11 +32,10 @@ struct ObjectData
 namespace
 {
 
-	// (inv)modelmatrix, jointmatrix, diffuse texture
+	// (inv)modelmatrix, jointmatrix
 	constexpr auto object_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1),
-		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) },
 		shader_stage::all);
 
 	constexpr auto model_descriptor_set_type = descriptor_set({
@@ -180,9 +179,6 @@ void MeshSample::Init()
 		get_subpass_dependency(1, 2, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
 	}));
 #else
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, object_matrix, sizeof(ObjectData));
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, scene_matrix, sizeof(SceneData));
-	create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
@@ -246,11 +242,6 @@ void MeshSample::Init()
 	fbo[1] = create_frame_buffer(dev, { { back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 
 	g_buffer = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-	create_image_view(dev, cbv_srv_descriptors_heap, 2, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM);
-	create_image_view(dev, cbv_srv_descriptors_heap, 3, normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM);
-	create_image_view(dev, cbv_srv_descriptors_heap, 4, depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8);
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 5, view_matrixes, sizeof(16 * 3 * sizeof(float)));
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 6, sun_data, sizeof(7 * sizeof(float)));
 #endif // !D3D12
 
 	Assimp::Importer importer;
@@ -272,7 +263,7 @@ void MeshSample::Init()
 		Textures.push_back(texture);
 		upload_buffers.push_back(upload_buffer);
 #ifdef D3D12
-		create_image_view(dev, cbv_srv_descriptors_heap, 7 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB);
+		create_image_view(dev, cbv_srv_descriptors_heap, 6 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB);
 #else
 		VkDescriptorSet mesh_descriptor;
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { model_set->object }), &mesh_descriptor));
@@ -288,6 +279,8 @@ void MeshSample::Init()
 	}
 	buffer_t upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_skybox(dev, command_list);
+
+#ifndef D3D12
 	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
 
@@ -296,6 +289,23 @@ void MeshSample::Init()
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, skybox_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2),
 	});
+#else
+	// scene
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, scene_matrix, sizeof(SceneData));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, sun_data, sizeof(7 * sizeof(float)));
+	create_image_view(dev, cbv_srv_descriptors_heap, 2, skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB);
+
+	// object
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 3, object_matrix, sizeof(ObjectData));
+
+	// rtt
+	create_image_view(dev, cbv_srv_descriptors_heap, 4, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM);
+	create_image_view(dev, cbv_srv_descriptors_heap, 5, normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM);
+	create_image_view(dev, cbv_srv_descriptors_heap, 6, depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8);
+
+
+	create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
+#endif // !D3D12
 
 
 	objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);

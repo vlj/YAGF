@@ -188,13 +188,13 @@ namespace
 	}
 }
 
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t flags, clear_value_structure_t *clear_value)
+image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value)
 {
 	image_t result;
 	CHECK_HRESULT(dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, 1, mipmap, 1, 0, get_resource_flags(flags)),
+		&CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, 1, mipmap, layers, 0, get_resource_flags(flags)),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		clear_value,
 		IID_PPV_ARGS(result.GetAddressOf())));
