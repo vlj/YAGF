@@ -3,6 +3,7 @@
 #pragma once
 #include "../API/d3dapi.h"
 #include <d3d12.h>
+#include <d3dx12.h>
 
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
@@ -19,16 +20,15 @@ inline D3D12_DESCRIPTOR_RANGE_TYPE get_range_type(RESOURCE_VIEW type)
 	throw;
 }
 
-template<size_t N>
-pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_layout_description_<N> desc)
+inline pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const std::vector<descriptor_set_> desc)
 {
 	pipeline_layout_t result;
 
 	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE> > all_descriptor_range_storage;
-	all_descriptor_range_storage.reserve(N);
+	all_descriptor_range_storage.reserve(desc.size());
 	std::vector<D3D12_ROOT_PARAMETER> root_parameters;
-	root_parameters.reserve(N);
-	for (const auto &root_parameter_desc : desc.descriptors_sets)
+	root_parameters.reserve(desc.size());
+	for (const auto &root_parameter_desc : desc)
 	{
 		std::vector<D3D12_DESCRIPTOR_RANGE> descriptor_range_storage;
 		descriptor_range_storage.reserve(root_parameter_desc.count);
@@ -51,7 +51,7 @@ pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const pipeline_lay
 	}
 	D3D12_ROOT_SIGNATURE_DESC rs_desc{};
 	rs_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rs_desc.NumParameters = N;
+	rs_desc.NumParameters = root_parameters.size();
 	rs_desc.pParameters = root_parameters.data();
 
 	Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSig;

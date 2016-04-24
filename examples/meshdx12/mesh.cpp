@@ -60,26 +60,6 @@ namespace
 			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
 			shader_stage::all);
 
-
-
-	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> get_object_descriptor_set(device_t dev, const descriptor_set_ &ds)
-	{
-		std::vector<VkDescriptorSetLayoutBinding> descriptor_range_storage;
-		descriptor_range_storage.reserve(ds.count);
-		for (uint32_t i = 0; i < ds.count; i++)
-		{
-			const range_of_descriptors &rod = ds.descriptors_ranges[i];
-			VkDescriptorSetLayoutBinding range{};
-			range.binding = rod.bind_point;
-			range.descriptorCount = rod.count;
-			range.descriptorType = get_descriptor_type(rod.range_type);
-			range.stageFlags = get_shader_stage(ds.stage);
-			descriptor_range_storage.emplace_back(range);
-		}
-		return std::make_shared<vulkan_wrapper::pipeline_descriptor_set>(dev->object, descriptor_range_storage);
-	}
-
-
 	std::tuple<image_t, buffer_t> load_skybox(device_t dev, command_list_t command_list)
 	{
 		std::ifstream DDSFile(SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), std::ifstream::binary);
@@ -149,6 +129,7 @@ void MeshSample::Init()
 	command_list_t command_list = create_command_list(dev, command_allocator);
 	start_command_list_recording(dev, command_list, command_allocator);
 
+#ifndef D3D12
 	sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
 	object_set = get_object_descriptor_set(dev, object_descriptor_set_type);
 	scene_set = get_object_descriptor_set(dev, scene_descriptor_set_type);
@@ -158,6 +139,10 @@ void MeshSample::Init()
 	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
 	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
+#else
+	object_sig = get_pipeline_layout_from_desc(dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
+#endif // !D3D12
+
 
 	object_matrix = create_buffer(dev, sizeof(ObjectData));
 	scene_matrix = create_buffer(dev, sizeof(SceneData));
@@ -195,8 +180,8 @@ void MeshSample::Init()
 		get_subpass_dependency(1, 2, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
 	}));
 #else
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, cbuffer, sizeof(Matrixes));
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, jointbuffer, sizeof(JointTransform));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, object_matrix, sizeof(ObjectData));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, scene_matrix, sizeof(SceneData));
 	create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
 
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
