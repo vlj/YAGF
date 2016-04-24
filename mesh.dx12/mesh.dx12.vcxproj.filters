@@ -56,6 +56,9 @@
     <Image Include="..\examples\assets\mouse_texture.DDS">
       <Filter>Assets</Filter>
     </Image>
+    <Image Include="..\examples\assets\w_sky_1BC1.DDS">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -80,6 +83,12 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="..\examples\shaders\sunlight.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\skyboxvert.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\skybox.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

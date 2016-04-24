@@ -1,6 +1,6 @@
 
-TextureCube skytexture : register(t0);
-sampler AnisotropicSampler : register(s0);
+TextureCube skytexture : register(t0, space9);
+sampler AnisotropicSampler : register(s0, space3);
 
 cbuffer Matrixes : register(b0)
 {
@@ -18,10 +18,11 @@ float4 main(PS_INPUT In) : SV_TARGET
 {
   float3 eyedir = float3(In.uv, 1.);
   eyedir = 2.0 * eyedir - 1.0;
-  float4 tmp = mul(InvProj, float4(eyedir, 1.));
-  tmp /= tmp.w;
-  eyedir = mul(InvView, float4(tmp.xyz, 0.)).xyz;
+//  float4 tmp = mul(InvProj, float4(eyedir, 1.));
+ // tmp /= tmp.w;
+//  eyedir = mul(InvView, float4(tmp.xyz, 0.)).xyz;
   float4 color = skytexture.Sample(AnisotropicSampler, eyedir);
+  return float4(color.xyz, 1.);
   return float4(color.xyz, 1.);
 }
 

@@ -31,6 +31,7 @@ constexpr uint8_t get_sample_count(const irr::video::E_SAMPLE_COUNT esc)
 constexpr D3D12_COMPARISON_FUNC get_compare_op(const irr::video::E_COMPARE_FUNCTION ecf)
 {
 	return (ecf == irr::video::E_COMPARE_FUNCTION::ECF_LESS) ? D3D12_COMPARISON_FUNC_LESS :
+		(ecf == irr::video::E_COMPARE_FUNCTION::ECF_LEQUAL) ? D3D12_COMPARISON_FUNC_LESS_EQUAL :
 		(ecf == irr::video::E_COMPARE_FUNCTION::ECF_NEVER) ? D3D12_COMPARISON_FUNC_NEVER : throw;
 }
 

@@ -13,7 +13,7 @@ inline D3D12_DESCRIPTOR_RANGE_TYPE get_range_type(RESOURCE_VIEW type)
 	switch (type)
 	{
 	case RESOURCE_VIEW::CONSTANTS_BUFFER: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	case RESOURCE_VIEW::INPUT_ATTACHMENT:
+	case RESOURCE_VIEW::INPUT_ATTACHMENT: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	case RESOURCE_VIEW::SHADER_RESOURCE: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	case RESOURCE_VIEW::SAMPLER: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 	}
@@ -51,7 +51,7 @@ inline pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const std::
 	}
 	D3D12_ROOT_SIGNATURE_DESC rs_desc{};
 	rs_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rs_desc.NumParameters = root_parameters.size();
+	rs_desc.NumParameters = static_cast<uint32_t>(root_parameters.size());
 	rs_desc.pParameters = root_parameters.data();
 
 	Microsoft::WRL::ComPtr<ID3DBlob> pSerializedRootSig;

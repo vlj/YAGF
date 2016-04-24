@@ -39,24 +39,25 @@ namespace
 		shader_stage::all);
 
 	constexpr auto model_descriptor_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1) },
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
 		shader_stage::fragment_shader);
 
 	constexpr auto sampler_descriptor_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 0, 1) },
+		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) },
 	shader_stage::fragment_shader);
 
 	// color, normal, depth
-	constexpr auto rtt_descriptor_set_type = descriptor_set({ range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 0, 1),
-			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 1, 1),
-			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 2, 1) },
+	constexpr auto rtt_descriptor_set_type = descriptor_set({
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 4, 1),
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 5, 1),
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 6, 1) },
 			shader_stage::fragment_shader);
 
 	// view/proj matrixes, sunlight data, skybox
 	constexpr auto scene_descriptor_set_type = descriptor_set({
-			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
-			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1),
-			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 7, 1),
+			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 8, 1),
+			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 9, 1) },
 			shader_stage::all);
 
 	std::tuple<image_t, buffer_t> load_skybox(device_t dev, command_list_t command_list)
@@ -140,6 +141,8 @@ void MeshSample::Init()
 	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #else
 	object_sig = get_pipeline_layout_from_desc(dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
+	sunlight_sig = get_pipeline_layout_from_desc(dev, { rtt_descriptor_set_type, scene_descriptor_set_type });
+	skybox_sig = get_pipeline_layout_from_desc(dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
 #endif // !D3D12
 
 
@@ -263,7 +266,7 @@ void MeshSample::Init()
 		Textures.push_back(texture);
 		upload_buffers.push_back(upload_buffer);
 #ifdef D3D12
-		create_image_view(dev, cbv_srv_descriptors_heap, 6 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB);
+		create_image_view(dev, cbv_srv_descriptors_heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
 		VkDescriptorSet mesh_descriptor;
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { model_set->object }), &mesh_descriptor));
@@ -293,15 +296,16 @@ void MeshSample::Init()
 	// scene
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, scene_matrix, sizeof(SceneData));
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, sun_data, sizeof(7 * sizeof(float)));
-	create_image_view(dev, cbv_srv_descriptors_heap, 2, skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB);
+	create_image_view(dev, cbv_srv_descriptors_heap, 2, skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// object
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 3, object_matrix, sizeof(ObjectData));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 4, object_matrix, sizeof(ObjectData));
 
 	// rtt
-	create_image_view(dev, cbv_srv_descriptors_heap, 4, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM);
-	create_image_view(dev, cbv_srv_descriptors_heap, 5, normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM);
-	create_image_view(dev, cbv_srv_descriptors_heap, 6, depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8);
+	create_image_view(dev, cbv_srv_descriptors_heap, 5, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev, cbv_srv_descriptors_heap, 6, normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev, cbv_srv_descriptors_heap, 7, depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 
 	create_sampler(dev, sampler_heap, 0, SAMPLER_TYPE::TRILINEAR);
@@ -365,6 +369,8 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 3, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
 		current_cmd_list->OMSetRenderTargets(2, &(g_buffer->rtt_heap->GetCPUDescriptorHandleForHeapStart()), true, &(g_buffer->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		clear_color(dev, current_cmd_list, g_buffer, clearColor);
+		clear_depth_stencil(dev, current_cmd_list, g_buffer, depth_stencil_aspect::depth_only, 1., 0);
 
 		current_cmd_list->SetGraphicsRootSignature(object_sig.Get());
 
@@ -373,12 +379,11 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		current_cmd_list->SetGraphicsRootDescriptorTable(0, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
-
-		clear_color(dev, current_cmd_list, g_buffer, clearColor);
-		clear_depth_stencil(dev, current_cmd_list, g_buffer, depth_stencil_aspect::depth_only, 1., 0);
-
-		current_cmd_list->SetGraphicsRootDescriptorTable(2,
+		current_cmd_list->SetGraphicsRootDescriptorTable(1,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+			.Offset(3, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+		current_cmd_list->SetGraphicsRootDescriptorTable(2, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
+		current_cmd_list->SetGraphicsRootDescriptorTable(3,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, objectpso);
@@ -393,9 +398,9 @@ void MeshSample::fill_draw_commands()
 		for (unsigned i = 0; i < xue->meshOffset.size(); i++)
 		{
 #ifdef D3D12
-			current_cmd_list->SetGraphicsRootDescriptorTable(1,
+			current_cmd_list->SetGraphicsRootDescriptorTable(0,
 				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-				.Offset(xue->texture_mapping[i] + 7, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+				.Offset(xue->texture_mapping[i] + 8, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &mesh_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
 #endif
@@ -410,7 +415,9 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->SetGraphicsRootSignature(sunlight_sig.Get());
 		current_cmd_list->SetGraphicsRootDescriptorTable(0,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-			.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+			.Offset(5, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+		current_cmd_list->SetGraphicsRootDescriptorTable(1,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart()));
 
 		set_pipeline_barrier(dev, current_cmd_list, diffuse_color, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev, current_cmd_list, normal_roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -425,6 +432,12 @@ void MeshSample::fill_draw_commands()
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &scene_descriptor, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
+#else
+		current_cmd_list->SetGraphicsRootSignature(skybox_sig.Get());
+		current_cmd_list->SetGraphicsRootDescriptorTable(0,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart()));
+		current_cmd_list->SetGraphicsRootDescriptorTable(1,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);

@@ -198,11 +198,11 @@ pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layou
 	psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
 	Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
-	CHECK_HRESULT(D3DReadFileToBlob(L"screenquad.cso", vtxshaderblob.GetAddressOf()));
+	CHECK_HRESULT(D3DReadFileToBlob(L"skyboxvert.cso", vtxshaderblob.GetAddressOf()));
 	psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
 	psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
 
-	CHECK_HRESULT(D3DReadFileToBlob(L"sunlight.cso", pxshaderblob.GetAddressOf()));
+	CHECK_HRESULT(D3DReadFileToBlob(L"skybox.cso", pxshaderblob.GetAddressOf()));
 	psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
 	psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
 

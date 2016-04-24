@@ -1,20 +1,20 @@
-cbuffer VIEWDATA : register(b0, space3)
+cbuffer VIEWDATA : register(b0, space7)
 {
   float4x4 ViewMatrix;
   float4x4 InverseViewMatrix;
   float4x4 InverseProjectionMatrix;
 }
 
-cbuffer LIGHTDATA : register(b0, space4)
+cbuffer LIGHTDATA : register(b0, space8)
 {
   float3 sun_direction;
   float sun_angle;
   float3 sun_col;
 }
 
-Texture2D ColorTex : register(t0, space0);
-Texture2D NormalTex : register(t0, space1);
-Texture2D DepthTex : register(t0, space2);
+Texture2D ColorTex : register(t0, space4);
+Texture2D NormalTex : register(t0, space5);
+Texture2D DepthTex : register(t0, space6);
 
 struct PS_INPUT
 {

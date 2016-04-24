@@ -1,13 +1,15 @@
-cbuffer Matrixes : register(b0, space0)
+cbuffer SceneMatrixes : register(b0, space7)
 {
-  float4x4 ModelMatrix;
-  float4x4 InverseModelMatrix;
-  float4x4 ViewProjectionMatrix;
+	float4x4 ViewMatrix;
+	float4x4 InverseViewMatrix;
+	float4x4 ProjectionMatrix;
+	float4x4 InverseProjectionMatrix;
 }
 
-cbuffer Matrixes : register(b0, space1)
+cbuffer ObjectMatrixes : register(b0, space0)
 {
-  float4x4 JointTransform[48];
+	float4x4 ModelMatrix;
+	float4x4 InverseModelMatrix;
 }
 
 struct VS_INPUT
@@ -76,8 +78,8 @@ PS_INPUT main(VS_INPUT In)
   SkinnedPosition += In.weight3 * SingleBoneInfluencedPosition;*/
 
   float4 position = mul(ModelMatrix, IdlePosition);
-  result.pos = mul(ViewProjectionMatrix, position);
+  result.pos = mul(mul(ProjectionMatrix, ViewMatrix), position);
   result.uv = In.texc;
-  result.normal = mul(transpose(InverseModelMatrix), float4(In.normal, 0.)).xyz;
+  result.normal = mul(transpose(InverseModelMatrix * InverseViewMatrix), float4(In.normal, 0.)).xyz;
   return result;
 }
