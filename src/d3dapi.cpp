@@ -389,9 +389,9 @@ void set_graphic_pipeline(command_list_t command_list, pipeline_state_t pipeline
 	command_list->SetPipelineState(pipeline.Get());
 }
 
-void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list)
+void submit_executable_command_list(command_queue_t* command_queue, command_list_t command_list)
 {
-	command_queue->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
+	command_queue->object->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
 }
 
 void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
@@ -409,18 +409,18 @@ uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)
 	return chain->object->GetCurrentBackBufferIndex();
 }
 
-void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
+void wait_for_command_queue_idle(device_t dev, command_queue_t* command_queue)
 {
 	Microsoft::WRL::ComPtr<ID3D12Fence> fence;
 	CHECK_HRESULT(dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf())));
 	HANDLE completion_event = CreateEvent(0, FALSE, FALSE, 0);
 	fence->SetEventOnCompletion(1, completion_event);
-	command_queue->Signal(fence.Get(), 1);
+	command_queue->object->Signal(fence.Get(), 1);
 	WaitForSingleObject(completion_event, INFINITE);
 	CloseHandle(completion_event);
 }
 
-void present(device_t dev, command_queue_t cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
+void present(device_t dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
 {
 	CHECK_HRESULT(chain->object->Present(1, 0));
 }
@@ -458,43 +458,6 @@ d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tu
 d3d12_framebuffer_t::~d3d12_framebuffer_t()
 {
 
-}
-
-std::tuple<device_t, std::unique_ptr<swap_chain_t>, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
-{
-#ifndef NDEBUG
-	Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
-	D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
-	debugInterface->EnableDebugLayer();
-#endif //  DEBUG
-
-	device_t dev;
-	Microsoft::WRL::ComPtr<IDXGIFactory4> fact;
-	CHECK_HRESULT(CreateDXGIFactory1(IID_PPV_ARGS(fact.GetAddressOf())));
-	Microsoft::WRL::ComPtr<IDXGIAdapter> adaptater;
-	CHECK_HRESULT(fact->EnumAdapters(0, adaptater.GetAddressOf()));
-	CHECK_HRESULT(D3D12CreateDevice(adaptater.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(dev.GetAddressOf())));
-
-	command_queue_t queue;
-	D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
-	CHECK_HRESULT(dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(queue.GetAddressOf())));
-
-	IDXGISwapChain3 *chain;
-	DXGI_SWAP_CHAIN_DESC swapChain = {};
-	swapChain.BufferCount = 2;
-	swapChain.Windowed = true;
-	swapChain.OutputWindow = window;
-	swapChain.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChain.SampleDesc.Count = 1;
-	swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-
-	CHECK_HRESULT(fact->CreateSwapChain(queue.Get(), &swapChain, (IDXGISwapChain**)&chain));
-
-	uint32_t w, h;
-	CHECK_HRESULT(chain->GetSourceSize(&w, &h));
-	return std::make_tuple(dev, std::make_unique<swap_chain_t>(chain), queue, w, h, irr::video::ECOLOR_FORMAT::ECF_R8G8B8A8_UNORM);
 }
 
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)

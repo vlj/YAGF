@@ -80,6 +80,6 @@ PS_INPUT main(VS_INPUT In)
   float4 position = mul(ModelMatrix, IdlePosition);
   result.pos = mul(mul(ProjectionMatrix, ViewMatrix), position);
   result.uv = In.texc;
-  result.normal = mul(transpose(InverseModelMatrix * InverseViewMatrix), float4(In.normal, 0.)).xyz;
+  result.normal = mul(transpose(mul(InverseModelMatrix, InverseViewMatrix)), float4(In.normal, 0.)).xyz;
   return result;
 }

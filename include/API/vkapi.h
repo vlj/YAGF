@@ -18,7 +18,7 @@
 using command_list_storage_t = vulkan_wrapper::command_pool;
 using command_list_t = std::shared_ptr<vulkan_wrapper::command_buffer>;
 using device_t = std::shared_ptr<vulkan_wrapper::device>;
-using command_queue_t = std::shared_ptr<vulkan_wrapper::queue>;
+using command_queue_t = vulkan_wrapper::queue;
 using buffer_t = std::shared_ptr<vulkan_wrapper::buffer>;
 using image_t = std::shared_ptr<vulkan_wrapper::image>;
 using descriptor_storage_t = std::shared_ptr<vulkan_wrapper::descriptor_pool>;
@@ -47,3 +47,5 @@ using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 #include "../VKAPI/pipeline_helpers.h"
 #include "../VKAPI/pipeline_layout_helpers.h"
 #include "../VKAPI/renderpass_helpers.h"
+
+std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);

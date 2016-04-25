@@ -26,7 +26,7 @@ struct wrapper
 using command_list_storage_t = wrapper<ID3D12CommandAllocator>;
 using command_list_t = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
 using device_t = Microsoft::WRL::ComPtr<ID3D12Device>;
-using command_queue_t = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;
+using command_queue_t = wrapper<ID3D12CommandQueue>;
 using buffer_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
 using image_t = Microsoft::WRL::ComPtr<ID3D12Resource>;
 using descriptor_storage_t = Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>;

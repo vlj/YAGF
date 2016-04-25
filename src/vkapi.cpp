@@ -73,7 +73,7 @@ namespace
 	}
 }
 
-std::tuple<device_t, std::unique_ptr<swap_chain_t>, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
 	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
@@ -183,12 +183,12 @@ std::tuple<device_t, std::unique_ptr<swap_chain_t>, command_queue_t, size_t, siz
 	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &(chain->object)));
 	chain->info = swap_chain;
 
-	command_queue_t queue = std::make_shared<vulkan_wrapper::queue>();
+	std::unique_ptr<command_queue_t> queue = std::make_unique<vulkan_wrapper::queue>();
 	queue->info.queue_family = dev->queue_create_infos[0].queueFamilyIndex;
 	queue->info.queue_index = 0;
 	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
 
-	return std::make_tuple(dev, std::move(chain), queue, surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
+	return std::make_tuple(dev, std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
 std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
@@ -364,7 +364,7 @@ void make_command_list_executable(command_list_t command_list)
 	CHECK_VKRESULT(vkEndCommandBuffer(command_list->object));
 }
 
-void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
+void wait_for_command_queue_idle(device_t dev, command_queue_t* command_queue)
 {
 	CHECK_VKRESULT(vkQueueWaitIdle(command_queue->object));
 }
@@ -530,7 +530,7 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 	vkCmdBindVertexBuffers(commandlist->object, first_bind, static_cast<uint32_t>(buffer_offset_stride_size.size()), pbuffers.data(), poffsets.data());
 }
 
-void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list)
+void submit_executable_command_list(command_queue_t* command_queue, command_list_t command_list)
 {
 	VkSubmitInfo info{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	info.commandBufferCount = 1;
@@ -557,7 +557,7 @@ uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)
 	return index;
 }
 
-void present(device_t dev, command_queue_t cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
+void present(device_t dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
 {
 	VkPresentInfoKHR info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	info.swapchainCount = 1;

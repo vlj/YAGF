@@ -325,8 +325,8 @@ void MeshSample::Init()
 	big_triangle_info = { std::make_tuple(big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
 
 	make_command_list_executable(command_list);
-	submit_executable_command_list(cmdqueue, command_list);
-	wait_for_command_queue_idle(dev, cmdqueue);
+	submit_executable_command_list(cmdqueue.get(), command_list);
+	wait_for_command_queue_idle(dev, cmdqueue.get());
 	fill_draw_commands();
 }
 
@@ -509,7 +509,7 @@ void MeshSample::Draw()
 			//unmap_buffer(dev, jointbuffer);
 
 	uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain.get());
-	submit_executable_command_list(cmdqueue, command_list_for_back_buffer[current_backbuffer]);
-	wait_for_command_queue_idle(dev, cmdqueue);
-	present(dev, cmdqueue, chain.get(), current_backbuffer);
+	submit_executable_command_list(cmdqueue.get(), command_list_for_back_buffer[current_backbuffer]);
+	wait_for_command_queue_idle(dev, cmdqueue.get());
+	present(dev, cmdqueue.get(), chain.get(), current_backbuffer);
 }
