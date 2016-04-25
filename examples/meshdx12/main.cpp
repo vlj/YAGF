@@ -69,13 +69,13 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
 	HWND window = Create(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 	device_t dev;
-	swap_chain_t chain;
+	std::unique_ptr<swap_chain_t> chain;
 	command_queue_t cmd_queue;
 	uint32_t width;
 	uint32_t height;
 	irr::video::ECOLOR_FORMAT format;
 	std::tie(dev, chain, cmd_queue, width, height, format) = create_device_swapchain_and_graphic_presentable_queue(hInstance, window);
-	MeshSample app(dev, chain, cmd_queue, width, height, format);
+	MeshSample app(dev, std::move(chain), cmd_queue, width, height, format);
 
 	// this struct holds Windows event messages
 	MSG msg = {};

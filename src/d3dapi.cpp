@@ -404,9 +404,9 @@ void draw_non_indexed(command_list_t command_list, uint32_t vertex_count, uint32
 	command_list->DrawInstanced(vertex_count, instance_count, base_vertex, base_instance);
 }
 
-uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
+uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)
 {
-	return chain->GetCurrentBackBufferIndex();
+	return chain->object->GetCurrentBackBufferIndex();
 }
 
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
@@ -420,9 +420,9 @@ void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue)
 	CloseHandle(completion_event);
 }
 
-void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index)
+void present(device_t dev, command_queue_t cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
 {
-	CHECK_HRESULT(chain->Present(1, 0));
+	CHECK_HRESULT(chain->object->Present(1, 0));
 }
 
 d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)
@@ -460,7 +460,7 @@ d3d12_framebuffer_t::~d3d12_framebuffer_t()
 
 }
 
-std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<device_t, std::unique_ptr<swap_chain_t>, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 #ifndef NDEBUG
 	Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
@@ -479,7 +479,7 @@ std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::
 	D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
 	CHECK_HRESULT(dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(queue.GetAddressOf())));
 
-	swap_chain_t chain;
+	IDXGISwapChain3 *chain;
 	DXGI_SWAP_CHAIN_DESC swapChain = {};
 	swapChain.BufferCount = 2;
 	swapChain.Windowed = true;
@@ -490,20 +490,20 @@ std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::
 	swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
-	CHECK_HRESULT(fact->CreateSwapChain(queue.Get(), &swapChain, (IDXGISwapChain**)chain.GetAddressOf()));
+	CHECK_HRESULT(fact->CreateSwapChain(queue.Get(), &swapChain, (IDXGISwapChain**)&chain));
 
 	uint32_t w, h;
 	CHECK_HRESULT(chain->GetSourceSize(&w, &h));
-	return std::make_tuple(dev, chain, queue, w, h, irr::video::ECOLOR_FORMAT::ECF_R8G8B8A8_UNORM);
+	return std::make_tuple(dev, std::make_unique<swap_chain_t>(chain), queue, w, h, irr::video::ECOLOR_FORMAT::ECF_R8G8B8A8_UNORM);
 }
 
-std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)
+std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
 {
 	std::vector<image_t> result;
 	for (int i = 0; i < 2; i++)
 	{
 		image_t back_buffer;
-		CHECK_HRESULT(chain->GetBuffer(i, IID_PPV_ARGS(back_buffer.GetAddressOf())));
+		CHECK_HRESULT(chain->object->GetBuffer(i, IID_PPV_ARGS(back_buffer.GetAddressOf())));
 		back_buffer->SetName(L"BackBuffer");
 		result.push_back(back_buffer);
 	}

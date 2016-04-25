@@ -123,7 +123,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
 	CHECK_HRESULT(dev->CreateCommandQueue(&cmddesc, IID_PPV_ARGS(queue.GetAddressOf())));
 
-	swap_chain_t chain;
+	IDXGISwapChain3 *chain;
 	DXGI_SWAP_CHAIN_DESC1 swapChain = {};
 	swapChain.BufferCount = 2;
 	swapChain.Scaling = DXGI_SCALING_STRETCH;
@@ -135,7 +135,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	swapChain.Flags = 0;
 	swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
-	CHECK_HRESULT(fact->CreateSwapChainForComposition(queue.Get(), &swapChain, nullptr, (IDXGISwapChain1**)chain.GetAddressOf()));
+	CHECK_HRESULT(fact->CreateSwapChainForComposition(queue.Get(), &swapChain, nullptr, (IDXGISwapChain1**)&chain));
 
 	uint32_t w, h;
 	CHECK_HRESULT(chain->GetSourceSize(&w, &h));
@@ -147,10 +147,10 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		// Get backing native interface for SwapChainPanel
 		ComPtr<ISwapChainPanelNative> panelNative;
 		reinterpret_cast<IUnknown*>(swap_chain_panel)->QueryInterface(IID_PPV_ARGS(&panelNative));
-		panelNative->SetSwapChain(chain.Get());
+		panelNative->SetSwapChain(chain);
 	}, CallbackContext::Any));
 
-	sample = std::make_unique<MeshSample>(dev, chain, queue, 1024, 1024, irr::video::ECF_R8G8B8A8_UNORM);
+	sample = std::make_unique<MeshSample>(dev, std::make_unique<swap_chain_t>(chain), queue, 1024, 1024, irr::video::ECF_R8G8B8A8_UNORM);
 
 	// Create a task that will be run on a background thread.
 	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action)

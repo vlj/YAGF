@@ -24,7 +24,7 @@ using image_t = std::shared_ptr<vulkan_wrapper::image>;
 using descriptor_storage_t = std::shared_ptr<vulkan_wrapper::descriptor_pool>;
 using pipeline_state_t = std::shared_ptr<vulkan_wrapper::pipeline>;
 using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
-using swap_chain_t = std::shared_ptr<vulkan_wrapper::swapchain>;
+using swap_chain_t = vulkan_wrapper::swapchain;
 using render_pass_t = std::shared_ptr<vulkan_wrapper::render_pass>;
 using clear_value_structure_t = void*;
 

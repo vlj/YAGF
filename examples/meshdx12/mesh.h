@@ -26,8 +26,8 @@
 
 struct MeshSample
 {
-	MeshSample(device_t _dev, swap_chain_t _chain, command_queue_t _cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)
-		: dev(_dev), chain(_chain), cmdqueue(_cmdqueue), width(_w), height(_h), swap_chain_format(format)
+	MeshSample(device_t _dev, std::unique_ptr<swap_chain_t> &&_chain, command_queue_t _cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)
+		: dev(_dev), chain(std::move(_chain)), cmdqueue(_cmdqueue), width(_w), height(_h), swap_chain_format(format)
 	{
 		Init();
 	}
@@ -44,7 +44,7 @@ private:
 	device_t dev;
 	command_queue_t cmdqueue;
 	irr::video::ECOLOR_FORMAT swap_chain_format;
-	swap_chain_t chain;
+	std::unique_ptr<swap_chain_t> chain;
 	std::vector<image_t> back_buffer;
 	std::vector<command_list_t> command_list_for_back_buffer;
 

@@ -391,7 +391,7 @@ void unmap_buffer(device_t dev, buffer_t buffer);
 void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage);
 void make_command_list_executable(command_list_t command_list);
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue);
-void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index);
+void present(device_t dev, command_queue_t cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index);
 void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
 
 
@@ -411,7 +411,7 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 void submit_executable_command_list(command_queue_t command_queue, command_list_t command_list);
 void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance);
 void draw_non_indexed(command_list_t command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance);
-uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain);
+uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain);
 
-std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);
-std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain);
+std::tuple<device_t, std::unique_ptr<swap_chain_t>, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);
+std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain);

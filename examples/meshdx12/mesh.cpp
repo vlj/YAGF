@@ -123,7 +123,7 @@ namespace
 
 void MeshSample::Init()
 {
-	back_buffer = get_image_view_from_swap_chain(dev, chain);
+	back_buffer = get_image_view_from_swap_chain(dev, chain.get());
 
 	command_allocator = create_command_storage(dev);
 	command_list_t command_list = create_command_list(dev, command_allocator.get());
@@ -508,8 +508,8 @@ void MeshSample::Draw()
 			memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
 			//unmap_buffer(dev, jointbuffer);
 
-	uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain);
+	uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain.get());
 	submit_executable_command_list(cmdqueue, command_list_for_back_buffer[current_backbuffer]);
 	wait_for_command_queue_idle(dev, cmdqueue);
-	present(dev, cmdqueue, chain, current_backbuffer);
+	present(dev, cmdqueue, chain.get(), current_backbuffer);
 }

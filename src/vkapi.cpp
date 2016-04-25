@@ -73,7 +73,7 @@ namespace
 	}
 }
 
-std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<device_t, std::unique_ptr<swap_chain_t>, command_queue_t, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
 	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
@@ -179,7 +179,7 @@ std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::
 	swap_chain.queueFamilyIndexCount = 0;
 	swap_chain.pQueueFamilyIndices = nullptr;
 
-	swap_chain_t chain = std::make_shared<vulkan_wrapper::swapchain>(dev->object);
+	std::unique_ptr<swap_chain_t> chain = std::make_unique<swap_chain_t>(dev->object);
 	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &(chain->object)));
 	chain->info = swap_chain;
 
@@ -188,10 +188,10 @@ std::tuple<device_t, swap_chain_t, command_queue_t, size_t, size_t, irr::video::
 	queue->info.queue_index = 0;
 	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
 
-	return std::make_tuple(dev, chain, queue, surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
+	return std::make_tuple(dev, std::move(chain), queue, surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
-std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t chain)
+std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
 {
 	uint32_t swap_chain_count;
 	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, nullptr));
@@ -548,7 +548,7 @@ void draw_non_indexed(command_list_t command_list, uint32_t vertex_count, uint32
 	vkCmdDraw(command_list->object, vertex_count, instance_count, base_vertex, base_instance);
 }
 
-uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
+uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)
 {
 	uint32_t index;
 	// TODO: Reuse accross call to gnbi
@@ -557,7 +557,7 @@ uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t chain)
 	return index;
 }
 
-void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index)
+void present(device_t dev, command_queue_t cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
 {
 	VkPresentInfoKHR info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	info.swapchainCount = 1;
