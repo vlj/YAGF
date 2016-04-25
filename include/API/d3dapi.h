@@ -9,7 +9,21 @@
 #include <memory>
 #include "..\Core\SColor.h"
 
-using command_list_storage_t = Microsoft::WRL::ComPtr<ID3D12CommandAllocator>;
+template<typename T>
+struct wrapper
+{
+	T* object;
+
+	wrapper(T* ptr) : object(ptr)
+	{}
+
+	~wrapper()
+	{
+		object->Release();
+	}
+};
+
+using command_list_storage_t = wrapper<ID3D12CommandAllocator>;
 using command_list_t = Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>;
 using device_t = Microsoft::WRL::ComPtr<ID3D12Device>;
 using command_queue_t = Microsoft::WRL::ComPtr<ID3D12CommandQueue>;

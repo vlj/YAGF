@@ -134,17 +134,17 @@ namespace
 	}
 }
 
-command_list_storage_t create_command_storage(device_t dev)
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev)
 {
-	command_list_storage_t result;
-	CHECK_HRESULT(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(result.GetAddressOf())));
-	return result;
+	ID3D12CommandAllocator *result;
+	CHECK_HRESULT(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&result)));
+	return std::make_unique<command_list_storage_t>(result);
 }
 
-command_list_t create_command_list(device_t dev, command_list_storage_t storage)
+command_list_t create_command_list(device_t dev, command_list_storage_t* storage)
 {
 	command_list_t result;
-	CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage.Get(), nullptr, IID_PPV_ARGS(result.GetAddressOf())));
+	CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage->object, nullptr, IID_PPV_ARGS(result.GetAddressOf())));
 	CHECK_HRESULT(result->Close());
 	return result;
 }
@@ -223,9 +223,9 @@ void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uin
 	dev->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
-void reset_command_list_storage(device_t, command_list_storage_t storage)
+void reset_command_list_storage(device_t, command_list_storage_t* storage)
 {
-	storage->Reset();
+	storage->object->Reset();
 }
 
 namespace
@@ -307,9 +307,9 @@ void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t inde
 	dev->CreateShaderResourceView(img.Get(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
-void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage)
+void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage)
 {
-	command_list->Reset(storage.Get(), nullptr);
+	command_list->Reset(storage->object, nullptr);
 }
 
 void make_command_list_executable(command_list_t command_list)

@@ -205,12 +205,12 @@ std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t c
 	return result;
 }
 
-command_list_storage_t create_command_storage(device_t dev)
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev)
 {
-	return std::make_shared<vulkan_wrapper::command_pool>(dev->object, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev->queue_create_infos[0].queueFamilyIndex);
+	return std::make_unique<command_list_storage_t>(dev->object, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev->queue_create_infos[0].queueFamilyIndex);
 }
 
-command_list_t create_command_list(device_t dev, command_list_storage_t storage)
+command_list_t create_command_list(device_t dev, command_list_storage_t* storage)
 {
 	return std::make_shared<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
@@ -338,11 +338,7 @@ descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descri
 	return std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 8, descriptor_pool_size);
 }
 
-void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uint32_t index, buffer_t buffer, uint32_t buffer_size);
-descriptor_storage_t create_sampler_heap(device_t dev, uint32_t num_descriptors);
-void create_sampler(device_t dev, descriptor_storage_t storage, uint32_t index, SAMPLER_TYPE sampler_type);
-void create_image_view(device_t dev, descriptor_storage_t storage, uint32_t index, image_t img);
-void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage)
+void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage)
 {
 	VkCommandBufferInheritanceInfo inheritance_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
 
@@ -352,7 +348,7 @@ void start_command_list_recording(device_t dev, command_list_t command_list, com
 	CHECK_VKRESULT(vkBeginCommandBuffer(command_list->object, &info));
 }
 
-void reset_command_list_storage(device_t dev, command_list_storage_t storage)
+void reset_command_list_storage(device_t dev, command_list_storage_t* storage)
 {
 	vkResetCommandPool(dev->object, storage->object, 0);
 }

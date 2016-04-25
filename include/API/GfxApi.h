@@ -374,9 +374,9 @@ private:
 
 
 
-command_list_storage_t create_command_storage(device_t dev);
-command_list_t create_command_list(device_t dev, command_list_storage_t storage);
-void reset_command_list_storage(device_t dev, command_list_storage_t storage);
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev);
+command_list_t create_command_list(device_t dev, command_list_storage_t* storage);
+void reset_command_list_storage(device_t dev, command_list_storage_t* storage);
 buffer_t create_buffer(device_t dev, size_t size);
 image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
 descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
@@ -388,7 +388,7 @@ framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, 
 void* map_buffer(device_t dev, buffer_t buffer);
 void unmap_buffer(device_t dev, buffer_t buffer);
 
-void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t storage);
+void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage);
 void make_command_list_executable(command_list_t command_list);
 void wait_for_command_queue_idle(device_t dev, command_queue_t command_queue);
 void present(device_t dev, command_queue_t cmdqueue, swap_chain_t chain, uint32_t backbuffer_index);

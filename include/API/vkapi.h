@@ -15,7 +15,7 @@
 
 #include "..\VKAPI\vulkan_helpers.h"
 
-using command_list_storage_t = std::shared_ptr<vulkan_wrapper::command_pool>;
+using command_list_storage_t = vulkan_wrapper::command_pool;
 using command_list_t = std::shared_ptr<vulkan_wrapper::command_buffer>;
 using device_t = std::shared_ptr<vulkan_wrapper::device>;
 using command_queue_t = std::shared_ptr<vulkan_wrapper::queue>;
