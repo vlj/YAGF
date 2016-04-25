@@ -76,8 +76,6 @@ private:
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
-#else
-	framebuffer_t g_buffer;
 #endif
 	descriptor_storage_t sampler_heap;
 	image_t depth_buffer;
