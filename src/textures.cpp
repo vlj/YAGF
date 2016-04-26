@@ -11,7 +11,9 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 	uint32_t width = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Width);
 	uint32_t height = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Height);
 	uint16_t mipmap_count = static_cast<uint16_t>(DDSPic.getLoadedImage().Layers[0].size());
-	uint16_t layer_count = 1;
+
+	bool is_cubemap = DDSPic.getLoadedImage().Type == TextureType::CUBEMAP;
+	uint16_t layer_count = is_cubemap ? 6 : 1;
 
 	buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
 
@@ -50,7 +52,7 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 	unmap_buffer(dev, upload_buffer);
 
 	image_t texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB,
-		width, height, mipmap_count, 1, usage_sampled | usage_transfer_dst,
+		width, height, mipmap_count, layer_count, usage_sampled | usage_transfer_dst | is_cubemap ? usage_cube : 0,
 		nullptr);
 
 	uint32_t miplevel = 0;
