@@ -8,20 +8,12 @@
 #define SAMPLE_PATH "..\\..\\..\\examples\\assets\\"
 #endif
 
-static float timer = 0.;
-
 struct SceneData
 {
 	float ViewMatrix[16];
 	float InverseViewMatrix[16];
 	float ProjectionMatrix[16];
 	float InverseProjectionMatrix[16];
-};
-
-struct ObjectData
-{
-	float ModelMatrix[16];
-	float InverseModelMatrix[16];
 };
 
 /*struct JointTransform
@@ -145,8 +137,6 @@ void MeshSample::Init()
 	skybox_sig = get_pipeline_layout_from_desc(dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
 #endif // !D3D12
 
-
-	object_matrix = create_buffer(dev, sizeof(ObjectData));
 	scene_matrix = create_buffer(dev, sizeof(SceneData));
 	sun_data = create_buffer(dev, 7 * sizeof(float));
 
@@ -218,16 +208,9 @@ void MeshSample::Init()
 	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
 		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { rtt_set->object }),
 		&rtt));
-	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { object_set->object }),
-		&object_descriptor_set));
 
 	util::update_descriptor_sets(dev->object,
 	{
-		structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ object_matrix->object, 0, sizeof(ObjectData) } }, 0),
-/*		structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),*/
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
 		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
@@ -245,37 +228,8 @@ void MeshSample::Init()
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
-	xue = std::make_unique<object>(dev, model);
+	xue = std::make_unique<object>(dev, model, command_list, cbv_srv_descriptors_heap, object_set.get(), model_set.get());
 
-	// Texture
-	std::vector<buffer_t> upload_buffers;
-	for (int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
-	{
-		aiString path;
-		model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
-		std::string texture_path(path.C_Str());
-		const std::string &fixed = SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
-
-		image_t texture;
-		buffer_t upload_buffer;
-		std::tie(texture, upload_buffer) = load_texture(dev, fixed, command_list);
-		Textures.push_back(texture);
-		upload_buffers.push_back(upload_buffer);
-#ifdef D3D12
-		create_image_view(dev, cbv_srv_descriptors_heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
-#else
-		VkDescriptorSet mesh_descriptor;
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { model_set->object }), &mesh_descriptor));
-		mesh_descriptor_set.push_back(mesh_descriptor);
-		auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
-			structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
-		Textures_views.push_back(img_view);
-		util::update_descriptor_sets(dev->object,
-		{
-			structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, { VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
-		});
-#endif
-	}
 	buffer_t upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_skybox(dev, command_list);
 
@@ -360,7 +314,6 @@ void MeshSample::fill_draw_commands()
 		info.renderArea.extent.height = height;
 		vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &object_descriptor_set, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &scene_descriptor, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 3, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
@@ -381,9 +334,6 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		current_cmd_list->SetGraphicsRootDescriptorTable(1,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-			.Offset(3, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 		current_cmd_list->SetGraphicsRootDescriptorTable(2, cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart());
 		current_cmd_list->SetGraphicsRootDescriptorTable(3,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->GetGPUDescriptorHandleForHeapStart()));
@@ -393,21 +343,8 @@ void MeshSample::fill_draw_commands()
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
-		bind_index_buffer(current_cmd_list, xue->index_buffer, 0, xue->total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-		bind_vertex_buffers(current_cmd_list, 0, xue->vertex_buffers_info);
+		xue->fill_draw_command(dev, current_cmd_list, object_sig);
 
-
-		for (unsigned i = 0; i < xue->meshOffset.size(); i++)
-		{
-#ifdef D3D12
-			current_cmd_list->SetGraphicsRootDescriptorTable(0,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
-				.Offset(xue->texture_mapping[i] + 8, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-#else
-			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &mesh_descriptor_set[xue->texture_mapping[i]], 0, nullptr);
-#endif
-			draw_indexed(current_cmd_list, std::get<0>(xue->meshOffset[i]), 1, std::get<2>(xue->meshOffset[i]), std::get<1>(xue->meshOffset[i]), 0);
-		}
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &rtt, 0, nullptr);
@@ -464,16 +401,7 @@ void MeshSample::fill_draw_commands()
 
 void MeshSample::Draw()
 {
-	ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, object_matrix));
-	irr::core::matrix4 Model;
-	irr::core::matrix4 InvModel;
-	Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
-	Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
-	Model.getInverse(InvModel);
-
-	memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
-	memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
-	unmap_buffer(dev, object_matrix);
+	xue->update_constant_buffers(dev);
 
 	SceneData * tmp = static_cast<SceneData*>(map_buffer(dev, scene_matrix));
 	irr::core::matrix4 Perspective;
@@ -497,11 +425,9 @@ void MeshSample::Draw()
 	sun_tmp[6] = 10.;
 	unmap_buffer(dev, sun_data);
 
-	timer += 16.f;
-
-	double intpart;
-	float frame = (float)modf(timer / 10000., &intpart);
-	frame *= 300.f;
+//	double intpart;
+//	float frame = (float)modf(timer / 10000., &intpart);
+//	frame *= 300.f;
 	/*        loader->AnimatedMesh.animateMesh(frame, 1.f);
 			loader->AnimatedMesh.skinMesh(1.f);
 

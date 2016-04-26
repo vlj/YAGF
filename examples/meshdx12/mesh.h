@@ -51,12 +51,10 @@ private:
 	std::unique_ptr<command_list_storage_t> command_allocator;
 	buffer_t sun_data;
 	buffer_t scene_matrix;
-	buffer_t object_matrix;
 	buffer_t big_triangle;
 	std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > big_triangle_info;
 	descriptor_storage_t cbv_srv_descriptors_heap;
 
-	std::vector<image_t> Textures;
 	image_t skybox_texture;
 #ifndef D3D12
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> object_set;
@@ -64,14 +62,10 @@ private:
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> sampler_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> rtt_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> model_set;
-	VkDescriptorSet object_descriptor_set;
-	std::vector<VkDescriptorSet> mesh_descriptor_set;
-	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
 	VkDescriptorSet sampler_descriptors;
 	VkDescriptorSet rtt;
 	VkDescriptorSet scene_descriptor;
-	VkDescriptorSet model_descriptor;
 	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
