@@ -8,8 +8,8 @@
 #include <unordered_map>
 
 #include "shaders.h"
-#include "geometry.h"
-#include "textures.h"
+#include <Scene/textures.h>
+#include <Scene/MeshSceneNode.h>
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -76,7 +76,7 @@ private:
 	image_t diffuse_color;
 	image_t normal_roughness_metalness;
 
-	std::unique_ptr<object> xue;
+	std::unique_ptr<irr::scene::IMeshSceneNode> xue;
 
 	render_pass_t render_pass;
 	framebuffer_t fbo[2];

@@ -228,7 +228,7 @@ void MeshSample::Init()
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
-	xue = std::make_unique<object>(dev, model, command_list, cbv_srv_descriptors_heap, object_set.get(), model_set.get());
+	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev, model, command_list, cbv_srv_descriptors_heap, object_set.get(), model_set.get(), nullptr);
 
 	buffer_t upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_skybox(dev, command_list);

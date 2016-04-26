@@ -1,6 +1,6 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
-#include "textures.h"
+#include <Scene/textures.h>
 
 
 std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &texture_name, command_list_t upload_command_list)
