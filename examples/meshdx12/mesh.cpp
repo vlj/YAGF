@@ -199,15 +199,9 @@ void MeshSample::Init()
 	depth_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, depth_buffer->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
-	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(sampler_heap->object, { sampler_set->object }),
-		&sampler_descriptors));
-	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { scene_set->object }),
-		&scene_descriptor));
-	CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-		&structures::descriptor_set_allocate_info(cbv_srv_descriptors_heap->object, { rtt_set->object }),
-		&rtt));
+	sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
+	scene_descriptor = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { scene_set->object });
+	rtt = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { rtt_set->object });
 
 	util::update_descriptor_sets(dev->object,
 	{

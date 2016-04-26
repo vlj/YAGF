@@ -38,10 +38,7 @@ namespace irr
 			//: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData));
-
-			CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object,
-				&structures::descriptor_set_allocate_info(heap->object, { object_set->object }),
-				&object_descriptor_set));
+			object_descriptor_set = util::allocate_descriptor_sets(dev->object, heap->object, { object_set->object });
 
 			util::update_descriptor_sets(dev->object,
 			{
@@ -137,8 +134,7 @@ namespace irr
 #ifdef D3D12
 				create_image_view(dev, cbv_srv_descriptors_heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
-				VkDescriptorSet mesh_descriptor;
-				CHECK_VKRESULT(vkAllocateDescriptorSets(dev->object, &structures::descriptor_set_allocate_info(heap->object, { model_set->object }), &mesh_descriptor));
+				VkDescriptorSet mesh_descriptor = util::allocate_descriptor_sets(dev->object, heap->object, { model_set->object });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 				auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 					structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));

@@ -512,11 +512,6 @@ namespace vulkan_wrapper
 
 namespace structures
 {
-	inline VkDescriptorSetAllocateInfo descriptor_set_allocate_info(VkDescriptorPool descriptor_pool, const std::vector<VkDescriptorSetLayout> &set_layouts)
-	{
-		return{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, static_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
-	}
-
 	constexpr VkComponentMapping component_mapping(const VkComponentSwizzle r = VK_COMPONENT_SWIZZLE_R, const VkComponentSwizzle g = VK_COMPONENT_SWIZZLE_G, const VkComponentSwizzle b = VK_COMPONENT_SWIZZLE_B, const VkComponentSwizzle a = VK_COMPONENT_SWIZZLE_A)
 	{
 		return{ r, g, b, a };
@@ -580,6 +575,14 @@ namespace structures
 
 namespace util
 {
+	inline VkDescriptorSet allocate_descriptor_sets(VkDevice dev, VkDescriptorPool descriptor_pool, const std::vector<VkDescriptorSetLayout> &set_layouts)
+	{
+		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, static_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
+		VkDescriptorSet result;
+		CHECK_VKRESULT(vkAllocateDescriptorSets(dev, &info, &result));
+		return result;
+	}
+
 	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
 	{
 		vkUpdateDescriptorSets(dev, static_cast<uint32_t>(update_info.size()), update_info.data(),0, nullptr);
