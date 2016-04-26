@@ -35,7 +35,7 @@ namespace irr
 			const core::vector3df& position,
 			const core::vector3df& rotation,
 			const core::vector3df& scale)
-			//: ISceneNode(parent, position, rotation, scale)
+			: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData));
 			object_descriptor_set = util::allocate_descriptor_sets(dev->object, heap->object, { object_set->object });

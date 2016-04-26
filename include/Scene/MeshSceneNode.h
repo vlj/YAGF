@@ -27,7 +27,7 @@ namespace irr
 	namespace scene
 	{
 		//! A scene node displaying a static mesh
-		class IMeshSceneNode// : public ISceneNode
+		class IMeshSceneNode : public ISceneNode
 		{
 			std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
 			std::vector<buffer_t> upload_buffers;

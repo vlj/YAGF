@@ -59,11 +59,7 @@ namespace irr
     //! 4x4 matrix. Mostly used as transformation matrix for 3d calculations.
     /** The matrix is a D3D style matrix, row major with translations in the 4th row. */
     template <class T>
-    struct
-#ifdef WIN32
-      __declspec(align(16))
-#endif
-      CMatrix4
+    struct CMatrix4
     {
     private:
       //! Matrix data, stored in row-major order
