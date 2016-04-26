@@ -222,7 +222,11 @@ void MeshSample::Init()
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
-	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev, model, command_list, cbv_srv_descriptors_heap, object_set.get(), model_set.get(), nullptr);
+	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev, model, command_list, cbv_srv_descriptors_heap,
+#ifndef D3D12
+		object_set.get(), model_set.get(),
+#endif // !D3D12
+		nullptr);
 
 	buffer_t upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_skybox(dev, command_list);
@@ -241,10 +245,6 @@ void MeshSample::Init()
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, scene_matrix, sizeof(SceneData));
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, sun_data, sizeof(7 * sizeof(float)));
 	create_image_view(dev, cbv_srv_descriptors_heap, 2, skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
-
-	// object
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 3, object_matrix, sizeof(ObjectData));
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 4, object_matrix, sizeof(ObjectData));
 
 	// rtt
 	create_image_view(dev, cbv_srv_descriptors_heap, 5, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -337,7 +337,7 @@ void MeshSample::fill_draw_commands()
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
-		xue->fill_draw_command(dev, current_cmd_list, object_sig);
+		xue->fill_draw_command(dev, current_cmd_list, object_sig, cbv_srv_descriptors_heap);
 
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);

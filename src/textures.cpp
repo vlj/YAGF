@@ -8,9 +8,9 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 	std::ifstream DDSFile(texture_name, std::ifstream::binary);
 	irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-	uint32_t width = DDSPic.getLoadedImage().Layers[0][0].Width;
-	uint32_t height = DDSPic.getLoadedImage().Layers[0][0].Height;
-	uint16_t mipmap_count = DDSPic.getLoadedImage().Layers[0].size();
+	uint32_t width = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Width);
+	uint32_t height = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Height);
+	uint16_t mipmap_count = static_cast<uint16_t>(DDSPic.getLoadedImage().Layers[0].size());
 	uint16_t layer_count = 1;
 
 	buffer_t upload_buffer = create_buffer(dev, width * height * 3 * 6);
@@ -19,9 +19,9 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 
 	size_t offset_in_texram = 0;
 
-	size_t block_height = 4;
-	size_t block_width = 4;
-	size_t block_size = 8;
+	uint32_t block_height = 4;
+	uint32_t block_width = 4;
+	uint32_t block_size = 8;
 	std::vector<MipLevelData> Mips;
 	for (unsigned face = 0; face < layer_count; face++)
 	{
@@ -32,11 +32,11 @@ std::tuple<image_t, buffer_t> load_texture(device_t dev, const std::string &text
 			// Offset needs to be aligned to 512 bytes
 			offset_in_texram = (offset_in_texram + 511) & ~511;
 			// Row pitch is always a multiple of 256
-			size_t height_in_blocks = (image.Layers[face][i].Height + block_height - 1) / block_height;
-			size_t width_in_blocks = (image.Layers[face][i].Width + block_width - 1) / block_width;
-			size_t height_in_texram = height_in_blocks * block_height;
-			size_t width_in_texram = width_in_blocks * block_width;
-			size_t rowPitch = width_in_blocks * block_size;
+			uint32_t height_in_blocks = static_cast<uint32_t>(image.Layers[face][i].Height + block_height - 1) / block_height;
+			uint32_t width_in_blocks = static_cast<uint32_t>(image.Layers[face][i].Width + block_width - 1) / block_width;
+			uint32_t height_in_texram = height_in_blocks * block_height;
+			uint32_t width_in_texram = width_in_blocks * block_width;
+			uint32_t rowPitch = width_in_blocks * block_size;
 			rowPitch = (rowPitch + 255) & ~255;
 			MipLevelData mml = { offset_in_texram, width_in_texram, height_in_texram, rowPitch };
 			Mips.push_back(mml);

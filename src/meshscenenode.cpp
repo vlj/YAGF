@@ -30,7 +30,10 @@ namespace irr
 		//! Constructor
 		/** Use setMesh() to set the mesh to display.
 		*/
-		IMeshSceneNode::IMeshSceneNode(device_t dev, const aiScene*model, command_list_t upload_cmd_list, descriptor_storage_t heap, vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
+		IMeshSceneNode::IMeshSceneNode(device_t dev, const aiScene*model, command_list_t upload_cmd_list, descriptor_storage_t heap,
+#ifndef D3D12
+			vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
+#endif
 			ISceneNode* parent,
 			const core::vector3df& position,
 			const core::vector3df& rotation,
@@ -38,6 +41,11 @@ namespace irr
 			: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData));
+#ifdef D3D12
+			// object
+			create_constant_buffer_view(dev, heap, 3, object_matrix, sizeof(ObjectData));
+			create_constant_buffer_view(dev, heap, 4, object_matrix, sizeof(ObjectData));
+#else
 			object_descriptor_set = util::allocate_descriptor_sets(dev->object, heap->object, { object_set->object });
 
 			util::update_descriptor_sets(dev->object,
@@ -47,6 +55,7 @@ namespace irr
 				/*		structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),*/
 			});
+#endif
 
 			// Format Weight
 
@@ -69,7 +78,7 @@ namespace irr
 
 			size_t total_vertex_cnt = 0;
 			total_index_cnt = 0;
-			for (int i = 0; i < model->mNumMeshes; ++i)
+			for (unsigned int i = 0; i < model->mNumMeshes; ++i)
 			{
 				const aiMesh *mesh = model->mMeshes[i];
 				total_vertex_cnt += mesh->mNumVertices;
@@ -85,18 +94,19 @@ namespace irr
 			vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
 			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0);
 
-			size_t basevertex = 0, baseindex = 0;
+			uint32_t basevertex = 0;
+			uint32_t baseindex = 0;
 
-			for (int i = 0; i < model->mNumMeshes; ++i)
+			for (unsigned int i = 0; i < model->mNumMeshes; ++i)
 			{
 				const aiMesh *mesh = model->mMeshes[i];
-				for (int vtx = 0; vtx < mesh->mNumVertices; ++vtx)
+				for (unsigned int vtx = 0; vtx < mesh->mNumVertices; ++vtx)
 				{
 					vertex_pos_map[basevertex + vtx] = mesh->mVertices[vtx];
 					vertex_normal_map[basevertex + vtx] = mesh->mNormals[vtx];
 					vertex_uv_map[basevertex + vtx] = mesh->mTextureCoords[0][vtx];
 				}
-				for (int idx = 0; idx < mesh->mNumFaces; ++idx)
+				for (unsigned int idx = 0; idx < mesh->mNumFaces; ++idx)
 				{
 					indexmap[baseindex + 3 * idx] = mesh->mFaces[idx].mIndices[0];
 					indexmap[baseindex + 3 * idx + 1] = mesh->mFaces[idx].mIndices[1];
@@ -119,7 +129,7 @@ namespace irr
 			vertex_buffers_info.emplace_back(vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
 
 			// Texture
-			for (int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
+			for (unsigned int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
 			{
 				aiString path;
 				model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
@@ -132,7 +142,7 @@ namespace irr
 				Textures.push_back(texture);
 				upload_buffers.push_back(upload_buffer);
 #ifdef D3D12
-				create_image_view(dev, cbv_srv_descriptors_heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
+				create_image_view(dev, heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
 				VkDescriptorSet mesh_descriptor = util::allocate_descriptor_sets(dev->object, heap->object, { model_set->object });
 				mesh_descriptor_set.push_back(mesh_descriptor);
@@ -155,11 +165,11 @@ namespace irr
 
 		static float timer = 0.;
 
-		void IMeshSceneNode::fill_draw_command(device_t dev, command_list_t current_cmd_list, pipeline_layout_t object_sig)
+		void IMeshSceneNode::fill_draw_command(device_t dev, command_list_t current_cmd_list, pipeline_layout_t object_sig, descriptor_storage_t heap)
 		{
 #ifdef D3D12
 			current_cmd_list->SetGraphicsRootDescriptorTable(1,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart())
 				.Offset(3, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &object_descriptor_set, 0, nullptr);
@@ -172,7 +182,7 @@ namespace irr
 			{
 #ifdef D3D12
 				current_cmd_list->SetGraphicsRootDescriptorTable(0,
-					CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->GetGPUDescriptorHandleForHeapStart())
+					CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart())
 					.Offset(texture_mapping[i] + 8, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &mesh_descriptor_set[texture_mapping[i]], 0, nullptr);

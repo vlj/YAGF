@@ -109,10 +109,10 @@ enum class SAMPLER_TYPE
 
 struct MipLevelData
 {
-	size_t Offset;
-	size_t Width;
-	size_t Height;
-	size_t RowPitch;
+	uint64_t Offset;
+	uint32_t Width;
+	uint32_t Height;
+	uint32_t RowPitch;
 };
 
 

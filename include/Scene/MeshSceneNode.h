@@ -29,14 +29,14 @@ namespace irr
 		//! A scene node displaying a static mesh
 		class IMeshSceneNode : public ISceneNode
 		{
-			std::vector<std::tuple<size_t, size_t, size_t> > meshOffset;
+			std::vector<std::tuple<uint32_t, uint32_t, uint32_t> > meshOffset;
 			std::vector<buffer_t> upload_buffers;
 
 			buffer_t vertex_pos;
 			buffer_t vertex_uv0;
 			buffer_t vertex_normal;
 			buffer_t index_buffer;
-			size_t total_index_cnt;
+			uint32_t total_index_cnt;
 			std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
 
 			std::vector<uint32_t> texture_mapping;
@@ -54,7 +54,10 @@ namespace irr
 			//! Constructor
 			/** Use setMesh() to set the mesh to display.
 			*/
-			IMeshSceneNode(device_t dev, const aiScene*, command_list_t upload_cmd_list, descriptor_storage_t heap, vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
+			IMeshSceneNode(device_t dev, const aiScene*, command_list_t upload_cmd_list, descriptor_storage_t heap,
+#ifndef D3D12
+				vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
+#endif
 				ISceneNode* parent,
 				const core::vector3df& position = core::vector3df(0, 0, 0),
 				const core::vector3df& rotation = core::vector3df(0, 0, 0),
@@ -63,7 +66,7 @@ namespace irr
 			~IMeshSceneNode();
 			void render() {}
 
-			void fill_draw_command(device_t dev, command_list_t cmd_list, pipeline_layout_t object_sig);
+			void fill_draw_command(device_t dev, command_list_t cmd_list, pipeline_layout_t object_sig, descriptor_storage_t heap);
 			void update_constant_buffers(device_t dev);
 		};
 
