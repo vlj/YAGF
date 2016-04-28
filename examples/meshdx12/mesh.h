@@ -55,7 +55,7 @@ private:
 	std::unique_ptr<buffer_t> scene_matrix;
 	std::unique_ptr<buffer_t> big_triangle;
 	std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > big_triangle_info;
-	descriptor_storage_t cbv_srv_descriptors_heap;
+	std::unique_ptr<descriptor_storage_t> cbv_srv_descriptors_heap;
 
 	image_t skybox_texture;
 #ifndef D3D12
@@ -73,7 +73,7 @@ private:
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
 #endif
-	descriptor_storage_t sampler_heap;
+	std::unique_ptr<descriptor_storage_t> sampler_heap;
 	image_t depth_buffer;
 	image_t diffuse_color;
 	image_t normal_roughness_metalness;

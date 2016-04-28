@@ -30,7 +30,7 @@ namespace irr
 		//! Constructor
 		/** Use setMesh() to set the mesh to display.
 		*/
-		IMeshSceneNode::IMeshSceneNode(device_t dev, const aiScene*model, command_list_t upload_cmd_list, descriptor_storage_t heap,
+		IMeshSceneNode::IMeshSceneNode(device_t dev, const aiScene*model, command_list_t upload_cmd_list, descriptor_storage_t* heap,
 #ifndef D3D12
 			vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
 #endif
@@ -165,11 +165,11 @@ namespace irr
 
 		static float timer = 0.;
 
-		void IMeshSceneNode::fill_draw_command(device_t dev, command_list_t current_cmd_list, pipeline_layout_t object_sig, descriptor_storage_t heap)
+		void IMeshSceneNode::fill_draw_command(device_t dev, command_list_t current_cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap)
 		{
 #ifdef D3D12
 			current_cmd_list->SetGraphicsRootDescriptorTable(1,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart())
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->object->GetGPUDescriptorHandleForHeapStart())
 				.Offset(3, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &object_descriptor_set, 0, nullptr);
@@ -182,7 +182,7 @@ namespace irr
 			{
 #ifdef D3D12
 				current_cmd_list->SetGraphicsRootDescriptorTable(0,
-					CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart())
+					CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->object->GetGPUDescriptorHandleForHeapStart())
 					.Offset(texture_mapping[i] + 8, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &mesh_descriptor_set[texture_mapping[i]], 0, nullptr);

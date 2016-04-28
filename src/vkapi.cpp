@@ -225,14 +225,14 @@ std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
 	return buffer;
 }
 
-descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
+std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
 {
 	std::vector<VkDescriptorPoolSize> size;
 	for (const auto& set_size : num_descriptors)
 	{
 		size.push_back({ get_descriptor_type(std::get<0>(set_size)), std::get<1>(set_size) });
 	}
-	return std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, num_sets, size);
+	return std::make_unique<vulkan_wrapper::descriptor_pool>(dev->object, 0, num_sets, size);
 }
 
 void* map_buffer(device_t dev, buffer_t* buffer)
@@ -327,14 +327,6 @@ void copy_buffer_to_image_subresource(command_list_t list, image_t destination_i
 	info.imageExtent.height = height;
 	info.imageExtent.depth = 1;
 	vkCmdCopyBufferToImage(list->object, source->object, destination_image->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
-}
-
-
-descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_descriptors)
-{
-	// TODO
-	std::vector<VkDescriptorPoolSize> descriptor_pool_size;
-	return std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, 8, descriptor_pool_size);
 }
 
 void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage)
