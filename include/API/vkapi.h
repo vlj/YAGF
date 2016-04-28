@@ -20,7 +20,7 @@ using command_list_t = std::shared_ptr<vulkan_wrapper::command_buffer>;
 using device_t = std::shared_ptr<vulkan_wrapper::device>;
 using command_queue_t = vulkan_wrapper::queue;
 using buffer_t = vulkan_wrapper::buffer;
-using image_t = std::shared_ptr<vulkan_wrapper::image>;
+using image_t = vulkan_wrapper::image;
 using descriptor_storage_t = vulkan_wrapper::descriptor_pool;
 using pipeline_state_t = std::shared_ptr<vulkan_wrapper::pipeline>;
 using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
@@ -33,11 +33,11 @@ struct vk_framebuffer
 	const std::vector<std::shared_ptr<vulkan_wrapper::image_view> > image_views;
 	vulkan_wrapper::framebuffer fbo;
 
-	vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
-	vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
 private:
-	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil);
-	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets);
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil);
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets);
 };
 
 using framebuffer_t = std::shared_ptr<vk_framebuffer>;

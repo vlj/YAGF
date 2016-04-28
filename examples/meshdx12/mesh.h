@@ -45,7 +45,7 @@ private:
 	std::unique_ptr<command_queue_t> cmdqueue;
 	irr::video::ECOLOR_FORMAT swap_chain_format;
 	std::unique_ptr<swap_chain_t> chain;
-	std::vector<image_t> back_buffer;
+	std::vector<std::unique_ptr<image_t>> back_buffer;
 
 
 	std::unique_ptr<command_list_storage_t> command_allocator;
@@ -57,7 +57,7 @@ private:
 	std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > big_triangle_info;
 	std::unique_ptr<descriptor_storage_t> cbv_srv_descriptors_heap;
 
-	image_t skybox_texture;
+	std::unique_ptr<image_t> skybox_texture;
 #ifndef D3D12
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> object_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> scene_set;
@@ -74,9 +74,9 @@ private:
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
 #endif
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
-	image_t depth_buffer;
-	image_t diffuse_color;
-	image_t normal_roughness_metalness;
+	std::unique_ptr<image_t> depth_buffer;
+	std::unique_ptr<image_t> diffuse_color;
+	std::unique_ptr<image_t> normal_roughness_metalness;
 
 	std::unique_ptr<irr::scene::IMeshSceneNode> xue;
 

@@ -136,13 +136,11 @@ namespace irr
 				std::string texture_path(path.C_Str());
 				const std::string &fixed = SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 
-				image_t texture;
+				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
-				Textures.push_back(texture);
-				upload_buffers.push_back(std::move(upload_buffer));
 #ifdef D3D12
-				create_image_view(dev, heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
+				create_image_view(dev, heap, 8 + texture_id, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
 				VkDescriptorSet mesh_descriptor = util::allocate_descriptor_sets(dev->object, heap->object, { model_set->object });
 				mesh_descriptor_set.push_back(mesh_descriptor);
@@ -154,6 +152,8 @@ namespace irr
 					structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,{ VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
 				});
 #endif
+				upload_buffers.push_back(std::move(upload_buffer));
+				Textures.push_back(std::move(texture));
 			}
 		}
 

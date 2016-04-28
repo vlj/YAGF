@@ -191,16 +191,16 @@ std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queu
 	return std::make_tuple(dev, std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
-std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
+std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
 {
 	uint32_t swap_chain_count;
 	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, nullptr));
 	std::vector<VkImage> swapchain_image(swap_chain_count);
 	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, swapchain_image.data()));
-	std::vector<image_t> result;
+	std::vector<std::unique_ptr<image_t>> result;
 	for (const auto& img : swapchain_image)
 	{
-		result.emplace_back(std::make_shared<vulkan_wrapper::image>(img));
+		result.emplace_back(std::make_unique<vulkan_wrapper::image>(img));
 	}
 	return result;
 }
@@ -303,19 +303,19 @@ namespace
 	}
 }
 
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
+std::unique_ptr<image_t> create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
 {
 	VkExtent3D extent{ width, height, 1 };
-	auto image = std::make_shared<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, layers,
+	auto image = std::make_unique<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, layers,
 		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, get_image_usage_flag(flags), VK_IMAGE_LAYOUT_UNDEFINED);
 	VkMemoryRequirements mem_req;
 	vkGetImageMemoryRequirements(dev->object, image->object, &mem_req);
 	image->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->default_memory_index);
 	vkBindImageMemory(dev->object, image->object, image->baking_memory->object, 0);
-	return image;
+	return std::move(image);
 }
 
-void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
+void copy_buffer_to_image_subresource(command_list_t list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
 	VkBufferImageCopy info{};
 	info.bufferOffset = offset_in_buffer;
@@ -345,7 +345,7 @@ void reset_command_list_storage(device_t dev, command_list_storage_t* storage)
 }
 
 
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t render_pass)
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t render_pass)
 {
 	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
@@ -392,7 +392,7 @@ namespace
 	}
 }
 
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
+void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
 	//Prepare an image to match the new layout..
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -571,20 +571,20 @@ namespace
 	}
 }
 
-vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
+vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
 	: image_views(build_image_views(dev->object, render_targets)),
 	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)
 {
 }
 
-vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets,
-	const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
+vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets,
+	const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
 	: image_views(build_image_views(dev->object, render_targets, depth_stencil)),
 	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)
 {
 }
 
-std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets)
+std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets)
 {
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> >  result;
 	for (const auto & rtt_info : render_targets)
@@ -598,8 +598,8 @@ std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_
 	return result;
 }
 
-std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets,
-	const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil)
+std::vector<std::shared_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets,
+	const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil)
 {
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> >  result = build_image_views(dev, render_targets);
 	VkImageSubresourceRange ranges{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 };

@@ -86,8 +86,8 @@ void MeshSample::Init()
 
 	clear_value_structure_t clear_val = {};
 #ifndef D3D12
-	set_pipeline_barrier(dev, command_list, back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-	set_pipeline_barrier(dev, command_list, back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list, back_buffer[0].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list, back_buffer[1].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	render_pass.reset(new vulkan_wrapper::render_pass(dev->object,
 	{
@@ -124,12 +124,12 @@ void MeshSample::Init()
 #endif
 	diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	set_pipeline_barrier(dev, command_list, depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-	set_pipeline_barrier(dev, command_list, diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
-	set_pipeline_barrier(dev, command_list, normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list, depth_buffer.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	set_pipeline_barrier(dev, command_list, diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list, normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-	fbo[1] = create_frame_buffer(dev, { { diffuse_color, irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1], swap_chain_format } }, { depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+	fbo[0] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+	fbo[1] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
@@ -185,12 +185,12 @@ void MeshSample::Init()
 	// scene
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap.get(), 0, scene_matrix.get(), sizeof(SceneData));
 	create_constant_buffer_view(dev, cbv_srv_descriptors_heap.get(), 1, sun_data.get(), sizeof(7 * sizeof(float)));
-	create_image_view(dev, cbv_srv_descriptors_heap.get(), 2, skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_image_view(dev, cbv_srv_descriptors_heap.get(), 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// rtt
-	create_image_view(dev, cbv_srv_descriptors_heap.get(), 5, diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev, cbv_srv_descriptors_heap.get(), 6, normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev, cbv_srv_descriptors_heap.get(), 7, depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev, cbv_srv_descriptors_heap.get(), 5, diffuse_color.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev, cbv_srv_descriptors_heap.get(), 6, normal_roughness_metalness.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev, cbv_srv_descriptors_heap.get(), 7, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 
 	create_sampler(dev, sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
@@ -230,7 +230,7 @@ void MeshSample::fill_draw_commands()
 
 		start_command_list_recording(dev, current_cmd_list, command_allocator.get());
 
-		set_pipeline_barrier(dev, current_cmd_list, back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, current_cmd_list, back_buffer[i].get(), RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
 #ifndef D3D12
@@ -299,9 +299,9 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->SetGraphicsRootDescriptorTable(1,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart()));
 
-		set_pipeline_barrier(dev, current_cmd_list, diffuse_color, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
-		set_pipeline_barrier(dev, current_cmd_list, normal_roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
-		set_pipeline_barrier(dev, current_cmd_list, depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
+		set_pipeline_barrier(dev, current_cmd_list, diffuse_color.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, current_cmd_list, normal_roughness_metalness.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
@@ -314,7 +314,7 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #else
 		current_cmd_list->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
-		set_pipeline_barrier(dev, current_cmd_list, depth_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
+		set_pipeline_barrier(dev, current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->SetGraphicsRootSignature(skybox_sig.Get());
 		current_cmd_list->SetGraphicsRootDescriptorTable(0,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart()));
@@ -329,7 +329,7 @@ void MeshSample::fill_draw_commands()
 #ifndef D3D12
 		vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
-		set_pipeline_barrier(dev, current_cmd_list, back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(dev, current_cmd_list, back_buffer[i].get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 		make_command_list_executable(current_cmd_list);
 	}
 }

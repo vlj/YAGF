@@ -15,4 +15,4 @@
 #include <API/vkapi.h>
 #endif
 
-std::tuple<image_t, std::unique_ptr<buffer_t>> load_texture(device_t dev, const std::string &texture_name, command_list_t upload_command_list);
+std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(device_t dev, const std::string &texture_name, command_list_t upload_command_list);

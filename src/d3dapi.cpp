@@ -188,28 +188,28 @@ namespace
 	}
 }
 
-image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value)
+std::unique_ptr<image_t> create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value)
 {
-	image_t result;
+	ID3D12Resource* result;
 	CHECK_HRESULT(dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, layers, mipmap, 1, 0, get_resource_flags(flags)),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		clear_value,
-		IID_PPV_ARGS(result.GetAddressOf())));
-	return result;
+		IID_PPV_ARGS(&result)));
+	return std::make_unique<image_t>(result);
 }
 
-void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
+void copy_buffer_to_image_subresource(command_list_t list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
-	list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image.Get(), destination_subresource), 0, 0, 0,
+	list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image->object, destination_subresource), 0, 0, 0,
 		&CD3DX12_TEXTURE_COPY_LOCATION(source->object, { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
 		&CD3DX12_BOX(0, 0, width, height));
 }
 
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t)
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t)
 {
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
@@ -293,7 +293,7 @@ void create_sampler(device_t dev, descriptor_storage_t* storage, uint32_t index,
 	dev->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
-void create_image_view(device_t dev, descriptor_storage_t* storage, uint32_t index, image_t img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
+void create_image_view(device_t dev, descriptor_storage_t* storage, uint32_t index, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
 {
 	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
@@ -304,7 +304,7 @@ void create_image_view(device_t dev, descriptor_storage_t* storage, uint32_t ind
 	if (dim == D3D12_SRV_DIMENSION_TEXTURE2D)
 		desc.Texture2D.MipLevels = mip_levels;
 	desc.Format = get_dxgi_samplable_format(fmt);
-	dev->CreateShaderResourceView(img.Get(), &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
+	dev->CreateShaderResourceView(img->object, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
 void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage)
@@ -318,9 +318,9 @@ void make_command_list_executable(command_list_t command_list)
 }
 
 
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT)
+void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT)
 {
-	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), get_resource_state(before), get_resource_state(after), subresource));
+	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource->object, get_resource_state(before), get_resource_state(after), subresource));
 }
 
 void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
@@ -425,7 +425,7 @@ void present(device_t dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint3
 	CHECK_HRESULT(chain->object->Present(1, 0));
 }
 
-d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)
+d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)
 	: NumRTT(static_cast<uint32_t>(render_targets.size())), hasDepthStencil(true)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC rtt_desc = {};
@@ -441,7 +441,7 @@ d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tu
 		rttvd.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 		rttvd.Texture2D.MipSlice = 0;
 		rttvd.Texture2D.PlaneSlice = 0;
-		dev->CreateRenderTargetView(std::get<0>(rtt).Get(), &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(idx++, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
+		dev->CreateRenderTargetView(std::get<0>(rtt)->object, &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(idx++, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
 	}
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsv_desc = {};
@@ -452,7 +452,7 @@ d3d12_framebuffer_t::d3d12_framebuffer_t(device_t dev, const std::vector<std::tu
 	DSVDescription.Format = get_dxgi_format(std::get<1>(depth_stencil_texture));
 	DSVDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	DSVDescription.Texture2D.MipSlice = 0;
-	dev->CreateDepthStencilView(std::get<0>(depth_stencil_texture).Get(), &DSVDescription, dsv_heap->GetCPUDescriptorHandleForHeapStart());
+	dev->CreateDepthStencilView(std::get<0>(depth_stencil_texture)->object, &DSVDescription, dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }
 
 d3d12_framebuffer_t::~d3d12_framebuffer_t()
@@ -460,15 +460,15 @@ d3d12_framebuffer_t::~d3d12_framebuffer_t()
 
 }
 
-std::vector<image_t> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
+std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
 {
-	std::vector<image_t> result;
+	std::vector<std::unique_ptr<image_t>> result;
 	for (int i = 0; i < 2; i++)
 	{
-		image_t back_buffer;
-		CHECK_HRESULT(chain->object->GetBuffer(i, IID_PPV_ARGS(back_buffer.GetAddressOf())));
+		ID3D12Resource* back_buffer;
+		CHECK_HRESULT(chain->object->GetBuffer(i, IID_PPV_ARGS(&back_buffer)));
 		back_buffer->SetName(L"BackBuffer");
-		result.push_back(back_buffer);
+		result.push_back(std::make_unique<image_t>(back_buffer));
 	}
 	return result;
 }
