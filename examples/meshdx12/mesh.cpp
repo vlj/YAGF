@@ -169,7 +169,7 @@ void MeshSample::Init()
 #endif // !D3D12
 		nullptr);
 
-	buffer_t upload_buffer;
+	std::unique_ptr<buffer_t> upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list);
 
 #ifndef D3D12
@@ -183,8 +183,8 @@ void MeshSample::Init()
 	});
 #else
 	// scene
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, scene_matrix, sizeof(SceneData));
-	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, sun_data, sizeof(7 * sizeof(float)));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 0, scene_matrix.get(), sizeof(SceneData));
+	create_constant_buffer_view(dev, cbv_srv_descriptors_heap, 1, sun_data.get(), sizeof(7 * sizeof(float)));
 	create_image_view(dev, cbv_srv_descriptors_heap, 2, skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// rtt
@@ -209,9 +209,9 @@ void MeshSample::Init()
 		-1., 1., 0., 0.
 	};
 
-	memcpy(map_buffer(dev, big_triangle), fullscreen_tri, 4 * 3 * sizeof(float));
-	unmap_buffer(dev, big_triangle);
-	big_triangle_info = { std::make_tuple(big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
+	memcpy(map_buffer(dev, big_triangle.get()), fullscreen_tri, 4 * 3 * sizeof(float));
+	unmap_buffer(dev, big_triangle.get());
+	big_triangle_info = { std::make_tuple(big_triangle.get(), 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
 
 	make_command_list_executable(command_list);
 	submit_executable_command_list(cmdqueue.get(), command_list);
@@ -338,7 +338,7 @@ void MeshSample::Draw()
 {
 	xue->update_constant_buffers(dev);
 
-	SceneData * tmp = static_cast<SceneData*>(map_buffer(dev, scene_matrix));
+	SceneData * tmp = static_cast<SceneData*>(map_buffer(dev, scene_matrix.get()));
 	irr::core::matrix4 Perspective;
 	irr::core::matrix4 InvPerspective;
 	irr::core::matrix4 identity;
@@ -348,9 +348,9 @@ void MeshSample::Draw()
 	memcpy(tmp->InverseProjectionMatrix, InvPerspective.pointer(), 16 * sizeof(float));
 	memcpy(tmp->ViewMatrix, identity.pointer(), 16 * sizeof(float));
 	memcpy(tmp->InverseViewMatrix, identity.pointer(), 16 * sizeof(float));
-	unmap_buffer(dev, scene_matrix);
+	unmap_buffer(dev, scene_matrix.get());
 
-	float * sun_tmp = (float*)map_buffer(dev, sun_data);
+	float * sun_tmp = (float*)map_buffer(dev, sun_data.get());
 	sun_tmp[0] = 0.;
 	sun_tmp[1] = 1.;
 	sun_tmp[2] = 0.;
@@ -358,7 +358,7 @@ void MeshSample::Draw()
 	sun_tmp[4] = 10.;
 	sun_tmp[5] = 10.;
 	sun_tmp[6] = 10.;
-	unmap_buffer(dev, sun_data);
+	unmap_buffer(dev, sun_data.get());
 
 //	double intpart;
 //	float frame = (float)modf(timer / 10000., &intpart);

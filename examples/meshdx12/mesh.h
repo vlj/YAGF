@@ -51,10 +51,10 @@ private:
 	std::unique_ptr<command_list_storage_t> command_allocator;
 	std::vector<command_list_t> command_list_for_back_buffer;
 
-	buffer_t sun_data;
-	buffer_t scene_matrix;
-	buffer_t big_triangle;
-	std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > big_triangle_info;
+	std::unique_ptr<buffer_t> sun_data;
+	std::unique_ptr<buffer_t> scene_matrix;
+	std::unique_ptr<buffer_t> big_triangle;
+	std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > big_triangle_info;
 	descriptor_storage_t cbv_srv_descriptors_heap;
 
 	image_t skybox_texture;

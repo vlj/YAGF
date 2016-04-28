@@ -43,8 +43,8 @@ namespace irr
 			object_matrix = create_buffer(dev, sizeof(ObjectData));
 #ifdef D3D12
 			// object
-			create_constant_buffer_view(dev, heap, 3, object_matrix, sizeof(ObjectData));
-			create_constant_buffer_view(dev, heap, 4, object_matrix, sizeof(ObjectData));
+			create_constant_buffer_view(dev, heap, 3, object_matrix.get(), sizeof(ObjectData));
+			create_constant_buffer_view(dev, heap, 4, object_matrix.get(), sizeof(ObjectData));
 #else
 			object_descriptor_set = util::allocate_descriptor_sets(dev->object, heap->object, { object_set->object });
 
@@ -86,13 +86,13 @@ namespace irr
 			}
 
 			index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
-			uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer);
+			uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer.get());
 			vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
-			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, vertex_pos);
+			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, vertex_pos.get());
 			vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
-			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, vertex_normal);
+			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, vertex_normal.get());
 			vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
-			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0);
+			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0.get());
 
 			uint32_t basevertex = 0;
 			uint32_t baseindex = 0;
@@ -118,15 +118,15 @@ namespace irr
 				texture_mapping.push_back(mesh->mMaterialIndex);
 			}
 
-			unmap_buffer(dev, index_buffer);
-			unmap_buffer(dev, vertex_pos);
-			unmap_buffer(dev, vertex_normal);
-			unmap_buffer(dev, vertex_uv0);
+			unmap_buffer(dev, index_buffer.get());
+			unmap_buffer(dev, vertex_pos.get());
+			unmap_buffer(dev, vertex_normal.get());
+			unmap_buffer(dev, vertex_uv0.get());
 			// TODO: Upload to GPUmem
 
-			vertex_buffers_info.emplace_back(vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
-			vertex_buffers_info.emplace_back(vertex_normal, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
-			vertex_buffers_info.emplace_back(vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+			vertex_buffers_info.emplace_back(vertex_pos.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+			vertex_buffers_info.emplace_back(vertex_normal.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+			vertex_buffers_info.emplace_back(vertex_uv0.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
 
 			// Texture
 			for (unsigned int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
@@ -137,10 +137,10 @@ namespace irr
 				const std::string &fixed = SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 
 				image_t texture;
-				buffer_t upload_buffer;
+				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
 				Textures.push_back(texture);
-				upload_buffers.push_back(upload_buffer);
+				upload_buffers.push_back(std::move(upload_buffer));
 #ifdef D3D12
 				create_image_view(dev, heap, 8 + texture_id, texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
@@ -175,7 +175,7 @@ namespace irr
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &object_descriptor_set, 0, nullptr);
 #endif // D3D12
 
-			bind_index_buffer(current_cmd_list, index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+			bind_index_buffer(current_cmd_list, index_buffer.get(), 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
 			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
 
 			for (unsigned i = 0; i < meshOffset.size(); i++)
@@ -193,7 +193,7 @@ namespace irr
 
 		void IMeshSceneNode::update_constant_buffers(device_t dev)
 		{
-			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, object_matrix));
+			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, object_matrix.get()));
 			irr::core::matrix4 Model;
 			irr::core::matrix4 InvModel;
 			Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
@@ -202,7 +202,7 @@ namespace irr
 
 			memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
 			memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
-			unmap_buffer(dev, object_matrix);
+			unmap_buffer(dev, object_matrix.get());
 
 			timer += 16.f;
 		}

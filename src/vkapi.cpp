@@ -215,10 +215,9 @@ command_list_t create_command_list(device_t dev, command_list_storage_t* storage
 	return std::make_shared<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
-buffer_t create_buffer(device_t dev, size_t size)
+std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
 {
-	// TODO: Usage
-	auto buffer = std::make_shared<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	VkMemoryRequirements mem_req;
 	vkGetBufferMemoryRequirements(dev->object, buffer->object, &mem_req);
 	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->upload_memory_index);
@@ -236,14 +235,14 @@ descriptor_storage_t create_descriptor_storage(device_t dev, uint32_t num_sets, 
 	return std::make_shared<vulkan_wrapper::descriptor_pool>(dev->object, 0, num_sets, size);
 }
 
-void* map_buffer(device_t dev, buffer_t buffer)
+void* map_buffer(device_t dev, buffer_t* buffer)
 {
 	void* ptr;
 	CHECK_VKRESULT(vkMapMemory(dev->object, buffer->baking_memory->object, 0, buffer->baking_memory->info.allocationSize, 0, &ptr));
 	return ptr;
 }
 
-void unmap_buffer(device_t dev, buffer_t buffer)
+void unmap_buffer(device_t dev, buffer_t* buffer)
 {
 	vkUnmapMemory(dev->object, buffer->baking_memory->object);
 }
@@ -316,7 +315,7 @@ image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t wi
 	return image;
 }
 
-void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
+void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
 	VkBufferImageCopy info{};
 	info.bufferOffset = offset_in_buffer;
@@ -507,12 +506,12 @@ namespace
 	}
 };
 
-void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
+void bind_index_buffer(command_list_t command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
 	vkCmdBindIndexBuffer(command_list->object, buffer->object, offset, get_index_type(type));
 }
 
-void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
+void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
 {
 	std::vector<VkBuffer> pbuffers(buffer_offset_stride_size.size());
 	std::vector<VkDeviceSize> poffsets(buffer_offset_stride_size.size());
@@ -520,7 +519,7 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 	size_t idx = 0;
 	for (const auto &infos : buffer_offset_stride_size)
 	{
-		buffer_t buffer;
+		buffer_t* buffer;
 		uint64_t offset;
 		std::tie(buffer, offset, std::ignore, std::ignore) = infos;
 		pbuffers[idx] = buffer->object;

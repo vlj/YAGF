@@ -149,9 +149,9 @@ command_list_t create_command_list(device_t dev, command_list_storage_t* storage
 	return result;
 }
 
-buffer_t create_buffer(device_t dev, size_t size)
+std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
 {
-	buffer_t result;
+	ID3D12Resource* result;
 	size_t real_size = std::max<size_t>(size, 256);
 	CHECK_HRESULT(dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -159,20 +159,20 @@ buffer_t create_buffer(device_t dev, size_t size)
 		&CD3DX12_RESOURCE_DESC::Buffer(real_size),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(result.GetAddressOf())));
-	return result;
+		IID_PPV_ARGS(&result)));
+	return std::make_unique<buffer_t>(result);
 }
 
-void* map_buffer(device_t dev, buffer_t buffer)
+void* map_buffer(device_t dev, buffer_t* buffer)
 {
 	void* result;
-	CHECK_HRESULT(buffer->Map(0, nullptr, (void**)&result));
+	CHECK_HRESULT(buffer->object->Map(0, nullptr, (void**)&result));
 	return result;
 }
 
-void unmap_buffer(device_t dev, buffer_t buffer)
+void unmap_buffer(device_t dev, buffer_t* buffer)
 {
-	buffer->Unmap(0, nullptr);
+	buffer->object->Unmap(0, nullptr);
 }
 
 namespace
@@ -201,11 +201,11 @@ image_t create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t wi
 	return result;
 }
 
-void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t source, uint64_t offset_in_buffer,
+void copy_buffer_to_image_subresource(command_list_t list, image_t destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
 	list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image.Get(), destination_subresource), 0, 0, 0,
-		&CD3DX12_TEXTURE_COPY_LOCATION(source.Get(), { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
+		&CD3DX12_TEXTURE_COPY_LOCATION(source->object, { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
 		&CD3DX12_BOX(0, 0, width, height));
 }
 
@@ -214,11 +214,11 @@ framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, 
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
 
-void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uint32_t index, buffer_t buffer, uint32_t buffer_size)
+void create_constant_buffer_view(device_t dev, descriptor_storage_t storage, uint32_t index, buffer_t* buffer, uint32_t buffer_size)
 {
 	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-	desc.BufferLocation = buffer->GetGPUVirtualAddress();
+	desc.BufferLocation = buffer->object->GetGPUVirtualAddress();
 	desc.SizeInBytes = std::max<uint32_t>(256, buffer_size);
 	dev->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
@@ -358,26 +358,26 @@ void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uin
 	command_list->RSSetScissorRects(1, &rect);
 }
 
-void bind_index_buffer(command_list_t command_list, buffer_t buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
+void bind_index_buffer(command_list_t command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
 	D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
-	index_buffer_view.BufferLocation = buffer->GetGPUVirtualAddress() + offset;
+	index_buffer_view.BufferLocation = buffer->object->GetGPUVirtualAddress() + offset;
 	index_buffer_view.SizeInBytes = size;
 	index_buffer_view.Format = get_index_type(type);
 	command_list->IASetIndexBuffer(&index_buffer_view);
 }
 
-void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
+void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
 {
 	std::vector<D3D12_VERTEX_BUFFER_VIEW> buffer_views;
 	for (const auto &vertex_buffer_info : buffer_offset_stride_size)
 	{
 		D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view = {};
 
-		buffer_t buffer;
+		buffer_t* buffer;
 		uint64_t offset;
 		std::tie(buffer, offset, vertex_buffer_view.StrideInBytes, vertex_buffer_view.SizeInBytes) = vertex_buffer_info;
-		vertex_buffer_view.BufferLocation = buffer->GetGPUVirtualAddress() + offset;
+		vertex_buffer_view.BufferLocation = buffer->object->GetGPUVirtualAddress() + offset;
 		buffer_views.push_back(vertex_buffer_view);
 	}
 	commandlist->IASetVertexBuffers(first_bind, static_cast<uint32_t>(buffer_views.size()), buffer_views.data());

@@ -30,19 +30,19 @@ namespace irr
 		class IMeshSceneNode : public ISceneNode
 		{
 			std::vector<std::tuple<uint32_t, uint32_t, uint32_t> > meshOffset;
-			std::vector<buffer_t> upload_buffers;
+			std::vector<std::unique_ptr<buffer_t>> upload_buffers;
 
-			buffer_t vertex_pos;
-			buffer_t vertex_uv0;
-			buffer_t vertex_normal;
-			buffer_t index_buffer;
+			std::unique_ptr<buffer_t> vertex_pos;
+			std::unique_ptr<buffer_t> vertex_uv0;
+			std::unique_ptr<buffer_t> vertex_normal;
+			std::unique_ptr<buffer_t> index_buffer;
 			uint32_t total_index_cnt;
-			std::vector<std::tuple<buffer_t, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
+			std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
 
 			std::vector<uint32_t> texture_mapping;
 			std::vector<image_t> Textures;
 
-			buffer_t object_matrix;
+			std::unique_ptr<buffer_t> object_matrix;
 #ifndef D3D12
 			std::vector<VkDescriptorSet> texture_descriptor_set;
 			std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
