@@ -3,8 +3,14 @@
 #ifndef IBL_HPP
 #define IBL_HPP
 
+#ifdef D3D12
+#include <API/d3dapi.h>
+#include <d3dx12.h>
+#else
+#include <API/vkapi.h>
+#endif
+
 #include <Core/IImage.h>
-#include <API/GfxApi.h>
 
 struct Color
 {

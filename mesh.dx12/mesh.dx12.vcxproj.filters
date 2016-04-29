@@ -91,5 +91,14 @@
     <FxCompile Include="..\examples\shaders\skybox.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\examples\shaders\computesh.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\ibl.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\importance_sampling_specular.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
