@@ -20,7 +20,7 @@ inline D3D12_DESCRIPTOR_RANGE_TYPE get_range_type(RESOURCE_VIEW type)
 	throw;
 }
 
-inline pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const std::vector<descriptor_set_> desc)
+inline pipeline_layout_t get_pipeline_layout_from_desc(device_t* dev, const std::vector<descriptor_set_> desc)
 {
 	pipeline_layout_t result;
 
@@ -58,7 +58,7 @@ inline pipeline_layout_t get_pipeline_layout_from_desc(device_t dev, const std::
 	Microsoft::WRL::ComPtr<ID3DBlob> error;
 	CHECK_HRESULT(D3D12SerializeRootSignature(&rs_desc, D3D_ROOT_SIGNATURE_VERSION_1, pSerializedRootSig.GetAddressOf(), error.GetAddressOf()));
 
-	CHECK_HRESULT(dev->CreateRootSignature(1,
+	CHECK_HRESULT(dev->object->CreateRootSignature(1,
 		pSerializedRootSig->GetBufferPointer(), pSerializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(result.GetAddressOf())));
 	return result;

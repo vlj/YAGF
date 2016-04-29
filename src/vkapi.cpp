@@ -73,7 +73,7 @@ namespace
 	}
 }
 
-std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
 	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
@@ -133,7 +133,7 @@ std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queu
 	std::vector<VkDeviceQueueCreateInfo> queue_infos{ queue_info };
 
 	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	device_t dev = std::make_shared<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
+	std::unique_ptr<device_t> dev = std::make_unique<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
 
 	VkPhysicalDeviceMemoryProperties mem_properties;
 	vkGetPhysicalDeviceMemoryProperties(devices[0], &mem_properties);
@@ -188,10 +188,10 @@ std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queu
 	queue->info.queue_index = 0;
 	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
 
-	return std::make_tuple(dev, std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
+	return std::make_tuple(std::move(dev), std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
-std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain)
+std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* dev, swap_chain_t* chain)
 {
 	uint32_t swap_chain_count;
 	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, nullptr));
@@ -205,17 +205,17 @@ std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t de
 	return result;
 }
 
-std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev)
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t* dev)
 {
 	return std::make_unique<command_list_storage_t>(dev->object, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev->queue_create_infos[0].queueFamilyIndex);
 }
 
-std::unique_ptr<command_list_t> create_command_list(device_t dev, command_list_storage_t* storage)
+std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_storage_t* storage)
 {
 	return std::make_unique<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
+std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size)
 {
 	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	VkMemoryRequirements mem_req;
@@ -225,7 +225,7 @@ std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
 	return buffer;
 }
 
-std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
+std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t* dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
 {
 	std::vector<VkDescriptorPoolSize> size;
 	for (const auto& set_size : num_descriptors)
@@ -235,14 +235,14 @@ std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t dev, ui
 	return std::make_unique<vulkan_wrapper::descriptor_pool>(dev->object, 0, num_sets, size);
 }
 
-void* map_buffer(device_t dev, buffer_t* buffer)
+void* map_buffer(device_t* dev, buffer_t* buffer)
 {
 	void* ptr;
 	CHECK_VKRESULT(vkMapMemory(dev->object, buffer->baking_memory->object, 0, buffer->baking_memory->info.allocationSize, 0, &ptr));
 	return ptr;
 }
 
-void unmap_buffer(device_t dev, buffer_t* buffer)
+void unmap_buffer(device_t* dev, buffer_t* buffer)
 {
 	vkUnmapMemory(dev->object, buffer->baking_memory->object);
 }
@@ -303,7 +303,7 @@ namespace
 	}
 }
 
-std::unique_ptr<image_t> create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
+std::unique_ptr<image_t> create_image(device_t* dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
 {
 	VkExtent3D extent{ width, height, 1 };
 	auto image = std::make_unique<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, layers,
@@ -329,7 +329,7 @@ void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination
 	vkCmdCopyBufferToImage(list->object, source->object, destination_image->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
 }
 
-void start_command_list_recording(device_t dev, command_list_t* command_list, command_list_storage_t* storage)
+void start_command_list_recording(device_t* dev, command_list_t* command_list, command_list_storage_t* storage)
 {
 	VkCommandBufferInheritanceInfo inheritance_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
 
@@ -339,13 +339,13 @@ void start_command_list_recording(device_t dev, command_list_t* command_list, co
 	CHECK_VKRESULT(vkBeginCommandBuffer(command_list->object, &info));
 }
 
-void reset_command_list_storage(device_t dev, command_list_storage_t* storage)
+void reset_command_list_storage(device_t* dev, command_list_storage_t* storage)
 {
 	vkResetCommandPool(dev->object, storage->object, 0);
 }
 
 
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
+framebuffer_t create_frame_buffer(device_t* dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
 {
 	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
@@ -355,7 +355,7 @@ void make_command_list_executable(command_list_t* command_list)
 	CHECK_VKRESULT(vkEndCommandBuffer(command_list->object));
 }
 
-void wait_for_command_queue_idle(device_t dev, command_queue_t* command_queue)
+void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue)
 {
 	CHECK_VKRESULT(vkQueueWaitIdle(command_queue->object));
 }
@@ -392,7 +392,7 @@ namespace
 	}
 }
 
-void set_pipeline_barrier(device_t dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
+void set_pipeline_barrier(device_t* dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
 	//Prepare an image to match the new layout..
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -537,7 +537,7 @@ void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint3
 	vkCmdDraw(command_list->object, vertex_count, instance_count, base_vertex, base_instance);
 }
 
-uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)
+uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)
 {
 	uint32_t index;
 	// TODO: Reuse accross call to gnbi
@@ -546,7 +546,7 @@ uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)
 	return index;
 }
 
-void present(device_t dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
+void present(device_t* dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
 {
 	VkPresentInfoKHR info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	info.swapchainCount = 1;
@@ -569,13 +569,13 @@ namespace
 	}
 }
 
-vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t* render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
+vk_framebuffer::vk_framebuffer(device_t* dev, render_pass_t* render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
 	: image_views(build_image_views(dev->object, render_targets)),
 	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)
 {
 }
 
-vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t* render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets,
+vk_framebuffer::vk_framebuffer(device_t* dev, render_pass_t* render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets,
 	const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
 	: image_views(build_image_views(dev->object, render_targets, depth_stencil)),
 	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)

@@ -54,7 +54,7 @@ namespace irr
 			//! Constructor
 			/** Use setMesh() to set the mesh to display.
 			*/
-			IMeshSceneNode(device_t dev, const aiScene*, command_list_t* upload_cmd_list, descriptor_storage_t* heap,
+			IMeshSceneNode(device_t* dev, const aiScene*, command_list_t* upload_cmd_list, descriptor_storage_t* heap,
 #ifndef D3D12
 				vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
 #endif
@@ -66,8 +66,8 @@ namespace irr
 			~IMeshSceneNode();
 			void render() {}
 
-			void fill_draw_command(device_t dev, command_list_t* cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap);
-			void update_constant_buffers(device_t dev);
+			void fill_draw_command(device_t* dev, command_list_t* cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap);
+			void update_constant_buffers(device_t* dev);
 		};
 
 	} // end namespace scene

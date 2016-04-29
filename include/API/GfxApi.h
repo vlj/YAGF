@@ -161,22 +161,6 @@ constexpr descriptor_set_ descriptor_set(const range_of_descriptors (&arr)[N], c
 	return descriptor_set_(arr, N, stage);
 }
 
-template<int N>
-struct pipeline_layout_description_
-{
-	const std::array<descriptor_set_, N> descriptors_sets;
-
-	constexpr pipeline_layout_description_(const std::array<descriptor_set_, N> arr) : descriptors_sets(arr)
-	{}
-};
-
-template<typename...T>
-constexpr pipeline_layout_description_<sizeof...(T)> pipeline_layout_description(const T...args)
-{
-	return pipeline_layout_description_<sizeof...(T)>({ args... });
-}
-
-
 struct pipeline_state_description
 {
 	const bool rasterization_depth_clamp_enable;
@@ -374,25 +358,25 @@ private:
 
 
 
-std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev);
-std::unique_ptr<command_list_t> create_command_list(device_t dev, command_list_storage_t* storage);
-void reset_command_list_storage(device_t dev, command_list_storage_t* storage);
-std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size);
-std::unique_ptr<image_t> create_image(device_t dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
-std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t* dev);
+std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_storage_t* storage);
+void reset_command_list_storage(device_t* dev, command_list_storage_t* storage);
+std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size);
+std::unique_ptr<image_t> create_image(device_t* dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
+std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t* dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
 void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format);
 //framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets);
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
+framebuffer_t create_frame_buffer(device_t* dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
 
-void* map_buffer(device_t dev, buffer_t* buffer);
-void unmap_buffer(device_t dev, buffer_t* buffer);
+void* map_buffer(device_t* dev, buffer_t* buffer);
+void unmap_buffer(device_t* dev, buffer_t* buffer);
 
-void start_command_list_recording(device_t dev, command_list_t* command_list, command_list_storage_t* storage);
+void start_command_list_recording(device_t* dev, command_list_t* command_list, command_list_storage_t* storage);
 void make_command_list_executable(command_list_t* command_list);
-void wait_for_command_queue_idle(device_t dev, command_queue_t* command_queue);
-void present(device_t dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index);
-void set_pipeline_barrier(device_t dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
+void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue);
+void present(device_t* dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index);
+void set_pipeline_barrier(device_t* dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
 
 
 enum class depth_stencil_aspect
@@ -411,6 +395,6 @@ void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const
 void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list);
 void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance);
 void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance);
-uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain);
+uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain);
 
-std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t dev, swap_chain_t* chain);
+std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* dev, swap_chain_t* chain);

@@ -26,22 +26,22 @@
 
 struct MeshSample
 {
-	MeshSample(device_t _dev, std::unique_ptr<swap_chain_t> &&_chain, std::unique_ptr<command_queue_t> &&_cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)
-		: dev(_dev), chain(std::move(_chain)), cmdqueue(std::move(_cmdqueue)), width(_w), height(_h), swap_chain_format(format)
+	MeshSample(std::unique_ptr<device_t> &&_dev, std::unique_ptr<swap_chain_t> &&_chain, std::unique_ptr<command_queue_t> &&_cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)
+		: dev(std::move(_dev)), chain(std::move(_chain)), cmdqueue(std::move(_cmdqueue)), width(_w), height(_h), swap_chain_format(format)
 	{
 		Init();
 	}
 
 	~MeshSample()
 	{
-		wait_for_command_queue_idle(dev, cmdqueue.get());
+		wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	}
 
 private:
 	size_t width;
 	size_t height;
 
-	device_t dev;
+	std::unique_ptr<device_t> dev;
 	std::unique_ptr<command_queue_t> cmdqueue;
 	irr::video::ECOLOR_FORMAT swap_chain_format;
 	std::unique_ptr<swap_chain_t> chain;

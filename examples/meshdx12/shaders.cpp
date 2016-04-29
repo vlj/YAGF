@@ -13,7 +13,7 @@
 //constexpr auto skinned_mesh_layout = pipeline_layout_description(object_descriptors, sampler_descriptors);
 
 
-pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t* rp)
+pipeline_state_t get_skinned_object_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
 #ifdef D3D12
@@ -56,7 +56,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 	psodesc.InputLayout.pInputElementDescs = IAdesc.data();
 	psodesc.InputLayout.NumElements = IAdesc.size();
 	psodesc.NodeMask = 1;
-	CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
+	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
 #else
 
@@ -109,7 +109,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 }
 
 
-pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t* rp)
+pipeline_state_t get_sunlight_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
@@ -140,7 +140,7 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 	psodesc.InputLayout.pInputElementDescs = IAdesc.data();
 	psodesc.InputLayout.NumElements = IAdesc.size();
 	psodesc.NodeMask = 1;
-	CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
+	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
 #else
 	const blend_state blend = blend_state::get();
@@ -182,7 +182,7 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 }
 
 
-pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t* rp)
+pipeline_state_t get_skybox_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
@@ -215,7 +215,7 @@ pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layou
 	psodesc.InputLayout.pInputElementDescs = IAdesc.data();
 	psodesc.InputLayout.NumElements = IAdesc.size();
 	psodesc.NodeMask = 1;
-	CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
+	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
 #else
 	const blend_state blend = blend_state::get();

@@ -17,7 +17,7 @@
 
 using command_list_storage_t = vulkan_wrapper::command_pool;
 using command_list_t = vulkan_wrapper::command_buffer;
-using device_t = std::shared_ptr<vulkan_wrapper::device>;
+using device_t = vulkan_wrapper::device;
 using command_queue_t = vulkan_wrapper::queue;
 using buffer_t = vulkan_wrapper::buffer;
 using image_t = vulkan_wrapper::image;
@@ -33,8 +33,8 @@ struct vk_framebuffer
 	const std::vector<std::shared_ptr<vulkan_wrapper::image_view> > image_views;
 	vulkan_wrapper::framebuffer fbo;
 
-	vk_framebuffer(device_t dev, render_pass_t* render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
-	vk_framebuffer(device_t dev, render_pass_t* render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t* dev, render_pass_t* render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t* dev, render_pass_t* render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
 private:
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil);
 	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets);
@@ -48,4 +48,4 @@ using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 #include "../VKAPI/pipeline_layout_helpers.h"
 #include "../VKAPI/renderpass_helpers.h"
 
-std::tuple<device_t, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);

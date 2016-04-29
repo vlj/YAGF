@@ -112,12 +112,12 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	debugInterface->EnableDebugLayer();
 #endif //  DEBUG
 
-	device_t dev;
+	ID3D12Device *dev;
 	Microsoft::WRL::ComPtr<IDXGIFactory4> fact;
 	CHECK_HRESULT(CreateDXGIFactory1(IID_PPV_ARGS(fact.GetAddressOf())));
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adaptater;
 	CHECK_HRESULT(fact->EnumAdapters(0, adaptater.GetAddressOf()));
-	CHECK_HRESULT(D3D12CreateDevice(adaptater.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(dev.GetAddressOf())));
+	CHECK_HRESULT(D3D12CreateDevice(adaptater.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&dev)));
 
 	ID3D12CommandQueue *queue;
 	D3D12_COMMAND_QUEUE_DESC cmddesc = { D3D12_COMMAND_LIST_TYPE_DIRECT };
@@ -150,7 +150,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		panelNative->SetSwapChain(chain);
 	}, CallbackContext::Any));
 
-	sample = std::make_unique<MeshSample>(dev, std::make_unique<swap_chain_t>(chain), std::make_unique<command_queue_t>(queue), 1024, 1024, irr::video::ECF_R8G8B8A8_UNORM);
+	sample = std::make_unique<MeshSample>(std::make_unique<device_t>(dev), std::make_unique<swap_chain_t>(chain), std::make_unique<command_queue_t>(queue), 1024, 1024, irr::video::ECF_R8G8B8A8_UNORM);
 
 	// Create a task that will be run on a background thread.
 	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action)
