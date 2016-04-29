@@ -2,114 +2,95 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <Scene/IBL.h>
-#include <Scene/Shaders.h>
-#include <Core/BasicVertexLayout.h>
 #include <Maths/matrix4.h>
 #include <cmath>
 #include <set>
+#include <d3dcompiler.h>
 
-#ifdef GLBUILD
-#include <API/glapi.h>
-#endif
-#ifdef DXBUILD
-#include <API/d3dapi.h>
-#endif
-
-struct SH
+namespace
 {
-  float bL00;
-  float bL1m1;
-  float bL10;
-  float bL11;
-  float bL2m2;
-  float bL2m1;
-  float bL20;
-  float bL21;
-  float bL22;
+	constexpr auto object_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1) },
+		shader_stage::all);
 
-  float gL00;
-  float gL1m1;
-  float gL10;
-  float gL11;
-  float gL2m2;
-  float gL2m1;
-  float gL20;
-  float gL21;
-  float gL22;
+	constexpr auto sampler_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) },
+		shader_stage::fragment_shader);
 
-  float rL00;
-  float rL1m1;
-  float rL10;
-  float rL11;
-  float rL2m2;
-  float rL2m1;
-  float rL20;
-  float rL21;
-  float rL22;
-};
+	pipeline_state_t get_compute_sh_pipeline_state(device_t* dev, pipeline_layout_t pipeline_layout)
+	{
+#ifdef D3D12
+		ID3D12PipelineState* result;
+		Microsoft::WRL::ComPtr<ID3DBlob> blob;
+		CHECK_HRESULT(D3DReadFileToBlob(L"computesh.cso", blob.GetAddressOf()));
 
-SHCoefficients computeSphericalHarmonics(WrapperResource *probe, size_t edge_size)
+		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
+		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
+		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
+		pipeline_desc.pRootSignature = pipeline_layout.Get();
+
+		CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
+		return result;
+#endif // D3D12
+	}
+
+}
+
+SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size)
 {
   SHCoefficients Result;
+  std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
+  std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 
-  WrapperPipelineState *PSO = createComputeSHShader();
-  WrapperCommandList *CommandList = GlobalGFXAPI->createCommandList();
-  WrapperResource *cbuf = GlobalGFXAPI->createConstantsBuffer(sizeof(int));
+  start_command_list_recording(dev, command_list.get(), command_storage.get());
+  std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int));
+  void* tmp = map_buffer(dev, cbuf.get());
   float cube_size = (float)edge_size / 10.;
-  void *tmp = GlobalGFXAPI->mapConstantsBuffer(cbuf);
   memcpy(tmp, &cube_size, sizeof(int));
-  GlobalGFXAPI->unmapConstantsBuffers(cbuf);
-  WrapperDescriptorHeap *heap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap(
-  {
-    std::make_tuple(cbuf, RESOURCE_VIEW::CONSTANTS_BUFFER, 0),
-    std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0)
-  });
-  WrapperDescriptorHeap *samplers = GlobalGFXAPI->createSamplerHeap(
-  {
-    std::make_pair(SAMPLER_TYPE::ANISOTROPIC, 0)
-  });
-#ifdef GLBUILD
-  GLuint shbuf;
-  glGenBuffers(1, &shbuf);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, shbuf);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(SH), nullptr, GL_STREAM_COPY);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shbuf);
-#endif
+  unmap_buffer(dev, cbuf.get());
 
-#ifdef DXBUILD
+  pipeline_state_t compute_sh_pso = get_compute_sh_pipeline_state(dev, nullptr);
+  std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV, 1} });
+  std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
+
+#ifdef D3D12
   ID3D12Resource *uav;
   float colors[] = { 0., 0., 0., 0. };
-  HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
+/*  HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
     &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
     D3D12_HEAP_MISC_NONE,
     &CD3D12_RESOURCE_DESC::Buffer(27 * sizeof(float)),
     D3D12_RESOURCE_USAGE_UNORDERED_ACCESS,
     nullptr,
     IID_PPV_ARGS(&uav)
-    );
+    );*/
+
+  command_list->object->SetPipelineState(compute_sh_pso.Get());
+  std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
+  command_list->object->SetDescriptorHeaps(heaps.size(), heaps.data());
+
+  command_list->object->Dispatch(1, 1, 1);
+#else
+
 #endif
 
-  GlobalGFXAPI->setPipelineState(CommandList, PSO);
-  GlobalGFXAPI->setDescriptorHeap(CommandList, 0, heap);
-  GlobalGFXAPI->setDescriptorHeap(CommandList, 1, samplers);
+  wait_for_command_queue_idle(dev, cmd_queue);
 
-#ifdef GLBUILD
-  glDispatchCompute(1, 1, 1);
-  float *Shval = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+#ifdef D3D12
 
-  memcpy(Result.Blue, Shval, 9 * sizeof(float));
+
+/*  memcpy(Result.Blue, Shval, 9 * sizeof(float));
   memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
-  memcpy(Result.Red, &Shval[18], 9 * sizeof(float));
+  memcpy(Result.Red, &Shval[18], 9 * sizeof(float));*/
+#else
 
-  glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 #endif
 
-#ifdef DXBUILD
-  CommandList->D3DValue.CommandList->Dispatch(1, 1, 1);
-#endif
 
   return Result;
 }
+
+#if 0
 
 // From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
 /** Returns the index-th pair from Hammersley set of pseudo random set.
@@ -502,3 +483,5 @@ IImage getDFGLUT(size_t DFG_LUT_size)
 
   return DFG_LUT_texture;
 }
+#endif
+
