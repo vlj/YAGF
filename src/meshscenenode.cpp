@@ -40,7 +40,7 @@ namespace irr
 			const core::vector3df& scale)
 			: ISceneNode(parent, position, rotation, scale)
 		{
-			object_matrix = create_buffer(dev, sizeof(ObjectData));
+			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 #ifdef D3D12
 			// object
 			create_constant_buffer_view(dev, heap, 3, object_matrix.get(), sizeof(ObjectData));
@@ -85,13 +85,13 @@ namespace irr
 				total_index_cnt += mesh->mNumFaces * 3;
 			}
 
-			index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t));
+			index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 			uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer.get());
-			vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
+			vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, vertex_pos.get());
-			vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
+			vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, vertex_normal.get());
-			vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D));
+			vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0.get());
 
 			uint32_t basevertex = 0;

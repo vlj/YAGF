@@ -43,7 +43,7 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
   std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 
   start_command_list_recording(dev, command_list.get(), command_storage.get());
-  std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int));
+  std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
   void* tmp = map_buffer(dev, cbuf.get());
   float cube_size = (float)edge_size / 10.;
   memcpy(tmp, &cube_size, sizeof(int));
@@ -53,35 +53,31 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
   std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV, 1} });
   std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
+  std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL);
+  std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE);
+
 #ifdef D3D12
   ID3D12Resource *uav;
-  float colors[] = { 0., 0., 0., 0. };
-/*  HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
-    &CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-    D3D12_HEAP_MISC_NONE,
-    &CD3D12_RESOURCE_DESC::Buffer(27 * sizeof(float)),
-    D3D12_RESOURCE_USAGE_UNORDERED_ACCESS,
-    nullptr,
-    IID_PPV_ARGS(&uav)
-    );*/
 
   command_list->object->SetPipelineState(compute_sh_pso.Get());
   std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
   command_list->object->SetDescriptorHeaps(heaps.size(), heaps.data());
 
   command_list->object->Dispatch(1, 1, 1);
+  command_list->object->CopyBufferRegion(sh_buffer_readback->object, 0, sh_buffer->object, 0, sizeof(SH));
 #else
 
 #endif
 
   wait_for_command_queue_idle(dev, cmd_queue);
-
+  float* Shval = (float*)map_buffer(dev, sh_buffer_readback.get());
+  memcpy(Result.Blue, Shval, 9 * sizeof(float));
+  memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
+  memcpy(Result.Red, &Shval[18], 9 * sizeof(float));
 #ifdef D3D12
 
 
-/*  memcpy(Result.Blue, Shval, 9 * sizeof(float));
-  memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
-  memcpy(Result.Red, &Shval[18], 9 * sizeof(float));*/
+
 #else
 
 #endif

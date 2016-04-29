@@ -15,7 +15,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 	bool is_cubemap = DDSPic.getLoadedImage().Type == TextureType::CUBEMAP;
 	uint16_t layer_count = is_cubemap ? 6 : 1;
 
-	std::unique_ptr<buffer_t> upload_buffer = create_buffer(dev, width * height * 3 * 6);
+	std::unique_ptr<buffer_t> upload_buffer = create_buffer(dev, width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 
 	void *pointer = map_buffer(dev, upload_buffer.get());
 

@@ -78,8 +78,8 @@ void MeshSample::Init()
 	skybox_sig = get_pipeline_layout_from_desc(dev.get(), { scene_descriptor_set_type, sampler_descriptor_set_type });
 #endif // !D3D12
 
-	scene_matrix = create_buffer(dev.get(), sizeof(SceneData));
-	sun_data = create_buffer(dev.get(), 7 * sizeof(float));
+	scene_matrix = create_buffer(dev.get(), sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
+	sun_data = create_buffer(dev.get(), 7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 
 	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 } });
 	sampler_heap = create_descriptor_storage(dev.get(), 10, { {RESOURCE_VIEW::SAMPLER, 10 } });
@@ -201,7 +201,7 @@ void MeshSample::Init()
 	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
 	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, render_pass.get());
 
-	big_triangle = create_buffer(dev.get(), 4 * 3 * sizeof(float));
+	big_triangle = create_buffer(dev.get(), 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
 	float fullscreen_tri[]
 	{
 		-1., -3., 0., 2.,

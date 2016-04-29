@@ -74,6 +74,13 @@ namespace irr
 			EA_STENCIL,
 			EA_DEPTH_STENCIL
 		};
+
+		enum class E_MEMORY_POOL
+		{
+			EMP_CPU_WRITEABLE,
+			EMP_GPU_LOCAL,
+			EMP_CPU_READABLE,
+		};
 	}
 }
 
@@ -86,6 +93,7 @@ enum class RESOURCE_USAGE
 	READ_GENERIC,
 	DEPTH_WRITE,
 	undefined,
+	uav,
 };
 
 enum image_flags
@@ -361,7 +369,7 @@ private:
 std::unique_ptr<command_list_storage_t> create_command_storage(device_t* dev);
 std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_storage_t* storage);
 void reset_command_list_storage(device_t* dev, command_list_storage_t* storage);
-std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size);
+std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool);
 std::unique_ptr<image_t> create_image(device_t* dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
 std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t* dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
 void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,

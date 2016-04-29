@@ -27,6 +27,8 @@ namespace
 			return D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		case RESOURCE_USAGE::undefined:
 			return D3D12_RESOURCE_STATE_GENERIC_READ;
+		case RESOURCE_USAGE::uav:
+			return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 		}
 		throw;
 	}
@@ -149,12 +151,26 @@ std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_
 	return std::make_unique<command_list_t>(result);
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size)
+namespace
+{
+	D3D12_HEAP_TYPE get_heap_type(irr::video::E_MEMORY_POOL memory_pool)
+	{
+		switch (memory_pool)
+		{
+		case irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE: return D3D12_HEAP_TYPE_UPLOAD;
+		case irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL: return D3D12_HEAP_TYPE_DEFAULT;
+		case irr::video::E_MEMORY_POOL::EMP_CPU_READABLE: return D3D12_HEAP_TYPE_READBACK;
+		}
+		throw;
+	}
+}
+
+std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool)
 {
 	ID3D12Resource* result;
 	size_t real_size = std::max<size_t>(size, 256);
 	CHECK_HRESULT(dev->object->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&CD3DX12_HEAP_PROPERTIES(get_heap_type(memory_pool)),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(real_size),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
