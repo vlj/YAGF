@@ -210,9 +210,9 @@ std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev)
 	return std::make_unique<command_list_storage_t>(dev->object, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev->queue_create_infos[0].queueFamilyIndex);
 }
 
-command_list_t create_command_list(device_t dev, command_list_storage_t* storage)
+std::unique_ptr<command_list_t> create_command_list(device_t dev, command_list_storage_t* storage)
 {
-	return std::make_shared<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	return std::make_unique<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
 std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
@@ -315,7 +315,7 @@ std::unique_ptr<image_t> create_image(device_t dev, irr::video::ECOLOR_FORMAT fo
 	return std::move(image);
 }
 
-void copy_buffer_to_image_subresource(command_list_t list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
+void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
 	VkBufferImageCopy info{};
 	info.bufferOffset = offset_in_buffer;
@@ -329,7 +329,7 @@ void copy_buffer_to_image_subresource(command_list_t list, image_t* destination_
 	vkCmdCopyBufferToImage(list->object, source->object, destination_image->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
 }
 
-void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage)
+void start_command_list_recording(device_t dev, command_list_t* command_list, command_list_storage_t* storage)
 {
 	VkCommandBufferInheritanceInfo inheritance_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
 
@@ -350,7 +350,7 @@ framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*,
 	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
 
-void make_command_list_executable(command_list_t command_list)
+void make_command_list_executable(command_list_t* command_list)
 {
 	CHECK_VKRESULT(vkEndCommandBuffer(command_list->object));
 }
@@ -392,7 +392,7 @@ namespace
 	}
 }
 
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
+void set_pipeline_barrier(device_t dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
 	//Prepare an image to match the new layout..
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -442,7 +442,7 @@ void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t* re
 	vkCmdPipelineBarrier(command_list->object, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
+void clear_color(device_t dev, command_list_t* command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
 {
 	VkClearValue clear_val = {};
 	memcpy(clear_val.color.float32, color.data(), 4 * sizeof(float));
@@ -456,14 +456,12 @@ void clear_color(device_t dev, command_list_t command_list, framebuffer_t frameb
 	vkCmdClearAttachments(command_list->object, static_cast<uint32_t>(framebuffer->fbo.attachements.size()), &attachments, 1, &clear_rect);
 }
 
-void set_graphic_pipeline(command_list_t command_list, pipeline_state_t pipeline)
+void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipeline)
 {
 	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);
 }
 
-
-void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);
-void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth)
+void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth)
 {
 	VkViewport viewport = {};
 	viewport.x = x;
@@ -475,7 +473,7 @@ void set_viewport(command_list_t command_list, float x, float width, float y, fl
 	vkCmdSetViewport(command_list->object, 0, 1, &viewport);
 }
 
-void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
 {
 	VkRect2D scissor = {};
 	scissor.offset.x = left;
@@ -498,12 +496,12 @@ namespace
 	}
 };
 
-void bind_index_buffer(command_list_t command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
+void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
 	vkCmdBindIndexBuffer(command_list->object, buffer->object, offset, get_index_type(type));
 }
 
-void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
+void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
 {
 	std::vector<VkBuffer> pbuffers(buffer_offset_stride_size.size());
 	std::vector<VkDeviceSize> poffsets(buffer_offset_stride_size.size());
@@ -521,7 +519,7 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 	vkCmdBindVertexBuffers(commandlist->object, first_bind, static_cast<uint32_t>(buffer_offset_stride_size.size()), pbuffers.data(), poffsets.data());
 }
 
-void submit_executable_command_list(command_queue_t* command_queue, command_list_t command_list)
+void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list)
 {
 	VkSubmitInfo info{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	info.commandBufferCount = 1;
@@ -529,12 +527,12 @@ void submit_executable_command_list(command_queue_t* command_queue, command_list
 	vkQueueSubmit(command_queue->object, 1, &info, VK_NULL_HANDLE);
 }
 
-void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
+void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
 {
 	vkCmdDrawIndexed(command_list->object, index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
-void draw_non_indexed(command_list_t command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
+void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
 {
 	vkCmdDraw(command_list->object, vertex_count, instance_count, base_vertex, base_instance);
 }

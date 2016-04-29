@@ -49,7 +49,7 @@ private:
 
 
 	std::unique_ptr<command_list_storage_t> command_allocator;
-	std::vector<command_list_t> command_list_for_back_buffer;
+	std::vector<std::unique_ptr<command_list_t>> command_list_for_back_buffer;
 
 	std::unique_ptr<buffer_t> sun_data;
 	std::unique_ptr<buffer_t> scene_matrix;

@@ -141,12 +141,12 @@ std::unique_ptr<command_list_storage_t> create_command_storage(device_t dev)
 	return std::make_unique<command_list_storage_t>(result);
 }
 
-command_list_t create_command_list(device_t dev, command_list_storage_t* storage)
+std::unique_ptr<command_list_t> create_command_list(device_t dev, command_list_storage_t* storage)
 {
-	command_list_t result;
-	CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage->object, nullptr, IID_PPV_ARGS(result.GetAddressOf())));
+	ID3D12GraphicsCommandList* result;
+	CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage->object, nullptr, IID_PPV_ARGS(&result)));
 	CHECK_HRESULT(result->Close());
-	return result;
+	return std::make_unique<command_list_t>(result);
 }
 
 std::unique_ptr<buffer_t> create_buffer(device_t dev, size_t size)
@@ -201,15 +201,15 @@ std::unique_ptr<image_t> create_image(device_t dev, irr::video::ECOLOR_FORMAT fo
 	return std::make_unique<image_t>(result);
 }
 
-void copy_buffer_to_image_subresource(command_list_t list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
+void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
-	list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image->object, destination_subresource), 0, 0, 0,
+	list->object->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image->object, destination_subresource), 0, 0, 0,
 		&CD3DX12_TEXTURE_COPY_LOCATION(source->object, { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
 		&CD3DX12_BOX(0, 0, width, height));
 }
 
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t)
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t*)
 {
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
@@ -307,34 +307,34 @@ void create_image_view(device_t dev, descriptor_storage_t* storage, uint32_t ind
 	dev->CreateShaderResourceView(img->object, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
-void start_command_list_recording(device_t dev, command_list_t command_list, command_list_storage_t* storage)
+void start_command_list_recording(device_t dev, command_list_t* command_list, command_list_storage_t* storage)
 {
-	command_list->Reset(storage->object, nullptr);
+	command_list->object->Reset(storage->object, nullptr);
 }
 
-void make_command_list_executable(command_list_t command_list)
+void make_command_list_executable(command_list_t* command_list)
 {
-	CHECK_HRESULT(command_list->Close());
+	CHECK_HRESULT(command_list->object->Close());
 }
 
 
-void set_pipeline_barrier(device_t dev, command_list_t command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT)
+void set_pipeline_barrier(device_t dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT)
 {
-	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource->object, get_resource_state(before), get_resource_state(after), subresource));
+	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource->object, get_resource_state(before), get_resource_state(after), subresource));
 }
 
-void clear_color(device_t dev, command_list_t command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
+void clear_color(device_t dev, command_list_t* command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
 {
-	command_list->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);
+	command_list->object->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);
 }
 
-void clear_depth_stencil(device_t dev, command_list_t command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil)
+void clear_depth_stencil(device_t dev, command_list_t* command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil)
 {
-	command_list->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
+	command_list->object->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
 
 }
 
-void set_viewport(command_list_t command_list, float x, float width, float y, float height, float min_depth, float max_depth)
+void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth)
 {
 	D3D12_VIEWPORT view = {};
 	view.Height = height;
@@ -344,10 +344,10 @@ void set_viewport(command_list_t command_list, float x, float width, float y, fl
 	view.MinDepth = min_depth;
 	view.MaxDepth = max_depth;
 
-	command_list->RSSetViewports(1, &view);
+	command_list->object->RSSetViewports(1, &view);
 }
 
-void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
 {
 	D3D12_RECT rect = {};
 	rect.left = left;
@@ -355,19 +355,19 @@ void set_scissor(command_list_t command_list, uint32_t left, uint32_t right, uin
 	rect.bottom = bottom;
 	rect.right = right;
 
-	command_list->RSSetScissorRects(1, &rect);
+	command_list->object->RSSetScissorRects(1, &rect);
 }
 
-void bind_index_buffer(command_list_t command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
+void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
 	D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
 	index_buffer_view.BufferLocation = buffer->object->GetGPUVirtualAddress() + offset;
 	index_buffer_view.SizeInBytes = size;
 	index_buffer_view.Format = get_index_type(type);
-	command_list->IASetIndexBuffer(&index_buffer_view);
+	command_list->object->IASetIndexBuffer(&index_buffer_view);
 }
 
-void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
+void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
 {
 	std::vector<D3D12_VERTEX_BUFFER_VIEW> buffer_views;
 	for (const auto &vertex_buffer_info : buffer_offset_stride_size)
@@ -380,28 +380,28 @@ void bind_vertex_buffers(command_list_t commandlist, uint32_t first_bind, const 
 		vertex_buffer_view.BufferLocation = buffer->object->GetGPUVirtualAddress() + offset;
 		buffer_views.push_back(vertex_buffer_view);
 	}
-	commandlist->IASetVertexBuffers(first_bind, static_cast<uint32_t>(buffer_views.size()), buffer_views.data());
+	commandlist->object->IASetVertexBuffers(first_bind, static_cast<uint32_t>(buffer_views.size()), buffer_views.data());
 
 }
 
-void set_graphic_pipeline(command_list_t command_list, pipeline_state_t pipeline)
+void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipeline)
 {
-	command_list->SetPipelineState(pipeline.Get());
+	command_list->object->SetPipelineState(pipeline.Get());
 }
 
-void submit_executable_command_list(command_queue_t* command_queue, command_list_t command_list)
+void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list)
 {
-	command_queue->object->ExecuteCommandLists(1, (ID3D12CommandList**)command_list.GetAddressOf());
+	command_queue->object->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list->object));
 }
 
-void draw_indexed(command_list_t command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
+void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
 {
-	command_list->DrawIndexedInstanced(index_count, instance_count, base_index, base_vertex, base_instance);
+	command_list->object->DrawIndexedInstanced(index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
-void draw_non_indexed(command_list_t command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
+void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
 {
-	command_list->DrawInstanced(vertex_count, instance_count, base_vertex, base_instance);
+	command_list->object->DrawInstanced(vertex_count, instance_count, base_vertex, base_instance);
 }
 
 uint32_t get_next_backbuffer_id(device_t dev, swap_chain_t* chain)

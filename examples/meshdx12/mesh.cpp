@@ -59,8 +59,8 @@ void MeshSample::Init()
 	back_buffer = get_image_view_from_swap_chain(dev, chain.get());
 
 	command_allocator = create_command_storage(dev);
-	command_list_t command_list = create_command_list(dev, command_allocator.get());
-	start_command_list_recording(dev, command_list, command_allocator.get());
+	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_allocator.get());
+	start_command_list_recording(dev, command_list.get(), command_allocator.get());
 
 #ifndef D3D12
 	sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
@@ -86,8 +86,8 @@ void MeshSample::Init()
 
 	clear_value_structure_t clear_val = {};
 #ifndef D3D12
-	set_pipeline_barrier(dev, command_list, back_buffer[0].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-	set_pipeline_barrier(dev, command_list, back_buffer[1].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list.get(), back_buffer[0].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list.get(), back_buffer[1].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	render_pass.reset(new vulkan_wrapper::render_pass(dev->object,
 	{
@@ -124,9 +124,9 @@ void MeshSample::Init()
 #endif
 	diffuse_color = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	normal_roughness_metalness = create_image(dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	set_pipeline_barrier(dev, command_list, depth_buffer.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-	set_pipeline_barrier(dev, command_list, diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
-	set_pipeline_barrier(dev, command_list, normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list.get(), depth_buffer.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	set_pipeline_barrier(dev, command_list.get(), diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(dev, command_list.get(), normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	fbo[0] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 	fbo[1] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
@@ -163,14 +163,14 @@ void MeshSample::Init()
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
-	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev, model, command_list, cbv_srv_descriptors_heap.get(),
+	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev, model, command_list.get(), cbv_srv_descriptors_heap.get(),
 #ifndef D3D12
 		object_set.get(), model_set.get(),
 #endif // !D3D12
 		nullptr);
 
 	std::unique_ptr<buffer_t> upload_buffer;
-	std::tie(skybox_texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list);
+	std::tie(skybox_texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
 
 #ifndef D3D12
 	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
@@ -213,8 +213,8 @@ void MeshSample::Init()
 	unmap_buffer(dev, big_triangle.get());
 	big_triangle_info = { std::make_tuple(big_triangle.get(), 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
 
-	make_command_list_executable(command_list);
-	submit_executable_command_list(cmdqueue.get(), command_list);
+	make_command_list_executable(command_list.get());
+	submit_executable_command_list(cmdqueue.get(), command_list.get());
 	wait_for_command_queue_idle(dev, cmdqueue.get());
 	fill_draw_commands();
 }
@@ -225,7 +225,7 @@ void MeshSample::fill_draw_commands()
 	for (unsigned i = 0; i < 2; i++)
 	{
 		command_list_for_back_buffer.push_back(create_command_list(dev, command_allocator.get()));
-		command_list_t current_cmd_list = command_list_for_back_buffer.back();
+		command_list_t* current_cmd_list = command_list_for_back_buffer.back().get();
 
 
 		start_command_list_recording(dev, current_cmd_list, command_allocator.get());
@@ -258,19 +258,19 @@ void MeshSample::fill_draw_commands()
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 				.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
-		current_cmd_list->OMSetRenderTargets(rtt_to_use.size(), rtt_to_use.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		current_cmd_list->object->OMSetRenderTargets(rtt_to_use.size(), rtt_to_use.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		clear_color(dev, current_cmd_list, fbo[i], clearColor);
 		clear_depth_stencil(dev, current_cmd_list, fbo[i], depth_stencil_aspect::depth_only, 1., 0);
 
-		current_cmd_list->SetGraphicsRootSignature(object_sig.Get());
+		current_cmd_list->object->SetGraphicsRootSignature(object_sig.Get());
 
 		std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap->object, sampler_heap->object };
-		current_cmd_list->SetDescriptorHeaps(2, descriptors.data());
+		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
 
-		current_cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		current_cmd_list->SetGraphicsRootDescriptorTable(2, cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart());
-		current_cmd_list->SetGraphicsRootDescriptorTable(3,
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(2, cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart());
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(3,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, objectpso);
@@ -291,12 +291,12 @@ void MeshSample::fill_draw_commands()
 			.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
 
-		current_cmd_list->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
-		current_cmd_list->SetGraphicsRootSignature(sunlight_sig.Get());
-		current_cmd_list->SetGraphicsRootDescriptorTable(0,
+		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
+		current_cmd_list->object->SetGraphicsRootSignature(sunlight_sig.Get());
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(0,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart())
 			.Offset(5, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-		current_cmd_list->SetGraphicsRootDescriptorTable(1,
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart()));
 
 		set_pipeline_barrier(dev, current_cmd_list, diffuse_color.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -313,12 +313,12 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &scene_descriptor, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #else
-		current_cmd_list->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(dev, current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
-		current_cmd_list->SetGraphicsRootSignature(skybox_sig.Get());
-		current_cmd_list->SetGraphicsRootDescriptorTable(0,
+		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(0,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart()));
-		current_cmd_list->SetGraphicsRootDescriptorTable(1,
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, skybox_pso);
@@ -370,7 +370,7 @@ void MeshSample::Draw()
 			//unmap_buffer(dev, jointbuffer);
 
 	uint32_t current_backbuffer = get_next_backbuffer_id(dev, chain.get());
-	submit_executable_command_list(cmdqueue.get(), command_list_for_back_buffer[current_backbuffer]);
+	submit_executable_command_list(cmdqueue.get(), command_list_for_back_buffer[current_backbuffer].get());
 	wait_for_command_queue_idle(dev, cmdqueue.get());
 	present(dev, cmdqueue.get(), chain.get(), current_backbuffer);
 }
