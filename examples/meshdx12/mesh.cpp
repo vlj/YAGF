@@ -128,8 +128,8 @@ void MeshSample::Init()
 	set_pipeline_barrier(dev, command_list, diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev, command_list, normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
-	fbo[1] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass);
+	fbo[0] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[1] = create_frame_buffer(dev, { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
@@ -197,9 +197,9 @@ void MeshSample::Init()
 #endif // !D3D12
 
 
-	objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass);
-	sunlightpso = get_sunlight_pipeline_state(dev, sunlight_sig, render_pass);
-	skybox_pso = get_skybox_pipeline_state(dev, skybox_sig, render_pass);
+	objectpso = get_skinned_object_pipeline_state(dev, object_sig, render_pass.get());
+	sunlightpso = get_sunlight_pipeline_state(dev, sunlight_sig, render_pass.get());
+	skybox_pso = get_skybox_pipeline_state(dev, skybox_sig, render_pass.get());
 
 	big_triangle = create_buffer(dev, 4 * 3 * sizeof(float));
 	float fullscreen_tri[]

@@ -345,7 +345,7 @@ void reset_command_list_storage(device_t dev, command_list_storage_t* storage)
 }
 
 
-framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t render_pass)
+framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
 {
 	return std::make_shared<vk_framebuffer>(dev, render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
@@ -571,13 +571,13 @@ namespace
 	}
 }
 
-vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
+vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t* render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
 	: image_views(build_image_views(dev->object, render_targets)),
 	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)
 {
 }
 
-vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets,
+vk_framebuffer::vk_framebuffer(device_t dev, render_pass_t* render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets,
 	const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
 	: image_views(build_image_views(dev->object, render_targets, depth_stencil)),
 	fbo(dev->object, render_pass->object, get_image_view_vector(image_views), width, height, layers)

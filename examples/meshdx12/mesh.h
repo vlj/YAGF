@@ -80,7 +80,7 @@ private:
 
 	std::unique_ptr<irr::scene::IMeshSceneNode> xue;
 
-	render_pass_t render_pass;
+	std::unique_ptr<render_pass_t> render_pass;
 	framebuffer_t fbo[2];
 	pipeline_layout_t object_sig;
 	pipeline_state_t objectpso;

@@ -13,7 +13,7 @@
 //constexpr auto skinned_mesh_layout = pipeline_layout_description(object_descriptors, sampler_descriptors);
 
 
-pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp)
+pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
 #ifdef D3D12
@@ -103,13 +103,13 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t dev, pipeline_layout
 	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 	vertex_input.pVertexAttributeDescriptions = attribute.data();
 
-	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
+	return std::make_unique<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
 
 #endif
 }
 
 
-pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp)
+pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
@@ -182,7 +182,7 @@ pipeline_state_t get_sunlight_pipeline_state(device_t dev, pipeline_layout_t lay
 }
 
 
-pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t rp)
+pipeline_state_t get_skybox_pipeline_state(device_t dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
