@@ -46,7 +46,7 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
   std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 
   start_command_list_recording(dev, command_list.get(), command_storage.get());
-  std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE);
+  std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
   void* tmp = map_buffer(dev, cbuf.get());
   float cube_size = (float)edge_size / 10.;
   memcpy(tmp, &cube_size, sizeof(int));
@@ -60,22 +60,38 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
   std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV, 1} });
   std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-  std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL);
-  std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE);
+  std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
+  std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, none);
 
 #ifdef D3D12
-  ID3D12Resource *uav;
+  create_constant_buffer_view(dev, srv_cbv_uav_heap.get(), 0, cbuf.get(), sizeof(int));
+  create_image_view(dev, srv_cbv_uav_heap.get(), 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+
+  D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+  desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+  desc.Format = DXGI_FORMAT_R32_TYPELESS;
+//  desc.Buffer.StructureByteStride = sizeof(SH);
+  desc.Buffer.NumElements = sizeof(SH) / 4;
+  desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+
+  dev->object->CreateUnorderedAccessView(sh_buffer->object, nullptr, &desc,
+	CD3DX12_CPU_DESCRIPTOR_HANDLE(srv_cbv_uav_heap->object->GetCPUDescriptorHandleForHeapStart())
+	  .Offset(2, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 
   command_list->object->SetPipelineState(compute_sh_pso.Get());
+  command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
   std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
   command_list->object->SetDescriptorHeaps(heaps.size(), heaps.data());
+  command_list->object->SetComputeRootDescriptorTable(0, srv_cbv_uav_heap->object->GetGPUDescriptorHandleForHeapStart());
+  command_list->object->SetComputeRootDescriptorTable(1, sampler_heap->object->GetGPUDescriptorHandleForHeapStart());
 
   command_list->object->Dispatch(1, 1, 1);
   command_list->object->CopyBufferRegion(sh_buffer_readback->object, 0, sh_buffer->object, 0, sizeof(SH));
 #else
 
 #endif
-
+  make_command_list_executable(command_list.get());
+  submit_executable_command_list(cmd_queue, command_list.get());
   wait_for_command_queue_idle(dev, cmd_queue);
   float* Shval = (float*)map_buffer(dev, sh_buffer_readback.get());
   memcpy(Result.Blue, Shval, 9 * sizeof(float));
