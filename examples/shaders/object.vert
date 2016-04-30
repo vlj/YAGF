@@ -40,6 +40,10 @@ layout(location = 1) out vec2 uv;
 /*out vec2 uv_bis;
 out vec4 color;*/
 
+out gl_PerVertex {
+  vec4 gl_Position;
+};
+
 void main()
 {
 //  color = Color.zyxw;
