@@ -34,6 +34,14 @@ namespace
 
 		CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 		return result;
+#else
+		vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\compute_sh.spv");
+
+		VkComputePipelineCreateInfo info{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, nullptr};
+		info.layout = pipeline_layout->object;
+		info.stage = module.object;
+		VkPipeline pipeline;
+		vkCreateComputePipelines(dev->object, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline);
 #endif // D3D12
 	}
 
@@ -49,7 +57,6 @@ struct SHCoefficients
 
 std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size)
 {
-
   std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
   std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 
@@ -62,7 +69,9 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 #ifdef D3D12
   auto compute_sh_sig = get_pipeline_layout_from_desc(dev, { object_descriptor_set_type, sampler_descriptor_set_type });
 #else
-
+  std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> object_set = get_object_descriptor_set(dev, object_descriptor_set_type);
+  std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
+  auto compute_sh_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ object_set->object, sampler_set->object}, std::vector<VkPushConstantRange>());
 #endif
   pipeline_state_t compute_sh_pso = get_compute_sh_pipeline_state(dev, compute_sh_sig);
   std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV, 1} });
@@ -110,14 +119,6 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
   memcpy(Result.Blue, Shval, 9 * sizeof(float));
   memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
   memcpy(Result.Red, &Shval[18], 9 * sizeof(float));
-#ifdef D3D12
-
-
-
-#else
-
-#endif
-
 
   return std::move(sh_buffer);
 }

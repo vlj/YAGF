@@ -22,6 +22,7 @@
     <None Include="..\assets\xue.b3d">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="..\shaders\computesh.comp" />
     <None Include="..\shaders\object.vert" />
     <None Include="..\shaders\object_gbuffer.frag" />
     <None Include="..\shaders\screenquad.vert" />
