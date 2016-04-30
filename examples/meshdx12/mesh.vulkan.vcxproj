@@ -23,6 +23,7 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="..\shaders\computesh.comp" />
+    <None Include="..\shaders\ibl.frag" />
     <None Include="..\shaders\object.vert" />
     <None Include="..\shaders\object_gbuffer.frag" />
     <None Include="..\shaders\screenquad.vert" />
@@ -99,7 +100,8 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.vert -o $(SolutionDir)\skybox_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -o $(SolutionDir)\ibl_frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -128,7 +130,8 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.vert -o $(SolutionDir)\skybox_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -o $(SolutionDir)\ibl_frag.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

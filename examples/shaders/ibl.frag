@@ -1,19 +1,24 @@
-#version 330
-uniform sampler2D ntex;
-uniform sampler2D dtex;
-uniform sampler2D ctex;
-uniform samplerCube probe;
-uniform sampler2D dfg;
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
 
-layout(std140) uniform VIEWDATA
+
+layout(input_attachment_index = 0, set = 0, binding = 4) uniform subpassInput ctex;
+layout(input_attachment_index = 1, set = 0, binding = 5) uniform subpassInput ntex;
+layout(input_attachment_index = 3, set = 0, binding = 6) uniform subpassInput dtex;
+
+//uniform samplerCube probe;
+//uniform sampler2D dfg;
+
+layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
   mat4 ViewMatrix;
   mat4 InverseViewMatrix;
   mat4 InverseProjectionMatrix;
 };
 
-// Expand because of catalyst (14.12) not correctly associating array in UBO
-layout(std140) uniform IBLDATA
+
+layout(set = 2, binding = 10, std140) uniform IBLDATA
 {
   float bL00;
   float bL1m1;
@@ -94,10 +99,11 @@ vec3 DiffuseIBL(vec3 normal, vec3 V, float roughness, vec3 color)
 
   float NdotV = clamp(dot(V, normal), 0., 1.);
 
-  return max(vec3(r, g, b), vec3(0.)) * texture(dfg, vec2(NdotV, roughness)).b * color / 3.14;
+//  return max(vec3(r, g, b), vec3(0.)) * texture(dfg, vec2(NdotV, roughness)).b * color / 3.14;
+return max(vec3(r, g, b), vec3(0.)) * color / 3.14;
 }
 
-vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
+/*vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
 {
   vec3 sampleDirection = reflect(-V, normal);
   sampleDirection = (InverseViewMatrix * vec4(sampleDirection, 0.)).xyz;
@@ -110,24 +116,28 @@ vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
   vec2 DFG = texture(dfg, vec2(NdotV, roughness)).rg;
 
   return LD * (F0 * DFG.x + DFG.y);
-}
+}*/
 
-in vec2 uv;
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
 void main(void)
 {
-    vec3 normal = normalize(DecodeNormal(2. * texture(ntex, uv).xy - 1.));
-    vec3 color = texture(ctex, uv).rgb;
+    vec2 uv = gl_FragCoord.xy / 1024.;
+    uv.y = 1. - uv.y;
 
-    float z = texture(dtex, uv).x;
+    vec3 normal = normalize(DecodeNormal(2. * subpassLoad(ntex).xy - 1.));
+    vec3 color =  subpassLoad(ctex).xyz;
+    float z = subpassLoad(dtex).x;
+
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
     vec3 eyedir = -normalize(xpos.xyz);
-    float specval = texture(ntex, uv).z;
+    float specval = 0;//texture(ntex, uv).z;
 
-    vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
+    FragColor = vec4(DiffuseIBL(normal, eyedir, specval, color), 1.);
+
+/*    vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
     vec3 Metal = SpecularIBL(normal, eyedir, specval, color);
     float Metalness = texture(ntex, uv).a;
 
-    FragColor = vec4(.2 * mix(Dielectric, Metal, Metalness), texture(ctex, uv).a);
+    FragColor = vec4(.2 * mix(Dielectric, Metal, Metalness), texture(ctex, uv).a);*/
 }

@@ -65,10 +65,12 @@ private:
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> sampler_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> rtt_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> model_set;
+	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> ibl_set;
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
 	VkDescriptorSet sampler_descriptors;
 	VkDescriptorSet rtt;
 	VkDescriptorSet scene_descriptor;
+	VkDescriptorSet ibl_descriptor;
 	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
