@@ -1,7 +1,7 @@
-TextureCube probe : register(t0);
-sampler Anisotropic : register(s0);
+TextureCube probe : register(t0, space1);
+sampler Anisotropic : register(s0, space3);
 
-cbuffer DATA : register(b0)
+cbuffer DATA : register(b0, space0)
 {
   float edge_size;
 };
@@ -39,7 +39,7 @@ struct SHCoeff
   float rL22;
 };
 
-RWStructuredBuffer<SHCoeff> SH : register(u0);
+RWStructuredBuffer<SHCoeff> SH : register(u0, space2);
 
 float3 getVectorFromCubeAndUV(uint face, float2 uv)
 {

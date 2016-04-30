@@ -10,7 +10,10 @@
 namespace
 {
 	constexpr auto object_descriptor_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1) },
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
+		range_of_descriptors(RESOURCE_VIEW::UAV, 2, 1) },
+
 		shader_stage::all);
 
 	constexpr auto sampler_descriptor_set_type = descriptor_set({
@@ -48,8 +51,12 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
   float cube_size = (float)edge_size / 10.;
   memcpy(tmp, &cube_size, sizeof(int));
   unmap_buffer(dev, cbuf.get());
+#ifdef D3D12
+  auto compute_sh_sig = get_pipeline_layout_from_desc(dev, { object_descriptor_set_type, sampler_descriptor_set_type });
+#else
 
-  pipeline_state_t compute_sh_pso = get_compute_sh_pipeline_state(dev, nullptr);
+#endif
+  pipeline_state_t compute_sh_pso = get_compute_sh_pipeline_state(dev, compute_sh_sig);
   std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV, 1} });
   std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 

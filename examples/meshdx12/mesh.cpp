@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include <Scene\IBL.h>
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
@@ -217,6 +218,8 @@ void MeshSample::Init()
 	submit_executable_command_list(cmdqueue.get(), command_list.get());
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	fill_draw_commands();
+
+	computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
 }
 
 
