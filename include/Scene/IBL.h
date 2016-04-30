@@ -19,14 +19,6 @@ struct Color
   float Blue;
 };
 
-struct SHCoefficients
-{
-  float Red[9];
-  float Green[9];
-  float Blue[9];
-};
-
-
 struct SH
 {
 	float bL00;
@@ -65,7 +57,7 @@ using the cubemap provided by CubemapFace.
 *  \param textures sequence of 6 square textures.
 *  \param row/columns count of textures.
 */
-SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size);
+std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size);
 
 /*WrapperResource *generateSpecularCubemap(WrapperResource *probe);
 IImage getDFGLUT(size_t DFG_LUT_size = 128);*/

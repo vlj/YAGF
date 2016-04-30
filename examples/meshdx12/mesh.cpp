@@ -173,6 +173,9 @@ void MeshSample::Init()
 	std::unique_ptr<buffer_t> upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
 
+
+	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
+
 #ifndef D3D12
 	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
@@ -219,7 +222,6 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	fill_draw_commands();
 
-	computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
 }
 
 

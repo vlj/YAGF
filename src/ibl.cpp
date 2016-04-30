@@ -39,9 +39,17 @@ namespace
 
 }
 
-SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size)
+struct SHCoefficients
 {
-  SHCoefficients Result;
+	float Red[9];
+	float Green[9];
+	float Blue[9];
+};
+
+
+std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size)
+{
+
   std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
   std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 
@@ -92,7 +100,9 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
 #endif
   make_command_list_executable(command_list.get());
   submit_executable_command_list(cmd_queue, command_list.get());
+  // for debug
   wait_for_command_queue_idle(dev, cmd_queue);
+  SHCoefficients Result;
   float* Shval = (float*)map_buffer(dev, sh_buffer_readback.get());
   memcpy(Result.Blue, Shval, 9 * sizeof(float));
   memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
@@ -106,7 +116,7 @@ SHCoefficients computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_que
 #endif
 
 
-  return Result;
+  return std::move(sh_buffer);
 }
 
 #if 0
