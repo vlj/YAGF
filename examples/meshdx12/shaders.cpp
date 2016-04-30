@@ -8,11 +8,6 @@
 #include <assimp/Importer.hpp>
 
 
-
-
-//constexpr auto skinned_mesh_layout = pipeline_layout_description(object_descriptors, sampler_descriptors);
-
-
 pipeline_state_t get_skinned_object_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
@@ -111,7 +106,6 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t* dev, pipeline_layou
 
 pipeline_state_t get_sunlight_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
-
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
 #ifdef D3D12
 	pipeline_state_t result;
@@ -184,7 +178,6 @@ pipeline_state_t get_sunlight_pipeline_state(device_t* dev, pipeline_layout_t la
 
 pipeline_state_t get_skybox_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
-
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
 		.set_depth_write(false)
 		.set_depth_compare_function(irr::video::E_COMPARE_FUNCTION::ECF_LEQUAL);
@@ -252,6 +245,84 @@ pipeline_state_t get_skybox_pipeline_state(device_t* dev, pipeline_layout_t layo
 	vertex_input.pVertexAttributeDescriptions = attribute.data();
 
 	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 2, VkPipeline(VK_NULL_HANDLE), 0);
+#endif
+}
 
+pipeline_state_t get_ibl_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
+{
+	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
+		.set_depth_write(false)
+		.set_depth_test(false);
+#ifdef D3D12
+	pipeline_state_t result;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
+	psodesc.pRootSignature = layout.Get();
+
+	psodesc.NumRenderTargets = 1;
+	psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psodesc.BlendState.RenderTarget[0].BlendEnable = true;
+	psodesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	psodesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	psodesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
+	psodesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
+	psodesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	psodesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ONE;
+
+	Microsoft::WRL::ComPtr<ID3DBlob> vtxshaderblob, pxshaderblob;
+	CHECK_HRESULT(D3DReadFileToBlob(L"screenquad.cso", vtxshaderblob.GetAddressOf()));
+	psodesc.VS.BytecodeLength = vtxshaderblob->GetBufferSize();
+	psodesc.VS.pShaderBytecode = vtxshaderblob->GetBufferPointer();
+
+	CHECK_HRESULT(D3DReadFileToBlob(L"ibl.cso", pxshaderblob.GetAddressOf()));
+	psodesc.PS.BytecodeLength = pxshaderblob->GetBufferSize();
+	psodesc.PS.pShaderBytecode = pxshaderblob->GetBufferPointer();
+
+	std::vector<D3D12_INPUT_ELEMENT_DESC> IAdesc =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 2 * sizeof(float), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+
+	psodesc.InputLayout.pInputElementDescs = IAdesc.data();
+	psodesc.InputLayout.NumElements = IAdesc.size();
+	psodesc.NodeMask = 1;
+	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
+	return result;
+#else
+	const blend_state blend = blend_state::get();
+
+	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
+	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+	viewport_info.viewportCount = 1;
+	viewport_info.scissorCount = 1;
+	std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
+	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
+
+
+	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\skybox_vert.spv");
+	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\skybox_frag.spv");
+
+	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
+	};
+
+	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+
+	const std::vector<VkVertexInputBindingDescription> vertex_buffers{
+		{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
+	};
+	vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
+	vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
+
+	const std::vector<VkVertexInputAttributeDescription> attribute{
+		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
+		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float) },
+	};
+	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
+	vertex_input.pVertexAttributeDescriptions = attribute.data();
+
+	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 2, VkPipeline(VK_NULL_HANDLE), 0);
 #endif
 }

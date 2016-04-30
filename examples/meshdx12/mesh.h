@@ -89,6 +89,8 @@ private:
 	pipeline_state_t sunlightpso;
 	pipeline_layout_t skybox_sig;
 	pipeline_state_t skybox_pso;
+	pipeline_layout_t ibl_sig;
+	pipeline_state_t ibl_pso;
 	void fill_draw_commands();
 	void Init();
 public:

@@ -93,7 +93,10 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
   command_list->object->SetComputeRootDescriptorTable(0, srv_cbv_uav_heap->object->GetGPUDescriptorHandleForHeapStart());
   command_list->object->SetComputeRootDescriptorTable(1, sampler_heap->object->GetGPUDescriptorHandleForHeapStart());
 
+  command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
   command_list->object->Dispatch(1, 1, 1);
+  command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+  command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
   command_list->object->CopyBufferRegion(sh_buffer_readback->object, 0, sh_buffer->object, 0, sizeof(SH));
 #else
 

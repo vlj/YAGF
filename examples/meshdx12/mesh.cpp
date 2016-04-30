@@ -52,6 +52,11 @@ namespace
 			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 8, 1),
 			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 9, 1) },
 			shader_stage::all);
+
+	// IBL data
+	constexpr auto ibl_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 10, 1) },
+		shader_stage::fragment_shader);
 }
 
 
@@ -77,6 +82,7 @@ void MeshSample::Init()
 	object_sig = get_pipeline_layout_from_desc(dev.get(), { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
 	sunlight_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type });
 	skybox_sig = get_pipeline_layout_from_desc(dev.get(), { scene_descriptor_set_type, sampler_descriptor_set_type });
+	ibl_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
 #endif // !D3D12
 
 	scene_matrix = create_buffer(dev.get(), sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -174,8 +180,6 @@ void MeshSample::Init()
 	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
 
 
-	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
-
 #ifndef D3D12
 	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
@@ -200,10 +204,10 @@ void MeshSample::Init()
 	create_sampler(dev.get(), sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
 #endif // !D3D12
 
-
 	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
 	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
 	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, render_pass.get());
+	ibl_pso = get_ibl_pipeline_state(dev.get(), ibl_sig, render_pass.get());
 
 	big_triangle = create_buffer(dev.get(), 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	float fullscreen_tri[]
@@ -221,7 +225,10 @@ void MeshSample::Init()
 	submit_executable_command_list(cmdqueue.get(), command_list.get());
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	fill_draw_commands();
+	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
 
+	//ibl
+	create_constant_buffer_view(dev.get(), cbv_srv_descriptors_heap.get(), 8, sh_coefficients.get(), 27 * sizeof(float));
 }
 
 
@@ -290,7 +297,6 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &rtt, 0, nullptr);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 1, 1, &scene_descriptor, 0, nullptr);
 #else
-
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 			.Offset(2, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
@@ -313,6 +319,23 @@ void MeshSample::fill_draw_commands()
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+#ifndef D3D12
+		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &rtt, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 1, 1, &scene_descriptor, 0, nullptr);
+#else
+		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(2,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart())
+			.Offset(8, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+
+#endif // !D3D12
+		set_graphic_pipeline(current_cmd_list, ibl_pso);
+		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
+		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
+		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
+		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &scene_descriptor, 0, nullptr);

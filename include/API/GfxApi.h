@@ -298,6 +298,43 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
+	constexpr pipeline_state_description set_depth_test(bool depth_test) const
+	{
+		return pipeline_state_description(rasterization_depth_clamp_enable,
+			rasterization_discard_enable,
+			rasterization_polygon_mode,
+			rasterization_cull_mode,
+			rasterization_front_face,
+			rasterization_depth_bias_enable,
+			rasterization_depth_bias_constant_factor,
+			rasterization_depth_bias_clamp,
+			rasterization_depth_bias_slope_factor,
+			rasterization_line_width,
+			rasterization_conservative_enable,
+			multisample_multisample_enable,
+			multisample_sample_count,
+			multisample_min_sample_shading,
+			multisample_alpha_to_coverage,
+			multisample_alpha_to_one,
+			input_assembly_topology,
+			input_assembly_primitive_restart,
+			depth_test,
+			depth_stencil_depth_write,
+			depth_stencil_depth_compare_op,
+			depth_stencil_depth_clip_enable,
+			depth_stencil_stencil_test,
+			depth_stencil_front_stencil_fail_op,
+			depth_stencil_front_stencil_depth_fail_op,
+			depth_stencil_front_stencil_pass_op,
+			depth_stencil_front_stencil_compare_op,
+			depth_stencil_back_stencil_fail_op,
+			depth_stencil_back_stencil_depth_fail_op,
+			depth_stencil_back_stencil_pass_op,
+			depth_stencil_back_stencil_compare_op,
+			depth_stencil_min_depth_clip,
+			depth_stencil_max_depth_clip);
+	}
+
 private:
 	constexpr pipeline_state_description(
 		bool depth_clamp_enable,
