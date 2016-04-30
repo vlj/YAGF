@@ -164,7 +164,7 @@ namespace
 		throw;
 	}
 
-	D3D12_RESOURCE_FLAGS get_buffer_flags(buffer_flags flags)
+	D3D12_RESOURCE_FLAGS get_buffer_flags(uint32_t flags)
 	{
 		D3D12_RESOURCE_FLAGS result = D3D12_RESOURCE_FLAG_NONE;
 		if (flags & usage_uav)
@@ -173,7 +173,7 @@ namespace
 	}
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool , buffer_flags flags)
+std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool , uint32_t flags)
 {
 	ID3D12Resource* result;
 	D3D12_RESOURCE_STATES initial_state = (memory_pool == irr::video::E_MEMORY_POOL::EMP_CPU_READABLE) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;

@@ -215,9 +215,33 @@ std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_
 	return std::make_unique<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size)
+namespace
 {
-	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev->object, size, 0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	uint32_t get_memory_index(irr::video::E_MEMORY_POOL memory_pool, device_t *dev)
+	{
+		switch (memory_pool)
+		{
+		case irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL: return  dev->default_memory_index;
+		case irr::video::E_MEMORY_POOL::EMP_CPU_READABLE:
+		case irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE: return  dev->upload_memory_index;
+		}
+		throw;
+	}
+
+	VkBufferUsageFlags get_buffer_usage_flags(uint32_t flags)
+	{
+		VkBufferUsageFlags result =  VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		if (flags & usage_uav)
+			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		if (flags & usage_transfer_dst)
+			result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		return result;
+	}
+}
+
+std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags)
+{
+	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev->object, size, 0, get_buffer_usage_flags(flags));
 	VkMemoryRequirements mem_req;
 	vkGetBufferMemoryRequirements(dev->object, buffer->object, &mem_req);
 	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->upload_memory_index);

@@ -98,7 +98,8 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbu
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad.vert -o $(SolutionDir)\sunlight_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.vert -o $(SolutionDir)\skybox_vert.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -126,7 +127,8 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\object_gbu
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\screenquad.vert -o $(SolutionDir)\sunlight_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\sunlight.frag -o $(SolutionDir)\sunlight_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.vert -o $(SolutionDir)\skybox_vert.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.frag -o $(SolutionDir)\skybox_frag.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

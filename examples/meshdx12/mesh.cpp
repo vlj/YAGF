@@ -143,6 +143,8 @@ void MeshSample::Init()
 	set_pipeline_barrier(dev.get(), command_list.get(), diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev.get(), command_list.get(), normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
+	render_pass = create_render_pass(dev.get());
+
 	fbo[0] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 	fbo[1] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 #ifndef D3D12
@@ -330,9 +332,9 @@ void MeshSample::fill_draw_commands()
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12
-		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
+/*		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &rtt, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 1, 1, &scene_descriptor, 0, nullptr);
+		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 1, 1, &scene_descriptor, 0, nullptr);*/
 #else
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
 		current_cmd_list->object->SetGraphicsRootDescriptorTable(2,
@@ -340,11 +342,11 @@ void MeshSample::fill_draw_commands()
 			.Offset(8, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 
 #endif // !D3D12
-		set_graphic_pipeline(current_cmd_list, ibl_pso);
+/*		set_graphic_pipeline(current_cmd_list, ibl_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
-		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);*/
 
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);

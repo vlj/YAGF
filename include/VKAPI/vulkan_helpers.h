@@ -416,6 +416,30 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct compute_pipeline
+	{
+		VkPipeline object;
+		const VkComputePipelineCreateInfo info;
+
+		compute_pipeline(VkDevice dev, const VkPipelineShaderStageCreateInfo &shader_stage,
+			VkPipelineLayout layout, VkPipeline base_pipeline, int32_t base_pipeline_index)
+			: info({ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, nullptr, 0, shader_stage, layout, base_pipeline, base_pipeline_index }),
+			m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &info, nullptr, &object));
+		}
+
+		~compute_pipeline()
+		{
+			vkDestroyPipeline(m_device, object, nullptr);
+		}
+
+		compute_pipeline(compute_pipeline&&) = delete;
+		compute_pipeline(const compute_pipeline&) = delete;
+	private:
+		VkDevice m_device;
+	};
+
 	struct pipeline_descriptor_set
 	{
 		VkDescriptorSetLayout object;
@@ -570,6 +594,11 @@ namespace structures
 		VkAttachmentDescriptionFlags flag = 0)
 	{
 		return{ flag, format, sample_count, load_op, store_op, stencil_load_op, stencil_store_op, initial_layout, final_layout };
+	}
+
+	constexpr VkBufferCopy buffer_copy(uint64_t src_offset, uint64_t dst_offset, uint64_t size)
+	{
+		return{ src_offset, dst_offset, size };
 	}
 }
 

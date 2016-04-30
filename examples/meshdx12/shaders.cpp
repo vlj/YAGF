@@ -250,6 +250,7 @@ pipeline_state_t get_skybox_pipeline_state(device_t* dev, pipeline_layout_t layo
 
 pipeline_state_t get_ibl_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
+	return nullptr;
 	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
 		.set_depth_write(false)
 		.set_depth_test(false);
