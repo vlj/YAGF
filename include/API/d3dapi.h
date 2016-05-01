@@ -31,6 +31,7 @@ using buffer_t = wrapper<ID3D12Resource>;
 using image_t = wrapper<ID3D12Resource>;
 using descriptor_storage_t = wrapper<ID3D12DescriptorHeap>;
 using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
+using compute_pipeline_state_t = wrapper<ID3D12PipelineState>;
 using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
 using swap_chain_t = wrapper<IDXGISwapChain3>;
 using render_pass_t = void*;

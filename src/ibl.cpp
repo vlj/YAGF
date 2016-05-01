@@ -33,7 +33,7 @@ namespace
 		pipeline_desc.pRootSignature = pipeline_layout.Get();
 
 		CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
-		return result;
+		return std::make_unique<compute_pipeline_state_t>(result);
 #else
 		vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\computesh.spv");
 		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
@@ -91,7 +91,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(srv_cbv_uav_heap->object->GetCPUDescriptorHandleForHeapStart())
 		.Offset(2, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 
-	command_list->object->SetPipelineState(compute_sh_pso.Get());
+	command_list->object->SetPipelineState(compute_sh_pso->object);
 	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
 	command_list->object->SetDescriptorHeaps(heaps.size(), heaps.data());
