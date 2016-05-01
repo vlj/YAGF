@@ -333,6 +333,19 @@ void create_image_view(device_t* dev, descriptor_storage_t* storage, uint32_t in
 	dev->object->CreateShaderResourceView(img->object, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
+void create_buffer_uav_view(device_t * dev, descriptor_storage_t * storage, uint32_t index, buffer_t * buffer, uint32_t size)
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+	desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	desc.Format = DXGI_FORMAT_R32_TYPELESS;
+	desc.Buffer.NumElements = size / 4;
+	desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+
+	dev->object->CreateUnorderedAccessView(buffer->object, nullptr, &desc,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart())
+		.Offset(index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+}
+
 void start_command_list_recording(device_t* dev, command_list_t* command_list, command_list_storage_t* storage)
 {
 	command_list->object->Reset(storage->object, nullptr);
@@ -428,6 +441,16 @@ void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t i
 void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
 {
 	command_list->object->DrawInstanced(vertex_count, instance_count, base_vertex, base_instance);
+}
+
+void dispatch(command_list_t* command_list, uint32_t x, uint32_t y, uint32_t z)
+{
+	command_list->object->Dispatch(x, y, z);
+}
+
+void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offset, buffer_t* dst, uint64_t dst_offset, uint64_t size)
+{
+	command_list->object->CopyBufferRegion(src->object, src_offset, dst->object, dst_offset, size);
 }
 
 uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)

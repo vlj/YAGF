@@ -62,5 +62,6 @@ using framebuffer_t = std::shared_ptr<d3d12_framebuffer_t>;
 void create_constant_buffer_view(device_t* dev, descriptor_storage_t* storage, uint32_t index, buffer_t* buffer, uint32_t buffer_size);
 void create_sampler(device_t* dev, descriptor_storage_t* storage, uint32_t index, SAMPLER_TYPE sampler_type);
 void create_image_view(device_t* dev, descriptor_storage_t* storage, uint32_t index, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim);
+void create_buffer_uav_view(device_t* dev, descriptor_storage_t* storage, uint32_t index, buffer_t* buffer, uint32_t size);
 void clear_color(device_t* dev, command_list_t* command_list, framebuffer_t framebuffer, const std::array<float, 4> &color);
 void clear_depth_stencil(device_t* dev, command_list_t* command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil);

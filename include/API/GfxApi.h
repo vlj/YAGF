@@ -446,6 +446,8 @@ void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const
 void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list);
 void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance);
 void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance);
+void dispatch(command_list_t* command_list, uint32_t x, uint32_t y, uint32_t z);
+void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offset, buffer_t* dst, uint64_t dst_offset, uint64_t size);
 uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain);
 
 std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* dev, swap_chain_t* chain);

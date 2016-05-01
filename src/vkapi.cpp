@@ -561,6 +561,16 @@ void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint3
 	vkCmdDraw(command_list->object, vertex_count, instance_count, base_vertex, base_instance);
 }
 
+void dispatch(command_list_t* command_list, uint32_t x, uint32_t y, uint32_t z)
+{
+	vkCmdDispatch(command_list->object, x, y, z);
+}
+
+void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offset, buffer_t* dst, uint64_t dst_offset, uint64_t size)
+{
+	vkCmdCopyBuffer(command_list->object, src->object, dst->object, 1, &structures::buffer_copy(src_offset, dst_offset, size));
+}
+
 uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)
 {
 	uint32_t index;

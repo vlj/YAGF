@@ -79,17 +79,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 #ifdef D3D12
 	create_constant_buffer_view(dev, srv_cbv_uav_heap.get(), 0, cbuf.get(), sizeof(int));
 	create_image_view(dev, srv_cbv_uav_heap.get(), 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
-
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-	desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-	desc.Format = DXGI_FORMAT_R32_TYPELESS;
-	//  desc.Buffer.StructureByteStride = sizeof(SH);
-	desc.Buffer.NumElements = sizeof(SH) / 4;
-	desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
-
-	dev->object->CreateUnorderedAccessView(sh_buffer->object, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(srv_cbv_uav_heap->object->GetCPUDescriptorHandleForHeapStart())
-		.Offset(2, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+	create_buffer_uav_view(dev, srv_cbv_uav_heap.get(), 2, sh_buffer.get(), sizeof(SH));
 
 	command_list->object->SetPipelineState(compute_sh_pso->object);
 	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
@@ -99,10 +89,10 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	command_list->object->SetComputeRootDescriptorTable(1, sampler_heap->object->GetGPUDescriptorHandleForHeapStart());
 
 	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	command_list->object->Dispatch(1, 1, 1);
-	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
-	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
-	command_list->object->CopyBufferRegion(sh_buffer_readback->object, 0, sh_buffer->object, 0, sizeof(SH));
+
+//	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+//	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
+
 #else
 	VkDescriptorSet sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
 	VkDescriptorSet input_descriptors = util::allocate_descriptor_sets(dev->object, srv_cbv_uav_heap->object, { object_set->object });
@@ -126,9 +116,10 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_pso->object);
 	vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_sig->object, 0, 1, &input_descriptors, 0, nullptr);
 	vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
-	vkCmdDispatch(command_list->object, 1, 1, 1);
-	vkCmdCopyBuffer(command_list->object, sh_buffer->object, sh_buffer_readback->object, 1, &structures::buffer_copy(0, 0, sizeof(SH)));
 #endif
+	dispatch(command_list.get(), 1, 1, 1);
+	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
+
 	make_command_list_executable(command_list.get());
 	submit_executable_command_list(cmd_queue, command_list.get());
 	// for debug
