@@ -133,24 +133,25 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	return std::move(sh_buffer);
 }
 
-#if 0
-
+namespace
+{
 // From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
-/** Returns the index-th pair from Hammersley set of pseudo random set.
-Hammersley set is a uniform distribution between 0 and 1 for 2 components.
-We use the natural indexation on the set to avoid storing the whole set.
-\param index of the pair
-\param size of the set. */
-std::pair<float, float> HammersleySequence(int index, int samples)
+/**
+ * Returns the n-th set from the 2 dimension Hammersley sequence.
+ * The 2 dimension Hammersley seq is a pseudo random uniform distribution
+*  between 0 and 1 for 2 components.
+ * We use the natural indexation on the set to avoid storing the whole set.
+ * \param i index of the pair
+ * \param size of the set. */
+std::pair<float, float> HammersleySequence(int n, int samples)
 {
 	float InvertedBinaryRepresentation = 0.;
 	for (size_t i = 0; i < 32; i++)
 	{
-		InvertedBinaryRepresentation += ((index >> i) & 0x1) * powf(.5, (float)(i + 1.));
+		InvertedBinaryRepresentation += ((n >> i) & 0x1) * powf(.5, (float)(i + 1.));
 	}
-	return std::make_pair(float(index) / float(samples), InvertedBinaryRepresentation);
+	return std::make_pair(float(n) / float(samples), InvertedBinaryRepresentation);
 }
-
 
 /** Returns a pseudo random (theta, phi) generated from a probability density function modeled after Phong function.
 \param a pseudo random float pair from a uniform density function between 0 and 1.
@@ -178,6 +179,8 @@ std::pair<float, float> ImportanceSamplingCos(std::pair<float, float> Seeds)
 	return std::make_pair(acosf(Seeds.first), 2.f * 3.14f * Seeds.second);
 }
 
+}
+
 static
 irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 {
@@ -198,6 +201,7 @@ struct PermutationMatrix
 	float Matrix[16];
 };
 
+#if 0
 WrapperResource *generateSpecularCubemap(WrapperResource *probe)
 {
 	size_t cubemap_size = 256;
