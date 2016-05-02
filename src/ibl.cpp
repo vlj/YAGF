@@ -179,9 +179,6 @@ std::pair<float, float> ImportanceSamplingCos(std::pair<float, float> Seeds)
 	return std::make_pair(acosf(Seeds.first), 2.f * 3.14f * Seeds.second);
 }
 
-}
-
-static
 irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 {
 	irr::core::matrix4 resultMat;
@@ -201,117 +198,61 @@ struct PermutationMatrix
 	float Matrix[16];
 };
 
-#if 0
-WrapperResource *generateSpecularCubemap(WrapperResource *probe)
+	std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap();
+}
+
+std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t* cmd_queue, image_t *probe)
 {
 	size_t cubemap_size = 256;
-	WrapperResource *result = (WrapperResource*)malloc(sizeof(WrapperResource));
+	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_render_target | usage_uav, nullptr);
 
-	WrapperCommandList *CommandList = GlobalGFXAPI->createCommandList();
-	WrapperPipelineState *PSO = ImportanceSamplingForSpecularCubemap();
-	WrapperIndexVertexBuffersSet *bigtri = GlobalGFXAPI->createFullscreenTri();
-
-	WrapperResource *cbuf[6];
-	for (unsigned i = 0; i < 6; i++)
-		cbuf[i] = GlobalGFXAPI->createConstantsBuffer(sizeof(PermutationMatrix));
-	WrapperDescriptorHeap *probeheap = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(probe, RESOURCE_VIEW::SHADER_RESOURCE, 0) });
-	WrapperDescriptorHeap *cbufheap[6];
-	for (unsigned i = 0; i < 6; i++)
-		cbufheap[i] = GlobalGFXAPI->createCBVSRVUAVDescriptorHeap({ std::make_tuple(cbuf[i], RESOURCE_VIEW::CONSTANTS_BUFFER, 0) });
-	WrapperDescriptorHeap *samplers = GlobalGFXAPI->createSamplerHeap({ std::make_pair(SAMPLER_TYPE::ANISOTROPIC, 0) });
-
-#ifdef GLBUILD
-	result->GLValue.Type = GL_TEXTURE_CUBE_MAP;
-	glGenTextures(1, &result->GLValue.Resource);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, result->GLValue.Resource);
-	for (int i = 0; i < 6; i++)
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F, (GLsizei)cubemap_size, (GLsizei)cubemap_size, 0, GL_BGRA, GL_FLOAT, 0);
-	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-	GLuint fbo;
-	glGenFramebuffers(1, &fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	glViewport(0, 0, (GLsizei)cubemap_size, (GLsizei)cubemap_size);
-	GLenum bufs[] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, bufs);
-#endif
-
-#if DXBUILD
-	HRESULT hr = Context::getInstance()->dev->CreateCommittedResource(
-		&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_MISC_NONE,
-		&CD3D12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT, (UINT)cubemap_size, (UINT)cubemap_size, 6, 8, 1, 0, D3D12_RESOURCE_MISC_ALLOW_RENDER_TARGET),
-		D3D12_RESOURCE_USAGE_RENDER_TARGET,
-		nullptr,
-		IID_PPV_ARGS(&result->D3DValue.resource)
-	);
-	result->D3DValue.description.TextureView.SRV = {};
-	result->D3DValue.description.TextureView.SRV.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	result->D3DValue.description.TextureView.SRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-	result->D3DValue.description.TextureView.SRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	result->D3DValue.description.TextureView.SRV.TextureCube.MipLevels = 8;
-
-
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CubeFaceRTT;
-
-	{
-		D3D12_DESCRIPTOR_HEAP_DESC dh = {};
-		dh.Type = D3D12_RTV_DESCRIPTOR_HEAP;
-		dh.NumDescriptors = 6 * 8;
-		hr = Context::getInstance()->dev->CreateDescriptorHeap(&dh, IID_PPV_ARGS(&CubeFaceRTT));
-	}
-
-	size_t index = 0, increment = Context::getInstance()->dev->GetDescriptorHandleIncrementSize(D3D12_RTV_DESCRIPTOR_HEAP);
-	for (unsigned mipmaplevel = 0; mipmaplevel < 8; mipmaplevel++)
-	{
-		for (unsigned face = 0; face < 6; face++)
-		{
-			D3D12_RENDER_TARGET_VIEW_DESC rtv = {};
-			rtv.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-			rtv.Texture2DArray.ArraySize = 1;
-			rtv.Texture2DArray.MipSlice = mipmaplevel;
-			rtv.Texture2DArray.FirstArraySlice = face;
-			Context::getInstance()->dev->CreateRenderTargetView(result->D3DValue.resource, &rtv, CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(index * increment)));
-			index++;
-		}
-	}
-	index = 0;
-#endif
-
-	GlobalGFXAPI->openCommandList(CommandList);
-	GlobalGFXAPI->setPipelineState(CommandList, PSO);
-	GlobalGFXAPI->setDescriptorHeap(CommandList, 3, samplers);
+	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
+	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
+	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap();
 
 	irr::core::matrix4 M[6] = {
-	  getPermutationMatrix(2, -1., 1, -1., 0, 1.),
-	  getPermutationMatrix(2, 1., 1, -1., 0, -1.),
-	  getPermutationMatrix(0, 1., 2, 1., 1, 1.),
-	  getPermutationMatrix(0, 1., 2, -1., 1, -1.),
-	  getPermutationMatrix(0, 1., 1, -1., 2, 1.),
-	  getPermutationMatrix(0, -1., 1, -1., 2, -1.),
+		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
+		getPermutationMatrix(2, 1., 1, -1., 0, -1.),
+		getPermutationMatrix(0, 1., 2, 1., 1, 1.),
+		getPermutationMatrix(0, 1., 2, -1., 1, -1.),
+		getPermutationMatrix(0, 1., 1, -1., 2, 1.),
+		getPermutationMatrix(0, -1., 1, -1., 2, -1.),
 	};
 
+	std::array<std::unique_ptr<buffer_t>, 6> permutation_matrix{};
 	for (unsigned i = 0; i < 6; i++)
 	{
-		memcpy(GlobalGFXAPI->mapConstantsBuffer(cbuf[i]), M[i].pointer(), 16 * sizeof(float));
-		GlobalGFXAPI->unmapConstantsBuffers(cbuf[i]);
+		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
+		unmap_buffer(dev, permutation_matrix[i].get());
 	}
+	std::unique_ptr<descriptor_storage_t> probeheap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 1 }, { RESOURCE_VIEW::CONSTANTS_BUFFER, 6 }, { RESOURCE_VIEW::UAV, 6 }});
+	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-#ifdef DXBUILD
-	Microsoft::WRL::ComPtr<ID3D12Resource> tbuffer[8];
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> tbufferheap[8];
+	start_command_list_recording(dev, command_list.get(), command_storage.get());
+
+//	GlobalGFXAPI->setPipelineState(CommandList, PSO);
+//	GlobalGFXAPI->setDescriptorHeap(CommandList, 3, samplers);
+
+
+	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
+//	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> tbufferheap[8];
 	for (unsigned i = 0; i < 8; i++)
 	{
-		hr = Context::getInstance()->dev->CreateCommittedResource(
-			&CD3D12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_MISC_NONE,
-			&CD3D12_RESOURCE_DESC::Buffer(1024 * 2 * sizeof(float)),
-			D3D12_RESOURCE_USAGE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&tbuffer[i])
-		);
+		sample_location_buffer[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-		D3D12_DESCRIPTOR_HEAP_DESC dh = {};
+		float roughness = .05f + .95f * i / 8.f;
+		float viewportSize = float(1 << (8 - i));
+		float *tmp = reinterpret_cast<float*>(map_buffer(dev, sample_location_buffer[i].get()));
+		for (unsigned i = 0; i < 1024; i++)
+		{
+			std::pair<float, float> sample = ImportanceSamplingGGX(HammersleySequence(i, 1024), roughness);
+			tmp[2 * i] = sample.first;
+			tmp[2 * i + 1] = sample.second;
+		}
+		unmap_buffer(dev, sample_location_buffer[i].get());
+
+/*		D3D12_DESCRIPTOR_HEAP_DESC dh = {};
 		dh.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
 		dh.NumDescriptors = 1;
 		dh.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
@@ -322,113 +263,32 @@ WrapperResource *generateSpecularCubemap(WrapperResource *probe)
 		srv.Buffer.NumElements = 1024;
 		srv.Buffer.StructureByteStride = 2 * sizeof(float);
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		Context::getInstance()->dev->CreateShaderResourceView(tbuffer[i].Get(), &srv, tbufferheap[i]->GetCPUDescriptorHandleForHeapStart());
+		Context::getInstance()->dev->CreateShaderResourceView(tbuffer[i].Get(), &srv, tbufferheap[i]->GetCPUDescriptorHandleForHeapStart());*/
 	}
-#endif
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		float roughness = .05f + .95f * level / 8.f;
-		float viewportSize = float(1 << (8 - level));
-
-		float *tmp = new float[2048];
-		for (unsigned i = 0; i < 1024; i++)
-		{
-			std::pair<float, float> sample = ImportanceSamplingGGX(HammersleySequence(i, 1024), roughness);
-			tmp[2 * i] = sample.first;
-			tmp[2 * i + 1] = sample.second;
-		}
-
-#ifdef GLBUILD
-		glBindVertexArray(0);
-		glActiveTexture(GL_TEXTURE1);
-		GLuint sampleTex, sampleBuffer;
-		glGenBuffers(1, &sampleBuffer);
-		glBindBuffer(GL_TEXTURE_BUFFER, sampleBuffer);
-		glBufferData(GL_TEXTURE_BUFFER, 2048 * sizeof(float), tmp, GL_STATIC_DRAW);
-		glGenTextures(1, &sampleTex);
-		glBindTexture(GL_TEXTURE_BUFFER, sampleTex);
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, sampleBuffer);
-#endif
-
-#ifdef DXBUILD
-		D3D12_RECT rect = {};
-		rect.left = 0;
-		rect.top = 0;
-		rect.bottom = (LONG)viewportSize;
-		rect.right = (LONG)viewportSize;
-
-		D3D12_VIEWPORT view = {};
-		view.Height = (FLOAT)viewportSize;
-		view.Width = (FLOAT)viewportSize;
-		view.TopLeftX = 0;
-		view.TopLeftY = 0;
-		view.MinDepth = 0;
-		view.MaxDepth = 1.;
-
-		void *tbuffermap;
-		tbuffer[level]->Map(0, nullptr, &tbuffermap);
-		memcpy(tbuffermap, tmp, 2048 * sizeof(float));
-		tbuffer[level]->Unmap(0, nullptr);
-
-		CommandList->D3DValue.CommandList->RSSetViewports(1, &view);
-		CommandList->D3DValue.CommandList->RSSetScissorRects(1, &rect);
-		CommandList->D3DValue.CommandList->SetGraphicsRootDescriptorTable(1, tbufferheap[level]->GetGPUDescriptorHandleForHeapStart());
-#endif
-
-		GlobalGFXAPI->setDescriptorHeap(CommandList, 2, probeheap);
-		GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, bigtri);
+//		CommandList->D3DValue.CommandList->SetGraphicsRootDescriptorTable(1, tbufferheap[level]->GetGPUDescriptorHandleForHeapStart());
+//		GlobalGFXAPI->setDescriptorHeap(CommandList, 2, probeheap);
+//		GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, bigtri);
 		for (unsigned face = 0; face < 6; face++)
 		{
-#ifdef GLBUILD
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, result->GLValue.Resource, level);
-			glViewport(0, 0, (GLsizei)viewportSize, (GLsizei)viewportSize);
-			GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			assert(status == GL_FRAMEBUFFER_COMPLETE);
-#endif
-
-#ifdef DXBUILD
-			CommandList->D3DValue.CommandList->SetRenderTargets(&CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(index * increment)), true, 1, nullptr);
-			index++;
-#endif
-			GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap[face]);
-			GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
+//			CommandList->D3DValue.CommandList->SetRenderTargets(&CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(index * increment)), true, 1, nullptr);
+//			index++;
+//			GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap[face]);
+//			GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
 		}
-
-#ifdef GLBUILD
-		glActiveTexture(GL_TEXTURE1);
-		glBindBuffer(GL_TEXTURE_BUFFER, 0);
-		glBindTexture(GL_TEXTURE_BUFFER, 0);
-		glDeleteTextures(1, &sampleTex);
-		glDeleteBuffers(1, &sampleBuffer);
-#endif
-
-		delete[] tmp;
 	}
 
-	GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList, { std::make_tuple(result, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC) });
-	GlobalGFXAPI->closeCommandList(CommandList);
-	GlobalGFXAPI->submitToQueue(CommandList);
+//	GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList, { std::make_tuple(result, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC) });
+	make_command_list_executable(command_list.get());
+	submit_executable_command_list(cmd_queue, command_list.get());
+	wait_for_command_queue_idle(dev, cmd_queue);
 
-
-	GlobalGFXAPI->releaseCommandList(CommandList);
-	GlobalGFXAPI->releasePSO(PSO);
-	GlobalGFXAPI->releaseIndexVertexBuffersSet(bigtri);
-	for (unsigned i = 0; i < 6; i++)
-	{
-		GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(cbufheap[i]);
-		GlobalGFXAPI->releaseConstantsBuffers(cbuf[i]);
-	}
-	GlobalGFXAPI->releaseCBVSRVUAVDescriptorHeap(probeheap);
-	GlobalGFXAPI->releaseSamplerHeap(samplers);
-
-#ifdef GLBUILD
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDeleteFramebuffers(1, &fbo);
-#endif
 	return result;
 }
 
+#if 0
 static float G1_Schlick(const irr::core::vector3df &V, const irr::core::vector3df &normal, float k)
 {
 	float NdotV = V.dotProduct(normal);
