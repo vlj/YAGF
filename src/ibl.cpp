@@ -204,11 +204,12 @@ struct PermutationMatrix
 std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t* cmd_queue, image_t *probe)
 {
 	size_t cubemap_size = 256;
-	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_render_target | usage_uav, nullptr);
 
 	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap();
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 1 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 6 },{ RESOURCE_VIEW::UAV, 6 } });
+	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
@@ -226,17 +227,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
 	}
-	std::unique_ptr<descriptor_storage_t> probeheap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 1 }, { RESOURCE_VIEW::CONSTANTS_BUFFER, 6 }, { RESOURCE_VIEW::UAV, 6 }});
-	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
-
-	start_command_list_recording(dev, command_list.get(), command_storage.get());
-
-//	GlobalGFXAPI->setPipelineState(CommandList, PSO);
-//	GlobalGFXAPI->setDescriptorHeap(CommandList, 3, samplers);
-
 
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
-//	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> tbufferheap[8];
 	for (unsigned i = 0; i < 8; i++)
 	{
 		sample_location_buffer[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -252,31 +244,51 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		}
 		unmap_buffer(dev, sample_location_buffer[i].get());
 
-/*		D3D12_DESCRIPTOR_HEAP_DESC dh = {};
-		dh.Type = D3D12_CBV_SRV_UAV_DESCRIPTOR_HEAP;
-		dh.NumDescriptors = 1;
-		dh.Flags = D3D12_DESCRIPTOR_HEAP_SHADER_VISIBLE;
-		hr = Context::getInstance()->dev->CreateDescriptorHeap(&dh, IID_PPV_ARGS(&tbufferheap[i]));
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srv.Buffer.FirstElement = 0;
 		srv.Buffer.NumElements = 1024;
 		srv.Buffer.StructureByteStride = 2 * sizeof(float);
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		Context::getInstance()->dev->CreateShaderResourceView(tbuffer[i].Get(), &srv, tbufferheap[i]->GetCPUDescriptorHandleForHeapStart());*/
+		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv,
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(input_heap->object->GetCPUDescriptorHandleForHeapStart())
+			.Offset(i, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 	}
+
+	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_render_target | usage_uav, nullptr);
+	for (unsigned level = 0; level < 8; level++)
+	{
+		for (unsigned face = 0; face < 6; face++)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = level;
+			desc.Texture2D.PlaneSlice = face;
+			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+			dev->object->CreateUnorderedAccessView(result->object, nullptr, &desc,
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(input_heap->object->GetCPUDescriptorHandleForHeapStart())
+				.Offset(8 + face + 6 * level, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+		}
+	}
+
+	start_command_list_recording(dev, command_list.get(), command_storage.get());
+	command_list->object->SetPipelineState(importance_sampling->object);
+	std::array<ID3D12DescriptorHeap*, 2> heaps{ input_heap->object, sampler_heap->object };
+	command_list->object->SetDescriptorHeaps(2, heaps.data());
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-//		CommandList->D3DValue.CommandList->SetGraphicsRootDescriptorTable(1, tbufferheap[level]->GetGPUDescriptorHandleForHeapStart());
-//		GlobalGFXAPI->setDescriptorHeap(CommandList, 2, probeheap);
-//		GlobalGFXAPI->setIndexVertexBuffersSet(CommandList, bigtri);
+		command_list->object->SetComputeRootDescriptorTable(1,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(input_heap->object->GetGPUDescriptorHandleForHeapStart())
+				.Offset(level, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 		for (unsigned face = 0; face < 6; face++)
 		{
-//			CommandList->D3DValue.CommandList->SetRenderTargets(&CubeFaceRTT->GetCPUDescriptorHandleForHeapStart().MakeOffsetted((INT)(index * increment)), true, 1, nullptr);
-//			index++;
-//			GlobalGFXAPI->setDescriptorHeap(CommandList, 0, cbufheap[face]);
-//			GlobalGFXAPI->drawInstanced(CommandList, 3, 1, 0, 0);
+			command_list->object->SetComputeRootDescriptorTable(2,
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(input_heap->object->GetGPUDescriptorHandleForHeapStart())
+					.Offset(8 + face + 6 * level, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+
+			dispatch(command_list.get(), 256, 256, 1);
 		}
 	}
 
