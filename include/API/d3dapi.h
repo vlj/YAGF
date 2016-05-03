@@ -37,6 +37,27 @@ using swap_chain_t = wrapper<IDXGISwapChain3>;
 using render_pass_t = void*;
 using clear_value_structure_t = D3D12_CLEAR_VALUE;
 
+struct allocated_descriptor_set
+{
+private:
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
+
+public:
+	allocated_descriptor_set(D3D12_CPU_DESCRIPTOR_HANDLE c, D3D12_GPU_DESCRIPTOR_HANDLE g) :cpu_handle(c), gpu_handle(g)
+	{ }
+
+	operator D3D12_CPU_DESCRIPTOR_HANDLE() const
+	{
+		return cpu_handle;
+	}
+
+	operator D3D12_GPU_DESCRIPTOR_HANDLE() const
+	{
+		return gpu_handle;
+	}
+};
+
 struct d3d12_framebuffer_t
 {
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtt_heap;
