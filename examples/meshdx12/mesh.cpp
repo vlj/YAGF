@@ -242,6 +242,9 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	//ibl
 	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
+	specular_cube = generateSpecularCubemap(dev.get(), cmdqueue.get(), skybox_texture.get());
+
+	create_image_view(dev.get(), cbv_srv_descriptors_heap.get(), 2, specular_cube.get(), 1, irr::video::ECF_R16G16B16A16F, D3D12_SRV_DIMENSION_TEXTURECUBE);
 #ifdef D3D12
 	create_constant_buffer_view(dev.get(), cbv_srv_descriptors_heap.get(), 8, sh_coefficients.get(), 27 * sizeof(float));
 #else

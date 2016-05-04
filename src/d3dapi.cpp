@@ -210,6 +210,8 @@ namespace
 			result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		if (flag & usage_depth_stencil)
 			result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		if (flag & usage_uav)
+			result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		return result;
 	}
 }
@@ -456,6 +458,16 @@ void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offse
 uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)
 {
 	return chain->object->GetCurrentBackBufferIndex();
+}
+
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index)
+{
+	return allocated_descriptor_set(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->object->GetCPUDescriptorHandleForHeapStart())
+			.Offset(starting_index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->object->GetGPUDescriptorHandleForHeapStart())
+			.Offset(starting_index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
+		);
 }
 
 void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue)

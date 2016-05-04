@@ -44,6 +44,8 @@ private:
 	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
 
 public:
+	allocated_descriptor_set() { }
+
 	allocated_descriptor_set(D3D12_CPU_DESCRIPTOR_HANDLE c, D3D12_GPU_DESCRIPTOR_HANDLE g) :cpu_handle(c), gpu_handle(g)
 	{ }
 

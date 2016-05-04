@@ -198,12 +198,32 @@ struct PermutationMatrix
 	float Matrix[16];
 };
 
+constexpr auto image_set_type = descriptor_set({
+	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1) },
+	shader_stage::all);
+
+constexpr auto face_set_type = descriptor_set({
+	range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) },
+	shader_stage::all);
+
+constexpr auto mipmap_set_type = descriptor_set({
+	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+	shader_stage::all);
+
+constexpr auto uav_set_type = descriptor_set({
+	range_of_descriptors(RESOURCE_VIEW::UAV, 3, 1) },
+	shader_stage::all);
+
+constexpr auto sampler_set_type = descriptor_set({
+	range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1) },
+	shader_stage::all);
+
 std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(device_t* dev, pipeline_layout_t pipeline_layout)
 {
 #ifdef D3D12
 	ID3D12PipelineState* result;
 	Microsoft::WRL::ComPtr<ID3DBlob> blob;
-	CHECK_HRESULT(D3DReadFileToBlob(L"importance_sampling.cso", blob.GetAddressOf()));
+	CHECK_HRESULT(D3DReadFileToBlob(L"importance_sampling_specular.cso", blob.GetAddressOf()));
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
 	pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
@@ -226,12 +246,13 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 
 	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
-	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { });
+	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { image_set_type, face_set_type, mipmap_set_type, uav_set_type, sampler_set_type });
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
-	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 1 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 6 },{ RESOURCE_VIEW::UAV, 6 } });
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 9 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 6 },{ RESOURCE_VIEW::UAV, 48 } });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
+	create_sampler(dev, sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
 
-	allocated_descriptor_set image_descriptors;
+	allocated_descriptor_set image_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 0);
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
@@ -246,6 +267,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
 	for (unsigned i = 0; i < 6; i++)
 	{
+		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1);
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
@@ -255,16 +277,17 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
 	for (unsigned i = 0; i < 8; i++)
 	{
-		sample_location_buffer[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 7);
+		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
 		float roughness = .05f + .95f * i / 8.f;
 		float viewportSize = float(1 << (8 - i));
 		float *tmp = reinterpret_cast<float*>(map_buffer(dev, sample_location_buffer[i].get()));
-		for (unsigned i = 0; i < 1024; i++)
+		for (unsigned j = 0; j < 1024; j++)
 		{
-			std::pair<float, float> sample = ImportanceSamplingGGX(HammersleySequence(i, 1024), roughness);
-			tmp[2 * i] = sample.first;
-			tmp[2 * i + 1] = sample.second;
+			std::pair<float, float> sample = ImportanceSamplingGGX(HammersleySequence(j, 1024), roughness);
+			tmp[2 * j] = sample.first;
+			tmp[2 * j + 1] = sample.second;
 		}
 		unmap_buffer(dev, sample_location_buffer[i].get());
 
@@ -274,8 +297,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		srv.Buffer.NumElements = 1024;
 		srv.Buffer.StructureByteStride = 2 * sizeof(float);
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv,
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(sample_buffer_descriptors[i]));
+		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
 	}
 
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_render_target | usage_uav, nullptr);
@@ -284,10 +306,13 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	{
 		for (unsigned face = 0; face < 6; face++)
 		{
+			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 15);
 			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipSlice = level;
-			desc.Texture2D.PlaneSlice = face;
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipSlice = level;
+			desc.Texture2DArray.ArraySize = 1;
+			desc.Texture2DArray.FirstArraySlice = face;
+			desc.Texture2DArray.PlaneSlice = 0;
 			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 			dev->object->CreateUnorderedAccessView(result->object, nullptr, &desc,
@@ -296,11 +321,13 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	}
 
 	start_command_list_recording(dev, command_list.get(), command_storage.get());
+	command_list->object->SetComputeRootSignature(importance_sampling_sig.Get());
 	command_list->object->SetPipelineState(importance_sampling->object);
 	std::array<ID3D12DescriptorHeap*, 2> heaps{ input_heap->object, sampler_heap->object };
 	command_list->object->SetDescriptorHeaps(2, heaps.data());
 
 	command_list->object->SetComputeRootDescriptorTable(0, image_descriptors);
+	command_list->object->SetComputeRootDescriptorTable(4, sampler_heap->object->GetGPUDescriptorHandleForHeapStart());
 
 	for (unsigned level = 0; level < 8; level++)
 	{
@@ -313,8 +340,6 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			dispatch(command_list.get(), 256, 256, 1);
 		}
 	}
-
-//	GlobalGFXAPI->writeResourcesTransitionBarrier(CommandList, { std::make_tuple(result, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC) });
 	make_command_list_executable(command_list.get());
 	submit_executable_command_list(cmd_queue, command_list.get());
 	wait_for_command_queue_idle(dev, cmd_queue);

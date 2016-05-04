@@ -1,27 +1,21 @@
-
-
-TextureCube tex : register(t0);
-sampler AnisotropicSampler : register(s0);
-
-tbuffer samplesBuffer : register(t1)
+TextureCube tex : register(t0, space0);
+cbuffer Matrix : register(b0, space1)
+{
+	float4x4 PermutationMatrix;
+};
+tbuffer samplesBuffer : register(t0, space2)
 {
   float2 samples[1024];
 };
+RWTexture2D<float4> output: register(u0, space3);
+sampler AnisotropicSampler : register(s0, space4);
 
-cbuffer Matrix : register(b0)
-{
-  float4x4 PermutationMatrix;
-};
 
-struct PS_INPUT
+[numthreads(1, 1, 1)]
+void main(uint3 DispatchId : SV_DispatchThreadID)
 {
-  float4 pos : SV_POSITION;
-  float2 uv : TEXCOORD0;
-};
-
-float4 main(PS_INPUT In) : SV_TARGET
-{
-  float3 RayDir = 2. * float3(In.uv, 1.) - 1.;
+	float2 uv = DispatchId.xy;
+  float3 RayDir = 2. * float3(uv, 1.) - 1.;
   RayDir = normalize(mul(PermutationMatrix, float4(RayDir, 0.)).xyz);
 
   float4 FinalColor = float4(0., 0., 0., 0.);
@@ -39,9 +33,8 @@ float4 main(PS_INPUT In) : SV_TARGET
     float3 L = 2 * dot(RayDir, H) * H - RayDir;
 
     float NdotL = clamp(dot(RayDir, L), 0., 1.);
-    FinalColor += tex.Sample(AnisotropicSampler, L) * NdotL;
+    FinalColor += tex.SampleLevel(AnisotropicSampler, L, 0) * NdotL;
     weight += NdotL;
   }
-
-  return FinalColor / weight;
+  output[uv] = FinalColor / weight;
 }

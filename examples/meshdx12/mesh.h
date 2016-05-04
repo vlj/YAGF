@@ -59,6 +59,7 @@ private:
 
 	std::unique_ptr<image_t> skybox_texture;
 	std::unique_ptr<buffer_t> sh_coefficients;
+	std::unique_ptr<image_t> specular_cube;
 #ifndef D3D12
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> object_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> scene_set;
