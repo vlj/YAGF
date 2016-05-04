@@ -28,6 +28,8 @@ using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
 using swap_chain_t = vulkan_wrapper::swapchain;
 using render_pass_t = vulkan_wrapper::render_pass;
 using clear_value_structure_t = void*;
+using allocated_descriptor_set = VkDescriptorSet;
+using descriptor_set_layout = vulkan_wrapper::pipeline_descriptor_set;
 
 struct vk_framebuffer
 {

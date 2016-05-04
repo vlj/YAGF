@@ -507,6 +507,26 @@ void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, ui
 	vkCmdSetScissor(command_list->object, 0, 1, &scissor);
 }
 
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layout)
+{
+	std::vector<VkDescriptorSetLayout> l;
+	for (const auto tmp : layout)
+	{
+		l.push_back(tmp->object);
+	}
+	return util::allocate_descriptor_sets(dev->object, heap->object, l);
+}
+
+allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t * dev, descriptor_storage_t * heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>& layouts)
+{
+	return allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, starting_index, layouts);
+}
+
+void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
+{
+	vkCmdBindDescriptorSets(cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
+}
+
 namespace
 {
 	VkIndexType get_index_type(irr::video::E_INDEX_TYPE type)

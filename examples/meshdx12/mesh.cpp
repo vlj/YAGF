@@ -153,10 +153,10 @@ void MeshSample::Init()
 	fbo[0] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 	fbo[1] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
-	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8);
-//	sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
-	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0);
-	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 5);
+	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8, { ibl_set.get() });
+	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0, { scene_set.get() });
+	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 5, { rtt_set.get() });
+	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), sampler_heap.get(), 0, { sampler_set.get() });
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
@@ -167,16 +167,15 @@ void MeshSample::Init()
 	depth_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, depth_buffer->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
-
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
-		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 4),
-		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 5),
-		structures::write_descriptor_set(rtt, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 6),
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ VkDescriptorBufferInfo{ scene_matrix->object, 0, sizeof(SceneData) } }, 7),
@@ -195,8 +194,6 @@ void MeshSample::Init()
 
 	std::unique_ptr<buffer_t> upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
-
-
 #ifndef D3D12
 	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
@@ -243,7 +240,7 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	//ibl
 	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
-	specular_cube = generateSpecularCubemap(dev.get(), cmdqueue.get(), skybox_texture.get());
+//	specular_cube = generateSpecularCubemap(dev.get(), cmdqueue.get(), skybox_texture.get());
 #ifdef D3D12
 	create_constant_buffer_view(dev.get(), ibl_descriptor, 0, sh_coefficients.get(), 27 * sizeof(float));
 #else
@@ -286,9 +283,6 @@ void MeshSample::fill_draw_commands()
 		info.renderArea.extent.width = width;
 		info.renderArea.extent.height = height;
 		vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
-
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 2, 1, &scene_descriptor, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 3, 1, &sampler_descriptors, 0, nullptr);
 #else // !D3D12
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtt_to_use = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
@@ -311,7 +305,8 @@ void MeshSample::fill_draw_commands()
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, objectpso);
-		bind_graphic_descriptor(current_cmd_list, 2, scene_descriptor);
+		bind_graphic_descriptor(current_cmd_list, 2, scene_descriptor, object_sig);
+		bind_graphic_descriptor(current_cmd_list, 3, sampler_descriptors, object_sig);
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
@@ -319,8 +314,6 @@ void MeshSample::fill_draw_commands()
 
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 0, 1, &rtt, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sunlight_sig->object, 1, 1, &scene_descriptor, 0, nullptr);
 #else
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
@@ -334,26 +327,22 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(dev.get(), current_cmd_list, normal_roughness_metalness.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev.get(), current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
-		bind_graphic_descriptor(current_cmd_list, 0, rtt_descriptors);
-		bind_graphic_descriptor(current_cmd_list, 1, scene_descriptor);
+		bind_graphic_descriptor(current_cmd_list, 0, rtt_descriptors, sunlight_sig);
+		bind_graphic_descriptor(current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
-#ifndef D3D12
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, ibl_sig->object, 0, 1, &rtt, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, ibl_sig->object, 1, 1, &scene_descriptor, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, ibl_sig->object, 2, 1, &ibl_descriptor, 0, nullptr);
-#else
+#ifdef D3D12
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
 #endif // !D3D12
-		bind_graphic_descriptor(current_cmd_list, 2, ibl_descriptor);
+		bind_graphic_descriptor(current_cmd_list, 0, rtt_descriptors, ibl_sig);
+		bind_graphic_descriptor(current_cmd_list, 1, scene_descriptor, ibl_sig);
+		bind_graphic_descriptor(current_cmd_list, 2, ibl_descriptor, ibl_sig);
 		set_graphic_pipeline(current_cmd_list, ibl_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 0, 1, &scene_descriptor, 0, nullptr);
-		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #else
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(dev.get(), current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
@@ -361,7 +350,8 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
-		bind_graphic_descriptor(current_cmd_list, 0, scene_descriptor);
+		bind_graphic_descriptor(current_cmd_list, 0, scene_descriptor, skybox_sig);
+		bind_graphic_descriptor(current_cmd_list, 1, sampler_descriptors, skybox_sig);
 		set_graphic_pipeline(current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);

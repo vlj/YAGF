@@ -243,6 +243,7 @@ std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(d
 }
 }
 
+#ifdef D3D12
 std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t* cmd_queue, image_t *probe)
 {
 	size_t cubemap_size = 256;
@@ -358,7 +359,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 
 	return result;
 }
-
+#endif
 #if 0
 static float G1_Schlick(const irr::core::vector3df &V, const irr::core::vector3df &normal, float k)
 {
