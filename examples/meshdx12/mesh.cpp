@@ -154,6 +154,9 @@ void MeshSample::Init()
 	fbo[1] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8);
+//	sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
+	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0);
+	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 5);
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
@@ -164,9 +167,6 @@ void MeshSample::Init()
 	depth_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, depth_buffer->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
-	sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
-	scene_descriptor = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { scene_set->object });
-	rtt = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { rtt_set->object });
 
 	util::update_descriptor_sets(dev->object,
 	{
@@ -307,7 +307,7 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(2, cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart());
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(2, scene_descriptor);
 		current_cmd_list->object->SetGraphicsRootDescriptorTable(3,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
@@ -330,11 +330,8 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(sunlight_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(0,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart())
-			.Offset(5, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart()));
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(0, rtt_descriptors);
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(1, scene_descriptor);
 
 		set_pipeline_barrier(dev.get(), current_cmd_list, diffuse_color.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev.get(), current_cmd_list, normal_roughness_metalness.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -363,8 +360,7 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(dev.get(), current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(0,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart()));
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(0, scene_descriptor);
 		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif

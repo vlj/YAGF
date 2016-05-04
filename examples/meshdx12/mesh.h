@@ -68,9 +68,7 @@ private:
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> model_set;
 	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> ibl_set;
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
-	VkDescriptorSet sampler_descriptors;
-	VkDescriptorSet rtt;
-	VkDescriptorSet scene_descriptor;
+
 	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
@@ -79,6 +77,9 @@ private:
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
 	allocated_descriptor_set ibl_descriptor;
+	allocated_descriptor_set sampler_descriptors;
+	allocated_descriptor_set rtt_descriptors;
+	allocated_descriptor_set scene_descriptor;
 
 	std::unique_ptr<image_t> depth_buffer;
 	std::unique_ptr<image_t> diffuse_color;
