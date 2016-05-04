@@ -247,7 +247,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #ifdef D3D12
 	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { image_set_type, face_set_type, mipmap_set_type, uav_set_type, sampler_set_type });
 #else
-
+	pipeline_layout_t importance_sampling_sig;
 #endif
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
 	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 9 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV, 48 } });

@@ -41,6 +41,9 @@
     <None Include="..\shaders\ibl.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\importance_sampling_specular.comp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
