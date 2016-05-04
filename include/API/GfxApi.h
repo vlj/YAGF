@@ -418,6 +418,7 @@ std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t* dev, u
 allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layouts);
 allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layouts);
 void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig);
+void bind_compute_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig);
 void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format);
 //framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets);
@@ -443,6 +444,7 @@ enum class depth_stencil_aspect
 void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth);
 void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
 void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipeline);
+void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t* pipeline);
 
 void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type);
 void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size);

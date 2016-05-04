@@ -77,27 +77,22 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 
 	std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
 	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
-	allocated_descriptor_set descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0, { object_set.get() });
+	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0, { object_set.get() });
+	allocated_descriptor_set sampler_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, sampler_heap.get(), 0, { sampler_set.get() });
 #ifdef D3D12
-	create_constant_buffer_view(dev, descriptors, 0, cbuf.get(), sizeof(int));
-	create_image_view(dev, descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_constant_buffer_view(dev, input_descriptors, 0, cbuf.get(), sizeof(int));
+	create_image_view(dev, input_descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 	create_buffer_uav_view(dev, srv_cbv_uav_heap.get(), 2, sh_buffer.get(), sizeof(SH));
+	create_sampler(dev, sampler_descriptor, 0, SAMPLER_TYPE::ANISOTROPIC);
 
-	command_list->object->SetPipelineState(compute_sh_pso->object);
 	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
 	command_list->object->SetDescriptorHeaps(heaps.size(), heaps.data());
-	command_list->object->SetComputeRootDescriptorTable(0, srv_cbv_uav_heap->object->GetGPUDescriptorHandleForHeapStart());
-	command_list->object->SetComputeRootDescriptorTable(1, sampler_heap->object->GetGPUDescriptorHandleForHeapStart());
-
 	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
 
 #else
-	VkDescriptorSet sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
-	VkDescriptorSet input_descriptors = descriptors;
 	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
 	std::unique_ptr<vulkan_wrapper::image_view> skybox_view = std::make_unique<vulkan_wrapper::image_view>(dev->object, probe->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
@@ -105,7 +100,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 
 	util::update_descriptor_sets(dev->object,
 	{
-		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+		structures::write_descriptor_set(sampler_descriptor, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ VkDescriptorBufferInfo{ cbuf->object, 0, sizeof(int) } }, 0),
@@ -114,11 +109,11 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			{ VkDescriptorBufferInfo{ sh_buffer->object, 0, sizeof(SH) } }, 2)
 	});
-
-	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_pso->object);
-	vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_sig->object, 0, 1, &input_descriptors, 0, nullptr);
-	vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #endif
+	set_compute_pipeline(command_list.get(), compute_sh_pso.get());
+	bind_compute_descriptor(command_list.get(), 0, input_descriptors, compute_sh_sig);
+	bind_compute_descriptor(command_list.get(), 1, sampler_descriptor, compute_sh_sig);
+
 	dispatch(command_list.get(), 1, 1, 1);
 //	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
 

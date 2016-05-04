@@ -430,6 +430,11 @@ void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipelin
 	command_list->object->SetPipelineState(pipeline.Get());
 }
 
+void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t* pipeline)
+{
+	command_list->object->SetPipelineState(pipeline->object);
+}
+
 void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list)
 {
 	command_queue->object->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list->object));
@@ -483,6 +488,11 @@ allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t* dev
 void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t)
 {
 	cmd_list->object->SetGraphicsRootDescriptorTable(bindpoint, descriptor_set);
+}
+
+void bind_compute_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
+{
+	cmd_list->object->SetComputeRootDescriptorTable(bindpoint, descriptor_set);
 }
 
 void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue)

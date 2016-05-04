@@ -342,8 +342,6 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(dev.get(), current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		bind_graphic_descriptor(current_cmd_list, 0, scene_descriptor, skybox_sig);
 		bind_graphic_descriptor(current_cmd_list, 1, sampler_descriptors, skybox_sig);

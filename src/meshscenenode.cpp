@@ -45,8 +45,6 @@ namespace irr
 			create_constant_buffer_view(dev, object_descriptor_set, 0, object_matrix.get(), sizeof(ObjectData));
 			create_constant_buffer_view(dev, object_descriptor_set, 1, object_matrix.get(), sizeof(ObjectData));
 #else
-
-
 			util::update_descriptor_sets(dev->object,
 			{
 				structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

@@ -485,6 +485,11 @@ void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipelin
 	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);
 }
 
+void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t* pipeline)
+{
+	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->object);
+}
+
 void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth)
 {
 	VkViewport viewport = {};
@@ -525,6 +530,11 @@ allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t * de
 void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
 {
 	vkCmdBindDescriptorSets(cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
+}
+
+void bind_compute_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
+{
+	vkCmdBindDescriptorSets(cmd_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
 }
 
 namespace
