@@ -238,21 +238,29 @@ std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(d
 }
 }
 
-#if 0
 std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t* cmd_queue, image_t *probe)
 {
 	size_t cubemap_size = 256;
 
 	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
+#ifdef D3D12
 	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { image_set_type, face_set_type, mipmap_set_type, uav_set_type, sampler_set_type });
+#else
+
+#endif
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
 	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 9 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV, 48 } });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
-	create_sampler(dev, sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
 
-	allocated_descriptor_set image_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 0);
+	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, sampler_heap.get(), 0, { nullptr });
+	allocated_descriptor_set image_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 0, { nullptr });
+
+#ifdef D3D12
+	create_sampler(dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 	create_image_view(dev, image_descriptors, 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+#else
+#endif
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
@@ -267,11 +275,14 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1);
+		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1, { nullptr });
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
+#ifdef D3D12
 		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 0, permutation_matrix[i].get(), sizeof(PermutationMatrix));
+#else
+#endif
 	}
 
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
@@ -279,7 +290,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
 	for (unsigned i = 0; i < 8; i++)
 	{
-		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 7);
+		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 7, { nullptr });
 		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		per_level_cbuffer[i] = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
@@ -287,7 +298,6 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		float viewportSize = float(1 << (8 - i));
 		*sz = viewportSize;
 		unmap_buffer(dev, per_level_cbuffer[i].get());
-		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 0, per_level_cbuffer[i].get(), sizeof(float));
 
 		float roughness = .05f + .95f * i / 8.f;
 		float *tmp = reinterpret_cast<float*>(map_buffer(dev, sample_location_buffer[i].get()));
@@ -298,7 +308,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			tmp[2 * j + 1] = sample.second;
 		}
 		unmap_buffer(dev, sample_location_buffer[i].get());
-
+#ifdef D3D12
+		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 0, per_level_cbuffer[i].get(), sizeof(float));
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srv.Buffer.FirstElement = 0;
@@ -306,6 +317,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		srv.Buffer.StructureByteStride = 2 * sizeof(float);
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
+#else
+#endif
 	}
 
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
@@ -314,7 +327,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	{
 		for (unsigned face = 0; face < 6; face++)
 		{
-			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 23);
+			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 23, {nullptr});
+#ifdef D3D12
 			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 			desc.Texture2DArray.MipSlice = level;
@@ -325,25 +339,31 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 
 			dev->object->CreateUnorderedAccessView(result->object, nullptr, &desc,
 				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
+#else
+#endif
 		}
 	}
 
 	start_command_list_recording(dev, command_list.get(), command_storage.get());
+	set_compute_pipeline(command_list.get(), importance_sampling.get());
+#ifdef D3D12
 	command_list->object->SetComputeRootSignature(importance_sampling_sig.Get());
-	command_list->object->SetPipelineState(importance_sampling->object);
 	std::array<ID3D12DescriptorHeap*, 2> heaps{ input_heap->object, sampler_heap->object };
 	command_list->object->SetDescriptorHeaps(2, heaps.data());
+#else
+#endif
 
-	command_list->object->SetComputeRootDescriptorTable(0, image_descriptors);
-	command_list->object->SetComputeRootDescriptorTable(4, sampler_heap->object->GetGPUDescriptorHandleForHeapStart());
+
+	bind_compute_descriptor(command_list.get(), 0, image_descriptors, nullptr);
+	bind_compute_descriptor(command_list.get(), 4, sampler_descriptors, nullptr);
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		command_list->object->SetComputeRootDescriptorTable(2, sample_buffer_descriptors[level]);
+		bind_compute_descriptor(command_list.get(), 2, sample_buffer_descriptors[level], nullptr);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			command_list->object->SetComputeRootDescriptorTable(1, permutation_matrix_descriptors[face]);
-			command_list->object->SetComputeRootDescriptorTable(3, level_face_descriptor[face + 6 * level]);
+			bind_compute_descriptor(command_list.get(), 1, permutation_matrix_descriptors[face], nullptr);
+			bind_compute_descriptor(command_list.get(), 3, level_face_descriptor[face + 6 * level], nullptr);
 
 			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
 		}
@@ -354,7 +374,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 
 	return result;
 }
-#endif
+
 #if 0
 static float G1_Schlick(const irr::core::vector3df &V, const irr::core::vector3df &normal, float k)
 {
