@@ -145,7 +145,6 @@ namespace irr
 #ifdef D3D12
 				create_image_view(dev, mesh_descriptor, 0, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
-				mesh_descriptor_set.push_back(mesh_descriptor);
 				auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 					structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
 				Textures_views.push_back(img_view);
