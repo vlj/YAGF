@@ -11,10 +11,10 @@ RWTexture2D<float4> output: register(u0, space3);
 sampler AnisotropicSampler : register(s0, space4);
 
 
-[numthreads(1, 1, 1)]
+[numthreads(32, 32, 1)]
 void main(uint3 DispatchId : SV_DispatchThreadID)
 {
-	float2 uv = DispatchId.xy;
+	float2 uv = DispatchId.xy / 1024.;
   float3 RayDir = 2. * float3(uv, 1.) - 1.;
   RayDir = normalize(mul(PermutationMatrix, float4(RayDir, 0.)).xyz);
 
@@ -33,8 +33,8 @@ void main(uint3 DispatchId : SV_DispatchThreadID)
     float3 L = 2 * dot(RayDir, H) * H - RayDir;
 
     float NdotL = clamp(dot(RayDir, L), 0., 1.);
-    FinalColor += tex.SampleLevel(AnisotropicSampler, L, 0) * NdotL;
+	FinalColor += tex.SampleLevel(AnisotropicSampler, L, 0) * NdotL;
     weight += NdotL;
   }
-  output[uv] = FinalColor / weight;
+  output[DispatchId.xy] = FinalColor / weight;
 }

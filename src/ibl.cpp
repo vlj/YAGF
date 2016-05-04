@@ -300,7 +300,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
 	}
 
-	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_render_target | usage_uav, nullptr);
+	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
 	std::array<allocated_descriptor_set, 48> level_face_descriptor;
 	for (unsigned level = 0; level < 8; level++)
 	{
@@ -335,6 +335,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		for (unsigned face = 0; face < 6; face++)
 		{
 			command_list->object->SetComputeRootDescriptorTable(2,
+				CD3DX12_GPU_DESCRIPTOR_HANDLE(permutation_matrix_descriptors[face]));
+			command_list->object->SetComputeRootDescriptorTable(3,
 				CD3DX12_GPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
 
 			dispatch(command_list.get(), 256, 256, 1);
