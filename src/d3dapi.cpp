@@ -321,7 +321,7 @@ void create_sampler(device_t* dev, descriptor_storage_t* storage, uint32_t index
 	dev->object->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
 }
 
-void create_image_view(device_t* dev, descriptor_storage_t* storage, uint32_t index, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
+void create_image_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
 {
 	uint32_t stride = dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
@@ -332,7 +332,7 @@ void create_image_view(device_t* dev, descriptor_storage_t* storage, uint32_t in
 	if (dim == D3D12_SRV_DIMENSION_TEXTURE2D)
 		desc.Texture2D.MipLevels = mip_levels;
 	desc.Format = get_dxgi_samplable_format(fmt);
-	dev->object->CreateShaderResourceView(img->object, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
+	dev->object->CreateShaderResourceView(img->object, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, stride));
 }
 
 void create_buffer_uav_view(device_t * dev, descriptor_storage_t * storage, uint32_t index, buffer_t * buffer, uint32_t size)

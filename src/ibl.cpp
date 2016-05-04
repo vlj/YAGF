@@ -80,7 +80,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	allocated_descriptor_set descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0);
 
 	create_constant_buffer_view(dev, descriptors, 0, cbuf.get(), sizeof(int));
-	create_image_view(dev, srv_cbv_uav_heap.get(), 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_image_view(dev, descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 	create_buffer_uav_view(dev, srv_cbv_uav_heap.get(), 2, sh_buffer.get(), sizeof(SH));
 
 	command_list->object->SetPipelineState(compute_sh_pso->object);
@@ -256,7 +256,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	create_sampler(dev, sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
 
 	allocated_descriptor_set image_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 0);
-	create_image_view(dev, input_heap.get(), 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_image_view(dev, image_descriptors, 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),

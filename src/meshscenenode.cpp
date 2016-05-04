@@ -140,8 +140,10 @@ namespace irr
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
+				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 9 + texture_id);
+				mesh_descriptor_set.push_back(mesh_descriptor);
 #ifdef D3D12
-				create_image_view(dev, heap, 9 + texture_id, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
+				create_image_view(dev, mesh_descriptor, 0, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
 				VkDescriptorSet mesh_descriptor = util::allocate_descriptor_sets(dev->object, heap->object, { model_set->object });
 				mesh_descriptor_set.push_back(mesh_descriptor);
@@ -179,10 +181,9 @@ namespace irr
 
 			for (unsigned i = 0; i < meshOffset.size(); i++)
 			{
+				bind_graphic_descriptor(current_cmd_list, 0, mesh_descriptor_set[texture_mapping[i]]);
 #ifdef D3D12
-				current_cmd_list->object->SetGraphicsRootDescriptorTable(0,
-					CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->object->GetGPUDescriptorHandleForHeapStart())
-					.Offset(texture_mapping[i] + 9, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+
 #else
 				vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 0, 1, &mesh_descriptor_set[texture_mapping[i]], 0, nullptr);
 #endif

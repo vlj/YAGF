@@ -210,12 +210,9 @@ void MeshSample::Init()
 	// scene
 	create_constant_buffer_view(dev.get(), scene_descriptor, 0, scene_matrix.get(), sizeof(SceneData));
 	create_constant_buffer_view(dev.get(), scene_descriptor, 1, sun_data.get(), sizeof(7 * sizeof(float)));
-	create_image_view(dev.get(), cbv_srv_descriptors_heap.get(), 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_image_view(dev.get(), scene_descriptor, 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// rtt
-	create_image_view(dev.get(), cbv_srv_descriptors_heap.get(), 5, diffuse_color.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev.get(), cbv_srv_descriptors_heap.get(), 6, normal_roughness_metalness.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev.get(), cbv_srv_descriptors_heap.get(), 7, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 
 	create_sampler(dev.get(), sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
