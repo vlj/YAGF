@@ -307,12 +307,11 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(2, scene_descriptor);
 		current_cmd_list->object->SetGraphicsRootDescriptorTable(3,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, objectpso);
-
+		bind_graphic_descriptor(current_cmd_list, 2, scene_descriptor);
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
@@ -330,13 +329,13 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(sunlight_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(0, rtt_descriptors);
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(1, scene_descriptor);
 
 		set_pipeline_barrier(dev.get(), current_cmd_list, diffuse_color.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev.get(), current_cmd_list, normal_roughness_metalness.get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(dev.get(), current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
+		bind_graphic_descriptor(current_cmd_list, 0, rtt_descriptors);
+		bind_graphic_descriptor(current_cmd_list, 1, scene_descriptor);
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
@@ -346,9 +345,8 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, ibl_sig->object, 2, 1, &ibl_descriptor, 0, nullptr);
 #else
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(2, ibl_descriptor);
-
 #endif // !D3D12
+		bind_graphic_descriptor(current_cmd_list, 2, ibl_descriptor);
 		set_graphic_pipeline(current_cmd_list, ibl_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
@@ -360,10 +358,10 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(dev.get(), current_cmd_list, depth_buffer.get(), RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(0, scene_descriptor);
 		current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
+		bind_graphic_descriptor(current_cmd_list, 0, scene_descriptor);
 		set_graphic_pipeline(current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);

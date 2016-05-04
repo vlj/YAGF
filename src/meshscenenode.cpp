@@ -169,9 +169,7 @@ namespace irr
 		void IMeshSceneNode::fill_draw_command(device_t* dev, command_list_t* current_cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap)
 		{
 #ifdef D3D12
-			current_cmd_list->object->SetGraphicsRootDescriptorTable(1,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->object->GetGPUDescriptorHandleForHeapStart())
-				.Offset(3, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+			current_cmd_list->object->SetGraphicsRootDescriptorTable(1, object_descriptor_set);
 #else
 			vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, object_sig->object, 1, 1, &object_descriptor_set, 0, nullptr);
 #endif // D3D12
