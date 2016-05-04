@@ -253,6 +253,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	create_sampler(dev, sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
 
 	allocated_descriptor_set image_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 0);
+	create_image_view(dev, input_heap.get(), 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
@@ -268,9 +269,11 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	for (unsigned i = 0; i < 6; i++)
 	{
 		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1);
+
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
+		create_constant_buffer_view(dev, input_heap.get(), i + 1, permutation_matrix[i].get(), sizeof(PermutationMatrix));
 	}
 
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
@@ -331,13 +334,11 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		command_list->object->SetComputeRootDescriptorTable(1, sample_buffer_descriptors[level]);
+		command_list->object->SetComputeRootDescriptorTable(2, sample_buffer_descriptors[level]);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			command_list->object->SetComputeRootDescriptorTable(2,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(permutation_matrix_descriptors[face]));
-			command_list->object->SetComputeRootDescriptorTable(3,
-				CD3DX12_GPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
+			command_list->object->SetComputeRootDescriptorTable(1, permutation_matrix_descriptors[face]);
+			command_list->object->SetComputeRootDescriptorTable(3, level_face_descriptor[face + 6 * level]);
 
 			dispatch(command_list.get(), 256, 256, 1);
 		}
