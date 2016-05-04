@@ -77,7 +77,9 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
 
 #ifdef D3D12
-	create_constant_buffer_view(dev, srv_cbv_uav_heap.get(), 0, cbuf.get(), sizeof(int));
+	allocated_descriptor_set descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0);
+
+	create_constant_buffer_view(dev, descriptors, 0, cbuf.get(), sizeof(int));
 	create_image_view(dev, srv_cbv_uav_heap.get(), 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 	create_buffer_uav_view(dev, srv_cbv_uav_heap.get(), 2, sh_buffer.get(), sizeof(SH));
 
@@ -273,7 +275,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
-		create_constant_buffer_view(dev, input_heap.get(), i + 1, permutation_matrix[i].get(), sizeof(PermutationMatrix));
+		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 0, permutation_matrix[i].get(), sizeof(PermutationMatrix));
 	}
 
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
@@ -289,7 +291,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		float viewportSize = float(1 << (8 - i));
 		*sz = viewportSize;
 		unmap_buffer(dev, per_level_cbuffer[i].get());
-		create_constant_buffer_view(dev, input_heap.get(), 2 * i + 1 + 7, per_level_cbuffer[i].get(), sizeof(float));
+		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 0, per_level_cbuffer[i].get(), sizeof(float));
 
 		float roughness = .05f + .95f * i / 8.f;
 		float *tmp = reinterpret_cast<float*>(map_buffer(dev, sample_location_buffer[i].get()));

@@ -242,13 +242,13 @@ framebuffer_t create_frame_buffer(device_t* dev, std::vector<std::tuple<image_t*
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
 
-void create_constant_buffer_view(device_t* dev, descriptor_storage_t* storage, uint32_t index, buffer_t* buffer, uint32_t buffer_size)
+void create_constant_buffer_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, buffer_t* buffer, uint32_t buffer_size)
 {
 	uint32_t stride = dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = buffer->object->GetGPUVirtualAddress();
 	desc.SizeInBytes = std::max<uint32_t>(256, buffer_size);
-	dev->object->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
+	dev->object->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
 }
 
 void reset_command_list_storage(device_t*, command_list_storage_t* storage)

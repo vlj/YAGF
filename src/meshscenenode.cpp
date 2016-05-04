@@ -41,12 +41,13 @@ namespace irr
 			: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3);
 #ifdef D3D12
 			// object
-			create_constant_buffer_view(dev, heap, 3, object_matrix.get(), sizeof(ObjectData));
-			create_constant_buffer_view(dev, heap, 4, object_matrix.get(), sizeof(ObjectData));
+			create_constant_buffer_view(dev, object_descriptor_set, 0, object_matrix.get(), sizeof(ObjectData));
+			create_constant_buffer_view(dev, object_descriptor_set, 1, object_matrix.get(), sizeof(ObjectData));
 #else
-			object_descriptor_set = util::allocate_descriptor_sets(dev->object, heap->object, { object_set->object });
+
 
 			util::update_descriptor_sets(dev->object,
 			{

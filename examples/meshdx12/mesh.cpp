@@ -208,8 +208,8 @@ void MeshSample::Init()
 	});
 #else
 	// scene
-	create_constant_buffer_view(dev.get(), cbv_srv_descriptors_heap.get(), 0, scene_matrix.get(), sizeof(SceneData));
-	create_constant_buffer_view(dev.get(), cbv_srv_descriptors_heap.get(), 1, sun_data.get(), sizeof(7 * sizeof(float)));
+	create_constant_buffer_view(dev.get(), scene_descriptor, 0, scene_matrix.get(), sizeof(SceneData));
+	create_constant_buffer_view(dev.get(), scene_descriptor, 1, sun_data.get(), sizeof(7 * sizeof(float)));
 	create_image_view(dev.get(), cbv_srv_descriptors_heap.get(), 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// rtt
@@ -245,7 +245,7 @@ void MeshSample::Init()
 	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
 	specular_cube = generateSpecularCubemap(dev.get(), cmdqueue.get(), skybox_texture.get());
 #ifdef D3D12
-	create_constant_buffer_view(dev.get(), cbv_srv_descriptors_heap.get(), 8, sh_coefficients.get(), 27 * sizeof(float));
+	create_constant_buffer_view(dev.get(), ibl_descriptor, 0, sh_coefficients.get(), 27 * sizeof(float));
 #else
 	util::update_descriptor_sets(dev->object,
 	{

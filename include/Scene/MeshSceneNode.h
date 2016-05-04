@@ -43,11 +43,13 @@ namespace irr
 			std::vector<std::unique_ptr<image_t>> Textures;
 
 			std::unique_ptr<buffer_t> object_matrix;
+
+			allocated_descriptor_set object_descriptor_set;
 #ifndef D3D12
 			std::vector<VkDescriptorSet> texture_descriptor_set;
 			std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
 			std::vector<VkDescriptorSet> mesh_descriptor_set;
-			VkDescriptorSet object_descriptor_set;
+
 #endif
 		public:
 
