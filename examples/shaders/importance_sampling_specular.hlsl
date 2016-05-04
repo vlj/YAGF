@@ -6,12 +6,15 @@ cbuffer Matrix : register(b0, space1)
 Buffer<float2> samplesBuffer : register(t0, space2);
 RWTexture2D<float4> output: register(u0, space3);
 sampler AnisotropicSampler : register(s0, space4);
-
+cbuffer _Size : register(b0, space5)
+{
+	float size;
+};
 
 [numthreads(8, 8, 1)]
 void main(uint3 DispatchId : SV_DispatchThreadID)
 {
-	float2 uv = DispatchId.xy / 256.;
+	float2 uv = DispatchId.xy / size;
   float3 RayDir = 2. * float3(uv, 1.) - 1.;
   RayDir = normalize(mul(PermutationMatrix, float4(RayDir, 0.)).xyz);
 

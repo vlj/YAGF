@@ -207,7 +207,8 @@ constexpr auto face_set_type = descriptor_set({
 	shader_stage::all);
 
 constexpr auto mipmap_set_type = descriptor_set({
-	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1),
+	range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 5, 1) },
 	shader_stage::all);
 
 constexpr auto uav_set_type = descriptor_set({
@@ -248,7 +249,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
 	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { image_set_type, face_set_type, mipmap_set_type, uav_set_type, sampler_set_type });
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
-	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 9 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 6 },{ RESOURCE_VIEW::UAV, 48 } });
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 9 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV, 48 } });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 	create_sampler(dev, sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
 
@@ -269,7 +270,6 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	for (unsigned i = 0; i < 6; i++)
 	{
 		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1);
-
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
@@ -277,14 +277,21 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	}
 
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
+	std::array<std::unique_ptr<buffer_t>, 8> per_level_cbuffer{};
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
 	for (unsigned i = 0; i < 8; i++)
 	{
-		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 7);
+		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 7);
 		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		per_level_cbuffer[i] = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+
+		float* sz = (float*)map_buffer(dev, per_level_cbuffer[i].get());
+		float viewportSize = float(1 << (8 - i));
+		*sz = viewportSize;
+		unmap_buffer(dev, per_level_cbuffer[i].get());
+		create_constant_buffer_view(dev, input_heap.get(), 2 * i + 1 + 7, per_level_cbuffer[i].get(), sizeof(float));
 
 		float roughness = .05f + .95f * i / 8.f;
-		float viewportSize = float(1 << (8 - i));
 		float *tmp = reinterpret_cast<float*>(map_buffer(dev, sample_location_buffer[i].get()));
 		for (unsigned j = 0; j < 1024; j++)
 		{
@@ -309,7 +316,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	{
 		for (unsigned face = 0; face < 6; face++)
 		{
-			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 15);
+			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 23);
 			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 			desc.Texture2DArray.MipSlice = level;
@@ -340,7 +347,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			command_list->object->SetComputeRootDescriptorTable(1, permutation_matrix_descriptors[face]);
 			command_list->object->SetComputeRootDescriptorTable(3, level_face_descriptor[face + 6 * level]);
 
-			dispatch(command_list.get(), 256, 256, 1);
+			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
 		}
 	}
 	make_command_list_executable(command_list.get());
