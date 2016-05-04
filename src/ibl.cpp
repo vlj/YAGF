@@ -97,7 +97,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 
 #else
 	VkDescriptorSet sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
-	VkDescriptorSet input_descriptors = util::allocate_descriptor_sets(dev->object, srv_cbv_uav_heap->object, { object_set->object });
+	VkDescriptorSet input_descriptors = descriptors;
 	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
 	std::unique_ptr<vulkan_wrapper::image_view> skybox_view = std::make_unique<vulkan_wrapper::image_view>(dev->object, probe->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
