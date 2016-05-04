@@ -35,7 +35,7 @@ namespace
 		CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 		return std::make_unique<compute_pipeline_state_t>(result);
 #else
-		vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\computesh.spv");
+		vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\importance_sampling_specular.spv");
 		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
 		return std::make_unique<compute_pipeline_state_t>(dev->object, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
 #endif // D3D12
