@@ -118,17 +118,17 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	vkCmdBindDescriptorSets(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, compute_sh_sig->object, 1, 1, &sampler_descriptors, 0, nullptr);
 #endif
 	dispatch(command_list.get(), 1, 1, 1);
-	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
+//	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
 
 	make_command_list_executable(command_list.get());
 	submit_executable_command_list(cmd_queue, command_list.get());
 	// for debug
 	wait_for_command_queue_idle(dev, cmd_queue);
-	SHCoefficients Result;
+/*	SHCoefficients Result;
 	float* Shval = (float*)map_buffer(dev, sh_buffer_readback.get());
 	memcpy(Result.Blue, Shval, 9 * sizeof(float));
 	memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
-	memcpy(Result.Red, &Shval[18], 9 * sizeof(float));
+	memcpy(Result.Red, &Shval[18], 9 * sizeof(float));*/
 
 	return std::move(sh_buffer);
 }

@@ -71,13 +71,15 @@ private:
 	VkDescriptorSet sampler_descriptors;
 	VkDescriptorSet rtt;
 	VkDescriptorSet scene_descriptor;
-	VkDescriptorSet ibl_descriptor;
 	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
 #endif
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
+
+	allocated_descriptor_set ibl_descriptor;
+
 	std::unique_ptr<image_t> depth_buffer;
 	std::unique_ptr<image_t> diffuse_color;
 	std::unique_ptr<image_t> normal_roughness_metalness;

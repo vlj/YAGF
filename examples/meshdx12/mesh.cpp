@@ -152,6 +152,8 @@ void MeshSample::Init()
 
 	fbo[0] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 	fbo[1] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+
+	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8);
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
@@ -165,7 +167,6 @@ void MeshSample::Init()
 	sampler_descriptors = util::allocate_descriptor_sets(dev->object, sampler_heap->object, { sampler_set->object });
 	scene_descriptor = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { scene_set->object });
 	rtt = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { rtt_set->object });
-	ibl_descriptor = util::allocate_descriptor_sets(dev->object, cbv_srv_descriptors_heap->object, { ibl_set->object });
 
 	util::update_descriptor_sets(dev->object,
 	{
@@ -348,9 +349,7 @@ void MeshSample::fill_draw_commands()
 		vkCmdBindDescriptorSets(current_cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, ibl_sig->object, 2, 1, &ibl_descriptor, 0, nullptr);
 #else
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(2,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_srv_descriptors_heap->object->GetGPUDescriptorHandleForHeapStart())
-			.Offset(8, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+		current_cmd_list->object->SetGraphicsRootDescriptorTable(2, ibl_descriptor);
 
 #endif // !D3D12
 		set_graphic_pipeline(current_cmd_list, ibl_pso);
