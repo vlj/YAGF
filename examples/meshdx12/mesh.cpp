@@ -156,7 +156,7 @@ void MeshSample::Init()
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8, { ibl_set.get() });
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0, { scene_set.get() });
 	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 5, { rtt_set.get() });
-	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), sampler_heap.get(), 0, { sampler_set.get() });
+	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev.get(), sampler_heap.get(), 0, { sampler_set.get() });
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
@@ -187,9 +187,7 @@ void MeshSample::Init()
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
 	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev.get(), model, command_list.get(), cbv_srv_descriptors_heap.get(),
-#ifndef D3D12
 		object_set.get(), model_set.get(),
-#endif // !D3D12
 		nullptr);
 
 	std::unique_ptr<buffer_t> upload_buffer;
@@ -215,7 +213,7 @@ void MeshSample::Init()
 	create_image_view(dev.get(), rtt_descriptors, 2, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 
-	create_sampler(dev.get(), sampler_heap.get(), 0, SAMPLER_TYPE::TRILINEAR);
+	create_sampler(dev.get(), sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 #endif // !D3D12
 
 	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
@@ -300,9 +298,6 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
 
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		current_cmd_list->object->SetGraphicsRootDescriptorTable(3,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(sampler_heap->object->GetGPUDescriptorHandleForHeapStart()));
 #endif
 		set_graphic_pipeline(current_cmd_list, objectpso);
 		bind_graphic_descriptor(current_cmd_list, 2, scene_descriptor, object_sig);

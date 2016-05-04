@@ -31,9 +31,7 @@ namespace irr
 		/** Use setMesh() to set the mesh to display.
 		*/
 		IMeshSceneNode::IMeshSceneNode(device_t* dev, const aiScene*model, command_list_t* upload_cmd_list, descriptor_storage_t* heap,
-#ifndef D3D12
-			vulkan_wrapper::pipeline_descriptor_set* object_set, vulkan_wrapper::pipeline_descriptor_set* model_set,
-#endif
+			descriptor_set_layout* object_set, descriptor_set_layout* model_set,
 			ISceneNode* parent,
 			const core::vector3df& position,
 			const core::vector3df& rotation,

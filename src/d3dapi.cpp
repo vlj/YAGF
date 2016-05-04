@@ -287,7 +287,7 @@ std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t* dev, u
 	return std::make_unique<descriptor_storage_t>(result);
 }
 
-void create_sampler(device_t* dev, descriptor_storage_t* storage, uint32_t index, SAMPLER_TYPE sampler_type)
+void create_sampler(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, SAMPLER_TYPE sampler_type)
 {
 	uint32_t stride = dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
@@ -318,7 +318,7 @@ void create_sampler(device_t* dev, descriptor_storage_t* storage, uint32_t index
 		samplerdesc.MaxAnisotropy = 16;
 		break;
 	}
-	dev->object->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart()).Offset(index, stride));
+	dev->object->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
 }
 
 void create_image_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
@@ -460,7 +460,7 @@ uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)
 	return chain->object->GetCurrentBackBufferIndex();
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index)
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &)
 {
 	return allocated_descriptor_set(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->object->GetCPUDescriptorHandleForHeapStart())
@@ -470,7 +470,17 @@ allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t*
 		);
 }
 
-void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set)
+allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &)
+{
+	return allocated_descriptor_set(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->object->GetCPUDescriptorHandleForHeapStart())
+		.Offset(starting_index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->object->GetGPUDescriptorHandleForHeapStart())
+		.Offset(starting_index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER))
+	);
+}
+
+void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t)
 {
 	cmd_list->object->SetGraphicsRootDescriptorTable(bindpoint, descriptor_set);
 }

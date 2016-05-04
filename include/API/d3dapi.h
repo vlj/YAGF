@@ -36,6 +36,7 @@ using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;
 using swap_chain_t = wrapper<IDXGISwapChain3>;
 using render_pass_t = void*;
 using clear_value_structure_t = D3D12_CLEAR_VALUE;
+using descriptor_set_layout = void;
 
 struct allocated_descriptor_set
 {
@@ -83,7 +84,7 @@ using framebuffer_t = std::shared_ptr<d3d12_framebuffer_t>;
 #include "../D3DAPI/pipeline_layout_helpers.h"
 
 void create_constant_buffer_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, buffer_t* buffer, uint32_t buffer_size);
-void create_sampler(device_t* dev, descriptor_storage_t* storage, uint32_t index, SAMPLER_TYPE sampler_type);
+void create_sampler(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, SAMPLER_TYPE sampler_type);
 void create_image_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim);
 void create_buffer_uav_view(device_t* dev, descriptor_storage_t* storage, uint32_t index, buffer_t* buffer, uint32_t size);
 void clear_color(device_t* dev, command_list_t* command_list, framebuffer_t framebuffer, const std::array<float, 4> &color);

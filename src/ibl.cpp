@@ -62,11 +62,13 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	float cube_size = (float)edge_size / 10.;
 	memcpy(tmp, &cube_size, sizeof(int));
 	unmap_buffer(dev, cbuf.get());
+	std::shared_ptr<descriptor_set_layout> object_set;
+	std::shared_ptr<descriptor_set_layout> sampler_set;
 #ifdef D3D12
 	auto compute_sh_sig = get_pipeline_layout_from_desc(dev, { object_descriptor_set_type, sampler_descriptor_set_type });
 #else
-	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> object_set = get_object_descriptor_set(dev, object_descriptor_set_type);
-	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
+	object_set = get_object_descriptor_set(dev, object_descriptor_set_type);
+	sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
 	auto compute_sh_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ object_set->object, sampler_set->object}, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> compute_sh_pso = get_compute_sh_pipeline_state(dev, compute_sh_sig);
@@ -75,10 +77,8 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 
 	std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
 	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
-
+	allocated_descriptor_set descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0, { object_set.get() });
 #ifdef D3D12
-	allocated_descriptor_set descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0);
-
 	create_constant_buffer_view(dev, descriptors, 0, cbuf.get(), sizeof(int));
 	create_image_view(dev, descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 	create_buffer_uav_view(dev, srv_cbv_uav_heap.get(), 2, sh_buffer.get(), sizeof(SH));
@@ -243,7 +243,7 @@ std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(d
 }
 }
 
-#ifdef D3D12
+#if 0
 std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t* cmd_queue, image_t *probe)
 {
 	size_t cubemap_size = 256;
