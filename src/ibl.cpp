@@ -250,10 +250,10 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #ifdef D3D12
 	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { face_set_type, mipmap_set_type, uav_set_type, sampler_set_type });
 #else
-	std::shared_ptr<descriptor_set_layout> face_set = get_object_descriptor_set(dev, face_set_type);
-	std::shared_ptr<descriptor_set_layout> mipmap_set = get_object_descriptor_set(dev, mipmap_set_type);
-	std::shared_ptr<descriptor_set_layout> uav_set = get_object_descriptor_set(dev, uav_set_type);
-	std::shared_ptr<descriptor_set_layout> sampler_set = get_object_descriptor_set(dev, sampler_set_type);
+	face_set = get_object_descriptor_set(dev, face_set_type);
+	mipmap_set = get_object_descriptor_set(dev, mipmap_set_type);
+	uav_set = get_object_descriptor_set(dev, uav_set_type);
+	sampler_set = get_object_descriptor_set(dev, sampler_set_type);
 	pipeline_layout_t importance_sampling_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0,
 		std::vector<VkDescriptorSetLayout>{ face_set->object, mipmap_set->object, uav_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif
