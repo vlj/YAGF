@@ -129,8 +129,8 @@ void MeshSample::Init()
 	set_pipeline_barrier(dev.get(), command_list.get(), diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev.get(), command_list.get(), normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
-	fbo[1] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8, { ibl_set.get() });
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0, { scene_set.get() });

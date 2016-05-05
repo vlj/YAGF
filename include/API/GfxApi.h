@@ -425,7 +425,7 @@ void bind_compute_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const
 void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format);
 //framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets);
-framebuffer_t create_frame_buffer(device_t* dev, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t*, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
+framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
 
 void* map_buffer(device_t* dev, buffer_t* buffer);
 void unmap_buffer(device_t* dev, buffer_t* buffer);

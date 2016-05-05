@@ -36,11 +36,11 @@ struct vk_framebuffer
 	const std::vector<std::shared_ptr<vulkan_wrapper::image_view> > image_views;
 	vulkan_wrapper::framebuffer fbo;
 
-	vk_framebuffer(device_t* dev, render_pass_t* render_pass, std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
-	vk_framebuffer(device_t* dev, render_pass_t* render_pass, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t& dev, render_pass_t& render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(device_t& dev, render_pass_t& render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
 private:
-	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil);
-	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets);
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil);
+	std::vector<std::shared_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets);
 };
 
 using framebuffer_t = std::shared_ptr<vk_framebuffer>;

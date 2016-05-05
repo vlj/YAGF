@@ -21,6 +21,16 @@ struct wrapper
 	{
 		object->Release();
 	}
+
+	operator T*()
+	{
+		return object;
+	}
+
+	T* 	operator ->()
+	{
+		return object;
+	}
 };
 
 using command_list_storage_t = wrapper<ID3D12CommandAllocator>;
@@ -68,9 +78,9 @@ struct d3d12_framebuffer_t
     uint32_t NumRTT;
     bool hasDepthStencil;
 
-	d3d12_framebuffer_t(device_t* dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets);
-	d3d12_framebuffer_t(device_t* dev, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil_texture);
-	d3d12_framebuffer_t(device_t* dev, const std::vector<std::tuple<image_t*, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t*, irr::video::ECOLOR_FORMAT> &depth_stencil_texture);
+	d3d12_framebuffer_t(device_t& dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets);
+	d3d12_framebuffer_t(device_t& dev, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil_texture);
+	d3d12_framebuffer_t(device_t& dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil_texture);
     ~d3d12_framebuffer_t();
 
     d3d12_framebuffer_t(d3d12_framebuffer_t&&) = delete;

@@ -9,9 +9,19 @@
 
 namespace vulkan_wrapper
 {
-	struct device
+	template<typename T>
+	struct wrapper
 	{
-		VkDevice object;
+		T object;
+
+		operator T()
+		{
+			return object;
+		}
+	};
+
+	struct device : public wrapper<VkDevice>
+	{
 		const std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 		const std::vector<const char*> layers;
 		const std::vector<const char*> extensions;
@@ -40,9 +50,8 @@ namespace vulkan_wrapper
 		device(const device&) = delete;
 	};
 
-	struct command_pool
+	struct command_pool : public wrapper<VkCommandPool>
 	{
-		VkCommandPool object;
 		const VkCommandPoolCreateInfo info;
 
 		command_pool(VkDevice dev, VkCommandPoolCreateFlags flags, uint32_t queue_family)
@@ -62,9 +71,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct command_buffer
+	struct command_buffer : public wrapper<VkCommandBuffer>
 	{
-		VkCommandBuffer object;
 		const VkCommandBufferAllocateInfo info;
 
 		command_buffer(VkDevice dev, VkCommandPool command_pool, VkCommandBufferLevel level)
@@ -84,9 +92,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct queue
+	struct queue : public wrapper<VkQueue>
 	{
-		VkQueue object;
 		struct {
 			uint32_t queue_family;
 			uint32_t queue_index;
@@ -104,9 +111,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct memory
+	struct memory : public wrapper<VkDeviceMemory>
 	{
-		VkDeviceMemory object;
 		const VkMemoryAllocateInfo info;
 
 		memory(VkDevice dev, uint64_t size, uint32_t memory_type)
@@ -126,9 +132,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct buffer
+	struct buffer : public wrapper<VkBuffer>
 	{
-		VkBuffer object;
 		const VkBufferCreateInfo info;
 		std::shared_ptr<memory> baking_memory;
 
@@ -149,9 +154,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct buffer_view
+	struct buffer_view : public wrapper<VkBufferView>
 	{
-		VkBufferView object;
 		const VkBufferViewCreateInfo info;
 
 		buffer_view(VkDevice dev, VkBuffer b, VkFormat fmt, uint64_t offset, uint64_t size)
@@ -172,15 +176,16 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct image
+	struct image : public wrapper<VkImage>
 	{
-		VkImage object;
 		const VkImageCreateInfo info = {};
 		std::shared_ptr<memory> baking_memory;
 
 		// Swap images are not created
-		image(VkImage img) : object(img)
-		{}
+		image(VkImage img)
+		{
+			object = img;
+		}
 
 		image(VkDevice dev, VkImageCreateFlags flags, VkImageType type, VkFormat format, VkExtent3D extent, uint32_t miplevels, uint32_t arraylayers,
 			VkSampleCountFlagBits samples, VkImageTiling tiling, VkImageUsageFlags usage, VkImageLayout initial_layout)
@@ -202,9 +207,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct image_view
+	struct image_view : public wrapper<VkImageView>
 	{
-		VkImageView object;
 		const VkImageViewCreateInfo info;
 
 		image_view(VkDevice dev, VkImage image, VkImageViewType viewtype, VkFormat format, VkComponentMapping mapping, VkImageSubresourceRange range)
@@ -224,9 +228,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct sampler
+	struct sampler : public wrapper<VkSampler>
 	{
-		VkSampler object;
 		const VkSamplerCreateInfo info;
 
 		sampler(VkDevice dev, VkFilter mag_filter, VkFilter min_filter, VkSamplerMipmapMode mipmap_mode,
@@ -251,9 +254,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct descriptor_pool
+	struct descriptor_pool : public wrapper<VkDescriptorPool>
 	{
-		VkDescriptorPool object;
 		const std::vector<VkDescriptorPoolSize> pool_size;
 		const VkDescriptorPoolCreateInfo info;
 
@@ -274,9 +276,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct semaphore
+	struct semaphore : public wrapper<VkSemaphore>
 	{
-		VkSemaphore object;
 		const VkSemaphoreCreateInfo info;
 
 		semaphore(VkDevice dev)
@@ -296,9 +297,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct fence
+	struct fence : public wrapper<VkFence>
 	{
-		VkFence object;
 		const VkFenceCreateInfo info;
 
 		fence(VkDevice dev)
@@ -318,9 +318,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct render_pass
+	struct render_pass : public wrapper<VkRenderPass>
 	{
-		VkRenderPass object;
 		const std::vector<VkAttachmentDescription> attachments;
 		const std::vector<VkSubpassDescription> subpasses;
 		const std::vector<VkSubpassDependency> dependencies;
@@ -349,9 +348,8 @@ namespace vulkan_wrapper
 	};
 
 
-	struct shader_module
+	struct shader_module : public wrapper<VkShaderModule>
 	{
-		VkShaderModule object;
 		const std::vector<uint32_t> spirv_code;
 		const VkShaderModuleCreateInfo info;
 
@@ -390,9 +388,8 @@ namespace vulkan_wrapper
 	};
 
 
-	struct pipeline
+	struct pipeline : public wrapper<VkPipeline>
 	{
-		VkPipeline object;
 		const std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
 		const VkPipelineVertexInputStateCreateInfo vertex_input_state;
 		const VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
@@ -439,9 +436,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct compute_pipeline
+	struct compute_pipeline : public wrapper<VkPipeline>
 	{
-		VkPipeline object;
 		const VkComputePipelineCreateInfo info;
 
 		compute_pipeline(VkDevice dev, const VkPipelineShaderStageCreateInfo &shader_stage,
@@ -463,9 +459,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct pipeline_descriptor_set
+	struct pipeline_descriptor_set : public wrapper<VkDescriptorSetLayout>
 	{
-		VkDescriptorSetLayout object;
 		const std::vector<VkDescriptorSetLayoutBinding> bindings;
 		const VkDescriptorSetLayoutCreateInfo info;
 
@@ -486,9 +481,8 @@ namespace vulkan_wrapper
 	};
 
 
-	struct pipeline_layout
+	struct pipeline_layout : public wrapper<VkPipelineLayout>
 	{
-		VkPipelineLayout object;
 		const std::vector<VkDescriptorSetLayout> set_layouts;
 		const std::vector<VkPushConstantRange> push_constant_ranges;
 		const VkPipelineLayoutCreateInfo info;
@@ -512,9 +506,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct swapchain
+	struct swapchain : public wrapper<VkSwapchainKHR>
 	{
-		VkSwapchainKHR object;
 		VkSwapchainCreateInfoKHR info;
 
 		swapchain(VkDevice dev) : m_device(dev)
@@ -531,9 +524,8 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct framebuffer
+	struct framebuffer : public wrapper<VkFramebuffer>
 	{
-		VkFramebuffer object;
 		const std::vector<VkImageView> attachements;
 		const VkFramebufferCreateInfo info;
 
