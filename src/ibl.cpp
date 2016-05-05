@@ -53,8 +53,8 @@ struct SHCoefficients
 
 std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size)
 {
-	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
-	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
+	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(*dev);
+	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_storage);
 
 	start_command_list_recording(dev, command_list.get(), command_storage.get());
 	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -239,8 +239,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 {
 	size_t cubemap_size = 256;
 
-	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
-	std::unique_ptr<command_list_t> command_list = create_command_list(dev, command_storage.get());
+	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(*dev);
+	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_storage);
 
 	std::shared_ptr<descriptor_set_layout> face_set;
 	std::shared_ptr<descriptor_set_layout> mipmap_set;

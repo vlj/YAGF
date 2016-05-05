@@ -98,8 +98,8 @@ void MeshSample::Init()
 {
 	back_buffer = get_image_view_from_swap_chain(dev.get(), chain.get());
 
-	command_allocator = create_command_storage(dev.get());
-	std::unique_ptr<command_list_t> command_list = create_command_list(dev.get(), command_allocator.get());
+	command_allocator = create_command_storage(*dev);
+	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_allocator);
 	start_command_list_recording(dev.get(), command_list.get(), command_allocator.get());
 
 	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
@@ -250,7 +250,7 @@ void MeshSample::fill_draw_commands()
 {
 	for (unsigned i = 0; i < 2; i++)
 	{
-		command_list_for_back_buffer.push_back(create_command_list(dev.get(), command_allocator.get()));
+		command_list_for_back_buffer.push_back(create_command_list(*dev, *command_allocator));
 		command_list_t* current_cmd_list = command_list_for_back_buffer.back().get();
 		start_command_list_recording(dev.get(), current_cmd_list, command_allocator.get());
 		set_pipeline_barrier(dev.get(), current_cmd_list, back_buffer[i].get(), RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);

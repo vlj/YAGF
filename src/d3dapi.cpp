@@ -136,17 +136,17 @@ namespace
 	}
 }
 
-std::unique_ptr<command_list_storage_t> create_command_storage(device_t* dev)
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev)
 {
 	ID3D12CommandAllocator *result;
-	CHECK_HRESULT(dev->object->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&result)));
+	CHECK_HRESULT(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&result)));
 	return std::make_unique<command_list_storage_t>(result);
 }
 
-std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_storage_t* storage)
+std::unique_ptr<command_list_t> create_command_list(device_t& dev, command_list_storage_t& storage)
 {
 	ID3D12GraphicsCommandList* result;
-	CHECK_HRESULT(dev->object->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage->object, nullptr, IID_PPV_ARGS(&result)));
+	CHECK_HRESULT(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, storage, nullptr, IID_PPV_ARGS(&result)));
 	CHECK_HRESULT(result->Close());
 	return std::make_unique<command_list_t>(result);
 }

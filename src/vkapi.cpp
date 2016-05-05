@@ -210,14 +210,14 @@ std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* d
 	return result;
 }
 
-std::unique_ptr<command_list_storage_t> create_command_storage(device_t* dev)
+std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev)
 {
-	return std::make_unique<command_list_storage_t>(dev->object, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev->queue_create_infos[0].queueFamilyIndex);
+	return std::make_unique<command_list_storage_t>(dev, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev.queue_create_infos[0].queueFamilyIndex);
 }
 
-std::unique_ptr<command_list_t> create_command_list(device_t* dev, command_list_storage_t* storage)
+std::unique_ptr<command_list_t> create_command_list(device_t& dev, command_list_storage_t& storage)
 {
-	return std::make_unique<vulkan_wrapper::command_buffer>(dev->object, storage->object, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	return std::make_unique<vulkan_wrapper::command_buffer>(dev, storage, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
 namespace
