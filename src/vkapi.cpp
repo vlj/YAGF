@@ -246,13 +246,13 @@ namespace
 	}
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags)
+std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags)
 {
-	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev->object, size, 0, get_buffer_usage_flags(flags));
+	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev, size, 0, get_buffer_usage_flags(flags));
 	VkMemoryRequirements mem_req;
-	vkGetBufferMemoryRequirements(dev->object, buffer->object, &mem_req);
-	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->upload_memory_index);
-	vkBindBufferMemory(dev->object, buffer->object, buffer->baking_memory->object, 0);
+	vkGetBufferMemoryRequirements(dev, buffer->object, &mem_req);
+	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev, mem_req.size, dev.upload_memory_index);
+	vkBindBufferMemory(dev, buffer->object, buffer->baking_memory->object, 0);
 	return buffer;
 }
 
@@ -336,15 +336,15 @@ namespace
 	}
 }
 
-std::unique_ptr<image_t> create_image(device_t* dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
+std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
 {
 	VkExtent3D extent{ width, height, 1 };
-	auto image = std::make_unique<vulkan_wrapper::image>(dev->object, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, layers,
+	auto image = std::make_unique<vulkan_wrapper::image>(dev, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, layers,
 		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, get_image_usage_flag(flags), VK_IMAGE_LAYOUT_UNDEFINED);
 	VkMemoryRequirements mem_req;
-	vkGetImageMemoryRequirements(dev->object, image->object, &mem_req);
-	image->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev->object, mem_req.size, dev->default_memory_index);
-	vkBindImageMemory(dev->object, image->object, image->baking_memory->object, 0);
+	vkGetImageMemoryRequirements(dev, image->object, &mem_req);
+	image->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev, mem_req.size, dev.default_memory_index);
+	vkBindImageMemory(dev, image->object, image->baking_memory->object, 0);
 	return std::move(image);
 }
 
@@ -372,9 +372,9 @@ void start_command_list_recording(device_t* dev, command_list_t* command_list, c
 	CHECK_VKRESULT(vkBeginCommandBuffer(command_list->object, &info));
 }
 
-void reset_command_list_storage(device_t* dev, command_list_storage_t* storage)
+void reset_command_list_storage(device_t& dev, command_list_storage_t& storage)
 {
-	vkResetCommandPool(dev->object, storage->object, 0);
+	vkResetCommandPool(dev, storage, 0);
 }
 
 

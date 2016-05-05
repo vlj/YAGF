@@ -108,8 +108,8 @@ void MeshSample::Init()
 
 	load_program_and_pipeline_layout();
 
-	scene_matrix = create_buffer(dev.get(), sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	sun_data = create_buffer(dev.get(), 7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	scene_matrix = create_buffer(*dev, sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	sun_data = create_buffer(*dev, 7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
 	clear_value_structure_t clear_val = {};
 #ifndef D3D12
@@ -118,13 +118,13 @@ void MeshSample::Init()
 #else
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
-	depth_buffer = create_image(dev.get(), irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
+	depth_buffer = create_image(*dev, irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
 #ifdef D3D12
 	float clear_color[4] = {};
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clear_color);
 #endif
-	diffuse_color = create_image(dev.get(), irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	normal_roughness_metalness = create_image(dev.get(), irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	diffuse_color = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	normal_roughness_metalness = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	set_pipeline_barrier(dev.get(), command_list.get(), depth_buffer.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	set_pipeline_barrier(dev.get(), command_list.get(), diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev.get(), command_list.get(), normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -147,7 +147,7 @@ void MeshSample::Init()
 		object_set.get(), model_set.get(),
 		nullptr);
 
-	big_triangle = create_buffer(dev.get(), 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	big_triangle = create_buffer(*dev, 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	float fullscreen_tri[]
 	{
 		-1., -3., 0., 2.,

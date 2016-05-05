@@ -173,12 +173,12 @@ namespace
 	}
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t* dev, size_t size, irr::video::E_MEMORY_POOL memory_pool , uint32_t flags)
+std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool , uint32_t flags)
 {
 	ID3D12Resource* result;
 	D3D12_RESOURCE_STATES initial_state = (memory_pool == irr::video::E_MEMORY_POOL::EMP_CPU_READABLE) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
 	size_t real_size = std::max<size_t>(size, 256);
-	CHECK_HRESULT(dev->object->CreateCommittedResource(
+	CHECK_HRESULT(dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(get_heap_type(memory_pool)),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(real_size, get_buffer_flags(flags)),
@@ -216,10 +216,10 @@ namespace
 	}
 }
 
-std::unique_ptr<image_t> create_image(device_t* dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value)
+std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value)
 {
 	ID3D12Resource* result;
-	CHECK_HRESULT(dev->object->CreateCommittedResource(
+	CHECK_HRESULT(dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Tex2D(get_dxgi_format(format), width, height, layers, mipmap, 1, 0, get_resource_flags(flags)),
@@ -251,9 +251,9 @@ void create_constant_buffer_view(device_t* dev, const allocated_descriptor_set& 
 	dev->object->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
 }
 
-void reset_command_list_storage(device_t*, command_list_storage_t* storage)
+void reset_command_list_storage(device_t&, command_list_storage_t& storage)
 {
-	storage->object->Reset();
+	storage->Reset();
 }
 
 namespace
