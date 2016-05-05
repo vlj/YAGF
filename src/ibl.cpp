@@ -35,7 +35,7 @@ namespace
 		CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 		return std::make_unique<compute_pipeline_state_t>(result);
 #else
-		vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\importance_sampling_specular.spv");
+		vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\computesh.spv");
 		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
 		return std::make_unique<compute_pipeline_state_t>(dev->object, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
 #endif // D3D12
@@ -195,11 +195,8 @@ struct PermutationMatrix
 	float Matrix[16];
 };
 
-constexpr auto image_set_type = descriptor_set({
-	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1) },
-	shader_stage::all);
-
 constexpr auto face_set_type = descriptor_set({
+	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1),
 	range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) },
 	shader_stage::all);
 
@@ -231,7 +228,7 @@ std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(d
 	CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 	return std::make_unique<compute_pipeline_state_t>(result);
 #else
-	vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\computesh.spv");
+	vulkan_wrapper::shader_module module(dev->object, "..\\..\\..\\importance_sampling_specular.spv");
 	VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
 	return std::make_unique<compute_pipeline_state_t>(dev->object, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
 #endif // D3D12
@@ -247,19 +244,25 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #ifdef D3D12
 	pipeline_layout_t importance_sampling_sig = get_pipeline_layout_from_desc(dev, { image_set_type, face_set_type, mipmap_set_type, uav_set_type, sampler_set_type });
 #else
-	pipeline_layout_t importance_sampling_sig;
+	std::shared_ptr<descriptor_set_layout> face_set = get_object_descriptor_set(dev, face_set_type);
+	std::shared_ptr<descriptor_set_layout> mipmap_set = get_object_descriptor_set(dev, mipmap_set_type);
+	std::shared_ptr<descriptor_set_layout> uav_set = get_object_descriptor_set(dev, uav_set_type);
+	std::shared_ptr<descriptor_set_layout> sampler_set = get_object_descriptor_set(dev, sampler_set_type);
+	pipeline_layout_t importance_sampling_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0,
+		std::vector<VkDescriptorSetLayout>{ face_set->object, mipmap_set->object, uav_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
-	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SHADER_RESOURCE, 9 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV, 48 } });
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 16 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV, 48 } });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, sampler_heap.get(), 0, { nullptr });
-	allocated_descriptor_set image_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 0, { nullptr });
+	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, sampler_heap.get(), 0, { sampler_set.get() });
 
 #ifdef D3D12
 	create_sampler(dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 	create_image_view(dev, image_descriptors, 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 #else
+	std::unique_ptr<vulkan_wrapper::image_view> probe_view = std::make_unique<vulkan_wrapper::image_view>(dev->object, probe->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
+		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 9, 0, 6));
 #endif
 
 	irr::core::matrix4 M[6] = {
@@ -275,13 +278,20 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1, { nullptr });
+		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), i + 1, { face_set.get() });
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
 #ifdef D3D12
 		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 0, permutation_matrix[i].get(), sizeof(PermutationMatrix));
 #else
+		util::update_descriptor_sets(dev->object,
+		{
+			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				{VkDescriptorBufferInfo{ permutation_matrix[i]->object, 0, 16 * sizeof(float)}}, 1, 0),
+			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				{ VkDescriptorImageInfo{ VK_NULL_HANDLE, probe_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0, 0),
+		});
 #endif
 	}
 
@@ -290,7 +300,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
 	for (unsigned i = 0; i < 8; i++)
 	{
-		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 7, { nullptr });
+		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 7, { mipmap_set.get() });
 		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		per_level_cbuffer[i] = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
@@ -318,6 +328,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
 #else
+
 #endif
 	}
 
@@ -327,7 +338,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	{
 		for (unsigned face = 0; face < 6; face++)
 		{
-			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 23, {nullptr});
+			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 23, {uav_set.get()});
 #ifdef D3D12
 			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -354,16 +365,16 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #endif
 
 
-	bind_compute_descriptor(command_list.get(), 0, image_descriptors, nullptr);
-	bind_compute_descriptor(command_list.get(), 4, sampler_descriptors, nullptr);
+//	bind_compute_descriptor(command_list.get(), 0, image_descriptors, importance_sampling_sig);
+	bind_compute_descriptor(command_list.get(), 3, sampler_descriptors, importance_sampling_sig);
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		bind_compute_descriptor(command_list.get(), 2, sample_buffer_descriptors[level], nullptr);
+		bind_compute_descriptor(command_list.get(), 1, sample_buffer_descriptors[level], importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			bind_compute_descriptor(command_list.get(), 1, permutation_matrix_descriptors[face], nullptr);
-			bind_compute_descriptor(command_list.get(), 3, level_face_descriptor[face + 6 * level], nullptr);
+			bind_compute_descriptor(command_list.get(), 0, permutation_matrix_descriptors[face], importance_sampling_sig);
+			bind_compute_descriptor(command_list.get(), 2, level_face_descriptor[face + 6 * level], importance_sampling_sig);
 
 			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
 		}

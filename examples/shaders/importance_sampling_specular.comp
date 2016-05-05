@@ -39,7 +39,7 @@ void main(void)
         vec3 L = 2 * dot(RayDir, H) * H - RayDir;
 
         float NdotL = clamp(dot(RayDir, L), 0., 1.);
-        FinalColor += textureLod(tex, L, 0.) * NdotL;
+        FinalColor += textureLod(samplerCube(tex, s), L, 0.) * NdotL;
         weight += NdotL;
     }
 
