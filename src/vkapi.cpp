@@ -240,6 +240,8 @@ namespace
 			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		if (flags & usage_transfer_dst)
 			result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		if (flags & usage_texel_buffer)
+			result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 		return result;
 	}
 }

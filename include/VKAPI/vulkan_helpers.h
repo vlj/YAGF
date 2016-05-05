@@ -149,6 +149,29 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
+	struct buffer_view
+	{
+		VkBufferView object;
+		const VkBufferViewCreateInfo info;
+
+		buffer_view(VkDevice dev, VkBuffer b, VkFormat fmt, uint64_t offset, uint64_t size)
+			: info{ VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, nullptr, 0, b, fmt, offset, size },
+			m_device(dev)
+		{
+			CHECK_VKRESULT(vkCreateBufferView(m_device, &info, nullptr, &object));
+		}
+
+		~buffer_view()
+		{
+			vkDestroyBufferView(m_device, object, nullptr);
+		}
+
+		buffer_view(buffer_view&&) = delete;
+		buffer_view(const buffer_view&) = delete;
+	private:
+		VkDevice m_device;
+	};
+
 	struct image
 	{
 		VkImage object;
@@ -609,6 +632,11 @@ namespace structures
 	constexpr VkDescriptorImageInfo descriptor_image_info(VkImageView image_view, VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	{
 		return{ VK_NULL_HANDLE, image_view, layout };
+	}
+
+	constexpr VkDescriptorImageInfo descriptor_sampler_info(VkSampler sampler)
+	{
+		return{ sampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	}
 }
 

@@ -111,6 +111,7 @@ enum buffer_flags
 {
 	none = 0,
 	usage_uav = 0x1,
+	usage_texel_buffer = 0x2,
 };
 
 enum class SAMPLER_TYPE
@@ -135,6 +136,7 @@ enum class RESOURCE_VIEW
 	CONSTANTS_BUFFER,
 	INPUT_ATTACHMENT,
 	SHADER_RESOURCE,
+	TEXEL_BUFFER,
 	SAMPLER,
 	UAV_BUFFER,
 	UAV_IMAGE,

@@ -201,7 +201,7 @@ constexpr auto face_set_type = descriptor_set({
 	shader_stage::all);
 
 constexpr auto mipmap_set_type = descriptor_set({
-	range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1),
+	range_of_descriptors(RESOURCE_VIEW::TEXEL_BUFFER, 2, 1),
 	range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 5, 1) },
 	shader_stage::all);
 
@@ -252,7 +252,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		std::vector<VkDescriptorSetLayout>{ face_set->object, mipmap_set->object, uav_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
-	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 16 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV_IMAGE, 48 } });
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 8 }, {RESOURCE_VIEW::TEXEL_BUFFER, 8}, { RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV_IMAGE, 48 } });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
 	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, sampler_heap.get(), 0, { sampler_set.get() });
@@ -263,6 +263,13 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #else
 	std::unique_ptr<vulkan_wrapper::image_view> probe_view = std::make_unique<vulkan_wrapper::image_view>(dev->object, probe->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 9, 0, 6));
+	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
+	util::update_descriptor_sets(dev->object,
+	{
+		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+			{ structures::descriptor_sampler_info(sampler->object) }, 4)
+	});
 #endif
 
 	irr::core::matrix4 M[6] = {
@@ -298,10 +305,13 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
 	std::array<std::unique_ptr<buffer_t>, 8> per_level_cbuffer{};
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
+#ifndef D3D12
+	std::array<std::unique_ptr<vulkan_wrapper::buffer_view>, 8> buffer_views;
+#endif
 	for (unsigned i = 0; i < 8; i++)
 	{
 		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 7, { mipmap_set.get() });
-		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
 		per_level_cbuffer[i] = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
 		float* sz = (float*)map_buffer(dev, per_level_cbuffer[i].get());
@@ -328,7 +338,14 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
 #else
-
+		buffer_views[i] = std::make_unique<vulkan_wrapper::buffer_view>(dev->object, sample_location_buffer[i]->object, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
+		util::update_descriptor_sets(dev->object,
+		{
+			structures::write_descriptor_set(sample_buffer_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+				{buffer_views[i]->object}, 2),
+			structures::write_descriptor_set(sample_buffer_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				{ structures::descriptor_buffer_info(per_level_cbuffer[i]->object, 0, sizeof(float)) }, 5)
+		});
 #endif
 	}
 
