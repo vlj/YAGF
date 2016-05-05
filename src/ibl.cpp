@@ -386,9 +386,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	command_list->object->SetComputeRootSignature(importance_sampling_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps{ input_heap->object, sampler_heap->object };
 	command_list->object->SetDescriptorHeaps(2, heaps.data());
-#else
 #endif
-
 
 //	bind_compute_descriptor(command_list.get(), 0, image_descriptors, importance_sampling_sig);
 	bind_compute_descriptor(command_list.get(), 3, sampler_descriptors, importance_sampling_sig);
@@ -398,12 +396,10 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		bind_compute_descriptor(command_list.get(), 1, sample_buffer_descriptors[level], importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			set_pipeline_barrier(dev, command_list.get(), result.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, face + 6 * level, irr::video::E_ASPECT::EA_COLOR);
 			bind_compute_descriptor(command_list.get(), 0, permutation_matrix_descriptors[face], importance_sampling_sig);
 			bind_compute_descriptor(command_list.get(), 2, level_face_descriptor[face + 6 * level], importance_sampling_sig);
 
 			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
-			set_pipeline_barrier(dev, command_list.get(), result.get(), RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, face + 6 * level, irr::video::E_ASPECT::EA_COLOR);
 		}
 	}
 	make_command_list_executable(command_list.get());
