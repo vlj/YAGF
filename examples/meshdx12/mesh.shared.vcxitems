@@ -14,12 +14,10 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ibl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)mesh.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\include\Scene\IBL.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)shaders.h" />
   </ItemGroup>

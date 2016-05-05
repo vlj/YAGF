@@ -59,7 +59,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	start_command_list_recording(dev, command_list.get(), command_storage.get());
 	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	void* tmp = map_buffer(dev, cbuf.get());
-	float cube_size = (float)edge_size / 10.;
+	float cube_size = static_cast<float>(edge_size) / 10.f;
 	memcpy(tmp, &cube_size, sizeof(int));
 	unmap_buffer(dev, cbuf.get());
 	std::shared_ptr<descriptor_set_layout> object_set;
