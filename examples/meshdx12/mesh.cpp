@@ -131,13 +131,11 @@ void MeshSample::Init()
 #ifndef D3D12
 	set_pipeline_barrier(dev.get(), command_list.get(), back_buffer[0].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev.get(), command_list.get(), back_buffer[1].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-
 #else
 
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
 	depth_buffer = create_image(dev.get(), irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
-
 #ifdef D3D12
 	float clear_color[4] = {};
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clear_color);
@@ -160,27 +158,24 @@ void MeshSample::Init()
 #ifndef D3D12
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
-	diffuse_color_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, diffuse_color->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-		structures::component_mapping(), structures::image_subresource_range());
-	normal_roughness_metalness_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, normal_roughness_metalness->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-		structures::component_mapping(), structures::image_subresource_range());
-	depth_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, depth_buffer->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT,
-		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
+	diffuse_color_view = create_image_view(dev.get(), diffuse_color.get(), VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
+	normal_roughness_metalness_view = create_image_view(dev.get(), normal_roughness_metalness.get(), VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
+	depth_view = create_image_view(dev.get(), depth_buffer.get(), VK_FORMAT_D32_SFLOAT_S8_UINT, structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
+			{ structures::descriptor_sampler_info(sampler->object) }, 3),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, diffuse_color_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 4),
+			{ structures::descriptor_image_info(diffuse_color_view->object) }, 4),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, normal_roughness_metalness_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 5),
+			{ structures::descriptor_image_info(normal_roughness_metalness_view->object) }, 5),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, depth_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 6),
+			{ structures::descriptor_image_info(depth_view->object) }, 6),
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ scene_matrix->object, 0, sizeof(SceneData) } }, 7),
+			{ structures::descriptor_buffer_info(scene_matrix->object, 0, sizeof(SceneData)) }, 7),
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ sun_data->object, 0, 7 * sizeof(float) } }, 8)
+			{ structures::descriptor_buffer_info(sun_data->object, 0, 7 * sizeof(float)) }, 8)
 	});
 #endif // !D3D12
 
@@ -193,13 +188,12 @@ void MeshSample::Init()
 	std::unique_ptr<buffer_t> upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
 #ifndef D3D12
-	skybox_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, skybox_texture->object, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
-		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6));
+	skybox_view = create_image_view(dev.get(), skybox_texture.get(), VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
 
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-		{ VkDescriptorImageInfo{ VK_NULL_HANDLE, skybox_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 9),
+			{ structures::descriptor_image_info(skybox_view->object) }, 9),
 	});
 #else
 	// scene
@@ -212,10 +206,8 @@ void MeshSample::Init()
 	create_image_view(dev.get(), rtt_descriptors, 1, normal_roughness_metalness.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
 	create_image_view(dev.get(), rtt_descriptors, 2, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-
 	create_sampler(dev.get(), sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 #endif // !D3D12
-
 	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
 	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
 	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, render_pass.get());
@@ -245,10 +237,9 @@ void MeshSample::Init()
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ sh_coefficients->object, 0, sizeof(SH) } }, 10),
+			{ structures::descriptor_buffer_info(sh_coefficients->object, 0, sizeof(SH)) }, 10),
 	});
 #endif
-
 	fill_draw_commands();
 }
 
