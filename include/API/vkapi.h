@@ -52,3 +52,4 @@ using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 #include "../VKAPI/renderpass_helpers.h"
 
 std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);
+std::unique_ptr<vulkan_wrapper::image_view> create_image_view(device_t* dev, image_t* img, VkFormat fmt, VkImageSubresourceRange range, VkImageViewType type = VK_IMAGE_VIEW_TYPE_2D, VkComponentMapping mapping  = structures::component_mapping());

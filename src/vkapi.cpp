@@ -191,6 +191,11 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	return std::make_tuple(std::move(dev), std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
+std::unique_ptr<vulkan_wrapper::image_view> create_image_view(device_t * dev, image_t * img, VkFormat fmt, VkImageSubresourceRange range, VkImageViewType type, VkComponentMapping mapping)
+{
+	return std::make_unique<vulkan_wrapper::image_view>(dev->object, img->object, type, fmt, mapping, range);
+}
+
 std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* dev, swap_chain_t* chain)
 {
 	uint32_t swap_chain_count;

@@ -136,7 +136,8 @@ enum class RESOURCE_VIEW
 	INPUT_ATTACHMENT,
 	SHADER_RESOURCE,
 	SAMPLER,
-	UAV,
+	UAV_BUFFER,
+	UAV_IMAGE,
 };
 
 enum class shader_stage

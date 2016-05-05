@@ -12,7 +12,7 @@ namespace
 	constexpr auto object_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
-		range_of_descriptors(RESOURCE_VIEW::UAV, 2, 1) },
+		range_of_descriptors(RESOURCE_VIEW::UAV_BUFFER, 2, 1) },
 
 		shader_stage::all);
 
@@ -72,7 +72,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	auto compute_sh_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ object_set->object, sampler_set->object}, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> compute_sh_pso = get_compute_sh_pipeline_state(dev, compute_sh_sig);
-	std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV, 1} });
+	std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV_BUFFER, 1} });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
 	std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
@@ -103,11 +103,11 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 		structures::write_descriptor_set(sampler_descriptor, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ VkDescriptorBufferInfo{ cbuf->object, 0, sizeof(int) } }, 0),
+			{ structures::descriptor_buffer_info(cbuf->object, 0, sizeof(int)) }, 0),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ VkDescriptorImageInfo{ VK_NULL_HANDLE, skybox_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 1),
+			{ structures::descriptor_image_info(skybox_view->object) }, 1),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			{ VkDescriptorBufferInfo{ sh_buffer->object, 0, sizeof(SH) } }, 2)
+			{ structures::descriptor_buffer_info(sh_buffer->object, 0, sizeof(SH)) }, 2)
 	});
 #endif
 	set_compute_pipeline(command_list.get(), compute_sh_pso.get());
@@ -206,7 +206,7 @@ constexpr auto mipmap_set_type = descriptor_set({
 	shader_stage::all);
 
 constexpr auto uav_set_type = descriptor_set({
-	range_of_descriptors(RESOURCE_VIEW::UAV, 3, 1) },
+	range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 3, 1) },
 	shader_stage::all);
 
 constexpr auto sampler_set_type = descriptor_set({
@@ -252,7 +252,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		std::vector<VkDescriptorSetLayout>{ face_set->object, mipmap_set->object, uav_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
-	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 16 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV, 48 } });
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 16 },{ RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV_IMAGE, 48 } });
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
 	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, sampler_heap.get(), 0, { sampler_set.get() });
@@ -288,9 +288,9 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		util::update_descriptor_sets(dev->object,
 		{
 			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				{VkDescriptorBufferInfo{ permutation_matrix[i]->object, 0, 16 * sizeof(float)}}, 1, 0),
+				{ structures::descriptor_buffer_info(permutation_matrix[i]->object, 0, 16 * sizeof(float))}, 1),
 			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				{ VkDescriptorImageInfo{ VK_NULL_HANDLE, probe_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 0, 0),
+				{ structures::descriptor_image_info(probe_view->object) }, 0),
 		});
 #endif
 	}
@@ -334,6 +334,9 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
 	std::array<allocated_descriptor_set, 48> level_face_descriptor;
+#ifndef D3D12
+	std::array<std::unique_ptr<vulkan_wrapper::image_view>, 48> uav_views;
+#endif // !D3D12
 	for (unsigned level = 0; level < 8; level++)
 	{
 		for (unsigned face = 0; face < 6; face++)
@@ -351,6 +354,11 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			dev->object->CreateUnorderedAccessView(result->object, nullptr, &desc,
 				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
 #else
+			uav_views[face + level * 6] = create_image_view(dev, result.get(), VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1));
+			util::update_descriptor_sets(dev->object, {
+				structures::write_descriptor_set(level_face_descriptor[face + level * 6], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				{ structures::descriptor_image_info(uav_views[face + level * 6]->object, VK_IMAGE_LAYOUT_GENERAL)}, 3)
+			});
 #endif
 		}
 	}

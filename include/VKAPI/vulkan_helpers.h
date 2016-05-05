@@ -600,6 +600,16 @@ namespace structures
 	{
 		return{ src_offset, dst_offset, size };
 	}
+
+	constexpr VkDescriptorBufferInfo descriptor_buffer_info(VkBuffer buffer, uint64_t offset, uint64_t size)
+	{
+		return{ buffer, offset, size };
+	}
+
+	constexpr VkDescriptorImageInfo descriptor_image_info(VkImageView image_view, VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		return{ VK_NULL_HANDLE, image_view, layout };
+	}
 }
 
 namespace util

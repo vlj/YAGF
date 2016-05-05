@@ -124,7 +124,7 @@ void MeshSample::Init()
 	scene_matrix = create_buffer(dev.get(), sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	sun_data = create_buffer(dev.get(), 7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV, 1 } });
+	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
 	sampler_heap = create_descriptor_storage(dev.get(), 10, { {RESOURCE_VIEW::SAMPLER, 10 } });
 
 	clear_value_structure_t clear_val = {};
