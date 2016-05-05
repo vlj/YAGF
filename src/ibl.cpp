@@ -377,7 +377,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			dev->object->CreateUnorderedAccessView(result->object, nullptr, &desc,
 				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
 #else
-			uav_views[face + level * 6] = create_image_view(dev, result.get(), VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1), VK_IMAGE_VIEW_TYPE_CUBE);
+			uav_views[face + level * 6] = create_image_view(*dev, *result, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1), VK_IMAGE_VIEW_TYPE_CUBE);
 			util::update_descriptor_sets(dev->object, {
 				structures::write_descriptor_set(level_face_descriptor[face + level * 6], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				{ structures::descriptor_image_info(uav_views[face + level * 6]->object, VK_IMAGE_LAYOUT_GENERAL)}, 3)
