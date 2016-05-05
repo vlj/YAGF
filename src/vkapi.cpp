@@ -322,6 +322,8 @@ namespace
 			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 		if (flags & usage_sampled)
 			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		if (flags & usage_uav)
+			result |= VK_IMAGE_USAGE_STORAGE_BIT;
 		return result;
 	}
 
@@ -402,6 +404,7 @@ namespace
 		case RESOURCE_USAGE::READ_GENERIC: return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		case RESOURCE_USAGE::DEPTH_WRITE: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		case RESOURCE_USAGE::COPY_DEST: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		case RESOURCE_USAGE::uav: return VK_IMAGE_LAYOUT_GENERAL;
 		case RESOURCE_USAGE::undefined: return VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 		throw;
