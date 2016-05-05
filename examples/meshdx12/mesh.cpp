@@ -102,37 +102,20 @@ void MeshSample::Init()
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev.get(), command_allocator.get());
 	start_command_list_recording(dev.get(), command_list.get(), command_allocator.get());
 
-#ifndef D3D12
-	sampler_set = get_object_descriptor_set(dev.get(), sampler_descriptor_set_type);
-	object_set = get_object_descriptor_set(dev.get(), object_descriptor_set_type);
-	scene_set = get_object_descriptor_set(dev.get(), scene_descriptor_set_type);
-	rtt_set = get_object_descriptor_set(dev.get(), rtt_descriptor_set_type);
-	model_set = get_object_descriptor_set(dev.get(), model_descriptor_set_type);
-	ibl_set = get_object_descriptor_set(dev.get(), ibl_descriptor_set_type);
+	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
+	sampler_heap = create_descriptor_storage(dev.get(), 10, { { RESOURCE_VIEW::SAMPLER, 10 } });
+	render_pass = create_render_pass(dev.get());
 
-	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
-	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object }, std::vector<VkPushConstantRange>());
-#else
-	object_sig = get_pipeline_layout_from_desc(dev.get(), { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
-	sunlight_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type });
-	skybox_sig = get_pipeline_layout_from_desc(dev.get(), { scene_descriptor_set_type, sampler_descriptor_set_type });
-	ibl_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
-#endif // !D3D12
+	load_program_and_pipeline_layout();
 
 	scene_matrix = create_buffer(dev.get(), sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	sun_data = create_buffer(dev.get(), 7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-
-	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 }, {RESOURCE_VIEW::SHADER_RESOURCE, 1000}, {RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
-	sampler_heap = create_descriptor_storage(dev.get(), 10, { {RESOURCE_VIEW::SAMPLER, 10 } });
 
 	clear_value_structure_t clear_val = {};
 #ifndef D3D12
 	set_pipeline_barrier(dev.get(), command_list.get(), back_buffer[0].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev.get(), command_list.get(), back_buffer[1].get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 #else
-
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
 	depth_buffer = create_image(dev.get(), irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
@@ -146,8 +129,6 @@ void MeshSample::Init()
 	set_pipeline_barrier(dev.get(), command_list.get(), diffuse_color.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(dev.get(), command_list.get(), normal_roughness_metalness.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	render_pass = create_render_pass(dev.get());
-
 	fbo[0] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[0].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 	fbo[1] = create_frame_buffer(dev.get(), { { diffuse_color.get(), irr::video::ECF_R8G8B8A8_UNORM },{ normal_roughness_metalness.get(), irr::video::ECF_R8G8B8A8_UNORM },{ back_buffer[1].get(), swap_chain_format } }, { depth_buffer.get(), irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
@@ -155,63 +136,16 @@ void MeshSample::Init()
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0, { scene_set.get() });
 	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 5, { rtt_set.get() });
 	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev.get(), sampler_heap.get(), 0, { sampler_set.get() });
-#ifndef D3D12
-	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
-	diffuse_color_view = create_image_view(dev.get(), diffuse_color.get(), VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
-	normal_roughness_metalness_view = create_image_view(dev.get(), normal_roughness_metalness.get(), VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
-	depth_view = create_image_view(dev.get(), depth_buffer.get(), VK_FORMAT_D32_SFLOAT_S8_UINT, structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
-	util::update_descriptor_sets(dev->object,
-	{
-		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(sampler->object) }, 3),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(diffuse_color_view->object) }, 4),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(normal_roughness_metalness_view->object) }, 5),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(depth_view->object) }, 6),
-		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(scene_matrix->object, 0, sizeof(SceneData)) }, 7),
-		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(sun_data->object, 0, 7 * sizeof(float)) }, 8)
-	});
-#endif // !D3D12
+	std::unique_ptr<buffer_t> upload_buffer;
+	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
+	fill_descriptor_set();
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
 	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev.get(), model, command_list.get(), cbv_srv_descriptors_heap.get(),
 		object_set.get(), model_set.get(),
 		nullptr);
-
-	std::unique_ptr<buffer_t> upload_buffer;
-	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
-#ifndef D3D12
-	skybox_view = create_image_view(dev.get(), skybox_texture.get(), VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
-
-	util::update_descriptor_sets(dev->object,
-	{
-		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ structures::descriptor_image_info(skybox_view->object) }, 9),
-	});
-#else
-	// scene
-	create_constant_buffer_view(dev.get(), scene_descriptor, 0, scene_matrix.get(), sizeof(SceneData));
-	create_constant_buffer_view(dev.get(), scene_descriptor, 1, sun_data.get(), sizeof(7 * sizeof(float)));
-	create_image_view(dev.get(), scene_descriptor, 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
-
-	// rtt
-	create_image_view(dev.get(), rtt_descriptors, 0, diffuse_color.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev.get(), rtt_descriptors, 1, normal_roughness_metalness.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev.get(), rtt_descriptors, 2, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	create_sampler(dev.get(), sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
-#endif // !D3D12
-	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
-	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
-	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, render_pass.get());
-	ibl_pso = get_ibl_pipeline_state(dev.get(), ibl_sig, render_pass.get());
 
 	big_triangle = create_buffer(dev.get(), 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	float fullscreen_tri[]
@@ -243,6 +177,74 @@ void MeshSample::Init()
 	fill_draw_commands();
 }
 
+void MeshSample::fill_descriptor_set()
+{
+#ifdef D3D12
+	// scene
+	create_constant_buffer_view(dev.get(), scene_descriptor, 0, scene_matrix.get(), sizeof(SceneData));
+	create_constant_buffer_view(dev.get(), scene_descriptor, 1, sun_data.get(), sizeof(7 * sizeof(float)));
+	create_image_view(dev.get(), scene_descriptor, 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+
+	// rtt
+	create_image_view(dev.get(), rtt_descriptors, 0, diffuse_color.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev.get(), rtt_descriptors, 1, normal_roughness_metalness.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(dev.get(), rtt_descriptors, 2, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	create_sampler(dev.get(), sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
+#else
+	skybox_view = create_image_view(dev.get(), skybox_texture.get(), VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
+
+	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
+	diffuse_color_view = create_image_view(dev.get(), diffuse_color.get(), VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
+	normal_roughness_metalness_view = create_image_view(dev.get(), normal_roughness_metalness.get(), VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
+	depth_view = create_image_view(dev.get(), depth_buffer.get(), VK_FORMAT_D32_SFLOAT_S8_UINT, structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
+
+	util::update_descriptor_sets(dev->object,
+	{
+		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+			{ structures::descriptor_sampler_info(sampler->object) }, 3),
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ structures::descriptor_image_info(diffuse_color_view->object) }, 4),
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ structures::descriptor_image_info(normal_roughness_metalness_view->object) }, 5),
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ structures::descriptor_image_info(depth_view->object) }, 6),
+		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ structures::descriptor_buffer_info(scene_matrix->object, 0, sizeof(SceneData)) }, 7),
+		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ structures::descriptor_buffer_info(sun_data->object, 0, 7 * sizeof(float)) }, 8),
+		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			{ structures::descriptor_image_info(skybox_view->object) }, 9),
+	});
+#endif // D3D12
+}
+
+void MeshSample::load_program_and_pipeline_layout()
+{
+#ifdef D3D12
+	object_sig = get_pipeline_layout_from_desc(dev.get(), { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
+	sunlight_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type });
+	skybox_sig = get_pipeline_layout_from_desc(dev.get(), { scene_descriptor_set_type, sampler_descriptor_set_type });
+	ibl_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
+#else
+	sampler_set = get_object_descriptor_set(dev.get(), sampler_descriptor_set_type);
+	object_set = get_object_descriptor_set(dev.get(), object_descriptor_set_type);
+	scene_set = get_object_descriptor_set(dev.get(), scene_descriptor_set_type);
+	rtt_set = get_object_descriptor_set(dev.get(), rtt_descriptor_set_type);
+	model_set = get_object_descriptor_set(dev.get(), model_descriptor_set_type);
+	ibl_set = get_object_descriptor_set(dev.get(), ibl_descriptor_set_type);
+
+	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
+	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
+	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
+	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object }, std::vector<VkPushConstantRange>());
+#endif // D3D12
+	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
+	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
+	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, render_pass.get());
+	ibl_pso = get_ibl_pipeline_state(dev.get(), ibl_sig, render_pass.get());
+}
 
 void MeshSample::fill_draw_commands()
 {
@@ -250,10 +252,7 @@ void MeshSample::fill_draw_commands()
 	{
 		command_list_for_back_buffer.push_back(create_command_list(dev.get(), command_allocator.get()));
 		command_list_t* current_cmd_list = command_list_for_back_buffer.back().get();
-
-
 		start_command_list_recording(dev.get(), current_cmd_list, command_allocator.get());
-
 		set_pipeline_barrier(dev.get(), current_cmd_list, back_buffer[i].get(), RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
@@ -297,7 +296,6 @@ void MeshSample::fill_draw_commands()
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
 		xue->fill_draw_command(dev.get(), current_cmd_list, object_sig, cbv_srv_descriptors_heap.get());
-
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #else

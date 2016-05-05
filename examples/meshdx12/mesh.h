@@ -100,6 +100,9 @@ private:
 	pipeline_state_t ibl_pso;
 	void fill_draw_commands();
 	void Init();
+
+	void fill_descriptor_set();
+	void load_program_and_pipeline_layout();
 public:
 	void Draw();
 };
