@@ -54,7 +54,7 @@ private:
 	std::unique_ptr<buffer_t> sun_data;
 	std::unique_ptr<buffer_t> scene_matrix;
 	std::unique_ptr<buffer_t> big_triangle;
-	std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > big_triangle_info;
+	std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > big_triangle_info;
 	std::unique_ptr<descriptor_storage_t> cbv_srv_descriptors_heap;
 
 	std::unique_ptr<image_t> skybox_texture;

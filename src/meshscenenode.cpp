@@ -121,9 +121,9 @@ namespace irr
 			unmap_buffer(*dev, *vertex_uv0);
 			// TODO: Upload to GPUmem
 
-			vertex_buffers_info.emplace_back(vertex_pos.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
-			vertex_buffers_info.emplace_back(vertex_normal.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
-			vertex_buffers_info.emplace_back(vertex_uv0.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+			vertex_buffers_info.emplace_back(*vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+			vertex_buffers_info.emplace_back(*vertex_normal, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
+			vertex_buffers_info.emplace_back(*vertex_uv0, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
 
 			// Texture
 			for (unsigned int texture_id = 0; texture_id < model->mNumMaterials; ++texture_id)
@@ -166,7 +166,7 @@ namespace irr
 		{
 			bind_graphic_descriptor(*current_cmd_list, 1, object_descriptor_set, object_sig);
 			bind_index_buffer(*current_cmd_list, *index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
+			bind_vertex_buffers(*current_cmd_list, 0, vertex_buffers_info);
 
 			for (unsigned i = 0; i < meshOffset.size(); i++)
 			{

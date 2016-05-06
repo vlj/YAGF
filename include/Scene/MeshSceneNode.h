@@ -37,7 +37,7 @@ namespace irr
 			std::unique_ptr<buffer_t> vertex_normal;
 			std::unique_ptr<buffer_t> index_buffer;
 			uint32_t total_index_cnt;
-			std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
+			std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
 
 			std::vector<uint32_t> texture_mapping;
 			std::vector<std::unique_ptr<image_t>> Textures;

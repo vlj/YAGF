@@ -409,20 +409,19 @@ void bind_index_buffer(command_list_t& command_list, buffer_t& buffer, uint64_t 
 	command_list->IASetIndexBuffer(&index_buffer_view);
 }
 
-void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
+void bind_vertex_buffers(command_list_t& commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
 {
 	std::vector<D3D12_VERTEX_BUFFER_VIEW> buffer_views;
 	for (const auto &vertex_buffer_info : buffer_offset_stride_size)
 	{
 		D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view = {};
 
-		buffer_t* buffer;
 		uint64_t offset;
-		std::tie(buffer, offset, vertex_buffer_view.StrideInBytes, vertex_buffer_view.SizeInBytes) = vertex_buffer_info;
-		vertex_buffer_view.BufferLocation = buffer->object->GetGPUVirtualAddress() + offset;
+		std::tie(std::ignore, offset, vertex_buffer_view.StrideInBytes, vertex_buffer_view.SizeInBytes) = vertex_buffer_info;
+		vertex_buffer_view.BufferLocation = std::get<0>(vertex_buffer_info)->GetGPUVirtualAddress() + offset;
 		buffer_views.push_back(vertex_buffer_view);
 	}
-	commandlist->object->IASetVertexBuffers(first_bind, static_cast<uint32_t>(buffer_views.size()), buffer_views.data());
+	commandlist->IASetVertexBuffers(first_bind, static_cast<uint32_t>(buffer_views.size()), buffer_views.data());
 
 }
 
