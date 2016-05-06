@@ -490,17 +490,17 @@ void clear_color(device_t dev, command_list_t* command_list, framebuffer_t frame
 	vkCmdClearAttachments(command_list->object, static_cast<uint32_t>(framebuffer->fbo.attachements.size()), &attachments, 1, &clear_rect);
 }
 
-void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipeline)
+void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline)
 {
-	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);
+	vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);
 }
 
-void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t* pipeline)
+void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t* pipeline)
 {
-	vkCmdBindPipeline(command_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->object);
+	vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->object);
 }
 
-void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth)
+void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth)
 {
 	VkViewport viewport = {};
 	viewport.x = x;
@@ -509,17 +509,17 @@ void set_viewport(command_list_t* command_list, float x, float width, float y, f
 	viewport.height = height;
 	viewport.minDepth = min_depth;
 	viewport.maxDepth = max_depth;
-	vkCmdSetViewport(command_list->object, 0, 1, &viewport);
+	vkCmdSetViewport(command_list, 0, 1, &viewport);
 }
 
-void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
 {
 	VkRect2D scissor = {};
 	scissor.offset.x = left;
 	scissor.offset.y = top;
 	scissor.extent.width = right - left;
 	scissor.extent.height = bottom - top;
-	vkCmdSetScissor(command_list->object, 0, 1, &scissor);
+	vkCmdSetScissor(command_list, 0, 1, &scissor);
 }
 
 allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layout)

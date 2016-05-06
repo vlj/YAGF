@@ -444,10 +444,10 @@ enum class depth_stencil_aspect
 	depth_and_stencil
 };
 
-void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth);
-void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
-void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipeline);
-void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t* pipeline);
+void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth);
+void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
+void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline);
+void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t& pipeline);
 
 void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type);
 void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size);

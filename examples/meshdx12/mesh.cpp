@@ -289,11 +289,11 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #endif
-		set_graphic_pipeline(current_cmd_list, objectpso);
+		set_graphic_pipeline(*current_cmd_list, objectpso);
 		bind_graphic_descriptor(*current_cmd_list, 2, scene_descriptor, object_sig);
 		bind_graphic_descriptor(*current_cmd_list, 3, sampler_descriptors, object_sig);
-		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
-		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
+		set_viewport(*current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
+		set_scissor(*current_cmd_list, 0, 1024, 0, 1024);
 
 		xue->fill_draw_command(dev.get(), current_cmd_list, object_sig, cbv_srv_descriptors_heap.get());
 #ifndef D3D12
@@ -313,7 +313,7 @@ void MeshSample::fill_draw_commands()
 #endif // !D3D12
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, sunlight_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
-		set_graphic_pipeline(current_cmd_list, sunlightpso);
+		set_graphic_pipeline(*current_cmd_list, sunlightpso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifdef D3D12
@@ -322,7 +322,7 @@ void MeshSample::fill_draw_commands()
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 2, ibl_descriptor, ibl_sig);
-		set_graphic_pipeline(current_cmd_list, ibl_pso);
+		set_graphic_pipeline(*current_cmd_list, ibl_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12
@@ -334,7 +334,7 @@ void MeshSample::fill_draw_commands()
 #endif
 		bind_graphic_descriptor(*current_cmd_list, 0, scene_descriptor, skybox_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, sampler_descriptors, skybox_sig);
-		set_graphic_pipeline(current_cmd_list, skybox_pso);
+		set_graphic_pipeline(*current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12

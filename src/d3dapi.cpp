@@ -376,7 +376,7 @@ void clear_depth_stencil(device_t* dev, command_list_t* command_list, framebuffe
 
 }
 
-void set_viewport(command_list_t* command_list, float x, float width, float y, float height, float min_depth, float max_depth)
+void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth)
 {
 	D3D12_VIEWPORT view = {};
 	view.Height = height;
@@ -386,10 +386,10 @@ void set_viewport(command_list_t* command_list, float x, float width, float y, f
 	view.MinDepth = min_depth;
 	view.MaxDepth = max_depth;
 
-	command_list->object->RSSetViewports(1, &view);
+	command_list->RSSetViewports(1, &view);
 }
 
-void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
+void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom)
 {
 	D3D12_RECT rect = {};
 	rect.left = left;
@@ -397,7 +397,7 @@ void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, ui
 	rect.bottom = bottom;
 	rect.right = right;
 
-	command_list->object->RSSetScissorRects(1, &rect);
+	command_list->RSSetScissorRects(1, &rect);
 }
 
 void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
@@ -426,14 +426,14 @@ void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const
 
 }
 
-void set_graphic_pipeline(command_list_t* command_list, pipeline_state_t pipeline)
+void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline)
 {
-	command_list->object->SetPipelineState(pipeline.Get());
+	command_list->SetPipelineState(pipeline.Get());
 }
 
-void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t* pipeline)
+void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t& pipeline)
 {
-	command_list->object->SetPipelineState(pipeline->object);
+	command_list->SetPipelineState(pipeline);
 }
 
 void submit_executable_command_list(command_queue_t& command_queue, command_list_t& command_list)

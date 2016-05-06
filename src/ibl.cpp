@@ -110,7 +110,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 			{ structures::descriptor_buffer_info(sh_buffer->object, 0, sizeof(SH)) }, 2)
 	});
 #endif
-	set_compute_pipeline(command_list.get(), compute_sh_pso.get());
+	set_compute_pipeline(*command_list, *compute_sh_pso);
 	bind_compute_descriptor(*command_list, 0, input_descriptors, compute_sh_sig);
 	bind_compute_descriptor(*command_list, 1, sampler_descriptor, compute_sh_sig);
 
@@ -387,7 +387,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	}
 
 	start_command_list_recording(*command_list, *command_storage);
-	set_compute_pipeline(command_list.get(), importance_sampling.get());
+	set_compute_pipeline(*command_list, *importance_sampling);
 #ifdef D3D12
 	command_list->object->SetComputeRootSignature(importance_sampling_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps{ input_heap->object, sampler_heap->object };
