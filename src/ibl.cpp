@@ -56,7 +56,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(*dev);
 	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_storage);
 
-	start_command_list_recording(dev, command_list.get(), command_storage.get());
+	start_command_list_recording(*command_list, *command_storage);
 	std::unique_ptr<buffer_t> cbuf = create_buffer(*dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	void* tmp = map_buffer(dev, cbuf.get());
 	float cube_size = static_cast<float>(edge_size) / 10.f;
@@ -117,8 +117,8 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	dispatch(command_list.get(), 1, 1, 1);
 //	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
 
-	make_command_list_executable(command_list.get());
-	submit_executable_command_list(cmd_queue, command_list.get());
+	make_command_list_executable(*command_list);
+	submit_executable_command_list(*cmd_queue, *command_list);
 	// for debug
 	wait_for_command_queue_idle(dev, cmd_queue);
 /*	SHCoefficients Result;
@@ -386,7 +386,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		}
 	}
 
-	start_command_list_recording(dev, command_list.get(), command_storage.get());
+	start_command_list_recording(*command_list, *command_storage);
 	set_compute_pipeline(command_list.get(), importance_sampling.get());
 #ifdef D3D12
 	command_list->object->SetComputeRootSignature(importance_sampling_sig.Get());
@@ -408,8 +408,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
 		}
 	}
-	make_command_list_executable(command_list.get());
-	submit_executable_command_list(cmd_queue, command_list.get());
+	make_command_list_executable(*command_list);
+	submit_executable_command_list(*cmd_queue, *command_list);
 	wait_for_command_queue_idle(dev, cmd_queue);
 
 	return result;

@@ -362,14 +362,14 @@ void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination
 	vkCmdCopyBufferToImage(list->object, source->object, destination_image->object, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &info);
 }
 
-void start_command_list_recording(device_t* dev, command_list_t* command_list, command_list_storage_t* storage)
+void start_command_list_recording(command_list_t& command_list, command_list_storage_t&)
 {
 	VkCommandBufferInheritanceInfo inheritance_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
 
 	VkCommandBufferBeginInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	info.pInheritanceInfo = &inheritance_info;
 	info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-	CHECK_VKRESULT(vkBeginCommandBuffer(command_list->object, &info));
+	CHECK_VKRESULT(vkBeginCommandBuffer(command_list, &info));
 }
 
 void reset_command_list_storage(device_t& dev, command_list_storage_t& storage)

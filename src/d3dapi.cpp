@@ -349,14 +349,14 @@ void create_buffer_uav_view(device_t * dev, descriptor_storage_t * storage, uint
 		.Offset(index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
-void start_command_list_recording(device_t* dev, command_list_t* command_list, command_list_storage_t* storage)
+void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage)
 {
-	command_list->object->Reset(storage->object, nullptr);
+	command_list->Reset(storage, nullptr);
 }
 
-void make_command_list_executable(command_list_t* command_list)
+void make_command_list_executable(command_list_t& command_list)
 {
-	CHECK_HRESULT(command_list->object->Close());
+	CHECK_HRESULT(command_list->Close());
 }
 
 
@@ -436,9 +436,9 @@ void set_compute_pipeline(command_list_t* command_list, compute_pipeline_state_t
 	command_list->object->SetPipelineState(pipeline->object);
 }
 
-void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list)
+void submit_executable_command_list(command_queue_t& command_queue, command_list_t& command_list)
 {
-	command_queue->object->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list->object));
+	command_queue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list.object));
 }
 
 void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
