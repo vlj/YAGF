@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <array>
 
 namespace irr
 {
@@ -270,7 +271,7 @@ namespace irr
 
       //! Constructs the color from 4 values representing the alpha, red, green and blue component.
       /** Must be values between 0 and 255. */
-      SColor(unsigned a, unsigned r, unsigned g, unsigned b)
+      SColor(uint8_t a, uint8_t r, uint8_t g, uint8_t b)
         : color(((a & 0xff) << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)) {}
 
       //! Constructs the color from a 32 bit value. Could be another color.
@@ -280,22 +281,22 @@ namespace irr
       //! Returns the alpha component of the color.
       /** The alpha component defines how opaque a color is.
       \return The alpha value of the color. 0 is fully transparent, 255 is fully opaque. */
-      unsigned getAlpha() const { return color >> 24; }
+	  uint8_t getAlpha() const { return color >> 24; }
 
       //! Returns the red component of the color.
       /** \return Value between 0 and 255, specifying how red the color is.
       0 means no red, 255 means full red. */
-      unsigned getRed() const { return (color >> 16) & 0xff; }
+	  uint8_t getRed() const { return (color >> 16) & 0xff; }
 
       //! Returns the green component of the color.
       /** \return Value between 0 and 255, specifying how green the color is.
       0 means no green, 255 means full green. */
-      unsigned getGreen() const { return (color >> 8) & 0xff; }
+      uint8_t getGreen() const { return (color >> 8) & 0xff; }
 
       //! Returns the blue component of the color.
       /** \return Value between 0 and 255, specifying how blue the color is.
       0 means no blue, 255 means full blue. */
-      unsigned getBlue() const { return color & 0xff; }
+	  uint8_t getBlue() const { return color & 0xff; }
 
       //! Get lightness of the color in the range [0,255]
       /*		float getLightness() const
@@ -343,12 +344,9 @@ namespace irr
       /** From ARGB to RGBA in 4 byte components for endian aware
       passing to OpenGL
       \param dest: address where the 4x8 bit OpenGL color is stored. */
-      void toOpenGLColor(char* dest) const
+	  std::array<uint8_t, 4> toOpenGLColor() const
       {
-        *dest = (char)getRed();
-        *++dest = (char)getGreen();
-        *++dest = (char)getBlue();
-        *++dest = (char)getAlpha();
+		  return{ getRed(), getGreen(), getBlue(), getAlpha() };
       }
 
       //! Sets all four components of the color at once.
@@ -403,10 +401,11 @@ namespace irr
       {
         //			d = clamp(d, 0.f, 1.f);
         const float inv = 1.0f - d;
-        return SColor((unsigned)roundf(other.getAlpha()*inv + getAlpha()*d),
-          (unsigned)roundf(other.getRed()*inv + getRed()*d),
-          (unsigned)roundf(other.getGreen()*inv + getGreen()*d),
-          (unsigned)roundf(other.getBlue()*inv + getBlue()*d));
+        return SColor(
+			static_cast<uint8_t>(roundf(other.getAlpha()*inv + getAlpha()*d)),
+			static_cast<uint8_t>(roundf(other.getRed()*inv + getRed()*d)),
+			static_cast<uint8_t>(roundf(other.getGreen()*inv + getGreen()*d)),
+			static_cast<uint8_t>(roundf(other.getBlue()*inv + getBlue()*d)));
       }
 
       //! Returns interpolated color. ( quadratic )
@@ -506,7 +505,7 @@ namespace irr
       }
 
       //! color in A8R8G8B8 Format
-      unsigned color;
+      unsigned color = 0;
     };
 
 
@@ -552,7 +551,11 @@ namespace irr
       //! Converts this color to a SColor without floats.
       SColor toSColor() const
       {
-        return SColor((unsigned)roundf(a*255.0f), (unsigned)roundf(r*255.0f), (unsigned)roundf(g*255.0f), (unsigned)roundf(b*255.0f));
+        return SColor(
+			static_cast<uint8_t>(roundf(a*255.0f)),
+			static_cast<uint8_t>(roundf(r*255.0f)),
+			static_cast<uint8_t>(roundf(g*255.0f)),
+			static_cast<uint8_t>(roundf(b*255.0f)));
       }
 
       //! Sets three color components to new values at once.
@@ -714,7 +717,7 @@ namespace irr
         return;
       }
 
-      float rm2;
+	  float rm2 = 0;
 
       if (Luminance <= 50)
       {
