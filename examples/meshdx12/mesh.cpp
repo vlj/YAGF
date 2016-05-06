@@ -138,7 +138,7 @@ void MeshSample::Init()
 	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(*dev, *sampler_heap, 0, { sampler_set.get() });
 
 	std::unique_ptr<buffer_t> upload_buffer;
-	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());
+	std::tie(skybox_texture, upload_buffer) = load_texture(*dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), *command_list);
 	fill_descriptor_set();
 
 	Assimp::Importer importer;

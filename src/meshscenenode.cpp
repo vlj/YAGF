@@ -135,7 +135,7 @@ namespace irr
 
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
-				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
+				std::tie(texture, upload_buffer) = load_texture(*dev, fixed, *upload_cmd_list);
 				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *heap, 9 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 #ifdef D3D12

@@ -3,7 +3,7 @@
 #include <Scene/textures.h>
 
 
-std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(device_t* dev, const std::string &texture_name, command_list_t* upload_command_list)
+std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(device_t& dev, const std::string &texture_name, command_list_t& upload_command_list)
 {
 	std::ifstream DDSFile(texture_name, std::ifstream::binary);
 	irr::video::CImageLoaderDDS DDSPic(DDSFile);
@@ -15,9 +15,9 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 	bool is_cubemap = DDSPic.getLoadedImage().Type == TextureType::CUBEMAP;
 	uint16_t layer_count = is_cubemap ? 6 : 1;
 
-	std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	std::unique_ptr<buffer_t> upload_buffer = create_buffer(dev, width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-	void *pointer = map_buffer(*dev, *upload_buffer);
+	void *pointer = map_buffer(dev, *upload_buffer);
 
 	size_t offset_in_texram = 0;
 
@@ -49,18 +49,18 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 			}
 		}
 	}
-	unmap_buffer(*dev, *upload_buffer);
+	unmap_buffer(dev, *upload_buffer);
 
-	std::unique_ptr<image_t> texture = create_image(*dev, irr::video::ECF_BC1_UNORM_SRGB,
+	std::unique_ptr<image_t> texture = create_image(dev, irr::video::ECF_BC1_UNORM_SRGB,
 		width, height, mipmap_count, layer_count, usage_sampled | usage_transfer_dst | (is_cubemap ? usage_cube : 0),
 		nullptr);
 
 	uint32_t miplevel = 0;
 	for (const MipLevelData mipmapData : Mips)
 	{
-		set_pipeline_barrier(*upload_command_list, *texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
-		copy_buffer_to_image_subresource(*upload_command_list, *texture, miplevel, *upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, irr::video::ECF_BC1_UNORM_SRGB);
-		set_pipeline_barrier(*upload_command_list, *texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(upload_command_list, *texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
+		copy_buffer_to_image_subresource(upload_command_list, *texture, miplevel, *upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, irr::video::ECF_BC1_UNORM_SRGB);
+		set_pipeline_barrier(upload_command_list, *texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
 		miplevel++;
 	}
 	return std::make_tuple(std::move(texture), std::move(upload_buffer));
