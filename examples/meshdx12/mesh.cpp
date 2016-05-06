@@ -166,7 +166,7 @@ void MeshSample::Init()
 	sh_coefficients = computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
 	specular_cube = generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
 #ifdef D3D12
-	create_constant_buffer_view(dev.get(), ibl_descriptor, 0, sh_coefficients.get(), 27 * sizeof(float));
+	create_constant_buffer_view(*dev, ibl_descriptor, 0, *sh_coefficients, 27 * sizeof(float));
 #else
 	util::update_descriptor_sets(dev->object,
 	{
@@ -181,16 +181,16 @@ void MeshSample::fill_descriptor_set()
 {
 #ifdef D3D12
 	// scene
-	create_constant_buffer_view(dev.get(), scene_descriptor, 0, scene_matrix.get(), sizeof(SceneData));
-	create_constant_buffer_view(dev.get(), scene_descriptor, 1, sun_data.get(), sizeof(7 * sizeof(float)));
-	create_image_view(dev.get(), scene_descriptor, 2, skybox_texture.get(), 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_constant_buffer_view(*dev, scene_descriptor, 0, *scene_matrix, sizeof(SceneData));
+	create_constant_buffer_view(*dev, scene_descriptor, 1, *sun_data, sizeof(7 * sizeof(float)));
+	create_image_view(*dev, scene_descriptor, 2, *skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// rtt
-	create_image_view(dev.get(), rtt_descriptors, 0, diffuse_color.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev.get(), rtt_descriptors, 1, normal_roughness_metalness.get(), 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(dev.get(), rtt_descriptors, 2, depth_buffer.get(), 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(*dev, rtt_descriptors, 0, *diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(*dev, rtt_descriptors, 1, *normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(*dev, rtt_descriptors, 2, *depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	create_sampler(dev.get(), sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
+	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 #else
 	skybox_view = create_image_view(*dev, *skybox_texture, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
 
@@ -223,10 +223,10 @@ void MeshSample::fill_descriptor_set()
 void MeshSample::load_program_and_pipeline_layout()
 {
 #ifdef D3D12
-	object_sig = get_pipeline_layout_from_desc(dev.get(), { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
-	sunlight_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type });
-	skybox_sig = get_pipeline_layout_from_desc(dev.get(), { scene_descriptor_set_type, sampler_descriptor_set_type });
-	ibl_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
+	object_sig = get_pipeline_layout_from_desc(*dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
+	sunlight_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type });
+	skybox_sig = get_pipeline_layout_from_desc(*dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
+	ibl_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
 #else
 	sampler_set = get_object_descriptor_set(*dev, sampler_descriptor_set_type);
 	object_set = get_object_descriptor_set(*dev, object_descriptor_set_type);
@@ -279,8 +279,8 @@ void MeshSample::fill_draw_commands()
 				.Offset(1, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
 		current_cmd_list->object->OMSetRenderTargets(rtt_to_use.size(), rtt_to_use.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
-		clear_color(dev.get(), current_cmd_list, fbo[i], clearColor);
-		clear_depth_stencil(dev.get(), current_cmd_list, fbo[i], depth_stencil_aspect::depth_only, 1., 0);
+		clear_color(*current_cmd_list, fbo[i], clearColor);
+		clear_depth_stencil(*current_cmd_list, fbo[i], depth_stencil_aspect::depth_only, 1., 0);
 
 		current_cmd_list->object->SetGraphicsRootSignature(object_sig.Get());
 

@@ -242,13 +242,13 @@ framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&
 	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets, depth_stencil_texture);
 }
 
-void create_constant_buffer_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, buffer_t* buffer, uint32_t buffer_size)
+void create_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, buffer_t& buffer, uint32_t buffer_size)
 {
-	uint32_t stride = dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-	desc.BufferLocation = buffer->object->GetGPUVirtualAddress();
+	desc.BufferLocation = buffer->GetGPUVirtualAddress();
 	desc.SizeInBytes = std::max<uint32_t>(256, buffer_size);
-	dev->object->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
+	dev->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
 }
 
 void reset_command_list_storage(device_t&, command_list_storage_t& storage)
@@ -288,9 +288,9 @@ std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, u
 	return std::make_unique<descriptor_storage_t>(result);
 }
 
-void create_sampler(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, SAMPLER_TYPE sampler_type)
+void create_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, SAMPLER_TYPE sampler_type)
 {
-	uint32_t stride = dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 	D3D12_SAMPLER_DESC samplerdesc = {};
 
@@ -319,12 +319,12 @@ void create_sampler(device_t* dev, const allocated_descriptor_set& descriptor_se
 		samplerdesc.MaxAnisotropy = 16;
 		break;
 	}
-	dev->object->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
+	dev->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
 }
 
-void create_image_view(device_t* dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, image_t* img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
+void create_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, image_t& img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim)
 {
-	uint32_t stride = dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.ViewDimension = dim;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -333,10 +333,10 @@ void create_image_view(device_t* dev, const allocated_descriptor_set& descriptor
 	if (dim == D3D12_SRV_DIMENSION_TEXTURE2D)
 		desc.Texture2D.MipLevels = mip_levels;
 	desc.Format = get_dxgi_samplable_format(fmt);
-	dev->object->CreateShaderResourceView(img->object, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, stride));
+	dev->CreateShaderResourceView(img, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, stride));
 }
 
-void create_buffer_uav_view(device_t * dev, descriptor_storage_t * storage, uint32_t index, buffer_t * buffer, uint32_t size)
+void create_buffer_uav_view(device_t& dev, descriptor_storage_t& storage, uint32_t index, buffer_t& buffer, uint32_t size)
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 	desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -344,9 +344,9 @@ void create_buffer_uav_view(device_t * dev, descriptor_storage_t * storage, uint
 	desc.Buffer.NumElements = size / 4;
 	desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
 
-	dev->object->CreateUnorderedAccessView(buffer->object, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->object->GetCPUDescriptorHandleForHeapStart())
-		.Offset(index, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+	dev->CreateUnorderedAccessView(buffer, nullptr, &desc,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart())
+		.Offset(index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage)
@@ -365,14 +365,14 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, get_resource_state(before), get_resource_state(after), subresource));
 }
 
-void clear_color(device_t* dev, command_list_t* command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
+void clear_color(command_list_t& command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
 {
-	command_list->object->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);
+	command_list->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);
 }
 
-void clear_depth_stencil(device_t* dev, command_list_t* command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil)
+void clear_depth_stencil(command_list_t& command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil)
 {
-	command_list->object->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
+	command_list->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
 
 }
 

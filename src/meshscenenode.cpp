@@ -42,8 +42,8 @@ namespace irr
 			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set });
 #ifdef D3D12
 			// object
-			create_constant_buffer_view(dev, object_descriptor_set, 0, object_matrix.get(), sizeof(ObjectData));
-			create_constant_buffer_view(dev, object_descriptor_set, 1, object_matrix.get(), sizeof(ObjectData));
+			create_constant_buffer_view(dev, object_descriptor_set, 0, *object_matrix, sizeof(ObjectData));
+			create_constant_buffer_view(dev, object_descriptor_set, 1, *object_matrix, sizeof(ObjectData));
 #else
 			util::update_descriptor_sets(dev,
 			{
@@ -139,7 +139,7 @@ namespace irr
 				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 9 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 #ifdef D3D12
-				create_image_view(dev, mesh_descriptor, 0, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
+				create_image_view(dev, mesh_descriptor, 0, *texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
 				auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 					structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));

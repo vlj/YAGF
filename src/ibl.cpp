@@ -32,7 +32,7 @@ namespace
 		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
 		pipeline_desc.pRootSignature = pipeline_layout.Get();
 
-		CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
+		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 		return std::make_unique<compute_pipeline_state_t>(result);
 #else
 		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\computesh.spv");
@@ -80,9 +80,9 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() });
 	allocated_descriptor_set sampler_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() });
 #ifdef D3D12
-	create_constant_buffer_view(dev, input_descriptors, 0, cbuf.get(), sizeof(int));
+	create_constant_buffer_view(dev, input_descriptors, 0, *cbuf, sizeof(int));
 	create_image_view(dev, input_descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
-	create_buffer_uav_view(dev, srv_cbv_uav_heap.get(), 2, sh_buffer.get(), sizeof(SH));
+	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, *sh_buffer, sizeof(SH));
 	create_sampler(dev, sampler_descriptor, 0, SAMPLER_TYPE::ANISOTROPIC);
 
 	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
@@ -225,7 +225,7 @@ std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(d
 	pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
 	pipeline_desc.pRootSignature = pipeline_layout.Get();
 
-	CHECK_HRESULT(dev->object->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
+	CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 	return std::make_unique<compute_pipeline_state_t>(result);
 #else
 	vulkan_wrapper::shader_module module(dev, "..\\..\\..\\importance_sampling_specular.spv");
@@ -295,7 +295,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 		memcpy(map_buffer(dev, *permutation_matrix[i]), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, *permutation_matrix[i]);
 #ifdef D3D12
-		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, permutation_matrix[i].get(), sizeof(PermutationMatrix));
+		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, *permutation_matrix[i], sizeof(PermutationMatrix));
 		create_image_view(dev, permutation_matrix_descriptors[i], 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 #else
 		util::update_descriptor_sets(dev,
@@ -335,14 +335,14 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 		}
 		unmap_buffer(dev, *sample_location_buffer[i]);
 #ifdef D3D12
-		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 1, per_level_cbuffer[i].get(), sizeof(float));
+		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 1, *per_level_cbuffer[i], sizeof(float));
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srv.Buffer.FirstElement = 0;
 		srv.Buffer.NumElements = 1024;
 		srv.Buffer.StructureByteStride = 2 * sizeof(float);
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		dev->object->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
+		dev->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
 #else
 		buffer_views[i] = std::make_unique<vulkan_wrapper::buffer_view>(dev, sample_location_buffer[i]->object, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
 		util::update_descriptor_sets(dev,
@@ -374,7 +374,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 			desc.Texture2DArray.PlaneSlice = 0;
 			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-			dev->object->CreateUnorderedAccessView(result->object, nullptr, &desc,
+			dev->CreateUnorderedAccessView(result->object, nullptr, &desc,
 				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
 #else
 			uav_views[face + level * 6] = create_image_view(dev, *result, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1), VK_IMAGE_VIEW_TYPE_CUBE);
