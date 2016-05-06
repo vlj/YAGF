@@ -34,7 +34,7 @@ struct MeshSample
 
 	~MeshSample()
 	{
-		wait_for_command_queue_idle(dev.get(), cmdqueue.get());
+		wait_for_command_queue_idle(*dev, *cmdqueue);
 	}
 
 private:

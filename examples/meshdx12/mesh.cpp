@@ -96,7 +96,7 @@ namespace
 
 void MeshSample::Init()
 {
-	back_buffer = get_image_view_from_swap_chain(dev.get(), chain.get());
+	back_buffer = get_image_view_from_swap_chain(*dev, *chain);
 
 	command_allocator = create_command_storage(*dev);
 	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_allocator);
@@ -161,7 +161,7 @@ void MeshSample::Init()
 
 	make_command_list_executable(*command_list);
 	submit_executable_command_list(*cmdqueue, *command_list);
-	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
+	wait_for_command_queue_idle(*dev, *cmdqueue);
 	//ibl
 	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
 	specular_cube = generateSpecularCubemap(dev.get(), cmdqueue.get(), skybox_texture.get());
@@ -380,8 +380,8 @@ void MeshSample::Draw()
 			memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
 			//unmap_buffer(dev, jointbuffer);
 
-	uint32_t current_backbuffer = get_next_backbuffer_id(dev.get(), chain.get());
+	uint32_t current_backbuffer = get_next_backbuffer_id(*dev, *chain);
 	submit_executable_command_list(*cmdqueue, *command_list_for_back_buffer[current_backbuffer]);
-	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
-	present(dev.get(), cmdqueue.get(), chain.get(), current_backbuffer);
+	wait_for_command_queue_idle(*dev, *cmdqueue);
+	present(*dev, *cmdqueue, *chain, current_backbuffer);
 }

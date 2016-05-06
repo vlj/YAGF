@@ -455,14 +455,14 @@ void dispatch(command_list_t& command_list, uint32_t x, uint32_t y, uint32_t z)
 	command_list->Dispatch(x, y, z);
 }
 
-void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offset, buffer_t* dst, uint64_t dst_offset, uint64_t size)
+void copy_buffer(command_list_t& command_list, buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size)
 {
-	command_list->object->CopyBufferRegion(src->object, src_offset, dst->object, dst_offset, size);
+	command_list->CopyBufferRegion(src, src_offset, dst, dst_offset, size);
 }
 
-uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)
+uint32_t get_next_backbuffer_id(device_t&, swap_chain_t& chain)
 {
-	return chain->object->GetCurrentBackBufferIndex();
+	return chain->GetCurrentBackBufferIndex();
 }
 
 allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &)
@@ -495,20 +495,20 @@ void bind_compute_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const
 	cmd_list->SetComputeRootDescriptorTable(bindpoint, descriptor_set);
 }
 
-void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue)
+void wait_for_command_queue_idle(device_t& dev, command_queue_t& command_queue)
 {
 	Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-	CHECK_HRESULT(dev->object->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf())));
+	CHECK_HRESULT(dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf())));
 	HANDLE completion_event = CreateEvent(0, FALSE, FALSE, 0);
 	fence->SetEventOnCompletion(1, completion_event);
-	command_queue->object->Signal(fence.Get(), 1);
+	command_queue->Signal(fence.Get(), 1);
 	WaitForSingleObject(completion_event, INFINITE);
 	CloseHandle(completion_event);
 }
 
-void present(device_t* dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
+void present(device_t&, command_queue_t&, swap_chain_t& chain, uint32_t backbuffer_index)
 {
-	CHECK_HRESULT(chain->object->Present(1, 0));
+	CHECK_HRESULT(chain->Present(1, 0));
 }
 
 d3d12_framebuffer_t::d3d12_framebuffer_t(device_t& dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)
@@ -546,13 +546,13 @@ d3d12_framebuffer_t::~d3d12_framebuffer_t()
 
 }
 
-std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* dev, swap_chain_t* chain)
+std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t&, swap_chain_t& chain)
 {
 	std::vector<std::unique_ptr<image_t>> result;
 	for (int i = 0; i < 2; i++)
 	{
 		ID3D12Resource* back_buffer;
-		CHECK_HRESULT(chain->object->GetBuffer(i, IID_PPV_ARGS(&back_buffer)));
+		CHECK_HRESULT(chain->GetBuffer(i, IID_PPV_ARGS(&back_buffer)));
 		back_buffer->SetName(L"BackBuffer");
 		result.push_back(std::make_unique<image_t>(back_buffer));
 	}

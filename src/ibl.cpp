@@ -120,7 +120,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	make_command_list_executable(*command_list);
 	submit_executable_command_list(*cmd_queue, *command_list);
 	// for debug
-	wait_for_command_queue_idle(dev, cmd_queue);
+	wait_for_command_queue_idle(*dev, *cmd_queue);
 /*	SHCoefficients Result;
 	float* Shval = (float*)map_buffer(dev, sh_buffer_readback.get());
 	memcpy(Result.Blue, Shval, 9 * sizeof(float));
@@ -410,7 +410,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	}
 	make_command_list_executable(*command_list);
 	submit_executable_command_list(*cmd_queue, *command_list);
-	wait_for_command_queue_idle(dev, cmd_queue);
+	wait_for_command_queue_idle(*dev, *cmd_queue);
 
 	return result;
 }
