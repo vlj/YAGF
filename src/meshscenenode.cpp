@@ -30,7 +30,7 @@ namespace irr
 		//! Constructor
 		/** Use setMesh() to set the mesh to display.
 		*/
-		IMeshSceneNode::IMeshSceneNode(device_t* dev, const aiScene*model, command_list_t* upload_cmd_list, descriptor_storage_t* heap,
+		IMeshSceneNode::IMeshSceneNode(device_t& dev, const aiScene*model, command_list_t& upload_cmd_list, descriptor_storage_t& heap,
 			descriptor_set_layout* object_set, descriptor_set_layout* model_set,
 			ISceneNode* parent,
 			const core::vector3df& position,
@@ -38,14 +38,14 @@ namespace irr
 			const core::vector3df& scale)
 			: ISceneNode(parent, position, rotation, scale)
 		{
-			object_matrix = create_buffer(*dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *heap, 3, { object_set });
+			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set });
 #ifdef D3D12
 			// object
 			create_constant_buffer_view(dev, object_descriptor_set, 0, object_matrix.get(), sizeof(ObjectData));
 			create_constant_buffer_view(dev, object_descriptor_set, 1, object_matrix.get(), sizeof(ObjectData));
 #else
-			util::update_descriptor_sets(dev->object,
+			util::update_descriptor_sets(dev,
 			{
 				structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				{ VkDescriptorBufferInfo{ object_matrix->object, 0, sizeof(ObjectData) } }, 0)
@@ -82,14 +82,14 @@ namespace irr
 				total_index_cnt += mesh->mNumFaces * 3;
 			}
 
-			index_buffer = create_buffer(*dev, total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			uint16_t *indexmap = (uint16_t *)map_buffer(*dev, *index_buffer);
-			vertex_pos = create_buffer(*dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(*dev, *vertex_pos);
-			vertex_normal = create_buffer(*dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(*dev, *vertex_normal);
-			vertex_uv0 = create_buffer(*dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(*dev, *vertex_uv0);
+			index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			uint16_t *indexmap = (uint16_t *)map_buffer(dev, *index_buffer);
+			vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, *vertex_pos);
+			vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, *vertex_normal);
+			vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, *vertex_uv0);
 
 			uint32_t basevertex = 0;
 			uint32_t baseindex = 0;
@@ -115,10 +115,10 @@ namespace irr
 				texture_mapping.push_back(mesh->mMaterialIndex);
 			}
 
-			unmap_buffer(*dev, *index_buffer);
-			unmap_buffer(*dev, *vertex_pos);
-			unmap_buffer(*dev, *vertex_normal);
-			unmap_buffer(*dev, *vertex_uv0);
+			unmap_buffer(dev, *index_buffer);
+			unmap_buffer(dev, *vertex_pos);
+			unmap_buffer(dev, *vertex_normal);
+			unmap_buffer(dev, *vertex_uv0);
 			// TODO: Upload to GPUmem
 
 			vertex_buffers_info.emplace_back(*vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
@@ -135,16 +135,16 @@ namespace irr
 
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
-				std::tie(texture, upload_buffer) = load_texture(*dev, fixed, *upload_cmd_list);
-				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *heap, 9 + texture_id, { model_set });
+				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
+				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 9 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 #ifdef D3D12
 				create_image_view(dev, mesh_descriptor, 0, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
-				auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev->object, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
+				auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
 					structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
 				Textures_views.push_back(img_view);
-				util::update_descriptor_sets(dev->object,
+				util::update_descriptor_sets(dev,
 				{
 					structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,{ VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
 				});
@@ -162,22 +162,22 @@ namespace irr
 
 		static float timer = 0.;
 
-		void IMeshSceneNode::fill_draw_command(device_t* dev, command_list_t* current_cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap)
+		void IMeshSceneNode::fill_draw_command(command_list_t& current_cmd_list, pipeline_layout_t object_sig)
 		{
-			bind_graphic_descriptor(*current_cmd_list, 1, object_descriptor_set, object_sig);
-			bind_index_buffer(*current_cmd_list, *index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-			bind_vertex_buffers(*current_cmd_list, 0, vertex_buffers_info);
+			bind_graphic_descriptor(current_cmd_list, 1, object_descriptor_set, object_sig);
+			bind_index_buffer(current_cmd_list, *index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
 
 			for (unsigned i = 0; i < meshOffset.size(); i++)
 			{
-				bind_graphic_descriptor(*current_cmd_list, 0, mesh_descriptor_set[texture_mapping[i]], object_sig);
-				draw_indexed(*current_cmd_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
+				bind_graphic_descriptor(current_cmd_list, 0, mesh_descriptor_set[texture_mapping[i]], object_sig);
+				draw_indexed(current_cmd_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
 			}
 		}
 
-		void IMeshSceneNode::update_constant_buffers(device_t* dev)
+		void IMeshSceneNode::update_constant_buffers(device_t& dev)
 		{
-			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(*dev, *object_matrix));
+			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, *object_matrix));
 			irr::core::matrix4 Model;
 			irr::core::matrix4 InvModel;
 			Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
@@ -186,7 +186,7 @@ namespace irr
 
 			memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
 			memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
-			unmap_buffer(*dev, *object_matrix);
+			unmap_buffer(dev, *object_matrix);
 
 			timer += 16.f;
 		}

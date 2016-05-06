@@ -54,7 +54,7 @@ namespace irr
 			//! Constructor
 			/** Use setMesh() to set the mesh to display.
 			*/
-			IMeshSceneNode(device_t* dev, const aiScene*, command_list_t* upload_cmd_list, descriptor_storage_t* heap,
+			IMeshSceneNode(device_t& dev, const aiScene*, command_list_t& upload_cmd_list, descriptor_storage_t& heap,
 				descriptor_set_layout* object_set, descriptor_set_layout* model_set,
 				ISceneNode* parent,
 				const core::vector3df& position = core::vector3df(0, 0, 0),
@@ -64,8 +64,8 @@ namespace irr
 			~IMeshSceneNode();
 			void render() {}
 
-			void fill_draw_command(device_t* dev, command_list_t* cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap);
-			void update_constant_buffers(device_t* dev);
+			void fill_draw_command(command_list_t& cmd_list, pipeline_layout_t object_sig);
+			void update_constant_buffers(device_t& dev);
 		};
 
 	} // end namespace scene

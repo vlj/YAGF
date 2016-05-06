@@ -143,7 +143,7 @@ void MeshSample::Init()
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
-	xue = std::make_unique<irr::scene::IMeshSceneNode>(dev.get(), model, command_list.get(), cbv_srv_descriptors_heap.get(),
+	xue = std::make_unique<irr::scene::IMeshSceneNode>(*dev, model, *command_list, *cbv_srv_descriptors_heap,
 		object_set.get(), model_set.get(),
 		nullptr);
 
@@ -295,7 +295,7 @@ void MeshSample::fill_draw_commands()
 		set_viewport(*current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(*current_cmd_list, 0, 1024, 0, 1024);
 
-		xue->fill_draw_command(dev.get(), current_cmd_list, object_sig, cbv_srv_descriptors_heap.get());
+		xue->fill_draw_command(*current_cmd_list, object_sig);
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #else
@@ -347,7 +347,7 @@ void MeshSample::fill_draw_commands()
 
 void MeshSample::Draw()
 {
-	xue->update_constant_buffers(dev.get());
+	xue->update_constant_buffers(*dev);
 
 	SceneData * tmp = static_cast<SceneData*>(map_buffer(*dev, *scene_matrix));
 	irr::core::matrix4 Perspective;
