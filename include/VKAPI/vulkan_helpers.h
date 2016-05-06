@@ -3,6 +3,7 @@
 #pragma once
 #include <vulkan\vulkan.h>
 #include <array>
+#include <gsl.h>
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 
@@ -531,7 +532,7 @@ namespace vulkan_wrapper
 
 		framebuffer(VkDevice dev, VkRenderPass render_pass, const std::vector<VkImageView> &att, uint32_t width, uint32_t height, uint32_t layers)
 			: attachements(att),
-			info({ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr, 0, render_pass, static_cast<uint32_t>(attachements.size()), attachements.data(), width, height, layers }),
+			info({ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr, 0, render_pass, gsl::narrow_cast<uint32_t>(attachements.size()), attachements.data(), width, height, layers }),
 			m_device(dev)
 		{
 			CHECK_VKRESULT(vkCreateFramebuffer(m_device, &info, nullptr, &object));
@@ -564,19 +565,19 @@ namespace structures
 	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorImageInfo> &image_descriptors,
 		uint32_t dst_binding, uint32_t dst_array_element = 0)
 	{
-		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(image_descriptors.size()), descriptor_type, image_descriptors.data(), nullptr, nullptr };
+		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(image_descriptors.size()), descriptor_type, image_descriptors.data(), nullptr, nullptr };
 	}
 
 	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorBufferInfo> &buffer_descriptors,
 		uint32_t dst_binding, uint32_t dst_array_element = 0)
 	{
-		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(buffer_descriptors.size()), descriptor_type, nullptr, buffer_descriptors.data(), nullptr };
+		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(buffer_descriptors.size()), descriptor_type, nullptr, buffer_descriptors.data(), nullptr };
 	}
 
 	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkBufferView> &texel_buffer_view_descriptors,
 		uint32_t dst_binding, uint32_t dst_array_element = 0)
 	{
-		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, static_cast<uint32_t>(texel_buffer_view_descriptors.size()), descriptor_type, nullptr, nullptr, texel_buffer_view_descriptors.data() };
+		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(texel_buffer_view_descriptors.size()), descriptor_type, nullptr, nullptr, texel_buffer_view_descriptors.data() };
 	}
 
 	inline VkClearValue clear_value(const std::array<float, 4> &rgba)
@@ -636,7 +637,7 @@ namespace util
 {
 	inline VkDescriptorSet allocate_descriptor_sets(VkDevice dev, VkDescriptorPool descriptor_pool, const std::vector<VkDescriptorSetLayout> &set_layouts)
 	{
-		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, static_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
+		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, gsl::narrow_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
 		VkDescriptorSet result;
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev, &info, &result));
 		return result;
@@ -644,6 +645,6 @@ namespace util
 
 	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
 	{
-		vkUpdateDescriptorSets(dev, static_cast<uint32_t>(update_info.size()), update_info.data(),0, nullptr);
+		vkUpdateDescriptorSets(dev, gsl::narrow_cast<uint32_t>(update_info.size()), update_info.data(),0, nullptr);
 	}
 }
