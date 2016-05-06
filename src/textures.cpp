@@ -58,9 +58,9 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 	uint32_t miplevel = 0;
 	for (const MipLevelData mipmapData : Mips)
 	{
-		set_pipeline_barrier(dev, upload_command_list, texture.get(), RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(*upload_command_list, *texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST, miplevel, irr::video::E_ASPECT::EA_COLOR);
 		copy_buffer_to_image_subresource(*upload_command_list, *texture, miplevel, *upload_buffer, mipmapData.Offset, mipmapData.Width, mipmapData.Height, mipmapData.RowPitch, irr::video::ECF_BC1_UNORM_SRGB);
-		set_pipeline_barrier(dev, upload_command_list, texture.get(), RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(*upload_command_list, *texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::READ_GENERIC, miplevel, irr::video::E_ASPECT::EA_COLOR);
 		miplevel++;
 	}
 	return std::make_tuple(std::move(texture), std::move(upload_buffer));

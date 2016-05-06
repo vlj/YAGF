@@ -434,7 +434,7 @@ void start_command_list_recording(command_list_t& command_list, command_list_sto
 void make_command_list_executable(command_list_t& command_list);
 void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue);
 void present(device_t* dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index);
-void set_pipeline_barrier(device_t* dev, command_list_t* command_list, image_t* resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
+void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
 
 
 enum class depth_stencil_aspect
