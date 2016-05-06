@@ -78,7 +78,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	std::vector<const char*> layers = { "VK_LAYER_LUNARG_standard_validation" };
 	std::vector<const char*> instance_extension = { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
-	VkInstance instance;
+	VkInstance instance{};
 
 	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	app_info.pNext = NULL;
@@ -92,8 +92,8 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	CHECK_VKRESULT(vkCreateInstance(&info, nullptr, &instance));
 
 #ifndef NDEBUG
-	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
-	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback;
+	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
+	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback{};
 	VkDebugReportCallbackEXT debug_report_callback;
 
 	dbgCreateDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
@@ -124,7 +124,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_count);
 	vkGetPhysicalDeviceQueueFamilyProperties(devices[0], &queue_count, queue_family_properties.data());
 
-	VkSurfaceKHR surface;
+	VkSurfaceKHR surface{};
 	VkWin32SurfaceCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, nullptr, 0, hinstance, window };
 	CHECK_VKRESULT(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface));
 
