@@ -1,0 +1,92 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+layout(set = 1, binding = 2) uniform samplerBuffer samples;
+layout(set = 2, binding = 3, rgba32f) writeonly uniform image2D output_texture;
+layout(set = 1, binding = 5, std140) uniform _Size
+{
+	float dfg_lut_size;
+};
+
+float G1_Schlick(vec3 V, vec3 normal, float k)
+{
+	float NdotV = dot(V, normal);
+	NdotV = NdotV > 0.f ? NdotV : 0.f;
+	NdotV = NdotV < 1.f ? NdotV : 1.f;
+	return 1.f / (NdotV * (1.f - k) + k);
+}
+
+float G_Smith(vec3 lightdir, vec3 viewdir, vec3 normal, float roughness)
+{
+	float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
+	return G1_Schlick(lightdir, normal, k) * G1_Schlick(viewdir, normal, k);
+}
+
+
+vec2 getSpecularDFG(float roughness, float NdotV)
+{
+	// We assume a local referential where N points in Y direction
+	vec3 V = vec3(sqrt(1.f - NdotV * NdotV), NdotV, 0.f);
+
+	float DFG1 = 0., DFG2 = 0.;
+	for (int i = 0; i < 1024; i++)
+	{
+		//vec2 ThetaPhi = ImportanceSamplingGGX(HammersleySequence(sample, 1024), roughness);
+		float Theta = texelFetch(samples, i).x;
+        float Phi = texelFetch(samples, i).y;
+		vec3 H = vec3(sin(Theta) * cos(Phi), cos(Theta), sin(Theta) * sin(Phi));
+		vec3 L = 2 * dot(H, V) * H - V;
+		float NdotL = L.y;
+
+		float NdotH = H.y > 0. ? H.y : 0.;
+		if (NdotL > 0.)
+		{
+			float VdotH = dot(V, H);
+			VdotH = VdotH > 0.f ? VdotH : 0.f;
+			VdotH = VdotH < 1.f ? VdotH : 1.f;
+			float Fc = pow(1.f - VdotH, 5.f);
+			float G = G_Smith(L, V, vec3(0.f, 1.f, 0.f), roughness);
+			DFG1 += (1.f - Fc) * G * VdotH;
+			DFG2 += Fc * G * VdotH;
+		}
+	}
+	return vec2(DFG1 / 1024.f, DFG2 / 1024.f);
+}
+
+float getDiffuseDFG(float roughness, float NdotV)
+{
+	// We assume a local referential where N points in Y direction
+	vec3 V = vec3(sqrt(1.f - NdotV * NdotV), NdotV, 0.f);
+	float DFG = 0.f;
+	for (uint i = 0; i < 1024; i++)
+	{
+		//std::pair<float, float> ThetaPhi = ImportanceSamplingCos(HammersleySequence(sample, 1024));
+		float Theta;
+        float Phi;
+		vec3 L = vec3(sin(Theta) * cos(Phi), cos(Theta), sin(Theta) * sin(Phi));
+		float NdotL = L.y;
+		if (NdotL > 0.f)
+		{
+			vec3 H = normalize(L + V);
+			float LdotH = dot(L, H);
+			float f90 = .5f + 2.f * LdotH * LdotH * roughness * roughness;
+			DFG += (1.f + (f90 - 1.f) * (1.f - pow(NdotL, 5.f))) * (1.f + (f90 - 1.f) * (1.f - pow(NdotV, 5.f)));
+		}
+	}
+	return DFG / 1024.f;
+}
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+void main(void)
+{
+    uvec2 id = gl_GlobalInvocationID.xy;
+   	float roughness = .05f + .95f * float(id.x) / float(dfg_lut_size - 1);
+   	float NdotV = float(1 + id.y) / float(dfg_lut_size + 1);
+
+    vec2 specular_dfg = getSpecularDFG(roughness, NdotV);
+    float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
+
+    imageStore(output_texture, ivec2(id), vec4(specular_dfg, diffuse_dfg, 0.));
+}
