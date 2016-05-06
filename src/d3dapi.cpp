@@ -486,14 +486,14 @@ allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev
 	);
 }
 
-void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t)
+void bind_graphic_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t)
 {
-	cmd_list->object->SetGraphicsRootDescriptorTable(bindpoint, descriptor_set);
+	cmd_list->SetGraphicsRootDescriptorTable(bindpoint, descriptor_set);
 }
 
-void bind_compute_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
+void bind_compute_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
 {
-	cmd_list->object->SetComputeRootDescriptorTable(bindpoint, descriptor_set);
+	cmd_list->SetComputeRootDescriptorTable(bindpoint, descriptor_set);
 }
 
 void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue)

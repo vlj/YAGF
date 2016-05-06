@@ -290,8 +290,8 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #endif
 		set_graphic_pipeline(current_cmd_list, objectpso);
-		bind_graphic_descriptor(current_cmd_list, 2, scene_descriptor, object_sig);
-		bind_graphic_descriptor(current_cmd_list, 3, sampler_descriptors, object_sig);
+		bind_graphic_descriptor(*current_cmd_list, 2, scene_descriptor, object_sig);
+		bind_graphic_descriptor(*current_cmd_list, 3, sampler_descriptors, object_sig);
 		set_viewport(current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
 		set_scissor(current_cmd_list, 0, 1024, 0, 1024);
 
@@ -311,17 +311,17 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(*current_cmd_list, *normal_roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
-		bind_graphic_descriptor(current_cmd_list, 0, rtt_descriptors, sunlight_sig);
-		bind_graphic_descriptor(current_cmd_list, 1, scene_descriptor, sunlight_sig);
+		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, sunlight_sig);
+		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(current_cmd_list, sunlightpso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
 #ifdef D3D12
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
 #endif // !D3D12
-		bind_graphic_descriptor(current_cmd_list, 0, rtt_descriptors, ibl_sig);
-		bind_graphic_descriptor(current_cmd_list, 1, scene_descriptor, ibl_sig);
-		bind_graphic_descriptor(current_cmd_list, 2, ibl_descriptor, ibl_sig);
+		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, ibl_sig);
+		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, ibl_sig);
+		bind_graphic_descriptor(*current_cmd_list, 2, ibl_descriptor, ibl_sig);
 		set_graphic_pipeline(current_cmd_list, ibl_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
@@ -332,8 +332,8 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
 #endif
-		bind_graphic_descriptor(current_cmd_list, 0, scene_descriptor, skybox_sig);
-		bind_graphic_descriptor(current_cmd_list, 1, sampler_descriptors, skybox_sig);
+		bind_graphic_descriptor(*current_cmd_list, 0, scene_descriptor, skybox_sig);
+		bind_graphic_descriptor(*current_cmd_list, 1, sampler_descriptors, skybox_sig);
 		set_graphic_pipeline(current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);

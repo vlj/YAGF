@@ -111,8 +111,8 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	});
 #endif
 	set_compute_pipeline(command_list.get(), compute_sh_pso.get());
-	bind_compute_descriptor(command_list.get(), 0, input_descriptors, compute_sh_sig);
-	bind_compute_descriptor(command_list.get(), 1, sampler_descriptor, compute_sh_sig);
+	bind_compute_descriptor(*command_list, 0, input_descriptors, compute_sh_sig);
+	bind_compute_descriptor(*command_list, 1, sampler_descriptor, compute_sh_sig);
 
 	dispatch(command_list.get(), 1, 1, 1);
 //	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
@@ -395,15 +395,15 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #endif
 
 //	bind_compute_descriptor(command_list.get(), 0, image_descriptors, importance_sampling_sig);
-	bind_compute_descriptor(command_list.get(), 3, sampler_descriptors, importance_sampling_sig);
+	bind_compute_descriptor(*command_list, 3, sampler_descriptors, importance_sampling_sig);
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		bind_compute_descriptor(command_list.get(), 1, sample_buffer_descriptors[level], importance_sampling_sig);
+		bind_compute_descriptor(*command_list, 1, sample_buffer_descriptors[level], importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			bind_compute_descriptor(command_list.get(), 0, permutation_matrix_descriptors[face], importance_sampling_sig);
-			bind_compute_descriptor(command_list.get(), 2, level_face_descriptor[face + 6 * level], importance_sampling_sig);
+			bind_compute_descriptor(*command_list, 0, permutation_matrix_descriptors[face], importance_sampling_sig);
+			bind_compute_descriptor(*command_list, 2, level_face_descriptor[face + 6 * level], importance_sampling_sig);
 
 			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
 		}

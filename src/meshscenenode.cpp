@@ -164,13 +164,13 @@ namespace irr
 
 		void IMeshSceneNode::fill_draw_command(device_t* dev, command_list_t* current_cmd_list, pipeline_layout_t object_sig, descriptor_storage_t* heap)
 		{
-			bind_graphic_descriptor(current_cmd_list, 1, object_descriptor_set, object_sig);
+			bind_graphic_descriptor(*current_cmd_list, 1, object_descriptor_set, object_sig);
 			bind_index_buffer(current_cmd_list, index_buffer.get(), 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
 			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
 
 			for (unsigned i = 0; i < meshOffset.size(); i++)
 			{
-				bind_graphic_descriptor(current_cmd_list, 0, mesh_descriptor_set[texture_mapping[i]], object_sig);
+				bind_graphic_descriptor(*current_cmd_list, 0, mesh_descriptor_set[texture_mapping[i]], object_sig);
 				draw_indexed(current_cmd_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
 			}
 		}
