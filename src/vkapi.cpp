@@ -184,7 +184,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	chain->info = swap_chain;
 
 	std::unique_ptr<command_queue_t> queue = std::make_unique<vulkan_wrapper::queue>();
-	queue->info.queue_family = dev->queue_create_infos[0].queueFamilyIndex;
+	queue->info.queue_family = queue_infos[0].queueFamilyIndex;
 	queue->info.queue_index = 0;
 	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
 
@@ -212,7 +212,7 @@ std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& d
 
 std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev)
 {
-	return std::make_unique<command_list_storage_t>(dev, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev.queue_create_infos[0].queueFamilyIndex);
+	return std::make_unique<command_list_storage_t>(dev, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev.queue_family_index);
 }
 
 std::unique_ptr<command_list_t> create_command_list(device_t& dev, command_list_storage_t& storage)

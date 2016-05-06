@@ -23,23 +23,25 @@ namespace vulkan_wrapper
 
 	struct device : public wrapper<VkDevice>
 	{
-		const std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-		const std::vector<const char*> layers;
-		const std::vector<const char*> extensions;
 		VkPhysicalDevice physical_device;
 		uint32_t upload_memory_index;
 		uint32_t default_memory_index;
-		const VkDeviceCreateInfo info;
+		uint32_t queue_family_index;
 
+		// TODO: Make queue create info, layers and extensions member when SA is fixed
 		device(VkPhysicalDevice phys_dev, const std::vector<VkDeviceQueueCreateInfo> &qci, const std::vector<const char*> &l, const std::vector<const char*> &ext)
-			: physical_device(phys_dev), queue_create_infos(qci), layers(l), extensions(ext),
-			info({ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, nullptr, 0,
-				static_cast<uint32_t>(queue_create_infos.size()), queue_create_infos.data(),
-				static_cast<uint32_t>(layers.size()), layers.data(),
-				static_cast<uint32_t>(extensions.size()), extensions.data(),
-				nullptr })
+			: physical_device(phys_dev)
 		{
+			const VkDeviceCreateInfo info =
+			{
+				VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, nullptr, 0,
+				static_cast<uint32_t>(qci.size()), qci.data(),
+				static_cast<uint32_t>(l.size()), l.data(),
+				static_cast<uint32_t>(ext.size()), ext.data(),
+				nullptr
+			};
 			CHECK_VKRESULT(vkCreateDevice(physical_device, &info, nullptr, &object));
+			queue_family_index = qci[0].queueFamilyIndex;
 		}
 
 		~device()
