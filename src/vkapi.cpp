@@ -266,16 +266,16 @@ std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, u
 	return std::make_unique<vulkan_wrapper::descriptor_pool>(dev, 0, num_sets, size);
 }
 
-void* map_buffer(device_t* dev, buffer_t* buffer)
+void* map_buffer(device_t& dev, buffer_t& buffer)
 {
 	void* ptr;
-	CHECK_VKRESULT(vkMapMemory(dev->object, buffer->baking_memory->object, 0, buffer->baking_memory->info.allocationSize, 0, &ptr));
+	CHECK_VKRESULT(vkMapMemory(dev, buffer.baking_memory->object, 0, buffer.baking_memory->info.allocationSize, 0, &ptr));
 	return ptr;
 }
 
-void unmap_buffer(device_t* dev, buffer_t* buffer)
+void unmap_buffer(device_t& dev, buffer_t& buffer)
 {
-	vkUnmapMemory(dev->object, buffer->baking_memory->object);
+	vkUnmapMemory(dev, buffer.baking_memory->object);
 }
 
 namespace

@@ -17,7 +17,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 
 	std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-	void *pointer = map_buffer(dev, upload_buffer.get());
+	void *pointer = map_buffer(*dev, *upload_buffer);
 
 	size_t offset_in_texram = 0;
 
@@ -49,7 +49,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 			}
 		}
 	}
-	unmap_buffer(dev, upload_buffer.get());
+	unmap_buffer(*dev, *upload_buffer);
 
 	std::unique_ptr<image_t> texture = create_image(*dev, irr::video::ECF_BC1_UNORM_SRGB,
 		width, height, mipmap_count, layer_count, usage_sampled | usage_transfer_dst | (is_cubemap ? usage_cube : 0),

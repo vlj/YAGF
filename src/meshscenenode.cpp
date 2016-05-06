@@ -83,13 +83,13 @@ namespace irr
 			}
 
 			index_buffer = create_buffer(*dev, total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			uint16_t *indexmap = (uint16_t *)map_buffer(dev, index_buffer.get());
+			uint16_t *indexmap = (uint16_t *)map_buffer(*dev, *index_buffer);
 			vertex_pos = create_buffer(*dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, vertex_pos.get());
+			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(*dev, *vertex_pos);
 			vertex_normal = create_buffer(*dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, vertex_normal.get());
+			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(*dev, *vertex_normal);
 			vertex_uv0 = create_buffer(*dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, vertex_uv0.get());
+			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(*dev, *vertex_uv0);
 
 			uint32_t basevertex = 0;
 			uint32_t baseindex = 0;
@@ -115,10 +115,10 @@ namespace irr
 				texture_mapping.push_back(mesh->mMaterialIndex);
 			}
 
-			unmap_buffer(dev, index_buffer.get());
-			unmap_buffer(dev, vertex_pos.get());
-			unmap_buffer(dev, vertex_normal.get());
-			unmap_buffer(dev, vertex_uv0.get());
+			unmap_buffer(*dev, *index_buffer);
+			unmap_buffer(*dev, *vertex_pos);
+			unmap_buffer(*dev, *vertex_normal);
+			unmap_buffer(*dev, *vertex_uv0);
 			// TODO: Upload to GPUmem
 
 			vertex_buffers_info.emplace_back(vertex_pos.get(), 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
@@ -177,7 +177,7 @@ namespace irr
 
 		void IMeshSceneNode::update_constant_buffers(device_t* dev)
 		{
-			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, object_matrix.get()));
+			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(*dev, *object_matrix));
 			irr::core::matrix4 Model;
 			irr::core::matrix4 InvModel;
 			Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
@@ -186,7 +186,7 @@ namespace irr
 
 			memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
 			memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
-			unmap_buffer(dev, object_matrix.get());
+			unmap_buffer(*dev, *object_matrix);
 
 			timer += 16.f;
 		}

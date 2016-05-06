@@ -58,10 +58,10 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 
 	start_command_list_recording(*command_list, *command_storage);
 	std::unique_ptr<buffer_t> cbuf = create_buffer(*dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	void* tmp = map_buffer(dev, cbuf.get());
+	void* tmp = map_buffer(*dev, *cbuf);
 	float cube_size = static_cast<float>(edge_size) / 10.f;
 	memcpy(tmp, &cube_size, sizeof(int));
-	unmap_buffer(dev, cbuf.get());
+	unmap_buffer(*dev, *cbuf);
 	std::shared_ptr<descriptor_set_layout> object_set;
 	std::shared_ptr<descriptor_set_layout> sampler_set;
 #ifdef D3D12
@@ -292,8 +292,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	{
 		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *input_heap, 2 * i, { face_set.get() });
 		permutation_matrix[i] = create_buffer(*dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
-		unmap_buffer(dev, permutation_matrix[i].get());
+		memcpy(map_buffer(*dev, *permutation_matrix[i]), M[i].pointer(), 16 * sizeof(float));
+		unmap_buffer(*dev, *permutation_matrix[i]);
 #ifdef D3D12
 		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, permutation_matrix[i].get(), sizeof(PermutationMatrix));
 		create_image_view(dev, permutation_matrix_descriptors[i], 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
@@ -320,20 +320,20 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		sample_location_buffer[i] = create_buffer(*dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
 		per_level_cbuffer[i] = create_buffer(*dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-		float* sz = (float*)map_buffer(dev, per_level_cbuffer[i].get());
+		float* sz = (float*)map_buffer(*dev, *per_level_cbuffer[i]);
 		float viewportSize = float(1 << (8 - i));
 		*sz = viewportSize;
-		unmap_buffer(dev, per_level_cbuffer[i].get());
+		unmap_buffer(*dev, *per_level_cbuffer[i].get());
 
 		float roughness = .05f + .95f * i / 8.f;
-		float *tmp = reinterpret_cast<float*>(map_buffer(dev, sample_location_buffer[i].get()));
+		float *tmp = reinterpret_cast<float*>(map_buffer(*dev, *sample_location_buffer[i]));
 		for (unsigned j = 0; j < 1024; j++)
 		{
 			std::pair<float, float> sample = ImportanceSamplingGGX(HammersleySequence(j, 1024), roughness);
 			tmp[2 * j] = sample.first;
 			tmp[2 * j + 1] = sample.second;
 		}
-		unmap_buffer(dev, sample_location_buffer[i].get());
+		unmap_buffer(*dev, *sample_location_buffer[i]);
 #ifdef D3D12
 		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 1, per_level_cbuffer[i].get(), sizeof(float));
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};

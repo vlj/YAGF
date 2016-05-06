@@ -189,16 +189,16 @@ std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::
 	return std::make_unique<buffer_t>(result);
 }
 
-void* map_buffer(device_t* dev, buffer_t* buffer)
+void* map_buffer(device_t& dev, buffer_t& buffer)
 {
 	void* result;
-	CHECK_HRESULT(buffer->object->Map(0, nullptr, (void**)&result));
+	CHECK_HRESULT(buffer->Map(0, nullptr, (void**)&result));
 	return result;
 }
 
-void unmap_buffer(device_t* dev, buffer_t* buffer)
+void unmap_buffer(device_t& dev, buffer_t& buffer)
 {
-	buffer->object->Unmap(0, nullptr);
+	buffer->Unmap(0, nullptr);
 }
 
 namespace

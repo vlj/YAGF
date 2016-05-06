@@ -155,8 +155,8 @@ void MeshSample::Init()
 		-1., 1., 0., 0.
 	};
 
-	memcpy(map_buffer(dev.get(), big_triangle.get()), fullscreen_tri, 4 * 3 * sizeof(float));
-	unmap_buffer(dev.get(), big_triangle.get());
+	memcpy(map_buffer(*dev, *big_triangle), fullscreen_tri, 4 * 3 * sizeof(float));
+	unmap_buffer(*dev, *big_triangle);
 	big_triangle_info = { std::make_tuple(big_triangle.get(), 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
 
 	make_command_list_executable(*command_list);
@@ -349,7 +349,7 @@ void MeshSample::Draw()
 {
 	xue->update_constant_buffers(dev.get());
 
-	SceneData * tmp = static_cast<SceneData*>(map_buffer(dev.get(), scene_matrix.get()));
+	SceneData * tmp = static_cast<SceneData*>(map_buffer(*dev, *scene_matrix));
 	irr::core::matrix4 Perspective;
 	irr::core::matrix4 InvPerspective;
 	irr::core::matrix4 identity;
@@ -359,9 +359,9 @@ void MeshSample::Draw()
 	memcpy(tmp->InverseProjectionMatrix, InvPerspective.pointer(), 16 * sizeof(float));
 	memcpy(tmp->ViewMatrix, identity.pointer(), 16 * sizeof(float));
 	memcpy(tmp->InverseViewMatrix, identity.pointer(), 16 * sizeof(float));
-	unmap_buffer(dev.get(), scene_matrix.get());
+	unmap_buffer(*dev, *scene_matrix);
 
-	float * sun_tmp = (float*)map_buffer(dev.get(), sun_data.get());
+	float * sun_tmp = (float*)map_buffer(*dev, *sun_data);
 	sun_tmp[0] = 0.;
 	sun_tmp[1] = 1.;
 	sun_tmp[2] = 0.;
@@ -369,7 +369,7 @@ void MeshSample::Draw()
 	sun_tmp[4] = 10.;
 	sun_tmp[5] = 10.;
 	sun_tmp[6] = 10.;
-	unmap_buffer(dev.get(), sun_data.get());
+	unmap_buffer(*dev, *sun_data);
 
 //	double intpart;
 //	float frame = (float)modf(timer / 10000., &intpart);

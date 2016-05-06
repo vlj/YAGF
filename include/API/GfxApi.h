@@ -427,8 +427,8 @@ void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination
 //framebuffer_t create_frame_buffer(device_t dev, std::vector<std::tuple<image_t, irr::video::ECOLOR_FORMAT>> render_targets);
 framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
 
-void* map_buffer(device_t* dev, buffer_t* buffer);
-void unmap_buffer(device_t* dev, buffer_t* buffer);
+void* map_buffer(device_t& dev, buffer_t& buffer);
+void unmap_buffer(device_t& dev, buffer_t& buffer);
 
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
 void make_command_list_executable(command_list_t& command_list);
