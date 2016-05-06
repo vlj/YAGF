@@ -23,7 +23,7 @@ constexpr VkShaderStageFlags get_shader_stage(const shader_stage stage)
 		(stage == shader_stage::all) ? VK_SHADER_STAGE_ALL : throw;
 }
 
-inline std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> get_object_descriptor_set(device_t* dev, const descriptor_set_ &ds)
+inline std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> get_object_descriptor_set(device_t& dev, const descriptor_set_ &ds)
 {
 	std::vector<VkDescriptorSetLayoutBinding> descriptor_range_storage;
 	descriptor_range_storage.reserve(ds.count);
@@ -37,6 +37,6 @@ inline std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> get_object_descr
 		range.stageFlags = get_shader_stage(ds.stage);
 		descriptor_range_storage.emplace_back(range);
 	}
-	return std::make_shared<vulkan_wrapper::pipeline_descriptor_set>(dev->object, descriptor_range_storage);
+	return std::make_shared<vulkan_wrapper::pipeline_descriptor_set>(dev, descriptor_range_storage);
 }
 

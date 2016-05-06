@@ -163,8 +163,8 @@ void MeshSample::Init()
 	submit_executable_command_list(*cmdqueue, *command_list);
 	wait_for_command_queue_idle(*dev, *cmdqueue);
 	//ibl
-	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
-	specular_cube = generateSpecularCubemap(dev.get(), cmdqueue.get(), skybox_texture.get());
+	sh_coefficients = computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
+	specular_cube = generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
 #ifdef D3D12
 	create_constant_buffer_view(dev.get(), ibl_descriptor, 0, sh_coefficients.get(), 27 * sizeof(float));
 #else
@@ -228,12 +228,12 @@ void MeshSample::load_program_and_pipeline_layout()
 	skybox_sig = get_pipeline_layout_from_desc(dev.get(), { scene_descriptor_set_type, sampler_descriptor_set_type });
 	ibl_sig = get_pipeline_layout_from_desc(dev.get(), { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
 #else
-	sampler_set = get_object_descriptor_set(dev.get(), sampler_descriptor_set_type);
-	object_set = get_object_descriptor_set(dev.get(), object_descriptor_set_type);
-	scene_set = get_object_descriptor_set(dev.get(), scene_descriptor_set_type);
-	rtt_set = get_object_descriptor_set(dev.get(), rtt_descriptor_set_type);
-	model_set = get_object_descriptor_set(dev.get(), model_descriptor_set_type);
-	ibl_set = get_object_descriptor_set(dev.get(), ibl_descriptor_set_type);
+	sampler_set = get_object_descriptor_set(*dev, sampler_descriptor_set_type);
+	object_set = get_object_descriptor_set(*dev, object_descriptor_set_type);
+	scene_set = get_object_descriptor_set(*dev, scene_descriptor_set_type);
+	rtt_set = get_object_descriptor_set(*dev, rtt_descriptor_set_type);
+	model_set = get_object_descriptor_set(*dev, model_descriptor_set_type);
+	ibl_set = get_object_descriptor_set(*dev, ibl_descriptor_set_type);
 
 	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());

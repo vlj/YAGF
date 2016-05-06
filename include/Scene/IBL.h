@@ -57,8 +57,8 @@ using the cubemap provided by CubemapFace.
 *  \param textures sequence of 6 square textures.
 *  \param row/columns count of textures.
 */
-std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue_t* cmd_queue, image_t *probe, size_t edge_size);
+std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue_t& cmd_queue, image_t& probe, size_t edge_size);
 
-std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t* cmd_queue, image_t *probe);
+std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t& cmd_queue, image_t& probe);
 /*IImage getDFGLUT(size_t DFG_LUT_size = 128);*/
 #endif
