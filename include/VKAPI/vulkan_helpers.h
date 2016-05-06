@@ -484,15 +484,10 @@ namespace vulkan_wrapper
 
 	struct pipeline_layout : public wrapper<VkPipelineLayout>
 	{
-		const std::vector<VkDescriptorSetLayout> set_layouts;
-		const std::vector<VkPushConstantRange> push_constant_ranges;
-		const VkPipelineLayoutCreateInfo info;
-
-		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, const std::vector<VkDescriptorSetLayout> &sets, const std::vector<VkPushConstantRange> &pcr)
-			: set_layouts(sets), push_constant_ranges(pcr),
-			info({ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, flags, static_cast<uint32_t>(set_layouts.size()), set_layouts.data(), static_cast<uint32_t>(push_constant_ranges.size()), push_constant_ranges.data() }),
-			m_device(dev)
+		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, std::vector<VkDescriptorSetLayout> &&sets, std::vector<VkPushConstantRange> &&pcr)
+			: m_device(dev)
 		{
+			const VkPipelineLayoutCreateInfo info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, flags, gsl::narrow_cast<uint32_t>(sets.size()), sets.data(), gsl::narrow_cast<uint32_t>(pcr.size()), pcr.data() };
 			CHECK_VKRESULT(vkCreatePipelineLayout(m_device, &info, nullptr, &object));
 		}
 
@@ -500,7 +495,6 @@ namespace vulkan_wrapper
 		{
 			vkDestroyPipelineLayout(m_device, object, nullptr);
 		}
-
 
 		pipeline_layout(const pipeline_layout&) = delete;
 	private:
