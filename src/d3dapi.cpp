@@ -400,13 +400,13 @@ void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, ui
 	command_list->RSSetScissorRects(1, &rect);
 }
 
-void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
+void bind_index_buffer(command_list_t& command_list, buffer_t& buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
 	D3D12_INDEX_BUFFER_VIEW index_buffer_view = {};
-	index_buffer_view.BufferLocation = buffer->object->GetGPUVirtualAddress() + offset;
+	index_buffer_view.BufferLocation = buffer->GetGPUVirtualAddress() + offset;
 	index_buffer_view.SizeInBytes = size;
 	index_buffer_view.Format = get_index_type(type);
-	command_list->object->IASetIndexBuffer(&index_buffer_view);
+	command_list->IASetIndexBuffer(&index_buffer_view);
 }
 
 void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t>>& buffer_offset_stride_size)
@@ -441,19 +441,19 @@ void submit_executable_command_list(command_queue_t& command_queue, command_list
 	command_queue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list.object));
 }
 
-void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
+void draw_indexed(command_list_t& command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
 {
-	command_list->object->DrawIndexedInstanced(index_count, instance_count, base_index, base_vertex, base_instance);
+	command_list->DrawIndexedInstanced(index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
-void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
+void draw_non_indexed(command_list_t& command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
 {
-	command_list->object->DrawInstanced(vertex_count, instance_count, base_vertex, base_instance);
+	command_list->DrawInstanced(vertex_count, instance_count, base_vertex, base_instance);
 }
 
-void dispatch(command_list_t* command_list, uint32_t x, uint32_t y, uint32_t z)
+void dispatch(command_list_t& command_list, uint32_t x, uint32_t y, uint32_t z)
 {
-	command_list->object->Dispatch(x, y, z);
+	command_list->Dispatch(x, y, z);
 }
 
 void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offset, buffer_t* dst, uint64_t dst_offset, uint64_t size)

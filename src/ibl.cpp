@@ -114,7 +114,7 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	bind_compute_descriptor(*command_list, 0, input_descriptors, compute_sh_sig);
 	bind_compute_descriptor(*command_list, 1, sampler_descriptor, compute_sh_sig);
 
-	dispatch(command_list.get(), 1, 1, 1);
+	dispatch(*command_list, 1, 1, 1);
 //	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
 
 	make_command_list_executable(*command_list);
@@ -405,7 +405,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 			bind_compute_descriptor(*command_list, 0, permutation_matrix_descriptors[face], importance_sampling_sig);
 			bind_compute_descriptor(*command_list, 2, level_face_descriptor[face + 6 * level], importance_sampling_sig);
 
-			dispatch(command_list.get(), 256 >> level, 256 >> level, 1);
+			dispatch(*command_list, 256 >> level, 256 >> level, 1);
 		}
 	}
 	make_command_list_executable(*command_list);

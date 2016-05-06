@@ -315,7 +315,7 @@ void MeshSample::fill_draw_commands()
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(*current_cmd_list, sunlightpso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
-		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
 #ifdef D3D12
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
 #endif // !D3D12
@@ -324,7 +324,7 @@ void MeshSample::fill_draw_commands()
 		bind_graphic_descriptor(*current_cmd_list, 2, ibl_descriptor, ibl_sig);
 		set_graphic_pipeline(*current_cmd_list, ibl_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
-		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #else
@@ -336,7 +336,7 @@ void MeshSample::fill_draw_commands()
 		bind_graphic_descriptor(*current_cmd_list, 1, sampler_descriptors, skybox_sig);
 		set_graphic_pipeline(*current_cmd_list, skybox_pso);
 		bind_vertex_buffers(current_cmd_list, 0, big_triangle_info);
-		draw_non_indexed(current_cmd_list, 3, 1, 0, 0);
+		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
 #ifndef D3D12
 		vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
