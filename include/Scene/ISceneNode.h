@@ -18,7 +18,6 @@
 #include <list>
 #include <string>
 //#include "IAttributes.h"
-#include <gsl.h>
 
 namespace irr
 {
@@ -236,7 +235,7 @@ namespace irr
 			/** If the scene node already has a parent it is first removed
 			from the other parent.
 			\param child A pointer to the new child. */
-			virtual void addChild(gsl::not_null<ISceneNode*> child)
+			virtual void addChild(ISceneNode* child)
 			{
 				if (child && (child != this))
 				{

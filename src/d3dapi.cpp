@@ -465,7 +465,7 @@ uint32_t get_next_backbuffer_id(device_t&, swap_chain_t& chain)
 	return chain->GetCurrentBackBufferIndex();
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &)
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>)
 {
 	return allocated_descriptor_set(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->GetCPUDescriptorHandleForHeapStart())
@@ -475,7 +475,7 @@ allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t&
 		);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &)
+allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>)
 {
 	return allocated_descriptor_set(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->GetCPUDescriptorHandleForHeapStart())

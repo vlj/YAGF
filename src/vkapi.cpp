@@ -508,7 +508,7 @@ void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, ui
 	vkCmdSetScissor(command_list, 0, 1, &scissor);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layout)
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> layout)
 {
 	std::vector<VkDescriptorSetLayout> l;
 	for (const auto tmp : layout)
@@ -518,7 +518,7 @@ allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t&
 	return util::allocate_descriptor_sets(dev, heap, l);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>& layouts)
+allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts)
 {
 	return allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, starting_index, layouts);
 }
