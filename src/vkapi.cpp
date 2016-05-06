@@ -94,7 +94,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 #ifndef NDEBUG
 	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
 	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback{};
-	VkDebugReportCallbackEXT debug_report_callback;
+	VkDebugReportCallbackEXT debug_report_callback{};
 
 	dbgCreateDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 	assert(dbgCreateDebugReportCallback);

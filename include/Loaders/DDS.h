@@ -302,8 +302,8 @@ namespace irr
 				return 0;
 			}
 
-			ddsHeader header;
-			ddsHeaderDXT10 ddsheaderdxt10;
+			ddsHeader header{};
+			ddsHeaderDXT10 ddsheaderdxt10{};
 			ECOLOR_FORMAT format;
 			size_t layersCount;
 			bool is3D = false;
@@ -463,7 +463,7 @@ namespace irr
 				return (MagicWord[0] == 'D' && MagicWord[1] == 'D' && MagicWord[2] == 'S');
 			}
 
-			CImageLoaderDDS(std::ifstream &file) : format(ECF_UNKNOWN), mipMapCount(0), ddsheaderdxt10{}
+			CImageLoaderDDS(std::ifstream &file) : format(ECF_UNKNOWN), mipMapCount(0)
 			{
 				if (!isALoadableFileFormat(file))
 					abort();
