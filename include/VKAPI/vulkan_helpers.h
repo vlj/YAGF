@@ -321,19 +321,17 @@ namespace vulkan_wrapper
 
 	struct render_pass : public wrapper<VkRenderPass>
 	{
-		const std::vector<VkAttachmentDescription> attachments;
-		const std::vector<VkSubpassDescription> subpasses;
-		const std::vector<VkSubpassDependency> dependencies;
-		const VkRenderPassCreateInfo info;
-
-		render_pass(VkDevice dev, const std::vector<VkAttachmentDescription> &attachments_desc, std::vector<VkSubpassDescription> subpass_desc, std::vector<VkSubpassDependency> dependency)
-			: attachments(attachments_desc), subpasses(subpass_desc), dependencies(dependency),
-			info({ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, nullptr, 0,
-				static_cast<uint32_t>(attachments.size()), attachments.data(),
-				static_cast<uint32_t>(subpasses.size()), subpasses.data(),
-				static_cast<uint32_t>(dependencies.size()), dependencies.data(),
-		}), m_device(dev)
+		// TODO: Make info/attachments_desc/subpass_desc/dependency member when Static Analysis is fixed
+		render_pass(VkDevice dev, std::vector<VkAttachmentDescription> &&attachments_desc, std::vector<VkSubpassDescription> &&subpass_desc, std::vector<VkSubpassDependency> &&dependency)
+			: m_device(dev)
 		{
+			const VkRenderPassCreateInfo info =
+			{
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, nullptr, 0,
+				gsl::narrow_cast<uint32_t>(attachments_desc.size()), attachments_desc.data(),
+				gsl::narrow_cast<uint32_t>(subpass_desc.size()), subpass_desc.data(),
+				gsl::narrow_cast<uint32_t>(dependency.size()), dependency.data(),
+			};
 			CHECK_VKRESULT(vkCreateRenderPass(m_device, &info, nullptr, &object))
 		}
 
@@ -484,6 +482,7 @@ namespace vulkan_wrapper
 
 	struct pipeline_layout : public wrapper<VkPipelineLayout>
 	{
+		// TODO: Make info/sets/pcr member when Static Analysis is fixed
 		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, std::vector<VkDescriptorSetLayout> &&sets, std::vector<VkPushConstantRange> &&pcr)
 			: m_device(dev)
 		{
