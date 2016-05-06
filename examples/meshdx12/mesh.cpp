@@ -100,7 +100,7 @@ void MeshSample::Init()
 
 	command_allocator = create_command_storage(*dev);
 	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_allocator);
-	start_command_list_recording(dev.get(), command_list.get(), command_allocator.get());
+	start_command_list_recording(*command_list, *command_allocator);
 
 	cbv_srv_descriptors_heap = create_descriptor_storage(*dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
 	sampler_heap = create_descriptor_storage(*dev, 10, { { RESOURCE_VIEW::SAMPLER, 10 } });
@@ -159,8 +159,8 @@ void MeshSample::Init()
 	unmap_buffer(dev.get(), big_triangle.get());
 	big_triangle_info = { std::make_tuple(big_triangle.get(), 0, 4 * sizeof(float), 4 * 3 * sizeof(float)) };
 
-	make_command_list_executable(command_list.get());
-	submit_executable_command_list(cmdqueue.get(), command_list.get());
+	make_command_list_executable(*command_list);
+	submit_executable_command_list(*cmdqueue, *command_list);
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	//ibl
 	sh_coefficients = computeSphericalHarmonics(dev.get(), cmdqueue.get(), skybox_texture.get(), 1024);
@@ -252,7 +252,7 @@ void MeshSample::fill_draw_commands()
 	{
 		command_list_for_back_buffer.push_back(create_command_list(*dev, *command_allocator));
 		command_list_t* current_cmd_list = command_list_for_back_buffer.back().get();
-		start_command_list_recording(dev.get(), current_cmd_list, command_allocator.get());
+		start_command_list_recording(*current_cmd_list, *command_allocator);
 		set_pipeline_barrier(dev.get(), current_cmd_list, back_buffer[i].get(), RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
@@ -341,7 +341,7 @@ void MeshSample::fill_draw_commands()
 		vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
 		set_pipeline_barrier(dev.get(), current_cmd_list, back_buffer[i].get(), RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-		make_command_list_executable(current_cmd_list);
+		make_command_list_executable(*current_cmd_list);
 	}
 }
 
@@ -381,7 +381,7 @@ void MeshSample::Draw()
 			//unmap_buffer(dev, jointbuffer);
 
 	uint32_t current_backbuffer = get_next_backbuffer_id(dev.get(), chain.get());
-	submit_executable_command_list(cmdqueue.get(), command_list_for_back_buffer[current_backbuffer].get());
+	submit_executable_command_list(*cmdqueue, *command_list_for_back_buffer[current_backbuffer]);
 	wait_for_command_queue_idle(dev.get(), cmdqueue.get());
 	present(dev.get(), cmdqueue.get(), chain.get(), current_backbuffer);
 }
