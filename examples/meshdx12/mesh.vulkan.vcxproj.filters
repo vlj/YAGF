@@ -21,7 +21,6 @@
     <None Include="..\shaders\object.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="..\shaders\screenquad.vert">
       <Filter>Resource Files</Filter>
     </None>
@@ -44,6 +43,7 @@
     <None Include="..\shaders\importance_sampling_specular.comp">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

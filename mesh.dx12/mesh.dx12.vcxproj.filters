@@ -68,6 +68,7 @@
     <None Include="..\examples\assets\xue.b3d">
       <Filter>Assets</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="MainPage.xaml" />
