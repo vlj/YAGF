@@ -415,40 +415,50 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 	return result;
 }
 
-#if 0
+namespace
+{
+	std::unique_ptr<compute_pipeline_state_t> dfg_building_pso(device_t& dev, pipeline_layout_t pipeline_layout)
+	{
+#ifdef D3D12
+		ID3D12PipelineState* result;
+		Microsoft::WRL::ComPtr<ID3DBlob> blob;
+		CHECK_HRESULT(D3DReadFileToBlob(L"importance_sampling_specular.cso", blob.GetAddressOf()));
+
+		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
+		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
+		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
+		pipeline_desc.pRootSignature = pipeline_layout.Get();
+
+		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
+		return std::make_unique<compute_pipeline_state_t>(result);
+#else
+		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\dfg.spv");
+		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
+		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
+#endif // D3D12
+	}
+}
+
+
 /** Generate the Look Up Table for the DFG texture.
 	DFG Texture is used to compute diffuse and specular response from environmental lighting. */
-IImage getDFGLUT(size_t DFG_LUT_size)
+std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size)
 {
-	IImage DFG_LUT_texture;
-	DFG_LUT_texture.Format = irr::video::ECF_R32G32B32A32F;
-	DFG_LUT_texture.Type = TextureType::TEXTURE2D;
-	float *texture_content = new float[4 * DFG_LUT_size * DFG_LUT_size];
+	std::unique_ptr<image_t> DFG_LUT_texture = create_image(dev, irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
+	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
+	std::unique_ptr<command_list_t> command_list = create_command_list(dev, *command_storage);
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::TEXEL_BUFFER, 1 }, { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::UAV_IMAGE, 1 } });
 
-	PackedMipMapLevel LUT = {
-	  DFG_LUT_size,
-	  DFG_LUT_size,
-	  texture_content,
-	  4 * DFG_LUT_size * DFG_LUT_size * sizeof(float)
-	};
-	DFG_LUT_texture.Layers.push_back({ LUT });
+	pipeline_layout_t dfg_building_sig;
+	std::unique_ptr<compute_pipeline_state_t> pso = dfg_building_pso(dev, dfg_building_sig);
 
-#pragma omp parallel for
-	for (int i = 0; i < int(DFG_LUT_size); i++)
-	{
-		float roughness = .05f + .95f * float(i) / float(DFG_LUT_size - 1);
-		for (unsigned j = 0; j < DFG_LUT_size; j++)
-		{
-			float NdotV = float(1 + j) / float(DFG_LUT_size + 1);
-			std::pair<float, float> DFG = getSpecularDFG(roughness, NdotV);
-			texture_content[4 * (i * DFG_LUT_size + j)] = DFG.first;
-			texture_content[4 * (i * DFG_LUT_size + j) + 1] = DFG.second;
-			texture_content[4 * (i * DFG_LUT_size + j) + 2] = getDiffuseDFG(roughness, NdotV);
-			texture_content[4 * (i * DFG_LUT_size + j) + 3] = 0.;
-		}
-	}
+	set_compute_pipeline(*command_list, *pso);
+
+	dispatch(*command_list, DFG_LUT_size, DFG_LUT_size, 1);
+
+	make_command_list_executable(*command_list);
+	submit_executable_command_list(cmdqueue, *command_list);
+	wait_for_command_queue_idle(dev, cmdqueue);
 
 	return DFG_LUT_texture;
 }
-#endif
-

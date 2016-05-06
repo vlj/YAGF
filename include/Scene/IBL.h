@@ -60,5 +60,5 @@ using the cubemap provided by CubemapFace.
 std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue_t& cmd_queue, image_t& probe, size_t edge_size);
 
 std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t& cmd_queue, image_t& probe);
-/*IImage getDFGLUT(size_t DFG_LUT_size = 128);*/
+std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size = 128);
 #endif
