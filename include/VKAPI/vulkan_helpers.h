@@ -13,7 +13,7 @@ namespace vulkan_wrapper
 	template<typename T>
 	struct wrapper
 	{
-		T object;
+		gsl::owner<T> object{};
 
 		operator T()
 		{
@@ -638,13 +638,14 @@ namespace util
 	inline VkDescriptorSet allocate_descriptor_sets(VkDevice dev, VkDescriptorPool descriptor_pool, const std::vector<VkDescriptorSetLayout> &set_layouts)
 	{
 		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, gsl::narrow_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
-		VkDescriptorSet result;
+		VkDescriptorSet result{};
 		CHECK_VKRESULT(vkAllocateDescriptorSets(dev, &info, &result));
 		return result;
 	}
 
 	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
 	{
-		vkUpdateDescriptorSets(dev, gsl::narrow_cast<uint32_t>(update_info.size()), update_info.data(),0, nullptr);
+		size_t count = gsl::narrow_cast<uint32_t>(update_info.size());
+		vkUpdateDescriptorSets(dev, count, update_info.data(),0, nullptr);
 	}
 }
