@@ -229,11 +229,11 @@ std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT f
 	return std::make_unique<image_t>(result);
 }
 
-void copy_buffer_to_image_subresource(command_list_t* list, image_t* destination_image, uint32_t destination_subresource, buffer_t* source, uint64_t offset_in_buffer,
+void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
-	list->object->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image->object, destination_subresource), 0, 0, 0,
-		&CD3DX12_TEXTURE_COPY_LOCATION(source->object, { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
+	list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image, destination_subresource), 0, 0, 0,
+		&CD3DX12_TEXTURE_COPY_LOCATION(source, { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
 		&CD3DX12_BOX(0, 0, width, height));
 }
 
