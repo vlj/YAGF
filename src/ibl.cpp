@@ -72,13 +72,13 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t* dev, command_queue
 	auto compute_sh_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ object_set->object, sampler_set->object}, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> compute_sh_pso = get_compute_sh_pipeline_state(dev, compute_sh_sig);
-	std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV_BUFFER, 1} });
-	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
+	std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap = create_descriptor_storage(*dev, 1, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::SHADER_RESOURCE, 1}, { RESOURCE_VIEW::UAV_BUFFER, 1} });
+	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(*dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
 	std::unique_ptr<buffer_t> sh_buffer = create_buffer(*dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
 	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(*dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
-	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, srv_cbv_uav_heap.get(), 0, { object_set.get() });
-	allocated_descriptor_set sampler_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, sampler_heap.get(), 0, { sampler_set.get() });
+	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *srv_cbv_uav_heap, 0, { object_set.get() });
+	allocated_descriptor_set sampler_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *sampler_heap, 0, { sampler_set.get() });
 #ifdef D3D12
 	create_constant_buffer_view(dev, input_descriptors, 0, cbuf.get(), sizeof(int));
 	create_image_view(dev, input_descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
@@ -258,10 +258,10 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 		std::vector<VkDescriptorSetLayout>{ face_set->object, mipmap_set->object, uav_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
-	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 8 }, {RESOURCE_VIEW::TEXEL_BUFFER, 8}, { RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV_IMAGE, 48 } });
-	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
+	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(*dev, 100, { { RESOURCE_VIEW::SHADER_RESOURCE, 8 }, {RESOURCE_VIEW::TEXEL_BUFFER, 8}, { RESOURCE_VIEW::CONSTANTS_BUFFER, 14 },{ RESOURCE_VIEW::UAV_IMAGE, 48 } });
+	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(*dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, sampler_heap.get(), 0, { sampler_set.get() });
+	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(*dev, *sampler_heap, 0, { sampler_set.get() });
 
 #ifdef D3D12
 	create_sampler(dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
@@ -290,7 +290,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i, { face_set.get() });
+		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *input_heap, 2 * i, { face_set.get() });
 		permutation_matrix[i] = create_buffer(*dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, permutation_matrix[i].get()), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, permutation_matrix[i].get());
@@ -316,7 +316,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 #endif
 	for (unsigned i = 0; i < 8; i++)
 	{
-		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), 2 * i + 12, { mipmap_set.get() });
+		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *input_heap, 2 * i + 12, { mipmap_set.get() });
 		sample_location_buffer[i] = create_buffer(*dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
 		per_level_cbuffer[i] = create_buffer(*dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
@@ -364,7 +364,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t* dev, command_queue_t*
 	{
 		for (unsigned face = 0; face < 6; face++)
 		{
-			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, input_heap.get(), face + level * 6 + 28, {uav_set.get()});
+			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *input_heap, face + level * 6 + 28, {uav_set.get()});
 #ifdef D3D12
 			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;

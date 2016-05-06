@@ -102,8 +102,8 @@ void MeshSample::Init()
 	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_allocator);
 	start_command_list_recording(dev.get(), command_list.get(), command_allocator.get());
 
-	cbv_srv_descriptors_heap = create_descriptor_storage(dev.get(), 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
-	sampler_heap = create_descriptor_storage(dev.get(), 10, { { RESOURCE_VIEW::SAMPLER, 10 } });
+	cbv_srv_descriptors_heap = create_descriptor_storage(*dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
+	sampler_heap = create_descriptor_storage(*dev, 10, { { RESOURCE_VIEW::SAMPLER, 10 } });
 	render_pass = create_render_pass(dev.get());
 
 	load_program_and_pipeline_layout();
@@ -132,10 +132,10 @@ void MeshSample::Init()
 	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
-	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 8, { ibl_set.get() });
-	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 0, { scene_set.get() });
-	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev.get(), cbv_srv_descriptors_heap.get(), 5, { rtt_set.get() });
-	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev.get(), sampler_heap.get(), 0, { sampler_set.get() });
+	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 8, { ibl_set.get() });
+	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() });
+	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { rtt_set.get() });
+	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(*dev, *sampler_heap, 0, { sampler_set.get() });
 
 	std::unique_ptr<buffer_t> upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_texture(dev.get(), SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), command_list.get());

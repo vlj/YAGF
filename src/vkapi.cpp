@@ -256,14 +256,14 @@ std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::
 	return buffer;
 }
 
-std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t* dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
+std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
 {
 	std::vector<VkDescriptorPoolSize> size;
 	for (const auto& set_size : num_descriptors)
 	{
 		size.push_back({ get_descriptor_type(std::get<0>(set_size)), std::get<1>(set_size) });
 	}
-	return std::make_unique<vulkan_wrapper::descriptor_pool>(dev->object, 0, num_sets, size);
+	return std::make_unique<vulkan_wrapper::descriptor_pool>(dev, 0, num_sets, size);
 }
 
 void* map_buffer(device_t* dev, buffer_t* buffer)
@@ -522,17 +522,17 @@ void set_scissor(command_list_t* command_list, uint32_t left, uint32_t right, ui
 	vkCmdSetScissor(command_list->object, 0, 1, &scissor);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t* dev, descriptor_storage_t* heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layout)
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> &layout)
 {
 	std::vector<VkDescriptorSetLayout> l;
 	for (const auto tmp : layout)
 	{
 		l.push_back(tmp->object);
 	}
-	return util::allocate_descriptor_sets(dev->object, heap->object, l);
+	return util::allocate_descriptor_sets(dev, heap, l);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t * dev, descriptor_storage_t * heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>& layouts)
+allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>& layouts)
 {
 	return allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, starting_index, layouts);
 }

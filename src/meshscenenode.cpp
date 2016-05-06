@@ -39,7 +39,7 @@ namespace irr
 			: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(*dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set });
+			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *heap, 3, { object_set });
 #ifdef D3D12
 			// object
 			create_constant_buffer_view(dev, object_descriptor_set, 0, object_matrix.get(), sizeof(ObjectData));
@@ -136,7 +136,7 @@ namespace irr
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
-				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 9 + texture_id, { model_set });
+				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *heap, 9 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 #ifdef D3D12
 				create_image_view(dev, mesh_descriptor, 0, texture.get(), 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
