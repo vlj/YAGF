@@ -196,12 +196,12 @@ std::unique_ptr<vulkan_wrapper::image_view> create_image_view(device_t& dev, ima
 	return std::make_unique<vulkan_wrapper::image_view>(dev, img.object, type, fmt, mapping, range);
 }
 
-std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t* dev, swap_chain_t* chain)
+std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& dev, swap_chain_t& chain)
 {
 	uint32_t swap_chain_count;
-	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, nullptr));
+	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev, chain, &swap_chain_count, nullptr));
 	std::vector<VkImage> swapchain_image(swap_chain_count);
-	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev->object, chain->object, &swap_chain_count, swapchain_image.data()));
+	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev, chain, &swap_chain_count, swapchain_image.data()));
 	std::vector<std::unique_ptr<image_t>> result;
 	for (const auto& img : swapchain_image)
 	{
@@ -383,14 +383,14 @@ framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&
 	return std::make_shared<vk_framebuffer>(dev, *render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
 
-void make_command_list_executable(command_list_t* command_list)
+void make_command_list_executable(command_list_t& command_list)
 {
-	CHECK_VKRESULT(vkEndCommandBuffer(command_list->object));
+	CHECK_VKRESULT(vkEndCommandBuffer(command_list));
 }
 
-void wait_for_command_queue_idle(device_t* dev, command_queue_t* command_queue)
+void wait_for_command_queue_idle(device_t&, command_queue_t& command_queue)
 {
-	CHECK_VKRESULT(vkQueueWaitIdle(command_queue->object));
+	CHECK_VKRESULT(vkQueueWaitIdle(command_queue));
 }
 
 namespace
@@ -432,14 +432,14 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	barrier.newLayout = get_image_layout(after);
 	barrier.oldLayout = get_image_layout(before);
-	barrier.image = resource->object;
+	barrier.image = resource;
 	barrier.srcAccessMask = 0;
 	barrier.dstAccessMask = 0;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange.aspectMask = get_image_aspect(aspect);
-	barrier.subresourceRange.baseMipLevel = subresource % max(resource->info.mipLevels, 1);
-	barrier.subresourceRange.baseArrayLayer = subresource / max(resource->info.mipLevels, 1);
+	barrier.subresourceRange.baseMipLevel = subresource % max(resource.info.mipLevels, 1);
+	barrier.subresourceRange.baseArrayLayer = subresource / max(resource.info.mipLevels, 1);
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.layerCount = 1;
 
@@ -473,21 +473,7 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT; break;
 	}
 
-	vkCmdPipelineBarrier(command_list->object, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-}
-
-void clear_color(device_t dev, command_list_t* command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
-{
-	VkClearValue clear_val = {};
-	memcpy(clear_val.color.float32, color.data(), 4 * sizeof(float));
-	VkClearAttachment attachments = { VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_val };
-
-	VkClearRect clear_rect = {};
-	clear_rect.rect.extent.width = 1024;
-	clear_rect.rect.extent.height = 1024;
-	clear_rect.layerCount = 1;
-
-	vkCmdClearAttachments(command_list->object, static_cast<uint32_t>(framebuffer->fbo.attachements.size()), &attachments, 1, &clear_rect);
+	vkCmdPipelineBarrier(command_list, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline)
@@ -495,9 +481,9 @@ void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipelin
 	vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);
 }
 
-void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t* pipeline)
+void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t& pipeline)
 {
-	vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->object);
+	vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 }
 
 void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth)
@@ -537,14 +523,14 @@ allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev
 	return allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, starting_index, layouts);
 }
 
-void bind_graphic_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
+void bind_graphic_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
 {
-	vkCmdBindDescriptorSets(cmd_list->object, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
+	vkCmdBindDescriptorSets(cmd_list, VK_PIPELINE_BIND_POINT_GRAPHICS, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
 }
 
-void bind_compute_descriptor(command_list_t* cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
+void bind_compute_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig)
 {
-	vkCmdBindDescriptorSets(cmd_list->object, VK_PIPELINE_BIND_POINT_COMPUTE, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
+	vkCmdBindDescriptorSets(cmd_list, VK_PIPELINE_BIND_POINT_COMPUTE, sig->object, bindpoint, 1, &descriptor_set, 0, nullptr);
 }
 
 namespace
@@ -560,12 +546,12 @@ namespace
 	}
 };
 
-void bind_index_buffer(command_list_t* command_list, buffer_t* buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
+void bind_index_buffer(command_list_t& command_list, buffer_t& buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type)
 {
-	vkCmdBindIndexBuffer(command_list->object, buffer->object, offset, get_index_type(type));
+	vkCmdBindIndexBuffer(command_list, buffer, offset, get_index_type(type));
 }
 
-void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t*, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
+void bind_vertex_buffers(command_list_t& commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
 {
 	std::vector<VkBuffer> pbuffers(buffer_offset_stride_size.size());
 	std::vector<VkDeviceSize> poffsets(buffer_offset_stride_size.size());
@@ -573,61 +559,60 @@ void bind_vertex_buffers(command_list_t* commandlist, uint32_t first_bind, const
 	size_t idx = 0;
 	for (const auto &infos : buffer_offset_stride_size)
 	{
-		buffer_t* buffer;
 		uint64_t offset;
-		std::tie(buffer, offset, std::ignore, std::ignore) = infos;
-		pbuffers[idx] = buffer->object;
+		std::tie(std::ignore, offset, std::ignore, std::ignore) = infos;
+		pbuffers[idx] = std::get<0>(infos);
 		poffsets[idx] = offset;
 		idx++;
 	}
-	vkCmdBindVertexBuffers(commandlist->object, first_bind, static_cast<uint32_t>(buffer_offset_stride_size.size()), pbuffers.data(), poffsets.data());
+	vkCmdBindVertexBuffers(commandlist, first_bind, static_cast<uint32_t>(buffer_offset_stride_size.size()), pbuffers.data(), poffsets.data());
 }
 
-void submit_executable_command_list(command_queue_t* command_queue, command_list_t* command_list)
+void submit_executable_command_list(command_queue_t& command_queue, command_list_t& command_list)
 {
 	VkSubmitInfo info{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	info.commandBufferCount = 1;
-	info.pCommandBuffers = &(command_list->object);
-	vkQueueSubmit(command_queue->object, 1, &info, VK_NULL_HANDLE);
+	info.pCommandBuffers = &(command_list.object);
+	vkQueueSubmit(command_queue, 1, &info, VK_NULL_HANDLE);
 }
 
-void draw_indexed(command_list_t* command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
+void draw_indexed(command_list_t& command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
 {
-	vkCmdDrawIndexed(command_list->object, index_count, instance_count, base_index, base_vertex, base_instance);
+	vkCmdDrawIndexed(command_list, index_count, instance_count, base_index, base_vertex, base_instance);
 }
 
-void draw_non_indexed(command_list_t* command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
+void draw_non_indexed(command_list_t& command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance)
 {
-	vkCmdDraw(command_list->object, vertex_count, instance_count, base_vertex, base_instance);
+	vkCmdDraw(command_list, vertex_count, instance_count, base_vertex, base_instance);
 }
 
-void dispatch(command_list_t* command_list, uint32_t x, uint32_t y, uint32_t z)
+void dispatch(command_list_t& command_list, uint32_t x, uint32_t y, uint32_t z)
 {
-	vkCmdDispatch(command_list->object, x, y, z);
+	vkCmdDispatch(command_list, x, y, z);
 }
 
-void copy_buffer(command_list_t* command_list, buffer_t* src, uint64_t src_offset, buffer_t* dst, uint64_t dst_offset, uint64_t size)
+void copy_buffer(command_list_t& command_list, buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size)
 {
-	vkCmdCopyBuffer(command_list->object, src->object, dst->object, 1, &structures::buffer_copy(src_offset, dst_offset, size));
+	vkCmdCopyBuffer(command_list, src, dst, 1, &structures::buffer_copy(src_offset, dst_offset, size));
 }
 
-uint32_t get_next_backbuffer_id(device_t* dev, swap_chain_t* chain)
+uint32_t get_next_backbuffer_id(device_t& dev, swap_chain_t& chain)
 {
 	uint32_t index;
 	// TODO: Reuse accross call to gnbi
-	auto fence = std::make_shared<vulkan_wrapper::fence>(dev->object);
-	CHECK_VKRESULT(vkAcquireNextImageKHR(dev->object, chain->object, UINT64_MAX, VK_NULL_HANDLE, fence->object, &index));
+	auto fence = std::make_shared<vulkan_wrapper::fence>(dev);
+	CHECK_VKRESULT(vkAcquireNextImageKHR(dev, chain, UINT64_MAX, VK_NULL_HANDLE, *fence, &index));
 	return index;
 }
 
-void present(device_t* dev, command_queue_t* cmdqueue, swap_chain_t* chain, uint32_t backbuffer_index)
+void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index)
 {
 	VkPresentInfoKHR info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	info.swapchainCount = 1;
-	info.pSwapchains = &(chain->object);
+	info.pSwapchains = &(chain.object);
 	info.pImageIndices = &backbuffer_index;
 
-	CHECK_VKRESULT(vkQueuePresentKHR(cmdqueue->object, &info));
+	CHECK_VKRESULT(vkQueuePresentKHR(cmdqueue, &info));
 }
 
 namespace
