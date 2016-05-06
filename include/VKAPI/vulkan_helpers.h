@@ -645,7 +645,7 @@ namespace util
 
 	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
 	{
-		size_t count = gsl::narrow_cast<uint32_t>(update_info.size());
+		uint32_t count = gsl::narrow_cast<uint32_t>(update_info.size());
 		vkUpdateDescriptorSets(dev, count, update_info.data(),0, nullptr);
 	}
 }

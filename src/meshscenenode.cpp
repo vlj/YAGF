@@ -131,22 +131,21 @@ namespace irr
 				aiString path;
 				model->mMaterials[texture_id]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 				std::string texture_path(path.C_Str());
-				const std::string &fixed = SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS";
 
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
-				std::tie(texture, upload_buffer) = load_texture(dev, fixed, upload_cmd_list);
+				std::tie(texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS", upload_cmd_list);
 				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 9 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 #ifdef D3D12
 				create_image_view(dev, mesh_descriptor, 0, *texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
-				auto img_view = std::make_shared<vulkan_wrapper::image_view>(dev, texture->object, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
-					structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels));
-				Textures_views.push_back(img_view);
+				Textures_views.push_back(
+					create_image_view(dev, *texture, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels))
+				);
 				util::update_descriptor_sets(dev,
 				{
-					structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,{ VkDescriptorImageInfo{ VK_NULL_HANDLE, img_view->object, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
+					structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,{ VkDescriptorImageInfo{ VK_NULL_HANDLE, *Textures_views.back(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
 				});
 #endif
 				upload_buffers.push_back(std::move(upload_buffer));

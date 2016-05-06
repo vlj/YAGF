@@ -47,7 +47,7 @@ namespace irr
 			allocated_descriptor_set object_descriptor_set;
 			std::vector<allocated_descriptor_set> mesh_descriptor_set;
 #ifndef D3D12
-			std::vector<std::shared_ptr<vulkan_wrapper::image_view> > Textures_views;
+			std::vector<std::unique_ptr<vulkan_wrapper::image_view> > Textures_views;
 #endif
 		public:
 
