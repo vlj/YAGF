@@ -105,20 +105,21 @@ vec3 DiffuseIBL(vec3 normal, vec3 V, float roughness, vec3 color)
 return max(vec3(r, g, b), vec3(0.)) * color / 3.14;
 }
 
-/*vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
+vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
 {
+  // Note : We could refine the sample direction
   vec3 sampleDirection = reflect(-V, normal);
   sampleDirection = (InverseViewMatrix * vec4(sampleDirection, 0.)).xyz;
    // Assume 8 level of lod (ie 256x256 texture)
 
   float lodval = 7. * roughness;
-  vec3 LD = max(textureLod(probe, sampleDirection, lodval).rgb, vec3(0.));
+  vec3 LD = max(textureLod(samplerCube(probe, s), sampleDirection, lodval).rgb, vec3(0.));
 
   float NdotV = clamp(dot(V, normal), 0.01, 1.);
-  vec2 DFG = texture(dfg, vec2(NdotV, roughness)).rg;
+  vec2 DFG = texture(sampler2D(dfg, s), vec2(NdotV, 1. - roughness)).rg;
 
   return LD * (F0 * DFG.x + DFG.y);
-}*/
+}
 
 layout(location = 0) out vec4 FragColor;
 
@@ -135,12 +136,9 @@ void main(void)
     vec3 eyedir = -normalize(xpos.xyz);
     float specval = 0;//texture(ntex, uv).z;
 
-    FragColor = vec4(DiffuseIBL(normal, eyedir, specval, color), 1.);
-    FragColor = pow(texture(sampler2D(dfg, s), uv.yx), vec4(1.));
-
-/*    vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
+    vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
     vec3 Metal = SpecularIBL(normal, eyedir, specval, color);
-    float Metalness = texture(ntex, uv).a;
+    float Metalness = 1;//texture(ntex, uv).a;
 
-    FragColor = vec4(.2 * mix(Dielectric, Metal, Metalness), texture(ctex, uv).a);*/
+    FragColor = vec4(mix(Dielectric, Metal, Metalness), subpassLoad(ctex).a);
 }
