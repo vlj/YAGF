@@ -71,6 +71,7 @@ private:
 
 #ifndef D3D12
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
+	std::shared_ptr<vulkan_wrapper::sampler> bilinear_clamped_sampler;
 	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;

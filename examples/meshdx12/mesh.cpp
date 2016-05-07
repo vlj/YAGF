@@ -36,7 +36,8 @@ namespace
 		shader_stage::fragment_shader);
 
 	constexpr auto sampler_descriptor_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) },
+		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
+		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 13, 1) },
 	shader_stage::fragment_shader);
 
 	// color, normal, depth
@@ -205,6 +206,8 @@ void MeshSample::fill_descriptor_set()
 #else
 	skybox_view = create_image_view(*dev, *skybox_texture, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
 
+	bilinear_clamped_sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f);
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f);
 	diffuse_color_view = create_image_view(*dev, *diffuse_color, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
@@ -214,7 +217,9 @@ void MeshSample::fill_descriptor_set()
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(sampler->object) }, 3),
+			{ structures::descriptor_sampler_info(*sampler) }, 3),
+		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
+			{ structures::descriptor_sampler_info(*bilinear_clamped_sampler) }, 13),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 			{ structures::descriptor_image_info(diffuse_color_view->object) }, 4),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,

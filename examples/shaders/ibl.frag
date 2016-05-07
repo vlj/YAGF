@@ -11,6 +11,7 @@ layout(set = 2, binding = 11) uniform textureCube probe;
 layout(set = 2, binding = 12) uniform texture2D dfg;
 
 layout(set = 3, binding = 3) uniform sampler s;
+layout(set = 3, binding = 13) uniform sampler bilinear_s;
 
 layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
@@ -115,8 +116,8 @@ vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
   float lodval = 7. * roughness;
   vec3 LD = max(textureLod(samplerCube(probe, s), sampleDirection, lodval).rgb, vec3(0.));
 
-  float NdotV = clamp(dot(V, normal), 0.01, 1.);
-  vec2 DFG = texture(sampler2D(dfg, s), vec2(1. - roughness, NdotV)).rg;
+  float NdotV = clamp(dot(V, normal), 0., 1.);
+  vec2 DFG = texture(sampler2D(dfg, bilinear_s), vec2(1. - roughness, NdotV)).rg;
 
   return LD * (F0 * DFG.x + DFG.y);
 }
@@ -134,7 +135,7 @@ void main(void)
 
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
     vec3 eyedir = -normalize(xpos.xyz);
-    float specval = 1;//texture(ntex, uv).z;
+    float specval = 0.;//texture(ntex, uv).z;
 
     vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
     vec3 Metal = SpecularIBL(normal, eyedir, specval, color);
