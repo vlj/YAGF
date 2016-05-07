@@ -247,7 +247,7 @@ void MeshSample::load_program_and_pipeline_layout()
 	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
 	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object }, std::vector<VkPushConstantRange>());
+	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif // D3D12
 	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
 	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
@@ -331,6 +331,7 @@ void MeshSample::fill_draw_commands()
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 2, ibl_descriptor, ibl_sig);
+		bind_graphic_descriptor(*current_cmd_list, 3, sampler_descriptors, ibl_sig);
 		set_graphic_pipeline(*current_cmd_list, ibl_pso);
 		bind_vertex_buffers(*current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
