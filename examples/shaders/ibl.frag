@@ -5,7 +5,9 @@
 
 layout(input_attachment_index = 0, set = 0, binding = 4) uniform subpassInput ctex;
 layout(input_attachment_index = 1, set = 0, binding = 5) uniform subpassInput ntex;
-layout(input_attachment_index = 3, set = 0, binding = 6) uniform subpassInput dtex;
+layout(input_attachment_index = 2, set = 0, binding = 14) uniform subpassInput roughness_metalness;
+layout(input_attachment_index = 4, set = 0, binding = 6) uniform subpassInput dtex;
+
 
 layout(set = 2, binding = 11) uniform textureCube probe;
 layout(set = 2, binding = 12) uniform texture2D dfg;
@@ -135,11 +137,11 @@ void main(void)
 
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
     vec3 eyedir = -normalize(xpos.xyz);
-    float specval = 0.;//texture(ntex, uv).z;
+    float roughness = subpassLoad(roughness_metalness).x;
 
-    vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
-    vec3 Metal = SpecularIBL(normal, eyedir, specval, color);
-    float Metalness = 0.;//texture(ntex, uv).a;
+    vec3 Dielectric = DiffuseIBL(normal, eyedir, roughness, color) + SpecularIBL(normal, eyedir, roughness, vec3(.04));
+    vec3 Metal = SpecularIBL(normal, eyedir, roughness, color);
+    float Metalness = subpassLoad(roughness_metalness).y;
 
-    FragColor = .2 * vec4(mix(Dielectric, Metal, Metalness), subpassLoad(ctex).a);
+    FragColor = vec4(mix(Dielectric, Metal, Metalness), subpassLoad(ctex).a);
 }

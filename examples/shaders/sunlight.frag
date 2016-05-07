@@ -5,7 +5,8 @@
 
 layout(input_attachment_index = 0, set = 0, binding = 4) uniform subpassInput ctex;
 layout(input_attachment_index = 1, set = 0, binding = 5) uniform subpassInput ntex;
-layout(input_attachment_index = 3, set = 0, binding = 6) uniform subpassInput dtex;
+layout(input_attachment_index = 2, set = 0, binding = 14) uniform subpassInput roughness_metalness;
+layout(input_attachment_index = 4, set = 0, binding = 6) uniform subpassInput dtex;
 
 layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
@@ -121,16 +122,14 @@ void main() {
 
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
 
-//    float roughness = texture(ntex, uv).z;
-float roughness = .3;
+    float roughness = subpassLoad(roughness_metalness).x;
     vec3 eyedir = -normalize(xpos.xyz);
 
     vec3 Lightdir = SunMRP(norm, eyedir);
     float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
 
 
-//    float metalness = texture(ntex, uv).a;
-float metalness = 0.;
+    float metalness = subpassLoad(roughness_metalness).y;
 
     vec3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, vec3(.04), roughness);
     vec3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
