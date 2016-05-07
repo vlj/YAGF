@@ -9,50 +9,55 @@ layout(set = 0, binding = 0, std140) uniform _Size
 layout(set = 0, binding = 1) uniform samplerBuffer samples;
 layout(set = 0, binding = 2, rgba32f) writeonly uniform image2D output_texture;
 
+// See Real Shading in Unreal Engine 4 (Brian Karis) for formula
 
-float G1_Schlick(vec3 V, vec3 normal, float k)
+float G1_Schlick(float XdotN, float k)
 {
-	float NdotV = dot(V, normal);
-	NdotV = NdotV > 0.f ? NdotV : 0.f;
-	NdotV = NdotV < 1.f ? NdotV : 1.f;
-	return 1.f / (NdotV * (1.f - k) + k);
+	return XdotN / (XdotN * (1.f - k) + k);
 }
 
-float G_Smith(vec3 lightdir, vec3 viewdir, vec3 normal, float roughness)
+float G_Smith(float NdotV, float NdotL, float roughness)
 {
-	float k = (roughness + 1.f) * (roughness + 1.f) / 8.f;
-	return G1_Schlick(lightdir, normal, k) * G1_Schlick(viewdir, normal, k);
+	float k = roughness * roughness / 2.f;
+	return G1_Schlick(NdotV, k) * G1_Schlick(NdotL, k);
 }
 
+// Given a Seed from a uniform distribution, returns a half vector direction
+// as a theta, phi pair weighted against GGX distribution.
+vec2 ImportanceSamplingGGX(vec2 Seeds, float roughness)
+{
+	float a = roughness * roughness;
+	float CosTheta = sqrt((1.f - Seeds.y) / (1.f + (a * a - 1.f) * Seeds.y));
+	return vec2(acos(CosTheta), 2.f * 3.14f * Seeds.x);
+}
 
 vec2 getSpecularDFG(float roughness, float NdotV)
 {
-	// We assume a local referential where N points in Y direction
-	vec3 V = vec3(sqrt(1.f - NdotV * NdotV), NdotV, 0.f);
+	// We assume an implicit referential where N points in Oz
+	vec3 V = vec3(sqrt(1.f - NdotV * NdotV), 0.f, NdotV);
 
 	float DFG1 = 0., DFG2 = 0.;
 	for (int i = 0; i < 1024; i++)
 	{
-		//vec2 ThetaPhi = ImportanceSamplingGGX(HammersleySequence(sample, 1024), roughness);
-		float Theta = texelFetch(samples, i).x;
-        float Phi = texelFetch(samples, i).y;
-		vec3 H = vec3(sin(Theta) * cos(Phi), cos(Theta), sin(Theta) * sin(Phi));
+		vec2 ThetaPhi = ImportanceSamplingGGX(texelFetch(samples, i).xy, roughness);
+		float Theta = ThetaPhi.x;
+		float Phi = ThetaPhi.y;
+		vec3 H = vec3(sin(Theta) * cos(Phi), sin(Theta) * sin(Phi), cos(Theta));
 		vec3 L = 2 * dot(H, V) * H - V;
-		float NdotL = L.y;
 
-		float NdotH = H.y > 0. ? H.y : 0.;
+		float NdotL = clamp(L.z, 0.f, 1.f);
+		float NdotH = clamp(H.z, 0.f, 1.f);
+		float VdotH = clamp(dot(V, H), 0.f, 1.f);
+
 		if (NdotL > 0.)
 		{
-			float VdotH = dot(V, H);
-			VdotH = VdotH > 0.f ? VdotH : 0.f;
-			VdotH = VdotH < 1.f ? VdotH : 1.f;
-			float Fc = pow(1.f - VdotH, 5.f);
-			float G = G_Smith(L, V, vec3(0.f, 1.f, 0.f), roughness);
-			DFG1 += (1.f - Fc) * G * VdotH;
-			DFG2 += Fc * G * VdotH;
+			float Fc = (1.f - VdotH, 5.f);
+			float G = G_Smith(NdotV, NdotL, roughness) * VdotH / (NdotH * NdotV);
+			DFG1 += (1.f - Fc) * G;
+			DFG2 += Fc * G;
 		}
 	}
-	return vec2(DFG1 / 1024.f, DFG2 / 1024.f);
+	return vec2(DFG1 / 1024., DFG2 / 1024.);
 }
 
 float getDiffuseDFG(float roughness, float NdotV)
@@ -64,7 +69,7 @@ float getDiffuseDFG(float roughness, float NdotV)
 	{
 		//std::pair<float, float> ThetaPhi = ImportanceSamplingCos(HammersleySequence(sample, 1024));
 		float Theta;
-        float Phi;
+		float Phi;
 		vec3 L = vec3(sin(Theta) * cos(Phi), cos(Theta), sin(Theta) * sin(Phi));
 		float NdotL = L.y;
 		if (NdotL > 0.f)
@@ -82,12 +87,12 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 void main(void)
 {
-    uvec2 id = gl_GlobalInvocationID.xy;
-   	float roughness = .05f + .95f * float(id.x) / float(dfg_lut_size - 1);
-   	float NdotV = float(1 + id.y) / float(dfg_lut_size + 1);
+	uvec2 id = gl_GlobalInvocationID.xy;
+	float roughness = .1f + .9f * float(id.x) / float(dfg_lut_size - 1);
+	float NdotV = float(1 + id.y) / float(dfg_lut_size);
 
-    vec2 specular_dfg = getSpecularDFG(roughness, NdotV);
-    float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
-
-    imageStore(output_texture, ivec2(id), vec4(specular_dfg, diffuse_dfg, 0.));
+	vec2 specular_dfg = getSpecularDFG(roughness, NdotV);
+	float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
+	//vec4(specular_dfg, diffuse_dfg, 0.)
+	imageStore(output_texture, ivec2(id), vec4(specular_dfg, 0., 1.));
 }

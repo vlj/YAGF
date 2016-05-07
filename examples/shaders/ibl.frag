@@ -10,6 +10,8 @@ layout(input_attachment_index = 3, set = 0, binding = 6) uniform subpassInput dt
 layout(set = 2, binding = 11) uniform textureCube probe;
 layout(set = 2, binding = 12) uniform texture2D dfg;
 
+layout(set = 3, binding = 3) uniform sampler s;
+
 layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
   mat4 ViewMatrix;
@@ -134,6 +136,7 @@ void main(void)
     float specval = 0;//texture(ntex, uv).z;
 
     FragColor = vec4(DiffuseIBL(normal, eyedir, specval, color), 1.);
+    FragColor = pow(texture(sampler2D(dfg, s), uv.yx), vec4(1.));
 
 /*    vec3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, vec3(.04));
     vec3 Metal = SpecularIBL(normal, eyedir, specval, color);
