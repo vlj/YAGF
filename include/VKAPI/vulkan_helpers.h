@@ -237,9 +237,9 @@ namespace vulkan_wrapper
 
 		sampler(VkDevice dev, VkFilter mag_filter, VkFilter min_filter, VkSamplerMipmapMode mipmap_mode,
 			VkSamplerAddressMode address_mode_U, VkSamplerAddressMode address_mode_V, VkSamplerAddressMode address_mode_W, float lod_bias,
-			bool anisotropy, float max_anisotropy)
+			bool anisotropy, float max_anisotropy, bool compare_enable, VkCompareOp compare_op, float min_lod, float max_lod, VkBorderColor border_color, bool unormalized_coordinates)
 			: info{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, nullptr, 0, mag_filter, min_filter, mipmap_mode,
-			address_mode_U, address_mode_V, address_mode_W, lod_bias, anisotropy, max_anisotropy },
+			address_mode_U, address_mode_V, address_mode_W, lod_bias, anisotropy, max_anisotropy, compare_enable, compare_op, min_lod, max_lod, border_color, unormalized_coordinates },
 			m_device(dev)
 		{
 			CHECK_VKRESULT(vkCreateSampler(dev, &info, nullptr, &object));
