@@ -55,7 +55,9 @@ namespace
 
 	// IBL data
 	constexpr auto ibl_descriptor_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 10, 1) },
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 10, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 11, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 12, 1) },
 		shader_stage::fragment_shader);
 
 	std::unique_ptr<render_pass_t> create_render_pass(device_t* dev)
@@ -165,13 +167,20 @@ void MeshSample::Init()
 	//ibl
 	sh_coefficients = computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
 	specular_cube = generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
+	dfg_lut = getDFGLUT(*dev, *cmdqueue, 128);
 #ifdef D3D12
 	create_constant_buffer_view(*dev, ibl_descriptor, 0, *sh_coefficients, 27 * sizeof(float));
 #else
+	specular_cube_view = create_image_view(*dev, *specular_cube, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 8, 0, 6));
+	dfg_lut_view = create_image_view(*dev, *dfg_lut, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
 	util::update_descriptor_sets(dev->object,
 	{
 		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ structures::descriptor_buffer_info(sh_coefficients->object, 0, sizeof(SH)) }, 10),
+		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			{ structures::descriptor_image_info(*specular_cube_view) }, 11),
+		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			{ structures::descriptor_image_info(*dfg_lut_view) }, 12),
 	});
 #endif
 	fill_draw_commands();

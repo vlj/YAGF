@@ -487,6 +487,7 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 			{ structures::descriptor_image_info(*texture_view) }, 2)
 	});
 
+	start_command_list_recording(*command_list, *command_storage);
 	set_compute_pipeline(*command_list, *pso);
 	bind_compute_descriptor(*command_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 

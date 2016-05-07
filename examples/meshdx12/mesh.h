@@ -60,6 +60,7 @@ private:
 	std::unique_ptr<image_t> skybox_texture;
 	std::unique_ptr<buffer_t> sh_coefficients;
 	std::unique_ptr<image_t> specular_cube;
+	std::unique_ptr<image_t> dfg_lut;
 
 	std::shared_ptr<descriptor_set_layout> object_set;
 	std::shared_ptr<descriptor_set_layout> scene_set;
@@ -74,6 +75,8 @@ private:
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
 	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
+	std::shared_ptr<vulkan_wrapper::image_view> specular_cube_view;
+	std::shared_ptr<vulkan_wrapper::image_view> dfg_lut_view;
 #endif
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 

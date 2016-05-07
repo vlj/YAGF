@@ -7,8 +7,8 @@ layout(input_attachment_index = 0, set = 0, binding = 4) uniform subpassInput ct
 layout(input_attachment_index = 1, set = 0, binding = 5) uniform subpassInput ntex;
 layout(input_attachment_index = 3, set = 0, binding = 6) uniform subpassInput dtex;
 
-//uniform samplerCube probe;
-//uniform sampler2D dfg;
+layout(set = 2, binding = 11) uniform textureCube probe;
+layout(set = 2, binding = 12) uniform texture2D dfg;
 
 layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
