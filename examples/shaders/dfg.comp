@@ -51,7 +51,7 @@ vec2 getSpecularDFG(float roughness, float NdotV)
 
 		if (NdotL > 0.)
 		{
-			float Fc = (1.f - VdotH, 5.f);
+			float Fc = pow(1.f - VdotH, 5.f);
 			float G = G_Smith(NdotV, NdotL, roughness) * VdotH / (NdotH * NdotV);
 			DFG1 += (1.f - Fc) * G;
 			DFG2 += Fc * G;
@@ -92,7 +92,7 @@ void main(void)
 	float NdotV = float(1 + id.y) / float(dfg_lut_size);
 
 	vec2 specular_dfg = getSpecularDFG(roughness, NdotV);
-	float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
+	//float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
 	//vec4(specular_dfg, diffuse_dfg, 0.)
 	imageStore(output_texture, ivec2(id), vec4(specular_dfg, 0., 1.));
 }
