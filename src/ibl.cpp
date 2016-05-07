@@ -417,6 +417,12 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 
 namespace
 {
+	constexpr auto dfg_input = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
+		range_of_descriptors(RESOURCE_VIEW::TEXEL_BUFFER, 1, 1),
+		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 2, 1) },
+		shader_stage::all);
+
 	std::unique_ptr<compute_pipeline_state_t> dfg_building_pso(device_t& dev, pipeline_layout_t pipeline_layout)
 	{
 #ifdef D3D12
@@ -449,10 +455,40 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev, *command_storage);
 	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::TEXEL_BUFFER, 1 }, { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::UAV_IMAGE, 1 } });
 
-	pipeline_layout_t dfg_building_sig;
+	std::shared_ptr<descriptor_set_layout> dfg_set = get_object_descriptor_set(dev, dfg_input);
+	pipeline_layout_t dfg_building_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ dfg_set->object }, std::vector<VkPushConstantRange>());
 	std::unique_ptr<compute_pipeline_state_t> pso = dfg_building_pso(dev, dfg_building_sig);
+	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *input_heap, 0, { dfg_set.get() });
+
+	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	void* tmp = map_buffer(dev, *cbuf);
+	float sz = DFG_LUT_size;
+	memcpy(tmp, &sz, sizeof(float));
+	unmap_buffer(dev, *cbuf);
+	std::unique_ptr<buffer_t> hamersley_seq_buf = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
+	float* hamerleybuf = (float*)map_buffer(dev, *hamersley_seq_buf);
+	for (unsigned j = 0; j < 1024; j++)
+	{
+		std::pair<float, float> sample = HammersleySequence(j, 1024);
+		hamerleybuf[2 * j] = sample.first;
+		hamerleybuf[2 * j + 1] = sample.second;
+	}
+	unmap_buffer(dev, *hamersley_seq_buf);
+
+	std::unique_ptr<vulkan_wrapper::buffer_view> buffer_view = std::make_unique<vulkan_wrapper::buffer_view>(dev, *hamersley_seq_buf, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
+	std::unique_ptr<vulkan_wrapper::image_view> texture_view = create_image_view(dev, *DFG_LUT_texture, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
+
+	util::update_descriptor_sets(dev, {
+		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ structures::descriptor_buffer_info(*cbuf, 0, sizeof(float)) }, 0),
+		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+			{ *buffer_view }, 1),
+		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			{ structures::descriptor_image_info(*texture_view) }, 2)
+	});
 
 	set_compute_pipeline(*command_list, *pso);
+	bind_compute_descriptor(*command_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 
 	dispatch(*command_list, DFG_LUT_size, DFG_LUT_size, 1);
 

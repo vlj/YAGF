@@ -2,12 +2,13 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(set = 1, binding = 2) uniform samplerBuffer samples;
-layout(set = 2, binding = 3, rgba32f) writeonly uniform image2D output_texture;
-layout(set = 1, binding = 5, std140) uniform _Size
+layout(set = 0, binding = 0, std140) uniform _Size
 {
 	float dfg_lut_size;
 };
+layout(set = 0, binding = 1) uniform samplerBuffer samples;
+layout(set = 0, binding = 2, rgba32f) writeonly uniform image2D output_texture;
+
 
 float G1_Schlick(vec3 V, vec3 normal, float k)
 {
