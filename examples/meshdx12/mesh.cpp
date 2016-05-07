@@ -68,7 +68,7 @@ namespace
 		result.reset(new render_pass_t(dev->object,
 		{
 			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
+			structures::attachment_description(VK_FORMAT_R16G16_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
 			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
 			structures::attachment_description(VK_FORMAT_D24_UNORM_S8_UINT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 		},
@@ -127,13 +127,16 @@ void MeshSample::Init()
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clear_color);
 #endif
 	diffuse_color = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	normal_roughness_metalness = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+#ifdef D3D12
+	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R16G16_FLOAT, clear_color);
+#endif
+	normal_roughness_metalness = create_image(*dev, irr::video::ECF_R16G16F, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	set_pipeline_barrier(*command_list, *depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	set_pipeline_barrier(*command_list, *diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
-	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM },{ *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R16G16F },{ *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R16G16F },{ *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 8, { ibl_set.get() });
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() });
@@ -199,7 +202,7 @@ void MeshSample::fill_descriptor_set()
 
 	// rtt
 	create_image_view(*dev, rtt_descriptors, 0, *diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(*dev, rtt_descriptors, 1, *normal_roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(*dev, rtt_descriptors, 1, *normal_roughness_metalness, 1, irr::video::ECF_R16G16F, D3D12_SRV_DIMENSION_TEXTURE2D);
 	create_image_view(*dev, rtt_descriptors, 2, *depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
@@ -211,7 +214,7 @@ void MeshSample::fill_descriptor_set()
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
 	diffuse_color_view = create_image_view(*dev, *diffuse_color, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
-	normal_roughness_metalness_view = create_image_view(*dev, *normal_roughness_metalness, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
+	normal_roughness_metalness_view = create_image_view(*dev, *normal_roughness_metalness, VK_FORMAT_R16G16_SFLOAT, structures::image_subresource_range());
 	depth_view = create_image_view(*dev, *depth_buffer, VK_FORMAT_D32_SFLOAT_S8_UINT, structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
 	util::update_descriptor_sets(dev->object,

@@ -286,6 +286,7 @@ namespace
 		{
 		case irr::video::ECF_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
 		case irr::video::ECF_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+		case irr::video::ECF_R16G16F: return VK_FORMAT_R16G16_SFLOAT;
 		case irr::video::ECF_R16G16B16A16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
 		case irr::video::ECF_R32G32B32A32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
 		case irr::video::ECF_A8R8G8B8: return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
@@ -304,7 +305,7 @@ namespace
 		case irr::video::ECF_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
 		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
 		}
-		return VK_FORMAT_UNDEFINED;
+		throw;
 	}
 
 	VkImageUsageFlags get_image_usage_flag(uint32_t flags)
