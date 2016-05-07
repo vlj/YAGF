@@ -171,7 +171,7 @@ void MeshSample::Init()
 #ifdef D3D12
 	create_constant_buffer_view(*dev, ibl_descriptor, 0, *sh_coefficients, 27 * sizeof(float));
 #else
-	specular_cube_view = create_image_view(*dev, *specular_cube, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 8, 0, 6));
+	specular_cube_view = create_image_view(*dev, *specular_cube, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 8, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
 	dfg_lut_view = create_image_view(*dev, *dfg_lut, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
 	util::update_descriptor_sets(dev->object,
 	{
