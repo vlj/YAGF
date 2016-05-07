@@ -170,6 +170,8 @@ void MeshSample::Init()
 	dfg_lut = getDFGLUT(*dev, *cmdqueue, 128);
 #ifdef D3D12
 	create_constant_buffer_view(*dev, ibl_descriptor, 0, *sh_coefficients, 27 * sizeof(float));
+	create_image_view(*dev, ibl_descriptor, 1, *specular_cube, 8, irr::video::ECF_R16G16B16A16F, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	create_image_view(*dev, ibl_descriptor, 2, *dfg_lut, 1, irr::video::ECF_R32G32B32A32F, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
 	specular_cube_view = create_image_view(*dev, *specular_cube, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 8, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
 	dfg_lut_view = create_image_view(*dev, *dfg_lut, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
@@ -235,7 +237,7 @@ void MeshSample::load_program_and_pipeline_layout()
 	object_sig = get_pipeline_layout_from_desc(*dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
 	sunlight_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type });
 	skybox_sig = get_pipeline_layout_from_desc(*dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
-	ibl_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type });
+	ibl_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type, sampler_descriptor_set_type });
 #else
 	sampler_set = get_object_descriptor_set(*dev, sampler_descriptor_set_type);
 	object_set = get_object_descriptor_set(*dev, object_descriptor_set_type);

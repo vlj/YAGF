@@ -101,5 +101,8 @@
     <FxCompile Include="..\examples\shaders\importance_sampling_specular.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\examples\shaders\dfg.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

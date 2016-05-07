@@ -428,7 +428,7 @@ namespace
 #ifdef D3D12
 		ID3D12PipelineState* result;
 		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		CHECK_HRESULT(D3DReadFileToBlob(L"importance_sampling_specular.cso", blob.GetAddressOf()));
+		CHECK_HRESULT(D3DReadFileToBlob(L"dfg.cso", blob.GetAddressOf()));
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
 		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
@@ -455,8 +455,13 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 	std::unique_ptr<command_list_t> command_list = create_command_list(dev, *command_storage);
 	std::unique_ptr<descriptor_storage_t> input_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::TEXEL_BUFFER, 1 }, { RESOURCE_VIEW::CONSTANTS_BUFFER, 1 }, { RESOURCE_VIEW::UAV_IMAGE, 1 } });
 
-	std::shared_ptr<descriptor_set_layout> dfg_set = get_object_descriptor_set(dev, dfg_input);
+	std::shared_ptr<descriptor_set_layout> dfg_set;
+#ifdef D3D12
+	pipeline_layout_t dfg_building_sig = get_pipeline_layout_from_desc(dev, { dfg_input });
+#else
+	dfg_set = get_object_descriptor_set(dev, dfg_input);
 	pipeline_layout_t dfg_building_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ dfg_set->object }, std::vector<VkPushConstantRange>());
+#endif
 	std::unique_ptr<compute_pipeline_state_t> pso = dfg_building_pso(dev, dfg_building_sig);
 	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *input_heap, 0, { dfg_set.get() });
 
@@ -474,7 +479,25 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 		hamerleybuf[2 * j + 1] = sample.second;
 	}
 	unmap_buffer(dev, *hamersley_seq_buf);
+#if D3D12
+	create_constant_buffer_view(dev, dfg_input_descriptor_set, 0, *cbuf, sizeof(float));
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+	srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	srv.Buffer.FirstElement = 0;
+	srv.Buffer.NumElements = 1024;
+	srv.Buffer.StructureByteStride = 2 * sizeof(float);
+	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	dev->CreateShaderResourceView(*hamersley_seq_buf, &srv,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
+			.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
+	dev->CreateUnorderedAccessView(*DFG_LUT_texture, nullptr, &desc,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
+			.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#else
 	std::unique_ptr<vulkan_wrapper::buffer_view> buffer_view = std::make_unique<vulkan_wrapper::buffer_view>(dev, *hamersley_seq_buf, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
 	std::unique_ptr<vulkan_wrapper::image_view> texture_view = create_image_view(dev, *DFG_LUT_texture, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
 
@@ -486,9 +509,15 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 			{ structures::descriptor_image_info(*texture_view) }, 2)
 	});
+#endif
 
 	start_command_list_recording(*command_list, *command_storage);
 	set_compute_pipeline(*command_list, *pso);
+#ifdef D3D12
+	command_list->object->SetComputeRootSignature(dfg_building_sig.Get());
+	std::array<ID3D12DescriptorHeap*, 1> heaps{ *input_heap };
+	command_list->object->SetDescriptorHeaps(1, heaps.data());
+#endif // D3D12
 	bind_compute_descriptor(*command_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 
 	dispatch(*command_list, DFG_LUT_size, DFG_LUT_size, 1);

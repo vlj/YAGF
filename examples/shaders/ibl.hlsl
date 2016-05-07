@@ -10,11 +10,11 @@ Texture2D ColorTex : register(t0, space4);
 Texture2D NormalTex : register(t0, space5);
 Texture2D DepthTex : register(t0, space6);
 
-//TextureCube Probe : register(t3);
-//Texture2D DFGTex : register(t4);
+TextureCube Probe : register(t0, space11);
+Texture2D DFGTex : register(t0, space12);
 
 //sampler Nearest : register(s0);
-//sampler Anisotropic : register(s0);
+sampler Anisotropic : register(s0, space3);
 //sampler Bilinear : register(s4);
 
 cbuffer SHCoeff : register(b0, space10)
@@ -103,7 +103,7 @@ float3 DiffuseIBL(float3 normal, float3 V, float roughness, float3 color)
   return max(float3(r, g, b), float3(0., 0., 0.)) * color / 3.14;
 }
 
-/*
+
 float3 SpecularIBL(float3 normal, float3 V, float roughness, float3 F0)
 {
   float3 sampleDirection = reflect(-V, normal);
@@ -114,10 +114,10 @@ float3 SpecularIBL(float3 normal, float3 V, float roughness, float3 F0)
   float3 LD = max(Probe.SampleLevel(Anisotropic, sampleDirection, lodval).rgb, float3(0., 0., 0.));
 
   float NdotV = clamp(dot(V, normal), .01, 1.);
-  float2 DFG = DFGTex.Sample(Bilinear, float2(NdotV, 0.)).rg;
+  float2 DFG = DFGTex.Sample(Anisotropic, float2(roughness, NdotV)).rg;
 
-  return LD * (F0 * DFG.x + DFG.y);
-}*/
+  return LD *(F0 * DFG.x + DFG.y);
+}
 
 struct PS_INPUT
 {
@@ -141,11 +141,9 @@ float4 main(PS_INPUT In) : SV_TARGET
   float3 eyedir = -normalize(xpos.xyz);
   float specval = 0;//NormalTex.Sample(Nearest, In.uv).z;
 
-  /*  float3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, float3(.04, .04, .04));
+  float3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, float3(.04, .04, .04));
   float3 Metal = SpecularIBL(normal, eyedir, specval, color);
-  float Metalness = NormalTex.Sample(Nearest, In.uv).a;
+  float Metalness = 1;//NormalTex.Sample(Nearest, In.uv).a;
 
-  return float4(.2 * mix(Dielectric, Metal, Metalness) + emitcolor, ColorTex.Sample(Nearest, In.uv).a);*/
-//  return float4(SpecularIBL(normal, eyedir, specval, float3(.04, .04, .04)), 1.);
-  return float4(DiffuseIBL(normal, eyedir, specval, color), 1.);
+  return float4(.2 * lerp(Dielectric, Metal, Metalness), ColorTex.Load(uv).a);
 }
