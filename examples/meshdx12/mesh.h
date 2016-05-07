@@ -74,7 +74,8 @@ private:
 	std::shared_ptr<vulkan_wrapper::sampler> bilinear_clamped_sampler;
 	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
 	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
-	std::shared_ptr<vulkan_wrapper::image_view> normal_roughness_metalness_view;
+	std::shared_ptr<vulkan_wrapper::image_view> normal_view;
+	std::shared_ptr<vulkan_wrapper::image_view> roughness_metalness_view;
 	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
 	std::shared_ptr<vulkan_wrapper::image_view> specular_cube_view;
 	std::shared_ptr<vulkan_wrapper::image_view> dfg_lut_view;
@@ -88,7 +89,8 @@ private:
 
 	std::unique_ptr<image_t> depth_buffer;
 	std::unique_ptr<image_t> diffuse_color;
-	std::unique_ptr<image_t> normal_roughness_metalness;
+	std::unique_ptr<image_t> normal;
+	std::unique_ptr<image_t> roughness_metalness;
 
 	std::unique_ptr<irr::scene::IMeshSceneNode> xue;
 

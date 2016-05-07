@@ -38,13 +38,14 @@ namespace
 	constexpr auto sampler_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 13, 1) },
-	shader_stage::fragment_shader);
+		shader_stage::fragment_shader);
 
 	// color, normal, depth
 	constexpr auto rtt_descriptor_set_type = descriptor_set({
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 4, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 5, 1),
-			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 6, 1) },
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 6, 1),
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 14, 1) },
 			shader_stage::fragment_shader);
 
 	// view/proj matrixes, sunlight data, skybox
@@ -105,7 +106,7 @@ void MeshSample::Init()
 	std::unique_ptr<command_list_t> command_list = create_command_list(*dev, *command_allocator);
 	start_command_list_recording(*command_list, *command_allocator);
 
-	cbv_srv_descriptors_heap = create_descriptor_storage(*dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 3 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
+	cbv_srv_descriptors_heap = create_descriptor_storage(*dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 4 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
 	sampler_heap = create_descriptor_storage(*dev, 10, { { RESOURCE_VIEW::SAMPLER, 10 } });
 	render_pass = create_render_pass(dev.get());
 
@@ -127,16 +128,18 @@ void MeshSample::Init()
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clear_color);
 #endif
 	diffuse_color = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	roughness_metalness = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 #ifdef D3D12
 	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R16G16_FLOAT, clear_color);
 #endif
-	normal_roughness_metalness = create_image(*dev, irr::video::ECF_R16G16F, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	normal = create_image(*dev, irr::video::ECF_R16G16F, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	set_pipeline_barrier(*command_list, *depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	set_pipeline_barrier(*command_list, *diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
-	set_pipeline_barrier(*command_list, *normal_roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(*command_list, *normal, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(*command_list, *roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R16G16F },{ *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
-	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal_roughness_metalness, irr::video::ECF_R16G16F },{ *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
 
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 8, { ibl_set.get() });
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() });
@@ -214,7 +217,8 @@ void MeshSample::fill_descriptor_set()
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
 	diffuse_color_view = create_image_view(*dev, *diffuse_color, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
-	normal_roughness_metalness_view = create_image_view(*dev, *normal_roughness_metalness, VK_FORMAT_R16G16_SFLOAT, structures::image_subresource_range());
+	normal_view = create_image_view(*dev, *normal, VK_FORMAT_R16G16_SFLOAT, structures::image_subresource_range());
+	roughness_metalness_view = create_image_view(*dev, *roughness_metalness, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
 	depth_view = create_image_view(*dev, *depth_buffer, VK_FORMAT_D32_SFLOAT_S8_UINT, structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
 	util::update_descriptor_sets(dev->object,
@@ -226,7 +230,9 @@ void MeshSample::fill_descriptor_set()
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 			{ structures::descriptor_image_info(diffuse_color_view->object) }, 4),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(normal_roughness_metalness_view->object) }, 5),
+			{ structures::descriptor_image_info(*normal_view) }, 5),
+		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+			{ structures::descriptor_image_info(*roughness_metalness_view) }, 14),
 		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
 			{ structures::descriptor_image_info(depth_view->object) }, 6),
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
