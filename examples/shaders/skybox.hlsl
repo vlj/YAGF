@@ -22,7 +22,7 @@ float4 main(PS_INPUT In) : SV_TARGET
   eyedir = 2.0 * eyedir - 1.0;
   float4 tmp = mul(InverseProjectionMatrix, float4(eyedir, 1.));
   tmp /= tmp.w;
-  eyedir = mul(InverseViewMatrix, float4(tmp.xyz, 0.)).xyz;
+  eyedir = mul(transpose(ViewMatrix), float4(tmp.xyz, 0.)).xyz;
   float4 color = skytexture.Sample(AnisotropicSampler, eyedir);
   return float4(color.xyz, 1.);
   return float4(color.xyz, 1.);

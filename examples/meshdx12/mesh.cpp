@@ -382,7 +382,7 @@ void MeshSample::Draw()
 	irr::core::matrix4 InvPerspective;
 	irr::core::matrix4 View;
 	irr::core::matrix4 InvView;
-	View.buildCameraLookAtMatrixLH(irr::core::vector3df(0., 2. * sin(time / 500. * 3.14), -2. * cos(time / 500. * 3.14)), irr::core::vector3df(), irr::core::vector3df(0., 1., 0.));
+	View.buildCameraLookAtMatrixLH(irr::core::vector3df(0., 2. * sin(time / 500. * 3.14), -2. * cos(time / 500. * 3.14)), irr::core::vector3df(), irr::core::vector3df(0., cos(time / 500. * 3.14), sin(time / 500. * 3.14)));
 	View.getInverse(InvView);
 	time++;
 	Perspective.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
