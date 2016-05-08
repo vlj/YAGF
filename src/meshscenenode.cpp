@@ -179,7 +179,7 @@ namespace irr
 			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, *object_matrix));
 			irr::core::matrix4 Model;
 			irr::core::matrix4 InvModel;
-			Model.setTranslation(irr::core::vector3df(0.f, 0.f, 2.f));
+			Model.setTranslation(irr::core::vector3df(0.f, 0.f, 0.f));
 			Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
 			Model.getInverse(InvModel);
 

@@ -206,7 +206,7 @@ void MeshSample::fill_descriptor_set()
 
 	// rtt
 	create_image_view(*dev, rtt_descriptors, 0, *diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(*dev, rtt_descriptors, 1, *normal_roughness_metalness, 1, irr::video::ECF_R16G16F, D3D12_SRV_DIMENSION_TEXTURE2D);
+	create_image_view(*dev, rtt_descriptors, 1, *normal, 1, irr::video::ECF_R16G16F, D3D12_SRV_DIMENSION_TEXTURE2D);
 	create_image_view(*dev, rtt_descriptors, 2, *depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
@@ -328,14 +328,14 @@ void MeshSample::fill_draw_commands()
 #else
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
-			.Offset(2, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
+			.Offset(3, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
 
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(sunlight_sig.Get());
 
 		set_pipeline_barrier(*current_cmd_list, *diffuse_color, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
-		set_pipeline_barrier(*current_cmd_list, *normal_roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+		set_pipeline_barrier(*current_cmd_list, *normal, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, sunlight_sig);
@@ -372,7 +372,7 @@ void MeshSample::fill_draw_commands()
 		make_command_list_executable(*current_cmd_list);
 	}
 }
-
+static float time = 0.;
 void MeshSample::Draw()
 {
 	xue->update_constant_buffers(*dev);
@@ -380,13 +380,16 @@ void MeshSample::Draw()
 	SceneData * tmp = static_cast<SceneData*>(map_buffer(*dev, *scene_matrix));
 	irr::core::matrix4 Perspective;
 	irr::core::matrix4 InvPerspective;
-	irr::core::matrix4 identity;
+	irr::core::matrix4 View;
+	irr::core::matrix4 InvView;
+	View.buildCameraLookAtMatrixLH(irr::core::vector3df(0., 2. * sin(time / 500. * 3.14), -2. * cos(time / 500. * 3.14)), irr::core::vector3df(), irr::core::vector3df(0., 1., 0.));
+	time++;
 	Perspective.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
 	Perspective.getInverse(InvPerspective);
 	memcpy(tmp->ProjectionMatrix, Perspective.pointer(), 16 * sizeof(float));
 	memcpy(tmp->InverseProjectionMatrix, InvPerspective.pointer(), 16 * sizeof(float));
-	memcpy(tmp->ViewMatrix, identity.pointer(), 16 * sizeof(float));
-	memcpy(tmp->InverseViewMatrix, identity.pointer(), 16 * sizeof(float));
+	memcpy(tmp->ViewMatrix, View.pointer(), 16 * sizeof(float));
+	memcpy(tmp->InverseViewMatrix, InvView.pointer(), 16 * sizeof(float));
 	unmap_buffer(*dev, *scene_matrix);
 
 	float * sun_tmp = (float*)map_buffer(*dev, *sun_data);
