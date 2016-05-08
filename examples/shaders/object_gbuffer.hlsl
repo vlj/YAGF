@@ -10,8 +10,9 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 normal_and_depth : SV_TARGET1;
   float4 base_color : SV_TARGET0;
+  float2 normal : SV_TARGET1;
+  float2 roughness_metalness : SV_TARGET2;
 };
 
 
@@ -24,8 +25,8 @@ PS_OUTPUT main(PS_INPUT In)
 {
   PS_OUTPUT result;
   result.base_color = Tex.Sample(TexSampler, float2(In.uv.x, 1. - In.uv.y));
-  result.normal_and_depth.xy = 0.5 * EncodeNormal(normalize(In.normal)) + 0.5;
-  result.normal_and_depth.z = 1.;
-  result.normal_and_depth.w = 0.;
+  result.normal.xy = 0.5 * EncodeNormal(normalize(In.normal)) + 0.5;
+  result.roughness_metalness.x = .3;
+  result.roughness_metalness.y = 1.;
   return result;
 }

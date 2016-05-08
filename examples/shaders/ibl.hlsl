@@ -9,7 +9,8 @@ cbuffer VIEWDATA : register(b0, space7)
 
 Texture2D ColorTex : register(t0, space4);
 Texture2D NormalTex : register(t0, space5);
-Texture2D DepthTex : register(t0, space6);
+Texture2D Roughness_Metalness : register(t0, space6);
+Texture2D DepthTex : register(t0, space14);
 
 TextureCube Probe : register(t0, space11);
 Texture2D DFGTex : register(t0, space12);
@@ -140,11 +141,11 @@ float4 main(PS_INPUT In) : SV_TARGET
 
 
   float3 eyedir = -normalize(xpos.xyz);
-  float specval = 0;//NormalTex.Sample(Nearest, In.uv).z;
+  float roughness = Roughness_Metalness.Load(uv).x;
 
-  float3 Dielectric = DiffuseIBL(normal, eyedir, specval, color) + SpecularIBL(normal, eyedir, specval, float3(.04, .04, .04));
-  float3 Metal = SpecularIBL(normal, eyedir, specval, color);
-  float Metalness = 1;//NormalTex.Sample(Nearest, In.uv).a;
+  float3 Dielectric = DiffuseIBL(normal, eyedir, roughness, color) + SpecularIBL(normal, eyedir, roughness, float3(.04, .04, .04));
+  float3 Metal = SpecularIBL(normal, eyedir, roughness, color);
+  float Metalness = Roughness_Metalness.Load(uv).y;
 
-  return float4(.2 * lerp(Dielectric, Metal, Metalness), ColorTex.Load(uv).a);
+  return float4(lerp(Dielectric, Metal, Metalness), ColorTex.Load(uv).a);
 }

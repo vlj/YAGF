@@ -16,9 +16,10 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t* dev, pipeline_layou
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
 	psodesc.pRootSignature = layout.Get();
 
-	psodesc.NumRenderTargets = 2;
+	psodesc.NumRenderTargets = 3;
 	psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	psodesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psodesc.RTVFormats[1] = DXGI_FORMAT_R16G16_FLOAT;
+	psodesc.RTVFormats[2] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psodesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	psodesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);

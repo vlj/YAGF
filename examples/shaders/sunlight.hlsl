@@ -15,7 +15,8 @@ cbuffer LIGHTDATA : register(b0, space8)
 
 Texture2D ColorTex : register(t0, space4);
 Texture2D NormalTex : register(t0, space5);
-Texture2D DepthTex : register(t0, space6);
+Texture2D Roughness_Metalness : register(t0, space6);
+Texture2D DepthTex : register(t0, space14);
 
 struct PS_INPUT
 {
@@ -124,13 +125,13 @@ float4 main(PS_INPUT In) : SV_TARGET
   float3 norm = normalize(DecodeNormal(2. * NormalTex.Load(uv).xy - 1.));
   float3 color = ColorTex.Load(uv).xyz;
 
-  float roughness = .1;//NormalTex.Load(uv).z;
+  float roughness = Roughness_Metalness.Load(uv).x;
   float3 eyedir = -normalize(xpos.xyz);
 
   float3 Lightdir = SunMRP(norm, eyedir);
   float NdotL = clamp(dot(norm, Lightdir), 0., 1.);
 
-  float metalness = 0.;//NormalTex.Load(uv).a;
+  float metalness = Roughness_Metalness.Load(uv).y;
 
   float3 Dielectric = DiffuseBRDF(norm, eyedir, Lightdir, color, roughness) + SpecularBRDF(norm, eyedir, Lightdir, float3(.04, .04, .04), roughness);
   float3 Metal = SpecularBRDF(norm, eyedir, Lightdir, color, roughness);
