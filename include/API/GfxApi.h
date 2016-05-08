@@ -117,7 +117,7 @@ enum buffer_flags
 enum class SAMPLER_TYPE
 {
 	NEAREST,
-	BILINEAR,
+	BILINEAR_CLAMPED,
 	TRILINEAR,
 	ANISOTROPIC,
 };

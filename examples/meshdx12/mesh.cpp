@@ -211,6 +211,7 @@ void MeshSample::fill_descriptor_set()
 	create_image_view(*dev, rtt_descriptors, 3, *depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
+	create_sampler(*dev, sampler_descriptors, 1, SAMPLER_TYPE::BILINEAR_CLAMPED);
 #else
 	skybox_view = create_image_view(*dev, *skybox_texture, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
 

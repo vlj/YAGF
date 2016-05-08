@@ -27,6 +27,6 @@ PS_OUTPUT main(PS_INPUT In)
   result.base_color = Tex.Sample(TexSampler, float2(In.uv.x, 1. - In.uv.y));
   result.normal.xy = 0.5 * EncodeNormal(normalize(In.normal)) + 0.5;
   result.roughness_metalness.x = .3;
-  result.roughness_metalness.y = 1.;
+  result.roughness_metalness.y = 0.;
   return result;
 }

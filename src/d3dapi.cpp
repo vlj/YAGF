@@ -297,19 +297,24 @@ void create_sampler(device_t& dev, const allocated_descriptor_set& descriptor_se
 
 	D3D12_SAMPLER_DESC samplerdesc = {};
 
-	samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+
 	samplerdesc.MaxAnisotropy = 1;
 	samplerdesc.MinLOD = 0;
-	samplerdesc.MaxLOD = 1000;
+
 
 	switch (sampler_type)
 	{
 	case SAMPLER_TYPE::TRILINEAR:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerdesc.MaxLOD = 1000;
 		break;
-	case SAMPLER_TYPE::BILINEAR:
+	case SAMPLER_TYPE::BILINEAR_CLAMPED:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		samplerdesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 		samplerdesc.MaxLOD = 0;
 		break;
@@ -318,8 +323,12 @@ void create_sampler(device_t& dev, const allocated_descriptor_set& descriptor_se
 		samplerdesc.MaxLOD = 0;
 		break;
 	case SAMPLER_TYPE::ANISOTROPIC:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		samplerdesc.Filter = D3D12_FILTER_ANISOTROPIC;
 		samplerdesc.MaxAnisotropy = 16;
+		samplerdesc.MaxLOD = 1000;
 		break;
 	}
 	dev->CreateSampler(&samplerdesc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
