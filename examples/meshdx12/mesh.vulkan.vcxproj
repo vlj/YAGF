@@ -26,11 +26,13 @@
     <None Include="..\shaders\dfg.comp" />
     <None Include="..\shaders\ibl.frag" />
     <None Include="..\shaders\importance_sampling_specular.comp" />
+    <None Include="..\shaders\linearize_depth.comp" />
     <None Include="..\shaders\object.vert" />
     <None Include="..\shaders\object_gbuffer.frag" />
     <None Include="..\shaders\screenquad.vert" />
     <None Include="..\shaders\skybox.frag" />
     <None Include="..\shaders\skybox.vert" />
+    <None Include="..\shaders\ssao.comp" />
     <None Include="..\shaders\sunlight.frag" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -110,7 +112,9 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.fra
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -o $(SolutionDir)\ibl_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\importance_sampling_specular.comp -o $(SolutionDir)\importance_sampling_specular.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\linearize_depth.comp -o $(SolutionDir)\linearize_depth.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.comp -o $(SolutionDir)\ssao.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,7 +147,9 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\skybox.fra
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.comp -o $(SolutionDir)\computesh.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -o $(SolutionDir)\ibl_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\importance_sampling_specular.comp -o $(SolutionDir)\importance_sampling_specular.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\linearize_depth.comp -o $(SolutionDir)\linearize_depth.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.comp -o $(SolutionDir)\ssao.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
