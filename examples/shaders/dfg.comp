@@ -60,16 +60,23 @@ vec2 getSpecularDFG(float roughness, float NdotV)
 	return vec2(DFG1 / 1024., DFG2 / 1024.);
 }
 
+// Given a Seed from a uniform distribution, returns a vector direction
+// as a theta, phi pair weighted against cos (n dot V) distribution.
+vec2 ImportanceSamplingCos(vec2 Seeds)
+{
+	return vec2(acos(Seeds.x), 2.f * 3.14f * Seeds.y);
+}
+
 float getDiffuseDFG(float roughness, float NdotV)
 {
 	// We assume a local referential where N points in Y direction
 	vec3 V = vec3(sqrt(1.f - NdotV * NdotV), NdotV, 0.f);
 	float DFG = 0.f;
-	for (uint i = 0; i < 1024; i++)
+	for (int i = 0; i < 1024; i++)
 	{
-		//std::pair<float, float> ThetaPhi = ImportanceSamplingCos(HammersleySequence(sample, 1024));
-		float Theta;
-		float Phi;
+		vec2 ThetaPhi = ImportanceSamplingCos(texelFetch(samples, i).xy);
+		float Theta = ThetaPhi.x;
+		float Phi = ThetaPhi.y;
 		vec3 L = vec3(sin(Theta) * cos(Phi), cos(Theta), sin(Theta) * sin(Phi));
 		float NdotL = L.y;
 		if (NdotL > 0.f)
@@ -92,7 +99,6 @@ void main(void)
 	float NdotV = float(1 + id.y) / float(dfg_lut_size);
 
 	vec2 specular_dfg = getSpecularDFG(roughness, NdotV);
-	//float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
-	//vec4(specular_dfg, diffuse_dfg, 0.)
-	imageStore(output_texture, ivec2(id), vec4(specular_dfg, 0., 1.));
+	float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
+	imageStore(output_texture, ivec2(id), vec4(specular_dfg, diffuse_dfg, 1.));
 }

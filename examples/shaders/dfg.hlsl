@@ -56,6 +56,36 @@ float2 getSpecularDFG(float roughness, float NdotV)
 	return float2(DFG1 / 1024., DFG2 / 1024.);
 }
 
+// Given a Seed from a uniform distribution, returns a vector direction
+// as a theta, phi pair weighted against cos (n dot V) distribution.
+float2 ImportanceSamplingCos(float2 Seeds)
+{
+	return float2(acos(Seeds.x), 2.f * 3.14f * Seeds.y);
+}
+
+float getDiffuseDFG(float roughness, float NdotV)
+{
+	// We assume an implicit referential where N points in Oz
+	float3 V = float3(sqrt(1.f - NdotV * NdotV), 0.f, NdotV);
+	float DFG = 0.f;
+	for (uint i = 0; i < 1024; i++)
+	{
+		float2 ThetaPhi = ImportanceSamplingCos(samplesBuffer[i].xy);
+		float Theta = ThetaPhi.x;
+		float Phi = ThetaPhi.y;
+		float3 L = float3(sin(Theta) * cos(Phi), sin(Theta) * sin(Phi), cos(Theta));
+		float NdotL = L.z;
+		if (NdotL > 0.f)
+		{
+			float3 H = normalize(L + V);
+			float LdotH = dot(L, H);
+			float f90 = .5f + 2.f * LdotH * LdotH * roughness * roughness;
+			DFG += (1.f + (f90 - 1.f) * (1.f - pow(NdotL, 5.f))) * (1.f + (f90 - 1.f) * (1.f - pow(NdotV, 5.f)));
+		}
+	}
+	return DFG / 1024.f;
+}
+
 [numthreads(8, 8, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
@@ -63,7 +93,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
 	float NdotV = float(1 + DTid.y) / float(size);
 
 	float2 specular_dfg = getSpecularDFG(roughness, NdotV);
-	//float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
-	//vec4(specular_dfg, diffuse_dfg, 0.)
-	output[DTid.xy] = float4(specular_dfg, 0., 1.);
+	float diffuse_dfg = getDiffuseDFG(roughness, NdotV);
+	output[DTid.xy] = float4(specular_dfg, diffuse_dfg, 1.);
 }

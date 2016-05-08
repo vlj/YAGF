@@ -169,12 +169,7 @@ std::pair<float, float> ImportanceSamplingGGX(std::pair<float, float> Seeds, flo
 	return std::make_pair(acosf(CosTheta), 2.f * 3.14f * Seeds.first);
 }
 
-/** Returns a pseudo random (theta, phi) generated from a probability density function modeled after cos distribtion function.
-\param a pseudo random float pair from a uniform density function between 0 and 1. */
-std::pair<float, float> ImportanceSamplingCos(std::pair<float, float> Seeds)
-{
-	return std::make_pair(acosf(Seeds.first), 2.f * 3.14f * Seeds.second);
-}
+
 
 irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 {

@@ -104,8 +104,7 @@ vec3 DiffuseIBL(vec3 normal, vec3 V, float roughness, vec3 color)
 
   float NdotV = clamp(dot(V, normal), 0., 1.);
 
-//  return max(vec3(r, g, b), vec3(0.)) * texture(dfg, vec2(NdotV, roughness)).b * color / 3.14;
-return max(vec3(r, g, b), vec3(0.)) * color / 3.14;
+  return max(vec3(r, g, b), vec3(0.)) * texture(sampler2D(dfg, bilinear_s), vec2(1. - roughness, NdotV)).b * color / 3.14;
 }
 
 vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
