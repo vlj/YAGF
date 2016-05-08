@@ -372,7 +372,7 @@ void MeshSample::fill_draw_commands()
 		make_command_list_executable(*current_cmd_list);
 	}
 }
-static float time = 0.;
+
 void MeshSample::Draw()
 {
 	xue->update_constant_buffers(*dev);
@@ -382,9 +382,9 @@ void MeshSample::Draw()
 	irr::core::matrix4 InvPerspective;
 	irr::core::matrix4 View;
 	irr::core::matrix4 InvView;
-	View.buildCameraLookAtMatrixLH(irr::core::vector3df(0., 2. * sin(time / 500. * 3.14), -2. * cos(time / 500. * 3.14)), irr::core::vector3df(), irr::core::vector3df(0., cos(time / 500. * 3.14), sin(time / 500. * 3.14)));
+	float horizon_angle_in_radian = horizon_angle * 3.14f / 100.f;
+	View.buildCameraLookAtMatrixLH(irr::core::vector3df(0., 2. * sin(horizon_angle_in_radian), -2. * cos(horizon_angle_in_radian)), irr::core::vector3df(), irr::core::vector3df(0., cos(horizon_angle_in_radian), sin(horizon_angle_in_radian)));
 	View.getInverse(InvView);
-	time++;
 	Perspective.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
 	Perspective.getInverse(InvPerspective);
 	memcpy(tmp->ProjectionMatrix, Perspective.pointer(), 16 * sizeof(float));

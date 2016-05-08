@@ -18,5 +18,10 @@ namespace mesh_dx12
 	public:
 		MainPage();
 		Windows::UI::Xaml::Controls::SwapChainPanel^ get_swap_chain_native();
+		void set_slider_value(float* ptr);
+
+	private:
+		float* slider_ref;
+		void slider_ValueChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e);
 	};
 }

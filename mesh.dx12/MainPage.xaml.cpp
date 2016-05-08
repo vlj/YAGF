@@ -32,3 +32,14 @@ Windows::UI::Xaml::Controls::SwapChainPanel^ MainPage::get_swap_chain_native()
 {
 	return swap_chain_panel;
 }
+
+void MainPage::set_slider_value(float* ptr)
+{
+	slider_ref = ptr;
+}
+
+
+void mesh_dx12::MainPage::slider_ValueChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e)
+{
+	*slider_ref = slider->Value;
+}

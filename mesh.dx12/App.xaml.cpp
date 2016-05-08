@@ -152,6 +152,11 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 
 	sample = std::make_unique<MeshSample>(std::make_unique<device_t>(dev), std::make_unique<swap_chain_t>(chain), std::make_unique<command_queue_t>(queue), 1024, 1024, irr::video::ECF_R8G8B8A8_UNORM);
 
+	swap_chain_panel->Dispatcher->RunAsync(CoreDispatcherPriority::High, ref new DispatchedHandler([=]()
+	{
+		main_page->set_slider_value(&sample->horizon_angle);
+	}, CallbackContext::Any));
+
 	// Create a task that will be run on a background thread.
 	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action)
 	{

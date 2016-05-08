@@ -8,6 +8,8 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <SwapChainPanel Name="swap_chain_panel"></SwapChainPanel>
+        <SwapChainPanel Name="swap_chain_panel">
+            <Slider x:Name="slider" HorizontalAlignment="Left" Margin="218,49,0,0" VerticalAlignment="Top" Width="100" ValueChanged="slider_ValueChanged"/>
+        </SwapChainPanel>
     </Grid>
 </Page>

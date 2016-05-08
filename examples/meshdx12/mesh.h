@@ -37,6 +37,9 @@ struct MeshSample
 		wait_for_command_queue_idle(*dev, *cmdqueue);
 	}
 
+
+	float horizon_angle = 0;
+
 private:
 	size_t width;
 	size_t height;
