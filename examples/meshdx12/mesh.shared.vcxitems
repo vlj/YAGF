@@ -14,10 +14,12 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ssao.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)mesh.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\include\Scene\ssao.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)shaders.h" />
   </ItemGroup>

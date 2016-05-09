@@ -10,6 +10,7 @@
 #include "shaders.h"
 #include <Scene/textures.h>
 #include <Scene/MeshSceneNode.h>
+#include <Scene/ssao.h>
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -96,6 +97,8 @@ private:
 	std::unique_ptr<image_t> roughness_metalness;
 
 	std::unique_ptr<irr::scene::IMeshSceneNode> xue;
+
+	std::unique_ptr<ssao_utility> ssao_util;
 
 	std::unique_ptr<render_pass_t> render_pass;
 	framebuffer_t fbo[2];

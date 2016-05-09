@@ -193,6 +193,7 @@ void MeshSample::Init()
 			{ structures::descriptor_image_info(*dfg_lut_view) }, 12),
 	});
 #endif
+	ssao_util = std::make_unique<ssao_utility>(*dev);
 	fill_draw_commands();
 }
 
@@ -343,6 +344,9 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(*current_cmd_list, *roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif // !D3D12
+		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
+		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
+		/*
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, sunlight_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(*current_cmd_list, sunlightpso);
@@ -369,7 +373,7 @@ void MeshSample::fill_draw_commands()
 		bind_graphic_descriptor(*current_cmd_list, 1, sampler_descriptors, skybox_sig);
 		set_graphic_pipeline(*current_cmd_list, skybox_pso);
 		bind_vertex_buffers(*current_cmd_list, 0, big_triangle_info);
-		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
+		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);*/
 #ifndef D3D12
 		vkCmdEndRenderPass(current_cmd_list->object);
 #else
