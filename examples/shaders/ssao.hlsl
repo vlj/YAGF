@@ -68,7 +68,7 @@ float4 main(PS_INPUT In) : SV_TARGET
 
 		float3 vi = OccluderPos - FragPos;
 		float square_r_minus_square_v = max(r * r - dot(vi, vi), 0.f);
-		occluded_factor += pow(square_r_minus_square_v, 3) * max(0.f, dot(vi, norm) - FragPos.z * beta) / (dot(vi, vi) + epsilon);
+		occluded_factor += pow(square_r_minus_square_v, 3) * max(0.f, dot(vi, norm) - beta) / (dot(vi, vi) + epsilon);
 	}
 	return max(1.f - 5 * occluded_factor * invSamples / pow(r, 6), 0.);
 }

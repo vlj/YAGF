@@ -237,9 +237,9 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
 	ssao_ptr->radius = 100.;
-	ssao_ptr->tau = 7.389;
-	ssao_ptr->beta = 0.02;
-	ssao_ptr->epsilon = .001;
+	ssao_ptr->tau = 7.;
+	ssao_ptr->beta = .1;
+	ssao_ptr->epsilon = .1;
 #ifdef D3D12
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart())
