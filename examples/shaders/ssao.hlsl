@@ -48,23 +48,25 @@ float4 main(PS_INPUT In) : SV_TARGET
 
 	int x = int(uv.x * 1024.);
 	int y = int(uv.y * 1024.);
+
 	float r = radius / FragPos.z;
 	float phi = 3. * (x ^ y) + x * y;
-	float bl = 0.0;
-	float m = log2(r) + 6 + log2(invSamples);
+	float m = 0.;//log2(r) + 6 + log2(invSamples);
 	float theta = 2. * 3.14 * tau * .5 * invSamples + phi;
 	float2 rotations = float2(cos(theta), sin(theta)) * screen;
 	float2 offset = float2(cos(invSamples), sin(invSamples));
+
+	float bl = 0.0;
 	for (int i = 0; i < SAMPLES; ++i) {
 		float alpha = (i + .5) * invSamples;
 		rotations = float2(rotations.x * offset.x - rotations.y * offset.y, rotations.x * offset.y + rotations.y * offset.x);
 		float h = r * alpha;
 		float2 localoffset = h * rotations;
-		m = m + .5;
-		uint2 ioccluder_uv = uint2(x, y) + uint2(localoffset);
-		if (ioccluder_uv.x < 0 || ioccluder_uv.x > screen.x || ioccluder_uv.y < 0 || ioccluder_uv.y > screen.y) continue;
-		float LinearoccluderFragmentDepth = linear_depth_texture.SampleLevel(s, float2(ioccluder_uv) / screen, max(m, 0.)).x;
-		float3 OccluderPos = getXcYcZc(ioccluder_uv.x, ioccluder_uv.y, LinearoccluderFragmentDepth);
+		//m = m + .5;
+		float2 occluder_uv = uv + localoffset / 1024.;
+		if (occluder_uv.x < 0 || occluder_uv.x > 1. || occluder_uv.y < 0 || occluder_uv.y > 1.) continue;
+		float LinearoccluderFragmentDepth = linear_depth_texture.SampleLevel(s, occluder_uv, max(m, 0.)).x;
+		float3 OccluderPos = getXcYcZc(occluder_uv.x, occluder_uv.y, LinearoccluderFragmentDepth);
 		float3 vi = OccluderPos - FragPos;
 		bl += max(0.f, dot(vi, norm) - FragPos.z * beta) / (dot(vi, vi) + epsilon);
 	}
