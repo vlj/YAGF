@@ -110,5 +110,11 @@
     <FxCompile Include="..\examples\shaders\ssao.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\examples\shaders\gaussianh.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\examples\shaders\gaussianv.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
