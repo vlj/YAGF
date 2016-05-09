@@ -95,8 +95,6 @@ namespace
 		float ProjectionMatrix00;
 		float ProjectionMatrix11;
 		float radius;
-		float k;
-		float sigma;
 		float tau;
 		float beta;
 		float epsilon;
@@ -238,12 +236,10 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	float *tmp = Perspective.pointer();
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
-	ssao_ptr->radius = 1.;
-	ssao_ptr->k = 1.5;
-	ssao_ptr->sigma = 1.;
-	ssao_ptr->tau = 7.;
-	ssao_ptr->beta = 0.002;
-	ssao_ptr->epsilon = .00001;
+	ssao_ptr->radius = 100.;
+	ssao_ptr->tau = 7.389;
+	ssao_ptr->beta = 0.02;
+	ssao_ptr->epsilon = .001;
 #ifdef D3D12
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart())
