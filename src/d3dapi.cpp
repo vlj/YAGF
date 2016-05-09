@@ -66,6 +66,8 @@ namespace
 			return DXGI_FORMAT_R16G16_FLOAT;
 		case irr::video::ECF_R16G16B16A16F:
 			return DXGI_FORMAT_R16G16B16A16_FLOAT;
+		case irr::video::ECF_R32F:
+			return DXGI_FORMAT_R32_FLOAT;
 		case irr::video::ECF_R32G32B32A32F:
 			return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case irr::video::ECF_A8R8G8B8:
@@ -237,6 +239,11 @@ void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination
 	list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(destination_image, destination_subresource), 0, 0, 0,
 		&CD3DX12_TEXTURE_COPY_LOCATION(source, { offset_in_buffer,{ get_dxgi_format(format), width, height, 1, row_pitch } }),
 		&CD3DX12_BOX(0, 0, width, height));
+}
+
+framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t, uint32_t, render_pass_t*)
+{
+	return std::make_shared<d3d12_framebuffer_t>(dev, render_targets);
 }
 
 framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t, uint32_t, render_pass_t*)
@@ -521,6 +528,27 @@ void wait_for_command_queue_idle(device_t& dev, command_queue_t& command_queue)
 void present(device_t&, command_queue_t&, swap_chain_t& chain, uint32_t backbuffer_index)
 {
 	CHECK_HRESULT(chain->Present(1, 0));
+}
+
+
+d3d12_framebuffer_t::d3d12_framebuffer_t(device_t& dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets)
+	: NumRTT(static_cast<uint32_t>(render_targets.size())), hasDepthStencil(false)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC rtt_desc = {};
+	rtt_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtt_desc.NumDescriptors = NumRTT;
+	CHECK_HRESULT(dev->CreateDescriptorHeap(&rtt_desc, IID_PPV_ARGS(rtt_heap.GetAddressOf())));
+
+	uint32_t idx = 0;
+	for (const auto &rtt : render_targets)
+	{
+		D3D12_RENDER_TARGET_VIEW_DESC rttvd = {};
+		rttvd.Format = get_dxgi_format(std::get<1>(rtt));
+		rttvd.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		rttvd.Texture2D.MipSlice = 0;
+		rttvd.Texture2D.PlaneSlice = 0;
+		dev->CreateRenderTargetView(std::get<0>(rtt), &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(idx++, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
+	}
 }
 
 d3d12_framebuffer_t::d3d12_framebuffer_t(device_t& dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)

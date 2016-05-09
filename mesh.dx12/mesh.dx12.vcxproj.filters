@@ -107,5 +107,8 @@
     <FxCompile Include="..\examples\shaders\linearize_depth.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\examples\shaders\ssao.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
