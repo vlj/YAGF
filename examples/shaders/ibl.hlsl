@@ -11,6 +11,7 @@ Texture2D ColorTex : register(t0, space4);
 Texture2D NormalTex : register(t0, space5);
 Texture2D Roughness_Metalness : register(t0, space6);
 Texture2D DepthTex : register(t0, space14);
+Texture2D SSAOTex : register(t0, space15);
 
 TextureCube Probe : register(t0, space11);
 Texture2D DFGTex : register(t0, space12);
@@ -144,5 +145,5 @@ float4 main(PS_INPUT In) : SV_TARGET
 	float3 Metal = SpecularIBL(normal, eyedir, roughness, color);
 	float Metalness = Roughness_Metalness.Load(uv).y;
 
-	return float4(lerp(Dielectric, Metal, Metalness), ColorTex.Load(uv).a);
+	return float4(SSAOTex.Load(uv).x * lerp(Dielectric, Metal, Metalness), ColorTex.Load(uv).a);
 }

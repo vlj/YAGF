@@ -12,7 +12,7 @@ groupshared float4 local_src[2][8 + 2 * 8];
 [numthreads(2, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID, uint3 Lid : SV_GroupThreadID)
 {
-	const float sigma = 1.;
+	const float sigma = 10.;
 	local_src[Lid.x][Lid.y] = source.Load(DTid.xyz + int3(0, -8, 0));
 	local_src[Lid.x][Lid.y + 8] = source.Load(DTid.xyz);
 	local_src[Lid.x][Lid.y + 16] = source.Load(DTid.xyz + int3(0, 8, 0));
