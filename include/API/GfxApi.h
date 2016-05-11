@@ -416,7 +416,7 @@ std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev);
 std::unique_ptr<command_list_t> create_command_list(device_t& dev, command_list_storage_t& storage);
 void reset_command_list_storage(device_t& dev, command_list_storage_t& storage);
 std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags);
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, int stencil);
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
 std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
 std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
@@ -437,14 +437,6 @@ void make_command_list_executable(command_list_t& command_list);
 void wait_for_command_queue_idle(device_t& dev, command_queue_t& command_queue);
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);
 void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
-
-
-enum class depth_stencil_aspect
-{
-	depth_only,
-	stencil_only,
-	depth_and_stencil
-};
 
 void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth);
 void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);

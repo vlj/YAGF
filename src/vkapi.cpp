@@ -337,7 +337,7 @@ namespace
 	}
 }
 
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, int stencil)
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil)
 {
 	return nullptr;
 }

@@ -33,17 +33,6 @@ namespace
 		throw;
 	}
 
-	D3D12_CLEAR_FLAGS get_clear_flag_from_aspect(depth_stencil_aspect aspect)
-	{
-		switch (aspect)
-		{
-		case depth_stencil_aspect::depth_and_stencil: return D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL;
-		case depth_stencil_aspect::depth_only: return D3D12_CLEAR_FLAG_DEPTH;
-		case depth_stencil_aspect::stencil_only: return D3D12_CLEAR_FLAG_STENCIL;
-		}
-		throw;
-	}
-
 	DXGI_FORMAT get_index_type(irr::video::E_INDEX_TYPE type)
 	{
 		switch (type)
@@ -222,7 +211,7 @@ namespace
 	}
 }
 
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, int stencil)
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil)
 {
 	return CD3DX12_CLEAR_VALUE(get_dxgi_format(format), depth, stencil);
 }
@@ -401,7 +390,7 @@ void clear_color(command_list_t& command_list, framebuffer_t framebuffer, const 
 	command_list->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);
 }
 
-void clear_depth_stencil(command_list_t& command_list, framebuffer_t framebuffer, depth_stencil_aspect aspect, float depth, uint8_t stencil)
+void clear_depth_stencil(command_list_t& command_list, framebuffer_t framebuffer, float depth, uint8_t stencil)
 {
 	command_list->ClearDepthStencilView(framebuffer->dsv_heap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, depth, stencil, 0, nullptr);
 

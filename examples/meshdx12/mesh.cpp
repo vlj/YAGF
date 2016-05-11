@@ -310,7 +310,7 @@ void MeshSample::fill_draw_commands()
 		};
 		current_cmd_list->object->OMSetRenderTargets(rtt_to_use.size(), rtt_to_use.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		clear_color(*current_cmd_list, fbo[i], clearColor);
-		clear_depth_stencil(*current_cmd_list, fbo[i], depth_stencil_aspect::depth_only, 1., 0);
+		clear_depth_stencil(*current_cmd_list, fbo[i], 1., 0);
 
 		current_cmd_list->object->SetGraphicsRootSignature(object_sig.Get());
 
