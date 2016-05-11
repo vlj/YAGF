@@ -282,16 +282,9 @@ ssao_utility::ssao_utility(device_t & dev)
 
 	linearize_constant_data = create_buffer(dev, sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = create_buffer(dev, sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-#ifdef D3D12
-	float color_array[4] = {};
-	CD3DX12_CLEAR_VALUE clear_value(DXGI_FORMAT_R32_FLOAT, color_array);
-#else
-	void *clear_value;
-#endif
+	clear_value_structure_t clear_value = get_clear_value(irr::video::ECF_R32F, { 0., 0., 0., 0. });
 	linear_depth_buffer = create_image(dev, irr::video::ECF_R32F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
-#ifdef D3D12
-	clear_value = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R16_FLOAT, color_array);
-#endif
+	clear_value = get_clear_value(irr::video::ECF_R16F, { 0., 0., 0., 0. });
 	ssao_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
 	gaussian_blurring_buffer = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
 	ssao_bilinear_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);

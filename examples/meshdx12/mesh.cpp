@@ -117,23 +117,16 @@ void MeshSample::Init()
 	scene_matrix = create_buffer(*dev, sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	sun_data = create_buffer(*dev, 7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-	clear_value_structure_t clear_val = {};
+	clear_value_structure_t clear_val = get_clear_value(irr::video::D24U8, 1., 0);
 #ifndef D3D12
 	set_pipeline_barrier(*command_list, *back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-#else
-	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1., 0);
 #endif // !D3D12
 	depth_buffer = create_image(*dev, irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
-#ifdef D3D12
-	float clear_color[4] = {};
-	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM, clear_color);
-#endif
+	clear_val = get_clear_value(irr::video::ECF_R8G8B8A8_UNORM, { 0., 0., 0., 0. });
 	diffuse_color = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	roughness_metalness = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-#ifdef D3D12
-	clear_val = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R16G16_FLOAT, clear_color);
-#endif
+	clear_val = get_clear_value(irr::video::ECF_R16G16F, { 0., 0., 0., 0. });
 	normal = create_image(*dev, irr::video::ECF_R16G16F, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 	set_pipeline_barrier(*command_list, *depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	set_pipeline_barrier(*command_list, *diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);

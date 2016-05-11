@@ -337,6 +337,16 @@ namespace
 	}
 }
 
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, int stencil)
+{
+	return nullptr;
+}
+
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float, 4> &color)
+{
+	return nullptr;
+}
+
 std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
 {
 	VkExtent3D extent{ width, height, 1 };

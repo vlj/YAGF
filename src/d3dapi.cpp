@@ -222,6 +222,16 @@ namespace
 	}
 }
 
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, int stencil)
+{
+	return CD3DX12_CLEAR_VALUE(get_dxgi_format(format), depth, stencil);
+}
+
+clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float, 4> &color)
+{
+	return CD3DX12_CLEAR_VALUE(get_dxgi_format(format), color.data());
+}
+
 std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value)
 {
 	ID3D12Resource* result;
