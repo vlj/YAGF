@@ -5,8 +5,7 @@
 // From paper http://graphics.cs.williams.edu/papers/AlchemyHPG11/
 // and improvements here http://graphics.cs.williams.edu/papers/SAOHPG12/
 
-layout(set = 0, binding = 0) uniform sampler2D tex;
-layout(set = 0, binding = 1, std140) uniform SSAOBuffer
+layout(set = 0, binding = 0, std140) uniform SSAOBuffer
 {
 	mat4 ModelMatrix;
 	mat4 ViewProjectionMatrix;
@@ -14,15 +13,17 @@ layout(set = 0, binding = 1, std140) uniform SSAOBuffer
 	float zn;
 	float zf;
 };
+layout(set = 0, binding = 1) uniform texture2D tex;
 layout(set = 0, binding = 2, r32f) writeonly uniform image2D Depth;
+
+layout(location = 0) out vec4 FragColor;
 
 void main()
 {
-	uvec2 id = gl_GlobalInvocationID.xy;
-	vec2 uv = id / vec2(1024, 1024);
-	float d = texture(tex, uv).x;
+	vec2 uv = gl_FragCoord.xy / vec2(1024, 1024);
+	float d = texelFetch(tex, ivec2(gl_FragCoord.xy), 0).x;
 	float c0 = zn * zf;
 	float c1 = zn - zf;
 	float c2 = zf;
-	imageStore(Depth, ivec2(id), vec4(c0 / (d * c1 + c2)));
+	FragColor = vec4(c0 / (d * c1 + c2));
 }

@@ -20,7 +20,7 @@ namespace
 		shader_stage::fragment_shader
 	);
 
-	pipeline_state_t get_linearize_pso(device_t &dev, pipeline_layout_t &layout)
+	pipeline_state_t get_linearize_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t& rp)
 	{
 		constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
 #ifdef D3D12
@@ -63,8 +63,8 @@ namespace
 		VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
 
 
-		vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\screenquad.spv");
-		vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\linearize_depth.spv");
+		vulkan_wrapper::shader_module module_vert(dev, "..\\..\\..\\sunlight_vert.spv");
+		vulkan_wrapper::shader_module module_frag(dev, "..\\..\\..\\linearize_depth.spv");
 
 		const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
 			{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
@@ -86,7 +86,7 @@ namespace
 		vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 		vertex_input.pVertexAttributeDescriptions = attribute.data();
 
-		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 1, VkPipeline(VK_NULL_HANDLE), 0);
+		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);
 #endif
 	}
 
@@ -107,7 +107,7 @@ namespace
 
 	constexpr auto sampler_set_type = descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader);
 
-	pipeline_state_t get_ssao_pso(device_t &dev, pipeline_layout_t &layout)
+	pipeline_state_t get_ssao_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t &rp)
 	{
 		constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
 #ifdef D3D12
@@ -150,8 +150,8 @@ namespace
 		VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
 
 
-		vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\screenquad.spv");
-		vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\linearize_depth.spv");
+		vulkan_wrapper::shader_module module_vert(dev, "..\\..\\..\\sunlight_vert.spv");
+		vulkan_wrapper::shader_module module_frag(dev, "..\\..\\..\\ssao.spv");
 
 		const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
 			{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
@@ -173,7 +173,7 @@ namespace
 		vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 		vertex_input.pVertexAttributeDescriptions = attribute.data();
 
-		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 1, VkPipeline(VK_NULL_HANDLE), 0);
+		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);
 #endif
 	}
 
@@ -224,6 +224,32 @@ namespace
 		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, layout->object, VkPipeline(VK_NULL_HANDLE), -1);
 #endif // D3D12
 	}
+
+
+	std::unique_ptr<render_pass_t> create_render_pass(device_t& dev)
+	{
+		std::unique_ptr<render_pass_t> result;
+#ifndef D3D12
+		result.reset(new render_pass_t(dev,
+		{
+			structures::attachment_description(VK_FORMAT_R32_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
+			structures::attachment_description(VK_FORMAT_R16_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
+	},
+	{
+		// Linearize depth pass
+		subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
+			.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } }),
+		// SSAO pass
+		subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
+			.set_color_attachments({ VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+			.set_input_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } })
+	},
+	{
+		get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT),
+	}));
+#endif // !D3D12
+		return result;
+	}
 }
 
 ssao_utility::ssao_utility(device_t & dev)
@@ -232,9 +258,17 @@ ssao_utility::ssao_utility(device_t & dev)
 	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type });
 	ssao_sig = get_pipeline_layout_from_desc(dev, { ssao_input_set_type, sampler_set_type });
 	gaussian_input_sig = get_pipeline_layout_from_desc(dev, { gaussian_input_set_type });
+#else
+	linearize_input_set = get_object_descriptor_set(dev, linearize_input_set_type);
+	linearize_depth_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ linearize_input_set->object }, std::vector<VkPushConstantRange>());
+	ssao_input_set = get_object_descriptor_set(dev, ssao_input_set_type);
+	ssao_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ ssao_input_set->object }, std::vector<VkPushConstantRange>());
+	gaussian_input_set = get_object_descriptor_set(dev, gaussian_input_set_type);
+	gaussian_input_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ gaussian_input_set->object }, std::vector<VkPushConstantRange>());
 #endif
-	linearize_depth_pso = get_linearize_pso(dev, linearize_depth_sig);
-	ssao_pso = get_ssao_pso(dev, ssao_sig);
+	render_pass = create_render_pass(dev);
+	linearize_depth_pso = get_linearize_pso(dev, linearize_depth_sig, *render_pass);
+	ssao_pso = get_ssao_pso(dev, ssao_sig, *render_pass);
 	gaussian_h_pso = get_gaussian_h_pso(dev, gaussian_input_sig);
 	gaussian_v_pso = get_gaussian_v_pso(dev, gaussian_input_sig);
 
@@ -248,10 +282,16 @@ ssao_utility::ssao_utility(device_t & dev)
 
 	linearize_constant_data = create_buffer(dev, sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = create_buffer(dev, sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+#ifdef D3D12
 	float color_array[4] = {};
 	CD3DX12_CLEAR_VALUE clear_value(DXGI_FORMAT_R32_FLOAT, color_array);
+#else
+	void *clear_value;
+#endif
 	linear_depth_buffer = create_image(dev, irr::video::ECF_R32F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
+#ifdef D3D12
 	clear_value = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R16_FLOAT, color_array);
+#endif
 	ssao_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
 	gaussian_blurring_buffer = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
 	ssao_bilinear_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
@@ -331,10 +371,14 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_h, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_h_pso);
 	dispatch(cmd_list, 1024, 1024, 1);
+#ifdef D3D12
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*gaussian_blurring_buffer));
+#endif
 
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_v, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_v_pso);
 	dispatch(cmd_list, 1024, 1024, 1);
+#ifdef D3D12
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*ssao_bilinear_result));
+#endif
 }

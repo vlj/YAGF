@@ -195,7 +195,9 @@ void MeshSample::Init()
 	});
 #endif
 	ssao_util = std::make_unique<ssao_utility>(*dev);
+#ifdef D3D12
 	create_image_view(*dev, rtt_descriptors, 4, *ssao_util->ssao_bilinear_result, 1, irr::video::ECOLOR_FORMAT::ECF_R16F, D3D12_SRV_DIMENSION_TEXTURE2D);
+#endif
 	fill_draw_commands();
 
 }

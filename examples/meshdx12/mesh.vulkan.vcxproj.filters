@@ -47,10 +47,10 @@
     <None Include="..\shaders\dfg.comp">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="..\shaders\linearize_depth.comp">
+    <None Include="..\shaders\linearize_depth.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="..\shaders\ssao.comp">
+    <None Include="..\shaders\ssao.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

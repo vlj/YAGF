@@ -378,6 +378,10 @@ void reset_command_list_storage(device_t& dev, command_list_storage_t& storage)
 	vkResetCommandPool(dev, storage, 0);
 }
 
+framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
+{
+	return std::make_shared<vk_framebuffer>(dev, *render_pass, render_targets, width, height, 1);
+}
 
 framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
 {

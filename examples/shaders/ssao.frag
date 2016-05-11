@@ -29,26 +29,29 @@ layout(set = 0, binding = 2, std140) uniform ssao_param
 layout(set = 0, binding = 3, r32f) writeonly uniform image2D AO;
 layout(set = 0, binding = 4) uniform sampler s;
 
-vec3 getXcYcZc(int x, int y, float zC)
+vec3 getXcYcZc(float x, float y, float zC)
 {
 	// We use perspective symetric projection matrix hence P(0,2) = P(1, 2) = 0
-	float xC= (2 * (float(x)) / screen.x - 1.) * zC / ProjectionMatrix[0][0];
-	float yC= (2 * (float(y)) / screen.y - 1.) * zC / ProjectionMatrix[1][1];
+	float xC= (2 * x - 1.) * zC / ProjectionMatrix[0][0];
+	float yC= (2 * y - 1.) * zC / ProjectionMatrix[1][1];
 	return vec3(xC, yC, zC);
 }
 
+layout(location = 0) out vec4 FragColor;
+
 void main(void)
 {
-	uvec2 id = gl_GlobalInvocationID.xy;
-	vec2 uv = id / screen;
+	vec2 uv = gl_FragCoord.xy / screen;
 	float lineardepth = textureLod(dtex, uv, 0.).x;
-	int x = int(id.x), y = int(id.y);
-	vec3 FragPos = getXcYcZc(x, y, lineardepth);
+
+	vec3 FragPos = getXcYcZc(uv.x, uv.y, lineardepth);
 	// get the normal of current fragment
 	vec3 ddx = dFdx(FragPos);
 	vec3 ddy = dFdy(FragPos);
 	vec3 norm = normalize(cross(ddy, ddx));
 	float r = radius / FragPos.z;
+
+	int x = int(gl_FragCoord.xy.x), y = int(gl_FragCoord.xy .y);
 	float phi = 3. * (x ^ y) + x * y;
 	float bl = 0.0;
 	float m = log2(r) + 6 + log2(invSamples);
@@ -68,5 +71,5 @@ void main(void)
 		vec3 vi = OccluderPos - FragPos;
 		bl += max(0.f, dot(vi, norm) - FragPos.z * beta) / (dot(vi, vi) + epsilon);
 	}
-	imageStore(AO, ivec2(id), vec4(max(pow(1.f - min(2. * sigma * bl * invSamples, 0.99), k), 0.)));
+	FragColor = vec4(max(pow(1.f - min(2. * sigma * bl * invSamples, 0.99), k), 0.));
 }
