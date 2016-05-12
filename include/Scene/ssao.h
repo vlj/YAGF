@@ -44,6 +44,8 @@ struct ssao_utility
 	framebuffer_t linear_depth_fbo;
 	std::unique_ptr<render_pass_t> render_pass;
 
+	std::unique_ptr<sampler_t> bilinear_clamped_sampler;
+
 	ssao_utility(device_t &dev);
 
 	/**

@@ -300,7 +300,8 @@ ssao_utility::ssao_utility(device_t & dev)
 	set_image_view(dev, ssao_input, 1, 2, *linear_depth_buffer_view);
 	set_image_view(dev, gaussian_input_h, 1, 1, *ssao_result_view);
 	set_image_view(dev, gaussian_input_v, 1, 1, *gaussian_blurring_buffer_view);
-
+	bilinear_clamped_sampler = create_sampler(dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
+	set_sampler(dev, sampler_input, 0, 3, *bilinear_clamped_sampler);
 #ifdef D3D12
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
@@ -310,10 +311,7 @@ ssao_utility::ssao_utility(device_t & dev)
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(gaussian_input_h).Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 	dev->CreateUnorderedAccessView(*ssao_bilinear_result, nullptr, &desc,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(gaussian_input_v).Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-
-	create_sampler(dev, sampler_input, 0, SAMPLER_TYPE::BILINEAR_CLAMPED);
 #endif
-
 }
 
 void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, image_t & depth_buffer, float zn, float zf,
