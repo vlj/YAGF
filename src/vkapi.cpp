@@ -378,11 +378,23 @@ namespace
 		}
 		throw;
 	}
+
+	VkImageAspectFlags get_image_aspect(irr::video::E_ASPECT aspect)
+	{
+		switch (aspect)
+		{
+		case irr::video::E_ASPECT::EA_COLOR: return VK_IMAGE_ASPECT_COLOR_BIT;
+		case irr::video::E_ASPECT::EA_DEPTH: return VK_IMAGE_ASPECT_DEPTH_BIT;
+		case irr::video::E_ASPECT::EA_STENCIL: return VK_IMAGE_ASPECT_STENCIL_BIT;
+		case irr::video::E_ASPECT::EA_DEPTH_STENCIL: return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+		throw;
+	}
 }
 
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type)
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect)
 {
-	return std::make_unique<image_view_t>(dev, img, get_image_type(texture_type), get_vk_format(fmt), structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, mipmap_count, 0, layer_count));
+	return std::make_unique<image_view_t>(dev, img, get_image_type(texture_type), get_vk_format(fmt), structures::component_mapping(), structures::image_subresource_range(get_image_aspect(aspect), 0, mipmap_count, 0, layer_count));
 }
 
 void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
@@ -491,21 +503,6 @@ namespace
 		case RESOURCE_USAGE::COPY_DEST: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		case RESOURCE_USAGE::uav: return VK_IMAGE_LAYOUT_GENERAL;
 		case RESOURCE_USAGE::undefined: return VK_IMAGE_LAYOUT_UNDEFINED;
-		}
-		throw;
-	}
-}
-
-namespace
-{
-	VkImageAspectFlags get_image_aspect(irr::video::E_ASPECT aspect)
-	{
-		switch (aspect)
-		{
-		case irr::video::E_ASPECT::EA_COLOR: return VK_IMAGE_ASPECT_COLOR_BIT;
-		case irr::video::E_ASPECT::EA_DEPTH: return VK_IMAGE_ASPECT_DEPTH_BIT;
-		case irr::video::E_ASPECT::EA_STENCIL: return VK_IMAGE_ASPECT_STENCIL_BIT;
-		case irr::video::E_ASPECT::EA_DEPTH_STENCIL: return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
 		throw;
 	}

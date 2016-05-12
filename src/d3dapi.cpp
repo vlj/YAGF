@@ -256,7 +256,7 @@ namespace
 	}
 }
 
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type)
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.ViewDimension = get_texture_type(texture_type);

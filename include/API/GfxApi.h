@@ -432,7 +432,7 @@ void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& des
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
 std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type);
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect = irr::video::E_ASPECT::EA_COLOR);
 void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view);
 void set_input_attachment(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view);
 
