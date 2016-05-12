@@ -176,15 +176,7 @@ void MeshSample::Init()
 
 	set_image_view(*dev, ibl_descriptor, 1, 11, *specular_cube_view);
 	set_image_view(*dev, ibl_descriptor, 2, 12, *dfg_lut_view);
-#ifdef D3D12
-	create_constant_buffer_view(*dev, ibl_descriptor, 0, *sh_coefficients, 27 * sizeof(float));
-#else
-	util::update_descriptor_sets(dev->object,
-	{
-		structures::write_descriptor_set(, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(sh_coefficients->object, 0, sizeof(SH)) }, 10)
-	});
-#endif
+	set_constant_buffer_view(*dev, ibl_descriptor, 0, 10, *sh_coefficients, 27 * sizeof(float));
 	ssao_util = std::make_unique<ssao_utility>(*dev);
 #ifdef D3D12
 	create_image_view(*dev, rtt_descriptors, 4, *ssao_util->ssao_bilinear_result, 1, irr::video::ECOLOR_FORMAT::ECF_R16F, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -203,6 +195,8 @@ void MeshSample::fill_descriptor_set()
 
 	// scene
 	set_image_view(*dev, scene_descriptor, 2, 9, *skybox_view);
+	set_constant_buffer_view(*dev, scene_descriptor, 0, 7, *scene_matrix, sizeof(SceneData));
+	set_constant_buffer_view(*dev, scene_descriptor, 1, 8, *sun_data, sizeof(7 * sizeof(float)));
 
 	// rtt
 	set_image_view(*dev, rtt_descriptors, 0, 4, *diffuse_color_view);
@@ -211,10 +205,6 @@ void MeshSample::fill_descriptor_set()
 	set_image_view(*dev, rtt_descriptors, 3, 6, *depth_view);
 
 #ifdef D3D12
-	// scene
-	create_constant_buffer_view(*dev, scene_descriptor, 0, *scene_matrix, sizeof(SceneData));
-	create_constant_buffer_view(*dev, scene_descriptor, 1, *sun_data, sizeof(7 * sizeof(float)));
-
 	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 	create_sampler(*dev, sampler_descriptors, 1, SAMPLER_TYPE::BILINEAR_CLAMPED);
 #else
@@ -228,11 +218,7 @@ void MeshSample::fill_descriptor_set()
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ structures::descriptor_sampler_info(*sampler) }, 3),
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(*bilinear_clamped_sampler) }, 13),
-		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(scene_matrix->object, 0, sizeof(SceneData)) }, 7),
-		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(sun_data->object, 0, 7 * sizeof(float)) }, 8)
+			{ structures::descriptor_sampler_info(*bilinear_clamped_sampler) }, 13)
 	});
 #endif // D3D12
 }

@@ -196,6 +196,15 @@ void unmap_buffer(device_t& dev, buffer_t& buffer)
 	buffer->Unmap(0, nullptr);
 }
 
+void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)
+{
+	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+	desc.BufferLocation = buffer->GetGPUVirtualAddress() + offset;
+	desc.SizeInBytes = std::max<uint32_t>(256, buffer_size);
+	dev->CreateConstantBufferView(&desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset_in_set, stride));
+}
+
 namespace
 {
 	D3D12_RESOURCE_FLAGS get_resource_flags(uint32_t flag)

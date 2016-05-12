@@ -278,6 +278,14 @@ void unmap_buffer(device_t& dev, buffer_t& buffer)
 	vkUnmapMemory(dev, buffer.baking_memory->object);
 }
 
+void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)
+{
+	util::update_descriptor_sets(dev, {
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ structures::descriptor_buffer_info(buffer, offset, buffer_size) }, binding_location)
+	});
+}
+
 namespace
 {
 	VkFormat get_vk_format(irr::video::ECOLOR_FORMAT format)
