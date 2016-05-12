@@ -137,17 +137,9 @@ namespace irr
 				std::tie(texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS", upload_cmd_list);
 				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 13 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
-#ifdef D3D12
-				create_image_view(dev, mesh_descriptor, 0, *texture, 9, irr::video::ECOLOR_FORMAT::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURE2D);
-#else
-				Textures_views.push_back(
-					create_image_view(dev, *texture, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->info.mipLevels))
-				);
-				util::update_descriptor_sets(dev,
-				{
-					structures::write_descriptor_set(mesh_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,{ VkDescriptorImageInfo{ VK_NULL_HANDLE, *Textures_views.back(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 2)
-				});
-#endif
+
+				Textures_views.push_back(create_image_view(dev, *texture, irr::video::ECF_BC1_UNORM_SRGB, 9, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
+				set_image_view(dev, mesh_descriptor, 0, 2, *Textures_views.back());
 				upload_buffers.push_back(std::move(upload_buffer));
 				Textures.push_back(std::move(texture));
 			}

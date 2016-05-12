@@ -234,6 +234,39 @@ std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT f
 	return std::make_unique<image_t>(result);
 }
 
+namespace
+{
+	D3D12_SRV_DIMENSION get_texture_type(irr::video::E_TEXTURE_TYPE texture_type)
+	{
+		switch (texture_type)
+		{
+		case irr::video::E_TEXTURE_TYPE::ETT_2D: return D3D12_SRV_DIMENSION_TEXTURE2D;
+		case irr::video::E_TEXTURE_TYPE::ETT_CUBE: return D3D12_SRV_DIMENSION_TEXTURECUBE;
+		}
+		throw;
+	}
+}
+
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type)
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+	desc.ViewDimension = get_texture_type(texture_type);
+	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	if (texture_type == irr::video::E_TEXTURE_TYPE::ETT_CUBE)
+		desc.TextureCube.MipLevels = mipmap_count;
+	if (texture_type == irr::video::E_TEXTURE_TYPE::ETT_2D)
+		desc.Texture2D.MipLevels = mipmap_count;
+	desc.Format = get_dxgi_samplable_format(fmt);
+	return std::make_unique<image_view_t>(desc, img);
+}
+
+void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t, image_view_t& img_view)
+{
+	dev->CreateShaderResourceView(std::get<1>(img_view), &std::get<0>(img_view),
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
+	);
+}
+
 void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {

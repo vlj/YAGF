@@ -40,15 +40,13 @@ namespace irr
 			std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > vertex_buffers_info;
 
 			std::vector<uint32_t> texture_mapping;
+			std::vector<std::unique_ptr<image_view_t> > Textures_views;
 			std::vector<std::unique_ptr<image_t>> Textures;
 
 			std::unique_ptr<buffer_t> object_matrix;
 
 			allocated_descriptor_set object_descriptor_set;
 			std::vector<allocated_descriptor_set> mesh_descriptor_set;
-#ifndef D3D12
-			std::vector<std::unique_ptr<vulkan_wrapper::image_view> > Textures_views;
-#endif
 		public:
 
 			//! Constructor

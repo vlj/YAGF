@@ -359,6 +359,34 @@ std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT f
 	return std::move(image);
 }
 
+namespace
+{
+	VkImageViewType get_image_type(irr::video::E_TEXTURE_TYPE texture_type)
+	{
+		switch (texture_type)
+		{
+		case irr::video::E_TEXTURE_TYPE::ETT_2D: return VK_IMAGE_VIEW_TYPE_2D;
+		case irr::video::E_TEXTURE_TYPE::ETT_CUBE: return VK_IMAGE_VIEW_TYPE_CUBE;
+		}
+		throw;
+	}
+}
+
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type)
+{
+	return std::make_unique<image_view_t>(dev, img, get_image_type(texture_type), get_vk_format(fmt), structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, mipmap_count, 0, layer_count));
+}
+
+void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+{
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			{ structures::descriptor_image_info(img_view) }, binding_location)
+	});
+}
+
+
 void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
 	VkBufferImageCopy info{};

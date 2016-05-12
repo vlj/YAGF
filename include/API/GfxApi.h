@@ -81,6 +81,12 @@ namespace irr
 			EMP_GPU_LOCAL,
 			EMP_CPU_READABLE,
 		};
+
+		enum class E_TEXTURE_TYPE
+		{
+			ETT_2D,
+			ETT_CUBE,
+		};
 	}
 }
 
@@ -415,10 +421,19 @@ private:
 std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev);
 std::unique_ptr<command_list_t> create_command_list(device_t& dev, command_list_storage_t& storage);
 void reset_command_list_storage(device_t& dev, command_list_storage_t& storage);
+void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
+void make_command_list_executable(command_list_t& command_list);
+
 std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags);
+void* map_buffer(device_t& dev, buffer_t& buffer);
+void unmap_buffer(device_t& dev, buffer_t& buffer);
+
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
 std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type);
+void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view);
+
 std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
 allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts);
 allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts);
@@ -429,11 +444,6 @@ void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination
 framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass);
 framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
 
-void* map_buffer(device_t& dev, buffer_t& buffer);
-void unmap_buffer(device_t& dev, buffer_t& buffer);
-
-void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
-void make_command_list_executable(command_list_t& command_list);
 void wait_for_command_queue_idle(device_t& dev, command_queue_t& command_queue);
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);
 void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
