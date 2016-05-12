@@ -84,6 +84,7 @@ private:
 	std::shared_ptr<image_view_t> depth_view;
 	std::shared_ptr<image_view_t> specular_cube_view;
 	std::shared_ptr<image_view_t> dfg_lut_view;
+	std::shared_ptr<image_view_t> ssao_view;
 
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 

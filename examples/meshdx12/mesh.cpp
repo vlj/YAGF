@@ -178,9 +178,10 @@ void MeshSample::Init()
 	set_image_view(*dev, ibl_descriptor, 2, 12, *dfg_lut_view);
 	set_constant_buffer_view(*dev, ibl_descriptor, 0, 10, *sh_coefficients, 27 * sizeof(float));
 	ssao_util = std::make_unique<ssao_utility>(*dev);
-#ifdef D3D12
-	create_image_view(*dev, rtt_descriptors, 4, *ssao_util->ssao_bilinear_result, 1, irr::video::ECOLOR_FORMAT::ECF_R16F, D3D12_SRV_DIMENSION_TEXTURE2D);
-#endif
+
+	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	set_image_view(*dev, rtt_descriptors, 4, 15, *ssao_view);
+
 	fill_draw_commands();
 }
 

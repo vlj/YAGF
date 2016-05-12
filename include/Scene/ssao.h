@@ -35,8 +35,11 @@ struct ssao_utility
 	std::unique_ptr<buffer_t> ssao_constant_data;
 
 	std::unique_ptr<image_t> linear_depth_buffer;
+	std::unique_ptr<image_view_t> linear_depth_buffer_view;
 	std::unique_ptr<image_t> ssao_result;
+	std::unique_ptr<image_view_t> ssao_result_view;
 	std::unique_ptr<image_t> gaussian_blurring_buffer;
+	std::unique_ptr<image_view_t> gaussian_blurring_buffer_view;
 	std::unique_ptr<image_t> ssao_bilinear_result;
 	framebuffer_t linear_depth_fbo;
 	std::unique_ptr<render_pass_t> render_pass;
