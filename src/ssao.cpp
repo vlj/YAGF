@@ -290,11 +290,10 @@ ssao_utility::ssao_utility(device_t & dev)
 	ssao_bilinear_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
 	linear_depth_fbo = create_frame_buffer(dev, { { *linear_depth_buffer, irr::video::ECF_R32F }, { *ssao_result, irr::video::ECF_R16F} }, 1024, 1024, nullptr);
 
+	set_constant_buffer_view(dev, linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
+	set_constant_buffer_view(dev, ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
 #ifdef D3D12
-	create_constant_buffer_view(dev, linearize_input, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
-	create_constant_buffer_view(dev, ssao_input, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
 	create_image_view(dev, ssao_input, 1, *linear_depth_buffer, 1, irr::video::ECF_R32F, D3D12_SRV_DIMENSION_TEXTURE2D);
-
 	create_image_view(dev, gaussian_input_h, 1, *ssao_result, 1, irr::video::ECF_R16F, D3D12_SRV_DIMENSION_TEXTURE2D);
 	create_image_view(dev, gaussian_input_v, 1, *gaussian_blurring_buffer, 1, irr::video::ECF_R16F, D3D12_SRV_DIMENSION_TEXTURE2D);
 
