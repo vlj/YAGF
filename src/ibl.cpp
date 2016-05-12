@@ -79,9 +79,11 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
 	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() });
 	allocated_descriptor_set sampler_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() });
+
+	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+	set_image_view(dev, input_descriptors, 1, 1, *probe_view);
 #ifdef D3D12
 	create_constant_buffer_view(dev, input_descriptors, 0, *cbuf, sizeof(int));
-	create_image_view(dev, input_descriptors, 1, probe, 9, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, *sh_buffer, sizeof(SH));
 	create_sampler(dev, sampler_descriptor, 0, SAMPLER_TYPE::ANISOTROPIC);
 
@@ -95,8 +97,6 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 #else
 	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	std::unique_ptr<vulkan_wrapper::image_view> skybox_view = std::make_unique<vulkan_wrapper::image_view>(dev, probe, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
-		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 9, 0, 6));
 
 	util::update_descriptor_sets(dev,
 	{
@@ -104,8 +104,6 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ structures::descriptor_buffer_info(cbuf->object, 0, sizeof(int)) }, 0),
-		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ structures::descriptor_image_info(skybox_view->object) }, 1),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			{ structures::descriptor_buffer_info(sh_buffer->object, 0, sizeof(SH)) }, 2)
 	});
@@ -257,12 +255,10 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 	std::unique_ptr<descriptor_storage_t> sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
 	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { sampler_set.get() });
-
+	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 #ifdef D3D12
 	create_sampler(dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 #else
-	std::unique_ptr<vulkan_wrapper::image_view> probe_view = std::make_unique<vulkan_wrapper::image_view>(dev, probe, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
-		structures::component_mapping(), structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 9, 0, 6));
 	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
 	util::update_descriptor_sets(dev,
@@ -289,16 +285,14 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 		memcpy(map_buffer(dev, *permutation_matrix[i]), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, *permutation_matrix[i]);
+		set_image_view(dev, permutation_matrix_descriptors[i], 0, 0, *probe_view);
 #ifdef D3D12
 		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, *permutation_matrix[i], sizeof(PermutationMatrix));
-		create_image_view(dev, permutation_matrix_descriptors[i], 0, probe, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
 #else
 		util::update_descriptor_sets(dev,
 		{
 			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				{ structures::descriptor_buffer_info(permutation_matrix[i]->object, 0, 16 * sizeof(float))}, 1),
-			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				{ structures::descriptor_image_info(probe_view->object) }, 0),
+				{ structures::descriptor_buffer_info(permutation_matrix[i]->object, 0, 16 * sizeof(float))}, 1)
 		});
 #endif
 	}
