@@ -76,14 +76,15 @@ private:
 #ifndef D3D12
 	std::shared_ptr<vulkan_wrapper::sampler> sampler;
 	std::shared_ptr<vulkan_wrapper::sampler> bilinear_clamped_sampler;
-	std::shared_ptr<vulkan_wrapper::image_view> skybox_view;
-	std::shared_ptr<vulkan_wrapper::image_view> diffuse_color_view;
-	std::shared_ptr<vulkan_wrapper::image_view> normal_view;
-	std::shared_ptr<vulkan_wrapper::image_view> roughness_metalness_view;
-	std::shared_ptr<vulkan_wrapper::image_view> depth_view;
-	std::shared_ptr<vulkan_wrapper::image_view> specular_cube_view;
-	std::shared_ptr<vulkan_wrapper::image_view> dfg_lut_view;
 #endif
+	std::shared_ptr<image_view_t> skybox_view;
+	std::shared_ptr<image_view_t> diffuse_color_view;
+	std::shared_ptr<image_view_t> normal_view;
+	std::shared_ptr<image_view_t> roughness_metalness_view;
+	std::shared_ptr<image_view_t> depth_view;
+	std::shared_ptr<image_view_t> specular_cube_view;
+	std::shared_ptr<image_view_t> dfg_lut_view;
+
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
 	allocated_descriptor_set ibl_descriptor;

@@ -170,21 +170,19 @@ void MeshSample::Init()
 	sh_coefficients = computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
 	specular_cube = generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
 	dfg_lut = getDFGLUT(*dev, *cmdqueue, 128);
+
+	specular_cube_view = create_image_view(*dev, *specular_cube, irr::video::ECF_R16G16B16A16F, 8, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+	dfg_lut_view = create_image_view(*dev, *dfg_lut, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+
+	set_image_view(*dev, ibl_descriptor, 1, 11, *specular_cube_view);
+	set_image_view(*dev, ibl_descriptor, 2, 12, *dfg_lut_view);
 #ifdef D3D12
 	create_constant_buffer_view(*dev, ibl_descriptor, 0, *sh_coefficients, 27 * sizeof(float));
-	create_image_view(*dev, ibl_descriptor, 1, *specular_cube, 8, irr::video::ECF_R16G16B16A16F, D3D12_SRV_DIMENSION_TEXTURECUBE);
-	create_image_view(*dev, ibl_descriptor, 2, *dfg_lut, 1, irr::video::ECF_R32G32B32A32F, D3D12_SRV_DIMENSION_TEXTURE2D);
 #else
-	specular_cube_view = create_image_view(*dev, *specular_cube, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 8, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
-	dfg_lut_view = create_image_view(*dev, *dfg_lut, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
 	util::update_descriptor_sets(dev->object,
 	{
-		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(sh_coefficients->object, 0, sizeof(SH)) }, 10),
-		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ structures::descriptor_image_info(*specular_cube_view) }, 11),
-		structures::write_descriptor_set(ibl_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ structures::descriptor_image_info(*dfg_lut_view) }, 12),
+		structures::write_descriptor_set(, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			{ structures::descriptor_buffer_info(sh_coefficients->object, 0, sizeof(SH)) }, 10)
 	});
 #endif
 	ssao_util = std::make_unique<ssao_utility>(*dev);
@@ -192,36 +190,38 @@ void MeshSample::Init()
 	create_image_view(*dev, rtt_descriptors, 4, *ssao_util->ssao_bilinear_result, 1, irr::video::ECOLOR_FORMAT::ECF_R16F, D3D12_SRV_DIMENSION_TEXTURE2D);
 #endif
 	fill_draw_commands();
-
 }
 
 void MeshSample::fill_descriptor_set()
 {
+	diffuse_color_view = create_image_view(*dev, *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	normal_view = create_image_view(*dev, *normal, irr::video::ECF_R16G16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	roughness_metalness_view = create_image_view(*dev, *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	skybox_view = create_image_view(*dev, *skybox_texture, irr::video::ECF_BC1_UNORM_SRGB, 11, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+	//aspect
+	depth_view = create_image_view(*dev, *depth_buffer, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+
+	// scene
+	set_image_view(*dev, scene_descriptor, 2, 9, *skybox_view);
+
+	// rtt
+	set_image_view(*dev, rtt_descriptors, 0, 4, *diffuse_color_view);
+	set_image_view(*dev, rtt_descriptors, 1, 5, *normal_view);
+	set_image_view(*dev, rtt_descriptors, 2, 14, *roughness_metalness_view);
+	set_image_view(*dev, rtt_descriptors, 3, 6, *depth_view);
+
 #ifdef D3D12
 	// scene
 	create_constant_buffer_view(*dev, scene_descriptor, 0, *scene_matrix, sizeof(SceneData));
 	create_constant_buffer_view(*dev, scene_descriptor, 1, *sun_data, sizeof(7 * sizeof(float)));
-	create_image_view(*dev, scene_descriptor, 2, *skybox_texture, 1, irr::video::ECF_BC1_UNORM_SRGB, D3D12_SRV_DIMENSION_TEXTURECUBE);
-
-	// rtt
-	create_image_view(*dev, rtt_descriptors, 0, *diffuse_color, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(*dev, rtt_descriptors, 1, *normal, 1, irr::video::ECF_R16G16F, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(*dev, rtt_descriptors, 2, *roughness_metalness, 1, irr::video::ECF_R8G8B8A8_UNORM, D3D12_SRV_DIMENSION_TEXTURE2D);
-	create_image_view(*dev, rtt_descriptors, 3, *depth_buffer, 1, irr::video::ECOLOR_FORMAT::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
 	create_sampler(*dev, sampler_descriptors, 1, SAMPLER_TYPE::BILINEAR_CLAMPED);
 #else
-	skybox_view = create_image_view(*dev, *skybox_texture, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, 0, 11, 0, 6), VK_IMAGE_VIEW_TYPE_CUBE);
-
 	bilinear_clamped_sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
 	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	diffuse_color_view = create_image_view(*dev, *diffuse_color, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
-	normal_view = create_image_view(*dev, *normal, VK_FORMAT_R16G16_SFLOAT, structures::image_subresource_range());
-	roughness_metalness_view = create_image_view(*dev, *roughness_metalness, VK_FORMAT_R8G8B8A8_UNORM, structures::image_subresource_range());
-	depth_view = create_image_view(*dev, *depth_buffer, VK_FORMAT_D32_SFLOAT_S8_UINT, structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT));
 
 	util::update_descriptor_sets(dev->object,
 	{
@@ -229,20 +229,10 @@ void MeshSample::fill_descriptor_set()
 			{ structures::descriptor_sampler_info(*sampler) }, 3),
 		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ structures::descriptor_sampler_info(*bilinear_clamped_sampler) }, 13),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(diffuse_color_view->object) }, 4),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(*normal_view) }, 5),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(*roughness_metalness_view) }, 14),
-		structures::write_descriptor_set(rtt_descriptors, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-			{ structures::descriptor_image_info(depth_view->object) }, 6),
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ structures::descriptor_buffer_info(scene_matrix->object, 0, sizeof(SceneData)) }, 7),
 		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(sun_data->object, 0, 7 * sizeof(float)) }, 8),
-		structures::write_descriptor_set(scene_descriptor, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ structures::descriptor_image_info(skybox_view->object) }, 9),
+			{ structures::descriptor_buffer_info(sun_data->object, 0, 7 * sizeof(float)) }, 8)
 	});
 #endif // D3D12
 }
