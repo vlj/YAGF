@@ -82,8 +82,8 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 
 	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 	set_image_view(dev, input_descriptors, 1, 1, *probe_view);
+	set_constant_buffer_view(dev, input_descriptors, 0, 0, *cbuf, sizeof(int));
 #ifdef D3D12
-	create_constant_buffer_view(dev, input_descriptors, 0, *cbuf, sizeof(int));
 	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, *sh_buffer, sizeof(SH));
 	create_sampler(dev, sampler_descriptor, 0, SAMPLER_TYPE::ANISOTROPIC);
 
@@ -102,8 +102,6 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 	{
 		structures::write_descriptor_set(sampler_descriptor, VK_DESCRIPTOR_TYPE_SAMPLER,
 			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
-		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(cbuf->object, 0, sizeof(int)) }, 0),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			{ structures::descriptor_buffer_info(sh_buffer->object, 0, sizeof(SH)) }, 2)
 	});
@@ -286,15 +284,7 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 		memcpy(map_buffer(dev, *permutation_matrix[i]), M[i].pointer(), 16 * sizeof(float));
 		unmap_buffer(dev, *permutation_matrix[i]);
 		set_image_view(dev, permutation_matrix_descriptors[i], 0, 0, *probe_view);
-#ifdef D3D12
-		create_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, *permutation_matrix[i], sizeof(PermutationMatrix));
-#else
-		util::update_descriptor_sets(dev,
-		{
-			structures::write_descriptor_set(permutation_matrix_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				{ structures::descriptor_buffer_info(permutation_matrix[i]->object, 0, 16 * sizeof(float))}, 1)
-		});
-#endif
+		set_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(PermutationMatrix));
 	}
 
 	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
@@ -323,8 +313,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 			tmp[2 * j + 1] = sample.second;
 		}
 		unmap_buffer(dev, *sample_location_buffer[i]);
+		set_constant_buffer_view(dev, sample_buffer_descriptors[i], 1, 5, *per_level_cbuffer[i], sizeof(float));
 #ifdef D3D12
-		create_constant_buffer_view(dev, sample_buffer_descriptors[i], 1, *per_level_cbuffer[i], sizeof(float));
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srv.Buffer.FirstElement = 0;
@@ -338,8 +328,6 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 		{
 			structures::write_descriptor_set(sample_buffer_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
 				{buffer_views[i]->object}, 2),
-			structures::write_descriptor_set(sample_buffer_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				{ structures::descriptor_buffer_info(per_level_cbuffer[i]->object, 0, sizeof(float)) }, 5)
 		});
 #endif
 	}
@@ -468,8 +456,8 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 		hamerleybuf[2 * j + 1] = sample.second;
 	}
 	unmap_buffer(dev, *hamersley_seq_buf);
+	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, *cbuf, sizeof(float));
 #if D3D12
-	create_constant_buffer_view(dev, dfg_input_descriptor_set, 0, *cbuf, sizeof(float));
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 	srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 	srv.Buffer.FirstElement = 0;
@@ -491,8 +479,6 @@ std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uin
 	std::unique_ptr<vulkan_wrapper::image_view> texture_view = create_image_view(dev, *DFG_LUT_texture, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
 
 	util::update_descriptor_sets(dev, {
-		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(*cbuf, 0, sizeof(float)) }, 0),
 		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
 			{ *buffer_view }, 1),
 		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,

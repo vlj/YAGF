@@ -40,19 +40,8 @@ namespace irr
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set });
-#ifdef D3D12
-			// object
-			create_constant_buffer_view(dev, object_descriptor_set, 0, *object_matrix, sizeof(ObjectData));
-			create_constant_buffer_view(dev, object_descriptor_set, 1, *object_matrix, sizeof(ObjectData));
-#else
-			util::update_descriptor_sets(dev,
-			{
-				structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				{ VkDescriptorBufferInfo{ object_matrix->object, 0, sizeof(ObjectData) } }, 0)
-				/*		structures::write_descriptor_set(object_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				{ VkDescriptorBufferInfo{ jointbuffer->object, 0, sizeof(JointTransform) } }, 1),*/
-			});
-#endif
+			set_constant_buffer_view(dev, object_descriptor_set, 0, 0, *object_matrix, sizeof(ObjectData));
+			set_constant_buffer_view(dev, object_descriptor_set, 1, 1, *object_matrix, sizeof(ObjectData));
 
 			// Format Weight
 
