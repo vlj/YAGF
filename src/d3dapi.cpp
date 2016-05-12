@@ -276,6 +276,51 @@ void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_se
 	);
 }
 
+std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)
+{
+	D3D12_SAMPLER_DESC samplerdesc = {};
+
+	samplerdesc.MaxAnisotropy = 1;
+	samplerdesc.MinLOD = 0;
+
+	switch (sampler_type)
+	{
+	case SAMPLER_TYPE::TRILINEAR:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerdesc.MaxLOD = 1000;
+		break;
+	case SAMPLER_TYPE::BILINEAR_CLAMPED:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+		samplerdesc.MaxLOD = 0;
+		break;
+	case SAMPLER_TYPE::NEAREST:
+		samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+		samplerdesc.MaxLOD = 0;
+		break;
+	case SAMPLER_TYPE::ANISOTROPIC:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerdesc.Filter = D3D12_FILTER_ANISOTROPIC;
+		samplerdesc.MaxAnisotropy = 16;
+		samplerdesc.MaxLOD = 1000;
+		break;
+	}
+	return std::make_unique<sampler_t>(samplerdesc);
+}
+
+void set_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t& sampler)
+{
+	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	dev->CreateSampler(&sampler, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, stride));
+}
+
 void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer,
 	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {

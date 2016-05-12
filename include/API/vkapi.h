@@ -31,6 +31,7 @@ using clear_value_structure_t = void*;
 using allocated_descriptor_set = VkDescriptorSet;
 using descriptor_set_layout = vulkan_wrapper::pipeline_descriptor_set;
 using image_view_t = vulkan_wrapper::image_view;
+using sampler_t = vulkan_wrapper::sampler;
 
 struct vk_framebuffer
 {

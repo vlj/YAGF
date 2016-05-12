@@ -205,23 +205,11 @@ void MeshSample::fill_descriptor_set()
 	set_image_view(*dev, rtt_descriptors, 2, 14, *roughness_metalness_view);
 	set_image_view(*dev, rtt_descriptors, 3, 6, *depth_view);
 
-#ifdef D3D12
-	create_sampler(*dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
-	create_sampler(*dev, sampler_descriptors, 1, SAMPLER_TYPE::BILINEAR_CLAMPED);
-#else
-	bilinear_clamped_sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	sampler = std::make_shared<vulkan_wrapper::sampler>(dev->object, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
+	bilinear_clamped_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
+	sampler = create_sampler(*dev, SAMPLER_TYPE::TRILINEAR);
 
-	util::update_descriptor_sets(dev->object,
-	{
-		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(*sampler) }, 3),
-		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(*bilinear_clamped_sampler) }, 13)
-	});
-#endif // D3D12
+	set_sampler(*dev, sampler_descriptors, 0, 3, *sampler);
+	set_sampler(*dev, sampler_descriptors, 1, 13, *bilinear_clamped_sampler);
 }
 
 void MeshSample::load_program_and_pipeline_layout()

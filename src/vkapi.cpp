@@ -394,6 +394,28 @@ void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_se
 	});
 }
 
+std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)
+{
+	switch (sampler_type)
+	{
+	case SAMPLER_TYPE::TRILINEAR:
+		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
+	case SAMPLER_TYPE::BILINEAR_CLAMPED:
+		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
+	}
+	throw;
+}
+
+void set_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t& sampler)
+{
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_SAMPLER,
+			{ structures::descriptor_sampler_info(sampler) }, binding_location)
+	});
+}
 
 void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {

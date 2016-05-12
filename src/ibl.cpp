@@ -83,9 +83,10 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 	set_image_view(dev, input_descriptors, 1, 1, *probe_view);
 	set_constant_buffer_view(dev, input_descriptors, 0, 0, *cbuf, sizeof(int));
+	std::unique_ptr<sampler_t> sampler = create_sampler(dev, SAMPLER_TYPE::ANISOTROPIC);
+	set_sampler(dev, sampler_descriptor, 0, 3, *sampler);
 #ifdef D3D12
 	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, *sh_buffer, sizeof(SH));
-	create_sampler(dev, sampler_descriptor, 0, SAMPLER_TYPE::ANISOTROPIC);
 
 	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
@@ -93,15 +94,9 @@ std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue
 	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
-
 #else
-	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-
 	util::update_descriptor_sets(dev,
 	{
-		structures::write_descriptor_set(sampler_descriptor, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ VkDescriptorImageInfo{ sampler->object, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } }, 3),
 		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			{ structures::descriptor_buffer_info(sh_buffer->object, 0, sizeof(SH)) }, 2)
 	});
@@ -254,17 +249,8 @@ std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t&
 
 	allocated_descriptor_set sampler_descriptors = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { sampler_set.get() });
 	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
-#ifdef D3D12
-	create_sampler(dev, sampler_descriptors, 0, SAMPLER_TYPE::TRILINEAR);
-#else
-	std::unique_ptr<vulkan_wrapper::sampler> sampler = std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(sampler_descriptors, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(sampler->object) }, 4)
-	});
-#endif
+	std::unique_ptr<sampler_t> sampler = create_sampler(dev, SAMPLER_TYPE::TRILINEAR);
+	set_sampler(dev, sampler_descriptors, 0, 4, *sampler);
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),

@@ -73,10 +73,10 @@ private:
 	std::shared_ptr<descriptor_set_layout> model_set;
 	std::shared_ptr<descriptor_set_layout> ibl_set;
 
-#ifndef D3D12
-	std::shared_ptr<vulkan_wrapper::sampler> sampler;
-	std::shared_ptr<vulkan_wrapper::sampler> bilinear_clamped_sampler;
-#endif
+
+	std::unique_ptr<sampler_t> sampler;
+	std::unique_ptr<sampler_t> bilinear_clamped_sampler;
+
 	std::shared_ptr<image_view_t> skybox_view;
 	std::shared_ptr<image_view_t> diffuse_color_view;
 	std::shared_ptr<image_view_t> normal_view;
