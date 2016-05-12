@@ -394,16 +394,28 @@ void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_se
 	});
 }
 
+void set_input_attachment(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+{
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+		{ structures::descriptor_image_info(img_view) }, binding_location)
+	});
+}
+
 std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)
 {
 	switch (sampler_type)
 	{
-	case SAMPLER_TYPE::TRILINEAR:
+	case SAMPLER_TYPE::ANISOTROPIC:
 		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
 	case SAMPLER_TYPE::BILINEAR_CLAMPED:
 		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
+	case SAMPLER_TYPE::TRILINEAR:
+		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
 	}
 	throw;
 }

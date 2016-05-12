@@ -200,10 +200,10 @@ void MeshSample::fill_descriptor_set()
 	set_constant_buffer_view(*dev, scene_descriptor, 1, 8, *sun_data, sizeof(7 * sizeof(float)));
 
 	// rtt
-	set_image_view(*dev, rtt_descriptors, 0, 4, *diffuse_color_view);
-	set_image_view(*dev, rtt_descriptors, 1, 5, *normal_view);
-	set_image_view(*dev, rtt_descriptors, 2, 14, *roughness_metalness_view);
-	set_image_view(*dev, rtt_descriptors, 3, 6, *depth_view);
+	set_input_attachment(*dev, rtt_descriptors, 0, 4, *diffuse_color_view);
+	set_input_attachment(*dev, rtt_descriptors, 1, 5, *normal_view);
+	set_input_attachment(*dev, rtt_descriptors, 2, 14, *roughness_metalness_view);
+	set_input_attachment(*dev, rtt_descriptors, 3, 6, *depth_view);
 
 	bilinear_clamped_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
 	sampler = create_sampler(*dev, SAMPLER_TYPE::TRILINEAR);
