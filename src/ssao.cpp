@@ -14,11 +14,38 @@ namespace
 		float zf;
 	};
 
+	struct ssao_input_constant_data
+	{
+		float ProjectionMatrix00;
+		float ProjectionMatrix11;
+		float radius;
+		float tau;
+		float beta;
+		float epsilon;
+	};
+
 	constexpr auto linearize_input_set_type = descriptor_set(
 		{ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) },
 		shader_stage::fragment_shader
 	);
+
+	constexpr auto ssao_input_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
+		shader_stage::fragment_shader);
+
+	constexpr auto gaussian_input_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
+		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 2, 1) },
+		shader_stage::all);
+
+	// Bilinear and nearest
+	constexpr auto samplers_set_type = descriptor_set(
+		{ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
+		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1)},
+		shader_stage::fragment_shader);
 
 	pipeline_state_t get_linearize_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t& rp)
 	{
@@ -90,23 +117,6 @@ namespace
 #endif
 	}
 
-	struct ssao_input_constant_data
-	{
-		float ProjectionMatrix00;
-		float ProjectionMatrix11;
-		float radius;
-		float tau;
-		float beta;
-		float epsilon;
-	};
-
-	constexpr auto ssao_input_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
-		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
-		shader_stage::fragment_shader);
-
-	constexpr auto sampler_set_type = descriptor_set({ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1) }, shader_stage::fragment_shader);
-
 	pipeline_state_t get_ssao_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t &rp)
 	{
 		constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
@@ -177,12 +187,6 @@ namespace
 #endif
 	}
 
-	constexpr auto gaussian_input_set_type = descriptor_set({
-		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
-		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
-		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 2, 1) },
-		shader_stage::all);
-
 	std::unique_ptr<compute_pipeline_state_t> get_gaussian_h_pso(device_t& dev, pipeline_layout_t layout)
 	{
 #ifdef D3D12
@@ -225,7 +229,6 @@ namespace
 #endif // D3D12
 	}
 
-
 	std::unique_ptr<render_pass_t> create_render_pass(device_t& dev)
 	{
 		std::unique_ptr<render_pass_t> result;
@@ -260,9 +263,10 @@ ssao_utility::ssao_utility(device_t & dev)
 	gaussian_input_sig = get_pipeline_layout_from_desc(dev, { gaussian_input_set_type });
 #else
 	linearize_input_set = get_object_descriptor_set(dev, linearize_input_set_type);
-	linearize_depth_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ linearize_input_set->object }, std::vector<VkPushConstantRange>());
+	samplers_set = get_object_descriptor_set(dev, samplers_set_type);
+	linearize_depth_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ linearize_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
 	ssao_input_set = get_object_descriptor_set(dev, ssao_input_set_type);
-	ssao_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ ssao_input_set->object }, std::vector<VkPushConstantRange>());
+	ssao_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ ssao_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
 	gaussian_input_set = get_object_descriptor_set(dev, gaussian_input_set_type);
 	gaussian_input_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ gaussian_input_set->object }, std::vector<VkPushConstantRange>());
 #endif
@@ -272,13 +276,13 @@ ssao_utility::ssao_utility(device_t & dev)
 	gaussian_h_pso = get_gaussian_h_pso(dev, gaussian_input_sig);
 	gaussian_v_pso = get_gaussian_v_pso(dev, gaussian_input_sig);
 
-	heap = create_descriptor_storage(dev, 3, { {RESOURCE_VIEW::CONSTANTS_BUFFER, 10}, { RESOURCE_VIEW::SHADER_RESOURCE, 10 } });
-	sampler_heap = create_descriptor_storage(dev, 3, { { RESOURCE_VIEW::SAMPLER, 10 } });
-	linearize_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 0, { nullptr });
-	ssao_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 2, { nullptr });
-	sampler_input = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { nullptr });
-	gaussian_input_h = allocate_descriptor_set_from_sampler_heap(dev, *heap, 4, { nullptr });
-	gaussian_input_v = allocate_descriptor_set_from_sampler_heap(dev, *heap, 7, { nullptr });
+	heap = create_descriptor_storage(dev, 5, { {RESOURCE_VIEW::CONSTANTS_BUFFER, 10}, { RESOURCE_VIEW::SHADER_RESOURCE, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 10 } });
+	sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 10 } });
+	linearize_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 0, { linearize_input_set.get() });
+	ssao_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 2, { ssao_input_set.get() });
+	sampler_input = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { samplers_set.get() });
+	gaussian_input_h = allocate_descriptor_set_from_sampler_heap(dev, *heap, 4, { gaussian_input_set.get() });
+	gaussian_input_v = allocate_descriptor_set_from_sampler_heap(dev, *heap, 7, { gaussian_input_set.get() });
 
 	linearize_constant_data = create_buffer(dev, sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = create_buffer(dev, sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -288,7 +292,7 @@ ssao_utility::ssao_utility(device_t & dev)
 	ssao_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
 	gaussian_blurring_buffer = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
 	ssao_bilinear_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
-	linear_depth_fbo = create_frame_buffer(dev, { { *linear_depth_buffer, irr::video::ECF_R32F }, { *ssao_result, irr::video::ECF_R16F} }, 1024, 1024, nullptr);
+	linear_depth_fbo = create_frame_buffer(dev, { { *linear_depth_buffer, irr::video::ECF_R32F }, { *ssao_result, irr::video::ECF_R16F} }, 1024, 1024, render_pass.get());
 
 	set_constant_buffer_view(dev, linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
 	set_constant_buffer_view(dev, ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));

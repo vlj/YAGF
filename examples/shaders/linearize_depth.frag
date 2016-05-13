@@ -15,13 +15,14 @@ layout(set = 0, binding = 0, std140) uniform SSAOBuffer
 };
 layout(set = 0, binding = 1) uniform texture2D tex;
 layout(set = 0, binding = 2, r32f) writeonly uniform image2D Depth;
+layout(set = 1, binding = 4) uniform sampler nearest;
 
 layout(location = 0) out vec4 FragColor;
 
 void main()
 {
 	vec2 uv = gl_FragCoord.xy / vec2(1024, 1024);
-	float d = texelFetch(tex, ivec2(gl_FragCoord.xy), 0).x;
+	float d = texelFetch(sampler2D(tex, nearest), ivec2(gl_FragCoord.xy), 0).x;
 	float c0 = zn * zf;
 	float c1 = zn - zf;
 	float c2 = zf;

@@ -5,29 +5,16 @@
 // From paper http://graphics.cs.williams.edu/papers/AlchemyHPG11/
 // and improvements here http://graphics.cs.williams.edu/papers/SAOHPG12/
 
-layout(set = 0, binding = 0) uniform texture2D dtex;
-layout(set = 0, binding = 1, std140) uniform Matrixes
+layout(set = 0, binding = 0, std140) uniform Matrixes
 {
-	mat4 ModelMatrix;
-	mat4 ViewProjectionMatrix;
 	mat4 ProjectionMatrix;
-	float zn;
-	float zf;
+	float radius;
+	float tau;
+	float beta;
+	float epsilon;
 };
-layout(set = 0, binding = 2, std140) uniform ssao_param
-{
-	float radius;// = 1.;
-	float k;// = 1.5;
-	float sigma;// = 1.;
-	float tau;// = 7.;
-	float beta;// = 0.002;
-	float epsilon;// = .00001;
-#define SAMPLES 16
-	float invSamples;// = 1. / SAMPLES;
-	vec2 screen;// = vec2(1024, 1024);
-};
-layout(set = 0, binding = 3, r32f) writeonly uniform image2D AO;
-layout(set = 0, binding = 4) uniform sampler s;
+layout(set = 0, binding = 2) uniform texture2D dtex;
+layout(set = 0, binding = 3) uniform sampler s;
 
 vec3 getXcYcZc(float x, float y, float zC)
 {
@@ -41,8 +28,14 @@ layout(location = 0) out vec4 FragColor;
 
 void main(void)
 {
+#define SAMPLES 16
+	float invSamples = 1. / SAMPLES;
+	vec2 screen = vec2(1024, 1024);
+    float sigma = 1.;
+    float k = 1.;
+
 	vec2 uv = gl_FragCoord.xy / screen;
-	float lineardepth = textureLod(dtex, uv, 0.).x;
+	float lineardepth = texture(sampler2D(dtex, s), uv).x;
 
 	vec3 FragPos = getXcYcZc(uv.x, uv.y, lineardepth);
 	// get the normal of current fragment
@@ -66,7 +59,7 @@ void main(void)
 		m = m + .5;
 		ivec2 ioccluder_uv = ivec2(x, y) + ivec2(localoffset);
 		if (ioccluder_uv.x < 0 || ioccluder_uv.x > screen.x || ioccluder_uv.y < 0 || ioccluder_uv.y > screen.y) continue;
-		float LinearoccluderFragmentDepth = textureLod(dtex, vec2(ioccluder_uv) / screen, max(m, 0.)).x;
+		float LinearoccluderFragmentDepth = texture(sampler2D(dtex, s), vec2(ioccluder_uv) / screen).x;//, max(m, 0.)).x;
 		vec3 OccluderPos = getXcYcZc(ioccluder_uv.x, ioccluder_uv.y, LinearoccluderFragmentDepth);
 		vec3 vi = OccluderPos - FragPos;
 		bl += max(0.f, dot(vi, norm) - FragPos.z * beta) / (dot(vi, vi) + epsilon);
