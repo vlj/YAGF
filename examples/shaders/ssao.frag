@@ -14,7 +14,7 @@ layout(set = 0, binding = 0, std140) uniform Matrixes
 	float epsilon;
 };
 layout(set = 0, binding = 2) uniform texture2D dtex;
-layout(set = 0, binding = 3) uniform sampler s;
+layout(set = 1, binding = 3) uniform sampler s;
 
 vec3 getXcYcZc(float x, float y, float zC)
 {

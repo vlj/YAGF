@@ -35,6 +35,8 @@ struct ssao_utility
 	std::unique_ptr<buffer_t> linearize_constant_data;
 	std::unique_ptr<buffer_t> ssao_constant_data;
 
+	image_t* depth_input;
+	std::unique_ptr<image_view_t> depth_image_view;
 	std::unique_ptr<image_t> linear_depth_buffer;
 	std::unique_ptr<image_view_t> linear_depth_buffer_view;
 	std::unique_ptr<image_t> ssao_result;
@@ -46,8 +48,10 @@ struct ssao_utility
 	std::unique_ptr<render_pass_t> render_pass;
 
 	std::unique_ptr<sampler_t> bilinear_clamped_sampler;
+	std::unique_ptr<sampler_t> nearest_sampler;
 
-	ssao_utility(device_t &dev);
+
+	ssao_utility(device_t &dev, image_t* _depth_input);
 
 	/**
 	 * Need to set render target before filling cmd list atm

@@ -255,7 +255,7 @@ namespace
 	}
 }
 
-ssao_utility::ssao_utility(device_t & dev)
+ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(_depth_input)
 {
 #ifdef D3D12
 	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type });
@@ -297,15 +297,19 @@ ssao_utility::ssao_utility(device_t & dev)
 	set_constant_buffer_view(dev, linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
 	set_constant_buffer_view(dev, ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
 
+	depth_image_view = create_image_view(dev, *depth_input, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	linear_depth_buffer_view = create_image_view(dev, *linear_depth_buffer, irr::video::ECF_R32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	ssao_result_view = create_image_view(dev, *ssao_result, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	gaussian_blurring_buffer_view = create_image_view(dev, *gaussian_blurring_buffer, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
+	set_image_view(dev, linearize_input, 1, 1, *depth_image_view);
 	set_image_view(dev, ssao_input, 1, 2, *linear_depth_buffer_view);
 	set_image_view(dev, gaussian_input_h, 1, 1, *ssao_result_view);
 	set_image_view(dev, gaussian_input_v, 1, 1, *gaussian_blurring_buffer_view);
 	bilinear_clamped_sampler = create_sampler(dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
+	nearest_sampler = create_sampler(dev, SAMPLER_TYPE::NEAREST);
 	set_sampler(dev, sampler_input, 0, 3, *bilinear_clamped_sampler);
+	set_sampler(dev, sampler_input, 1, 4, *nearest_sampler);
 #ifdef D3D12
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
 	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
@@ -329,14 +333,29 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 #ifdef D3D12
 	std::array<ID3D12DescriptorHeap*, 2> descriptors = { heap->object, sampler_heap->object };
 	cmd_list->SetDescriptorHeaps(2, descriptors.data());
-
-	create_image_view(dev, linearize_input, 1, depth_buffer, 1, irr::video::D24U8, D3D12_SRV_DIMENSION_TEXTURE2D);
 	cmd_list->SetGraphicsRootSignature(linearize_depth_sig.Get());
 
 	cmd_list->OMSetRenderTargets(1, &(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart()), false, nullptr);
+#else
+	{
+		std::array<float, 4> clearColor = { 0.f };
+		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+		info.renderPass = render_pass->object;
+		info.framebuffer = linear_depth_fbo->fbo;
+		info.renderArea.extent.width = 1024;
+		info.renderArea.extent.height = 1024;
+		info.clearValueCount = 2;
+		VkClearValue clear_values[2] = {
+			structures::clear_value(clearColor),
+			structures::clear_value(clearColor)
+		};
+		info.pClearValues = clear_values;
+		vkCmdBeginRenderPass(cmd_list, &info, VK_SUBPASS_CONTENTS_INLINE);
+	}
 #endif
 	set_graphic_pipeline(cmd_list, linearize_depth_pso);
 	bind_graphic_descriptor(cmd_list, 0, linearize_input, linearize_depth_sig);
+	bind_graphic_descriptor(cmd_list, 1, sampler_input, ssao_sig);
 	bind_vertex_buffers(cmd_list, 0, big_triangle_info);
 	draw_non_indexed(cmd_list, 3, 1, 0, 0);
 
@@ -350,12 +369,15 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	ssao_ptr->tau = 7.;
 	ssao_ptr->beta = .1;
 	ssao_ptr->epsilon = .1;
+	unmap_buffer(dev, *ssao_constant_data);
 #ifdef D3D12
 	cmd_list->OMSetRenderTargets(1, &(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 			.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV))), false, nullptr);
 
 	cmd_list->SetGraphicsRootSignature(ssao_sig.Get());
+#else
+	vkCmdNextSubpass(cmd_list, VK_SUBPASS_CONTENTS_INLINE);
 #endif
 	set_graphic_pipeline(cmd_list, ssao_pso);
 	bind_graphic_descriptor(cmd_list, 0, ssao_input, ssao_sig);
@@ -365,6 +387,8 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(gaussian_input_sig.Get());
+#else
+	vkCmdEndRenderPass(cmd_list);
 #endif
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_h, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_h_pso);
