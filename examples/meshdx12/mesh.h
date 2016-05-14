@@ -102,7 +102,8 @@ private:
 
 	std::unique_ptr<ssao_utility> ssao_util;
 
-	std::unique_ptr<render_pass_t> render_pass;
+	std::unique_ptr<render_pass_t> object_sunlight_pass;
+	std::unique_ptr<render_pass_t> ibl_skyboss_pass;
 	framebuffer_t fbo[2];
 	pipeline_layout_t object_sig;
 	pipeline_state_t objectpso;

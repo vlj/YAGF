@@ -63,7 +63,7 @@ namespace
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 12, 1) },
 		shader_stage::fragment_shader);
 
-	std::unique_ptr<render_pass_t> create_render_pass(device_t* dev)
+	std::unique_ptr<render_pass_t> create_object_sunlight_pass(device_t* dev)
 	{
 		std::unique_ptr<render_pass_t> result;
 #ifndef D3D12
@@ -97,6 +97,11 @@ namespace
 #endif // !D3D12
 		return result;
 	}
+
+	std::unique_ptr<render_pass_t> create_ibl_skypass(device_t* dev)
+	{
+		return nullptr;
+	}
 }
 
 
@@ -110,7 +115,7 @@ void MeshSample::Init()
 
 	cbv_srv_descriptors_heap = create_descriptor_storage(*dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 4 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
 	sampler_heap = create_descriptor_storage(*dev, 10, { { RESOURCE_VIEW::SAMPLER, 10 } });
-	render_pass = create_render_pass(dev.get());
+	object_sunlight_pass = create_object_sunlight_pass(dev.get());
 
 	load_program_and_pipeline_layout();
 
@@ -133,8 +138,8 @@ void MeshSample::Init()
 	set_pipeline_barrier(*command_list, *normal, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
-	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, render_pass.get());
+	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
+	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
 
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 10, { ibl_set.get() });
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() });
@@ -231,10 +236,10 @@ void MeshSample::load_program_and_pipeline_layout()
 	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif // D3D12
-	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, render_pass.get());
-	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, render_pass.get());
-	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, render_pass.get());
-	ibl_pso = get_ibl_pipeline_state(dev.get(), ibl_sig, render_pass.get());
+	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, object_sunlight_pass.get());
+	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, object_sunlight_pass.get());
+	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, object_sunlight_pass.get());
+	ibl_pso = get_ibl_pipeline_state(dev.get(), ibl_sig, object_sunlight_pass.get());
 }
 
 void MeshSample::fill_draw_commands()
@@ -248,21 +253,23 @@ void MeshSample::fill_draw_commands()
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
 #ifndef D3D12
-		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		info.renderPass = render_pass->object;
-		info.framebuffer = fbo[i]->fbo.object;
-		info.clearValueCount = 5;
-		VkClearValue clear_values[5] = {
-			structures::clear_value(clearColor),
-			structures::clear_value(clearColor),
-			structures::clear_value(clearColor),
-			structures::clear_value(clearColor),
-			structures::clear_value(1.f, 0)
-		};
-		info.pClearValues = clear_values;
-		info.renderArea.extent.width = width;
-		info.renderArea.extent.height = height;
-		vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
+		{
+			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			info.renderPass = object_sunlight_pass->object;
+			info.framebuffer = fbo[i]->fbo.object;
+			info.clearValueCount = 5;
+			VkClearValue clear_values[5] = {
+				structures::clear_value(clearColor),
+				structures::clear_value(clearColor),
+				structures::clear_value(clearColor),
+				structures::clear_value(clearColor),
+				structures::clear_value(1.f, 0)
+			};
+			info.pClearValues = clear_values;
+			info.renderArea.extent.width = width;
+			info.renderArea.extent.height = height;
+			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
+		}
 #else // !D3D12
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtt_to_use = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
@@ -290,16 +297,11 @@ void MeshSample::fill_draw_commands()
 		set_scissor(*current_cmd_list, 0, 1024, 0, 1024);
 
 		xue->fill_draw_command(*current_cmd_list, object_sig);
-#ifndef D3D12
-		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
-#else
+#ifdef D3D12
 		set_pipeline_barrier(*current_cmd_list, *diffuse_color, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *normal, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
-#endif // !D3D12
-		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
-#ifdef D3D12
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 			.Offset(3, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
@@ -308,14 +310,31 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(sunlight_sig.Get());
 		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
+#else
+		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #endif
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, sunlight_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(*current_cmd_list, sunlightpso);
 		bind_vertex_buffers(*current_cmd_list, 0, big_triangle_info);
 		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
+#ifndef D3D12
+		vkCmdEndRenderPass(current_cmd_list->object);
+#endif // !D3D12
+		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
 #ifdef D3D12
+		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
+		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
+#else
+		{
+			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			info.renderPass = ibl_skyboss_pass->object;
+			info.framebuffer = fbo[i]->fbo.object;
+			info.renderArea.extent.width = width;
+			info.renderArea.extent.height = height;
+			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
+		}
 #endif // !D3D12
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, ibl_sig);

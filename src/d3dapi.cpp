@@ -276,6 +276,11 @@ void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_se
 	);
 }
 
+void set_input_attachment(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t, image_view_t& img_view)
+{
+	set_image_view(dev, descriptor_set, offset, 0, img_view);
+}
+
 std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)
 {
 	D3D12_SAMPLER_DESC samplerdesc = {};

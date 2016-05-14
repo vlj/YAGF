@@ -18,7 +18,7 @@ struct ssao_utility
 	std::shared_ptr<descriptor_set_layout> ssao_input_set;
 	pipeline_state_t ssao_pso;
 	pipeline_layout_t ssao_sig;
-	std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> samplers_set;
+	std::shared_ptr<descriptor_set_layout> samplers_set;
 	std::shared_ptr<descriptor_set_layout> gaussian_input_set;
 	std::unique_ptr<compute_pipeline_state_t> gaussian_h_pso;
 	std::unique_ptr<compute_pipeline_state_t> gaussian_v_pso;
