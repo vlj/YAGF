@@ -310,7 +310,7 @@ namespace
 		case irr::video::ECF_BC4_SNORM: return VK_FORMAT_BC4_SNORM_BLOCK;
 		case irr::video::ECF_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
 		case irr::video::ECF_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
-		case irr::video::D24U8: return VK_FORMAT_D32_SFLOAT_S8_UINT;
+		case irr::video::D24U8: return VK_FORMAT_D24_UNORM_S8_UINT;
 		case irr::video::ECF_B8G8R8A8: return VK_FORMAT_B8G8R8A8_UINT;
 		case irr::video::ECF_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
 		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;

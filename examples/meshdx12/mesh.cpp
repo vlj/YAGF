@@ -232,7 +232,7 @@ void MeshSample::fill_descriptor_set()
 	normal_view = create_image_view(*dev, *normal, irr::video::ECF_R16G16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	roughness_metalness_view = create_image_view(*dev, *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	skybox_view = create_image_view(*dev, *skybox_texture, irr::video::ECF_BC1_UNORM_SRGB, 11, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
-	depth_view = create_image_view(*dev, *depth_buffer, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	depth_view = create_image_view(*dev, *depth_buffer, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 
 	// scene
 	set_image_view(*dev, scene_descriptor, 2, 9, *skybox_view);
