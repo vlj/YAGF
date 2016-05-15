@@ -24,6 +24,8 @@
     </None>
     <None Include="..\shaders\computesh.comp" />
     <None Include="..\shaders\dfg.comp" />
+    <None Include="..\shaders\gaussian_h.comp" />
+    <None Include="..\shaders\gaussian_v.comp" />
     <None Include="..\shaders\ibl.frag" />
     <None Include="..\shaders\importance_sampling_specular.comp" />
     <None Include="..\shaders\linearize_depth.frag" />
@@ -114,7 +116,9 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\importance_sampling_specular.comp -o $(SolutionDir)\importance_sampling_specular.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\linearize_depth.frag -o $(SolutionDir)\linearize_depth.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.frag -o $(SolutionDir)\ssao.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.frag -o $(SolutionDir)\ssao.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\gaussian_h.comp -o $(SolutionDir)\gaussian_h.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\gaussian_v.comp -o $(SolutionDir)\gaussian_v.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -149,7 +153,9 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\importance_sampling_specular.comp -o $(SolutionDir)\importance_sampling_specular.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\linearize_depth.frag -o $(SolutionDir)\linearize_depth.spv
-$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.frag -o $(SolutionDir)\ssao.spv</Command>
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.frag -o $(SolutionDir)\ssao.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\gaussian_h.comp -o $(SolutionDir)\gaussian_h.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\gaussian_v.comp -o $(SolutionDir)\gaussian_v.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

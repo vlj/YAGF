@@ -53,6 +53,12 @@
     <None Include="..\shaders\ssao.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\gaussian_h.comp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\gaussian_v.comp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

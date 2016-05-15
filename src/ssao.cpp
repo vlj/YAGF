@@ -202,7 +202,7 @@ namespace
 		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 		return std::make_unique<compute_pipeline_state_t>(result);
 #else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\computesh.spv");
+		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\gaussian_h.spv");
 		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
 		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, layout->object, VkPipeline(VK_NULL_HANDLE), -1);
 #endif // D3D12
@@ -223,7 +223,7 @@ namespace
 		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
 		return std::make_unique<compute_pipeline_state_t>(result);
 #else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\computesh.spv");
+		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\gaussian_v.spv");
 		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
 		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, layout->object, VkPipeline(VK_NULL_HANDLE), -1);
 #endif // D3D12
@@ -268,7 +268,7 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(
 	ssao_input_set = get_object_descriptor_set(dev, ssao_input_set_type);
 	ssao_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ ssao_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
 	gaussian_input_set = get_object_descriptor_set(dev, gaussian_input_set_type);
-	gaussian_input_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ gaussian_input_set->object }, std::vector<VkPushConstantRange>());
+	gaussian_input_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ gaussian_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
 #endif
 	render_pass = create_render_pass(dev);
 	linearize_depth_pso = get_linearize_pso(dev, linearize_depth_sig, *render_pass);
