@@ -258,7 +258,7 @@ namespace
 ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(_depth_input)
 {
 #ifdef D3D12
-	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type });
+	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type, samplers_set_type });
 	ssao_sig = get_pipeline_layout_from_desc(dev, { ssao_input_set_type, samplers_set_type });
 	gaussian_input_sig = get_pipeline_layout_from_desc(dev, { gaussian_input_set_type });
 #else

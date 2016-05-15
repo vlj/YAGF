@@ -270,7 +270,7 @@ void MeshSample::load_program_and_pipeline_layout()
 	object_sig = get_pipeline_layout_from_desc(*dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
 	sunlight_sig = get_pipeline_layout_from_desc(*dev, { input_attachments_descriptor_set_type, scene_descriptor_set_type });
 	skybox_sig = get_pipeline_layout_from_desc(*dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
-	ibl_sig = get_pipeline_layout_from_desc(*dev, { input_attachments_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type, sampler_descriptor_set_type });
+	ibl_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type, sampler_descriptor_set_type });
 #else
 	sampler_set = get_object_descriptor_set(*dev, sampler_descriptor_set_type);
 	object_set = get_object_descriptor_set(*dev, object_descriptor_set_type);
@@ -370,7 +370,7 @@ void MeshSample::fill_draw_commands()
 #ifndef D3D12
 		vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
-//		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
+		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
 #ifdef D3D12
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());

@@ -305,6 +305,9 @@ std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_ty
 		samplerdesc.MaxLOD = 0;
 		break;
 	case SAMPLER_TYPE::NEAREST:
+		samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		samplerdesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 		samplerdesc.MaxLOD = 0;
 		break;
