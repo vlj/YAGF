@@ -633,15 +633,13 @@ d3d12_framebuffer_t::d3d12_framebuffer_t(device_t& dev, const std::vector<std::t
 	CHECK_HRESULT(dev->CreateDescriptorHeap(&rtt_desc, IID_PPV_ARGS(rtt_heap.GetAddressOf())));
 
 	uint32_t idx = 0;
-	for (const auto &rtt : render_targets)
-	{
-		D3D12_RENDER_TARGET_VIEW_DESC rttvd = {};
-		rttvd.Format = get_dxgi_format(std::get<1>(rtt));
-		rttvd.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rttvd.Texture2D.MipSlice = 0;
-		rttvd.Texture2D.PlaneSlice = 0;
-		dev->CreateRenderTargetView(std::get<0>(rtt), &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(idx++, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
-	}
+	std::for_each(render_targets.begin(), render_targets.end(),
+		[this, &dev, &idx](const auto &rtt) {
+			D3D12_RENDER_TARGET_VIEW_DESC rttvd = {};
+			rttvd.Format = get_dxgi_format(std::get<1>(rtt));
+			rttvd.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			dev->CreateRenderTargetView(std::get<0>(rtt), &rttvd, CD3DX12_CPU_DESCRIPTOR_HANDLE(rtt_heap->GetCPUDescriptorHandleForHeapStart()).Offset(idx++, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)));
+	});
 }
 
 d3d12_framebuffer_t::d3d12_framebuffer_t(device_t& dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil_texture)
