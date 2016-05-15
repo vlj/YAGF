@@ -301,6 +301,7 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(
 	linear_depth_buffer_view = create_image_view(dev, *linear_depth_buffer, irr::video::ECF_R32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	ssao_result_view = create_image_view(dev, *ssao_result, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	gaussian_blurring_buffer_view = create_image_view(dev, *gaussian_blurring_buffer, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	ssao_bilinear_result_view = create_image_view(dev, *gaussian_blurring_buffer, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
 	set_image_view(dev, linearize_input, 1, 1, *depth_image_view);
 	set_image_view(dev, ssao_input, 1, 2, *linear_depth_buffer_view);
@@ -319,6 +320,13 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(gaussian_input_h).Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 	dev->CreateUnorderedAccessView(*ssao_bilinear_result, nullptr, &desc,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(gaussian_input_v).Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#else
+	util::update_descriptor_sets(dev, {
+		structures::write_descriptor_set(gaussian_input_h, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			{ structures::descriptor_image_info(*gaussian_blurring_buffer_view, VK_IMAGE_LAYOUT_GENERAL) }, 2),
+		structures::write_descriptor_set(gaussian_input_v, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			{ structures::descriptor_image_info(*ssao_bilinear_result_view, VK_IMAGE_LAYOUT_GENERAL) }, 2)
+	});
 #endif
 }
 
