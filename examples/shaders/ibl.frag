@@ -7,6 +7,7 @@ layout(set = 0, binding = 4) uniform texture2D ctex;
 layout(set = 0, binding = 5) uniform texture2D ntex;
 layout(set = 0, binding = 14) uniform texture2D roughness_metalness;
 layout(set = 0, binding = 6) uniform texture2D dtex;
+layout(set = 0, binding = 15) uniform texture2D ssao;
 
 
 layout(set = 2, binding = 11) uniform textureCube probe;
@@ -142,5 +143,5 @@ void main(void)
     vec3 Dielectric = DiffuseIBL(normal, eyedir, roughness, color.rgb) + SpecularIBL(normal, eyedir, roughness, vec3(.04));
     vec3 Metal = SpecularIBL(normal, eyedir, roughness, color.rgb);
 
-    FragColor = vec4(mix(Dielectric, Metal, Metalness), color.a);
+    FragColor = vec4(texture(sampler2D(ssao, bilinear_s), uv).x * mix(Dielectric, Metal, Metalness), color.a);
 }

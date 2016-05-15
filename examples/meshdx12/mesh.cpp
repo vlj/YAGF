@@ -221,7 +221,7 @@ void MeshSample::Init()
 	ssao_util = std::make_unique<ssao_utility>(*dev, depth_buffer.get());
 
 	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
-	set_image_view(*dev, input_attachments_descriptors, 4, 15, *ssao_view);
+	set_image_view(*dev, rtt_descriptors, 4, 15, *ssao_view);
 
 	start_command_list_recording(*command_list, *command_allocator);
 	set_pipeline_barrier(*command_list, *ssao_util->linear_depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
