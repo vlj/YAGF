@@ -35,21 +35,21 @@ namespace
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
 		shader_stage::fragment_shader);
 
+	// anisotropic, bilinear
 	constexpr auto sampler_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 13, 1) },
 		shader_stage::fragment_shader);
 
-	// color, normal, depth
+	// color, normal, roughness+metalness, depth
 	constexpr auto input_attachments_descriptor_set_type = descriptor_set({
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 4, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 5, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 6, 1),
-			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 14, 1),
-			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 15, 1) },
+			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 14, 1) },
 			shader_stage::fragment_shader);
 
-	// color, normal, depth, ssao
+	// color, normal,roughness+metalness, depth, ssao
 	constexpr auto rtt_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 4, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 5, 1),
@@ -258,9 +258,9 @@ void MeshSample::fill_descriptor_set()
 	set_image_view(*dev, rtt_descriptors, 3, 6, *depth_view);
 
 	bilinear_clamped_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
-	sampler = create_sampler(*dev, SAMPLER_TYPE::TRILINEAR);
+	anisotropic_sampler = create_sampler(*dev, SAMPLER_TYPE::ANISOTROPIC);
 
-	set_sampler(*dev, sampler_descriptors, 0, 3, *sampler);
+	set_sampler(*dev, sampler_descriptors, 0, 3, *anisotropic_sampler);
 	set_sampler(*dev, sampler_descriptors, 1, 13, *bilinear_clamped_sampler);
 }
 
