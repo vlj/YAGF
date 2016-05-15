@@ -128,7 +128,7 @@ layout(location = 0) out vec4 FragColor;
 
 void main(void)
 {
-    vec2 uv = gl_FragCoord.xy / 1024.;
+    vec2 uv = gl_FragCoord.xy / vec2(1008, 985);
 
     vec3 normal = normalize(DecodeNormal(2. * texture(sampler2D(ntex, bilinear_s), uv).xy - 1.));
     vec4 color = texture(sampler2D(ctex, bilinear_s), uv);
