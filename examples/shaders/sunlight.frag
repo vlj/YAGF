@@ -10,9 +10,10 @@ layout(input_attachment_index = 4, set = 0, binding = 6) uniform subpassInput dt
 
 layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
-  mat4 ViewMatrix;
-  mat4 InverseViewMatrix;
-  mat4 InverseProjectionMatrix;
+	mat4 ViewMatrix;
+	mat4 InverseViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 InverseProjectionMatrix;
 };
 
 layout(set = 1, binding = 8, std140) uniform LIGHTDATA

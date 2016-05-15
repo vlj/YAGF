@@ -3,10 +3,10 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(input_attachment_index = 0, set = 0, binding = 4) uniform subpassInput ctex;
-layout(input_attachment_index = 1, set = 0, binding = 5) uniform subpassInput ntex;
-layout(input_attachment_index = 2, set = 0, binding = 14) uniform subpassInput roughness_metalness;
-layout(input_attachment_index = 4, set = 0, binding = 6) uniform subpassInput dtex;
+layout(set = 0, binding = 4) uniform texture2D ctex;
+layout(set = 0, binding = 5) uniform texture2D ntex;
+layout(set = 0, binding = 14) uniform texture2D roughness_metalness;
+layout(set = 0, binding = 6) uniform texture2D dtex;
 
 
 layout(set = 2, binding = 11) uniform textureCube probe;
@@ -17,9 +17,10 @@ layout(set = 3, binding = 13) uniform sampler bilinear_s;
 
 layout(set = 1, binding = 7, std140) uniform VIEWDATA
 {
-  mat4 ViewMatrix;
-  mat4 InverseViewMatrix;
-  mat4 InverseProjectionMatrix;
+	mat4 ViewMatrix;
+	mat4 InverseViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 InverseProjectionMatrix;
 };
 
 
@@ -128,19 +129,19 @@ layout(location = 0) out vec4 FragColor;
 void main(void)
 {
     vec2 uv = gl_FragCoord.xy / 1024.;
+
+    vec3 normal = normalize(DecodeNormal(2. * texture(sampler2D(ntex, bilinear_s), uv).xy - 1.));
+    vec4 color = texture(sampler2D(ctex, bilinear_s), uv);
+    float z = texture(sampler2D(dtex, bilinear_s), uv).x;
+    float roughness = texture(sampler2D(roughness_metalness, bilinear_s), uv).x;
+    float Metalness = texture(sampler2D(roughness_metalness, bilinear_s), uv).y;
+
     uv.y = 1. - uv.y;
-
-    vec3 normal = normalize(DecodeNormal(2. * subpassLoad(ntex).xy - 1.));
-    vec3 color =  subpassLoad(ctex).xyz;
-    float z = subpassLoad(dtex).x;
-
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
     vec3 eyedir = -normalize(xpos.xyz);
-    float roughness = subpassLoad(roughness_metalness).x;
 
-    vec3 Dielectric = DiffuseIBL(normal, eyedir, roughness, color) + SpecularIBL(normal, eyedir, roughness, vec3(.04));
-    vec3 Metal = SpecularIBL(normal, eyedir, roughness, color);
-    float Metalness = subpassLoad(roughness_metalness).y;
+    vec3 Dielectric = DiffuseIBL(normal, eyedir, roughness, color.rgb) + SpecularIBL(normal, eyedir, roughness, vec3(.04));
+    vec3 Metal = SpecularIBL(normal, eyedir, roughness, color.rgb);
 
-    FragColor = vec4(mix(Dielectric, Metal, Metalness), subpassLoad(ctex).a);
+    FragColor = vec4(mix(Dielectric, Metal, Metalness), color.a);
 }

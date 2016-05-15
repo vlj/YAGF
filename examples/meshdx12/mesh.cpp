@@ -41,13 +41,22 @@ namespace
 		shader_stage::fragment_shader);
 
 	// color, normal, depth
-	constexpr auto rtt_descriptor_set_type = descriptor_set({
+	constexpr auto input_attachments_descriptor_set_type = descriptor_set({
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 4, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 5, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 6, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 14, 1),
 			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 15, 1) },
 			shader_stage::fragment_shader);
+
+	// color, normal, depth, ssao
+	constexpr auto rtt_descriptor_set_type = descriptor_set({
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 4, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 5, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 6, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 14, 1),
+		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 15, 1) },
+		shader_stage::fragment_shader);
 
 	// view/proj matrixes, sunlight data, skybox
 	constexpr auto scene_descriptor_set_type = descriptor_set({
@@ -103,12 +112,6 @@ namespace
 #ifndef D3D12
 		result.reset(new render_pass_t(dev,
 		{
-			// color
-			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-			// normal
-			structures::attachment_description(VK_FORMAT_R16G16_SFLOAT, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-			// roughness and metalness
-			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
 			// final surface
 			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
 			// depth
@@ -117,12 +120,12 @@ namespace
 		{
 			// IBL pass
 			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-				.set_color_attachments({ VkAttachmentReference{ 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-			.set_input_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }, VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }, VkAttachmentReference{ 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }, VkAttachmentReference{ 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL } }),
+				.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+				.set_input_attachments({ VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL } }),
 			// Draw skybox
 			subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-				.set_color_attachments({ VkAttachmentReference{ 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-				.set_depth_stencil_attachment(VkAttachmentReference{ 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
+				.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
+				.set_depth_stencil_attachment(VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
 		},
 		{
 			get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT)
@@ -167,11 +170,15 @@ void MeshSample::Init()
 	set_pipeline_barrier(*command_list, *normal, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
-	fbo[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
+	fbo_pass1[0] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
+	fbo_pass1[1] = create_frame_buffer(*dev, { { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
+
+	fbo_pass2[0] = create_frame_buffer(*dev, { { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, ibl_skyboss_pass.get());
+	fbo_pass2[1] = create_frame_buffer(*dev, { { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, ibl_skyboss_pass.get());
 
 	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 10, { ibl_set.get() });
 	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() });
+	input_attachments_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { input_attachments_set.get() });
 	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { rtt_set.get() });
 	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(*dev, *sampler_heap, 0, { sampler_set.get() });
 
@@ -214,7 +221,7 @@ void MeshSample::Init()
 	ssao_util = std::make_unique<ssao_utility>(*dev, depth_buffer.get());
 
 	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
-	set_image_view(*dev, rtt_descriptors, 4, 15, *ssao_view);
+	set_image_view(*dev, input_attachments_descriptors, 4, 15, *ssao_view);
 
 	start_command_list_recording(*command_list, *command_allocator);
 	set_pipeline_barrier(*command_list, *ssao_util->linear_depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -240,10 +247,15 @@ void MeshSample::fill_descriptor_set()
 	set_constant_buffer_view(*dev, scene_descriptor, 1, 8, *sun_data, sizeof(7 * sizeof(float)));
 
 	// rtt
-	set_input_attachment(*dev, rtt_descriptors, 0, 4, *diffuse_color_view);
-	set_input_attachment(*dev, rtt_descriptors, 1, 5, *normal_view);
-	set_input_attachment(*dev, rtt_descriptors, 2, 14, *roughness_metalness_view);
-	set_input_attachment(*dev, rtt_descriptors, 3, 6, *depth_view);
+	set_input_attachment(*dev, input_attachments_descriptors, 0, 4, *diffuse_color_view);
+	set_input_attachment(*dev, input_attachments_descriptors, 1, 5, *normal_view);
+	set_input_attachment(*dev, input_attachments_descriptors, 2, 14, *roughness_metalness_view);
+	set_input_attachment(*dev, input_attachments_descriptors, 3, 6, *depth_view);
+
+	set_image_view(*dev, rtt_descriptors, 0, 4, *diffuse_color_view);
+	set_image_view(*dev, rtt_descriptors, 1, 5, *normal_view);
+	set_image_view(*dev, rtt_descriptors, 2, 14, *roughness_metalness_view);
+	set_image_view(*dev, rtt_descriptors, 3, 6, *depth_view);
 
 	bilinear_clamped_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
 	sampler = create_sampler(*dev, SAMPLER_TYPE::TRILINEAR);
@@ -256,19 +268,20 @@ void MeshSample::load_program_and_pipeline_layout()
 {
 #ifdef D3D12
 	object_sig = get_pipeline_layout_from_desc(*dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
-	sunlight_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type });
+	sunlight_sig = get_pipeline_layout_from_desc(*dev, { input_attachments_descriptor_set_type, scene_descriptor_set_type });
 	skybox_sig = get_pipeline_layout_from_desc(*dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
-	ibl_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type, sampler_descriptor_set_type });
+	ibl_sig = get_pipeline_layout_from_desc(*dev, { input_attachments_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type, sampler_descriptor_set_type });
 #else
 	sampler_set = get_object_descriptor_set(*dev, sampler_descriptor_set_type);
 	object_set = get_object_descriptor_set(*dev, object_descriptor_set_type);
 	scene_set = get_object_descriptor_set(*dev, scene_descriptor_set_type);
+	input_attachments_set = get_object_descriptor_set(*dev, input_attachments_descriptor_set_type);
 	rtt_set = get_object_descriptor_set(*dev, rtt_descriptor_set_type);
 	model_set = get_object_descriptor_set(*dev, model_descriptor_set_type);
 	ibl_set = get_object_descriptor_set(*dev, ibl_descriptor_set_type);
 
 	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
+	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ input_attachments_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
 	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
 #endif // D3D12
@@ -292,7 +305,7 @@ void MeshSample::fill_draw_commands()
 		{
 			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 			info.renderPass = object_sunlight_pass->object;
-			info.framebuffer = fbo[i]->fbo.object;
+			info.framebuffer = fbo_pass1[i]->fbo.object;
 			info.clearValueCount = 5;
 			VkClearValue clear_values[5] = {
 				structures::clear_value(clearColor),
@@ -308,16 +321,16 @@ void MeshSample::fill_draw_commands()
 		}
 #else // !D3D12
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtt_to_use = {
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo_pass1[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 				.Offset(0, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo_pass1[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 				.Offset(1, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo_pass1[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 				.Offset(2, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
-		current_cmd_list->object->OMSetRenderTargets(rtt_to_use.size(), rtt_to_use.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
-		clear_color(*current_cmd_list, fbo[i], clearColor);
-		clear_depth_stencil(*current_cmd_list, fbo[i], 1., 0);
+		current_cmd_list->object->OMSetRenderTargets(rtt_to_use.size(), rtt_to_use.data(), false, &(fbo_pass1[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		clear_color(*current_cmd_list, fbo_pass1[i], clearColor);
+		clear_depth_stencil(*current_cmd_list, fbo_pass1[i], 1., 0);
 
 		current_cmd_list->object->SetGraphicsRootSignature(object_sig.Get());
 
@@ -339,7 +352,7 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(*current_cmd_list, *roughness_metalness, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_DEPTH);
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> present_rtt = {
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo_pass1[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 			.Offset(3, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
 
@@ -349,7 +362,7 @@ void MeshSample::fill_draw_commands()
 #else
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #endif
-		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, sunlight_sig);
+		bind_graphic_descriptor(*current_cmd_list, 0, input_attachments_descriptors, sunlight_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(*current_cmd_list, sunlightpso);
 		bind_vertex_buffers(*current_cmd_list, 0, big_triangle_info);
@@ -357,7 +370,7 @@ void MeshSample::fill_draw_commands()
 #ifndef D3D12
 		vkCmdEndRenderPass(current_cmd_list->object);
 #endif // !D3D12
-		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
+//		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
 #ifdef D3D12
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
 		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
@@ -366,7 +379,7 @@ void MeshSample::fill_draw_commands()
 		{
 			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 			info.renderPass = ibl_skyboss_pass->object;
-			info.framebuffer = fbo[i]->fbo.object;
+			info.framebuffer = fbo_pass2[i]->fbo.object;
 			info.renderArea.extent.width = width;
 			info.renderArea.extent.height = height;
 			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
@@ -382,7 +395,7 @@ void MeshSample::fill_draw_commands()
 #ifndef D3D12
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #else
-		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
+		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo_pass1[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
 #endif

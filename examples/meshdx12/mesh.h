@@ -69,6 +69,7 @@ private:
 	std::shared_ptr<descriptor_set_layout> object_set;
 	std::shared_ptr<descriptor_set_layout> scene_set;
 	std::shared_ptr<descriptor_set_layout> sampler_set;
+	std::shared_ptr<descriptor_set_layout> input_attachments_set;
 	std::shared_ptr<descriptor_set_layout> rtt_set;
 	std::shared_ptr<descriptor_set_layout> model_set;
 	std::shared_ptr<descriptor_set_layout> ibl_set;
@@ -90,6 +91,7 @@ private:
 
 	allocated_descriptor_set ibl_descriptor;
 	allocated_descriptor_set sampler_descriptors;
+	allocated_descriptor_set input_attachments_descriptors;
 	allocated_descriptor_set rtt_descriptors;
 	allocated_descriptor_set scene_descriptor;
 
@@ -104,7 +106,8 @@ private:
 
 	std::unique_ptr<render_pass_t> object_sunlight_pass;
 	std::unique_ptr<render_pass_t> ibl_skyboss_pass;
-	framebuffer_t fbo[2];
+	framebuffer_t fbo_pass1[2];
+	framebuffer_t fbo_pass2[2];
 	pipeline_layout_t object_sig;
 	pipeline_state_t objectpso;
 	pipeline_layout_t sunlight_sig;
