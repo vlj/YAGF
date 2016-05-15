@@ -124,19 +124,18 @@ vec3 SpecularIBL(vec3 normal, vec3 V, float roughness, vec3 F0)
   return LD * (F0 * DFG.x + DFG.y);
 }
 
+layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 FragColor;
 
 void main(void)
 {
-    vec2 uv = gl_FragCoord.xy / vec2(1008, 985);
-
     vec3 normal = normalize(DecodeNormal(2. * texture(sampler2D(ntex, bilinear_s), uv).xy - 1.));
     vec4 color = texture(sampler2D(ctex, bilinear_s), uv);
     float z = texture(sampler2D(dtex, bilinear_s), uv).x;
     float roughness = texture(sampler2D(roughness_metalness, bilinear_s), uv).x;
     float Metalness = texture(sampler2D(roughness_metalness, bilinear_s), uv).y;
 
-    uv.y = 1. - uv.y;
+    vec2 inverteduv = vec2(uv.x, 1. - uv.y);
     vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
     vec3 eyedir = -normalize(xpos.xyz);
 

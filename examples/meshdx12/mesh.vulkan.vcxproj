@@ -113,7 +113,7 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -o $(SolutionDir)\ibl_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\importance_sampling_specular.comp -o $(SolutionDir)\importance_sampling_specular.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv
-$(VULKAN_SDK)\Bin\glslangValidator -G $(SolutionDir)\examples\shaders\linearize_depth.frag -o $(SolutionDir)\linearize_depth.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\linearize_depth.frag -o $(SolutionDir)\linearize_depth.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.frag -o $(SolutionDir)\ssao.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -148,7 +148,7 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\computesh.
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ibl.frag -o $(SolutionDir)\ibl_frag.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\importance_sampling_specular.comp -o $(SolutionDir)\importance_sampling_specular.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\dfg.comp -o $(SolutionDir)\dfg.spv
-$(VULKAN_SDK)\Bin\glslangValidator -G $(SolutionDir)\examples\shaders\linearize_depth.frag -o $(SolutionDir)\linearize_depth.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\linearize_depth.frag -o $(SolutionDir)\linearize_depth.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\shaders\ssao.frag -o $(SolutionDir)\ssao.spv</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

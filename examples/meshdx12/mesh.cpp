@@ -342,8 +342,8 @@ void MeshSample::fill_draw_commands()
 		set_graphic_pipeline(*current_cmd_list, objectpso);
 		bind_graphic_descriptor(*current_cmd_list, 2, scene_descriptor, object_sig);
 		bind_graphic_descriptor(*current_cmd_list, 3, sampler_descriptors, object_sig);
-		set_viewport(*current_cmd_list, 0., 1024.f, 0., 1024.f, 0., 1.);
-		set_scissor(*current_cmd_list, 0, 1024, 0, 1024);
+		set_viewport(*current_cmd_list, 0., width, 0., height, 0., 1.);
+		set_scissor(*current_cmd_list, 0, width, 0, height);
 
 		xue->fill_draw_command(*current_cmd_list, object_sig);
 #ifdef D3D12

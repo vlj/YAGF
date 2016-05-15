@@ -112,16 +112,16 @@ vec3 SunMRP(vec3 normal, vec3 eyedir)
     return (DdotR < d) ? normalize(d * D + normalize (S) * r) : R;
 }
 
+layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 FragColor;
 
 void main() {
     vec3 color = subpassLoad(ctex).xyz;
     vec3 norm = normalize(DecodeNormal(2. * subpassLoad(ntex).xy - 1.));
-    vec2 uv = gl_FragCoord.xy / 1024.;
-    uv.y = 1. - uv.y;
+    vec2 inverteduv = vec2(uv.x, 1. - uv.y);
     float z = subpassLoad(dtex).x;
 
-    vec4 xpos = getPosFromUVDepth(vec3(uv, z), InverseProjectionMatrix);
+    vec4 xpos = getPosFromUVDepth(vec3(inverteduv, z), InverseProjectionMatrix);
 
     float roughness = subpassLoad(roughness_metalness).x;
     vec3 eyedir = -normalize(xpos.xyz);
