@@ -3,6 +3,7 @@
 #include "../include/API/d3dapi.h"
 #include <d3dx12.h>
 #include <algorithm>
+#include <numeric>
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
@@ -380,11 +381,7 @@ namespace
 
 std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
 {
-	uint32_t total_size = 0;
-	for (const auto &set_size : num_descriptors)
-	{
-		total_size += std::get<1>(set_size);
-	}
+	uint32_t total_size = std::accumulate(num_descriptors.begin(), num_descriptors.end(), 0, [](uint32_t acc, auto t) {return acc + std::get<1>(t);});
 	ID3D12DescriptorHeap* result;
 	D3D12_DESCRIPTOR_HEAP_DESC heapdesc = {};
 	heapdesc.NumDescriptors = total_size;
