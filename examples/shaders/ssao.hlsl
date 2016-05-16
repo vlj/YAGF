@@ -6,6 +6,7 @@ cbuffer ssao_param : register(b0, space0)
 {
 	float ProjectionMatrix00;
 	float ProjectionMatrix11;
+	float2 screen_size;
 	float radius;
 	float tau;
 	float beta;

@@ -262,7 +262,7 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 #ifdef D3D12
 	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type, samplers_set_type });
 	ssao_sig = get_pipeline_layout_from_desc(dev, { ssao_input_set_type, samplers_set_type });
-	gaussian_input_sig = get_pipeline_layout_from_desc(dev, { gaussian_input_set_type });
+	gaussian_input_sig = get_pipeline_layout_from_desc(dev, { gaussian_input_set_type, samplers_set_type });
 #else
 	linearize_input_set = get_object_descriptor_set(dev, linearize_input_set_type);
 	samplers_set = get_object_descriptor_set(dev, samplers_set_type);
