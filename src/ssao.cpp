@@ -297,7 +297,7 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(
 	set_constant_buffer_view(dev, linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
 	set_constant_buffer_view(dev, ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
 
-	depth_image_view = create_image_view(dev, *depth_input, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	depth_image_view = create_image_view(dev, *depth_input, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 	linear_depth_buffer_view = create_image_view(dev, *linear_depth_buffer, irr::video::ECF_R32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	ssao_result_view = create_image_view(dev, *ssao_result, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	gaussian_blurring_buffer_view = create_image_view(dev, *gaussian_blurring_buffer, irr::video::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
