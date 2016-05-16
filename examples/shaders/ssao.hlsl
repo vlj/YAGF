@@ -6,7 +6,7 @@ cbuffer ssao_param : register(b0, space0)
 {
 	float ProjectionMatrix00;
 	float ProjectionMatrix11;
-	float2 screen_size;
+	float2 surface_size;
 	float radius;
 	float tau;
 	float beta;
@@ -34,7 +34,6 @@ float4 main(PS_INPUT In) : SV_TARGET
 {
 #define SAMPLES 16
 	const float invSamples = 1. / SAMPLES;
-	const float2 screen = float2(1024, 1024);
 
 	float2 uv = In.uv;
 	float lineardepth = linear_depth_texture.SampleLevel(s, uv, 0.).x;
@@ -61,7 +60,7 @@ float4 main(PS_INPUT In) : SV_TARGET
 		float h = r * alpha;
 		float2 localoffset = h * rotations;
 		//m = m + .5;
-		float2 occluder_uv = uv + localoffset / 1024.;
+		float2 occluder_uv = uv + localoffset / surface_size;
 		if (occluder_uv.x < 0 || occluder_uv.x > 1. || occluder_uv.y < 0 || occluder_uv.y > 1.) continue;
 		float LinearoccluderFragmentDepth = linear_depth_texture.SampleLevel(s, occluder_uv, max(m, 0.)).x;
 		float3 OccluderPos = getXcYcZc(occluder_uv.x, occluder_uv.y, LinearoccluderFragmentDepth);
