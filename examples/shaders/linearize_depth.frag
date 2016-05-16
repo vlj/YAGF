@@ -7,9 +7,6 @@
 
 layout(set = 0, binding = 0, std140) uniform SSAOBuffer
 {
-	mat4 ModelMatrix;
-	mat4 ViewProjectionMatrix;
-	mat4 ProjectionMatrix;
 	float zn;
 	float zf;
 };
