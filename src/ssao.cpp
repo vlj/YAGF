@@ -18,6 +18,8 @@ namespace
 	{
 		float ProjectionMatrix00;
 		float ProjectionMatrix11;
+		float width;
+		float height;
 		float radius;
 		float tau;
 		float beta;
@@ -255,7 +257,7 @@ namespace
 	}
 }
 
-ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(_depth_input)
+ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, uint32_t h) : depth_input(_depth_input), width(w), height(h)
 {
 #ifdef D3D12
 	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type, samplers_set_type });
@@ -287,12 +289,12 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input) : depth_input(
 	linearize_constant_data = create_buffer(dev, sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = create_buffer(dev, sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	clear_value_structure_t clear_value = get_clear_value(irr::video::ECF_R32F, { 0., 0., 0., 0. });
-	linear_depth_buffer = create_image(dev, irr::video::ECF_R32F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
+	linear_depth_buffer = create_image(dev, irr::video::ECF_R32F, width, height, 1, 1, usage_render_target | usage_sampled, &clear_value);
 	clear_value = get_clear_value(irr::video::ECF_R16F, { 0., 0., 0., 0. });
-	ssao_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_render_target | usage_sampled, &clear_value);
-	gaussian_blurring_buffer = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
-	ssao_bilinear_result = create_image(dev, irr::video::ECF_R16F, 1024, 1024, 1, 1, usage_uav | usage_sampled, nullptr);
-	linear_depth_fbo = create_frame_buffer(dev, { { *linear_depth_buffer, irr::video::ECF_R32F }, { *ssao_result, irr::video::ECF_R16F} }, 1024, 1024, render_pass.get());
+	ssao_result = create_image(dev, irr::video::ECF_R16F, width, height, 1, 1, usage_render_target | usage_sampled, &clear_value);
+	gaussian_blurring_buffer = create_image(dev, irr::video::ECF_R16F, width, height, 1, 1, usage_uav | usage_sampled, nullptr);
+	ssao_bilinear_result = create_image(dev, irr::video::ECF_R16F, width, height, 1, 1, usage_uav | usage_sampled, nullptr);
+	linear_depth_fbo = create_frame_buffer(dev, { { *linear_depth_buffer, irr::video::ECF_R32F }, { *ssao_result, irr::video::ECF_R16F} }, width, height, render_pass.get());
 
 	set_constant_buffer_view(dev, linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
 	set_constant_buffer_view(dev, ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
@@ -350,8 +352,8 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		info.renderPass = render_pass->object;
 		info.framebuffer = linear_depth_fbo->fbo;
-		info.renderArea.extent.width = 1024;
-		info.renderArea.extent.height = 1024;
+		info.renderArea.extent.width = width;
+		info.renderArea.extent.height = height;
 		info.clearValueCount = 2;
 		VkClearValue clear_values[2] = {
 			structures::clear_value(clearColor),
@@ -373,6 +375,8 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	float *tmp = Perspective.pointer();
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
+	ssao_ptr->width = width;
+	ssao_ptr->height = height;
 	ssao_ptr->radius = 100.;
 	ssao_ptr->tau = 7.;
 	ssao_ptr->beta = .1;
@@ -401,7 +405,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_h, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_h_pso);
-	dispatch(cmd_list, 1024, 1024, 1);
+	dispatch(cmd_list, width, height, 1);
 #ifdef D3D12
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*gaussian_blurring_buffer));
 #else
@@ -419,7 +423,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_v, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_v_pso);
-	dispatch(cmd_list, 1024, 1024, 1);
+	dispatch(cmd_list, width, height, 1);
 #ifdef D3D12
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*ssao_bilinear_result));
 #endif

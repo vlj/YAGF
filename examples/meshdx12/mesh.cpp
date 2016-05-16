@@ -218,7 +218,7 @@ void MeshSample::Init()
 	set_image_view(*dev, ibl_descriptor, 1, 11, *specular_cube_view);
 	set_image_view(*dev, ibl_descriptor, 2, 12, *dfg_lut_view);
 	set_constant_buffer_view(*dev, ibl_descriptor, 0, 10, *sh_coefficients, 27 * sizeof(float));
-	ssao_util = std::make_unique<ssao_utility>(*dev, depth_buffer.get());
+	ssao_util = std::make_unique<ssao_utility>(*dev, depth_buffer.get(), width, height);
 
 	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	set_image_view(*dev, rtt_descriptors, 4, 15, *ssao_view);

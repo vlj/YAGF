@@ -12,6 +12,8 @@
 
 struct ssao_utility
 {
+	uint32_t width;
+	uint32_t height;
 	std::shared_ptr<descriptor_set_layout> linearize_input_set;
 	pipeline_state_t linearize_depth_pso;
 	pipeline_layout_t linearize_depth_sig;
@@ -52,7 +54,7 @@ struct ssao_utility
 	std::unique_ptr<sampler_t> nearest_sampler;
 
 
-	ssao_utility(device_t &dev, image_t* _depth_input);
+	ssao_utility(device_t &dev, image_t* _depth_input, uint32_t w, uint32_t h);
 
 	/**
 	 * Need to set render target before filling cmd list atm

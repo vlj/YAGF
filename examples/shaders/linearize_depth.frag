@@ -18,7 +18,6 @@ layout(location = 0) out vec4 FragColor;
 
 void main()
 {
-	vec2 uv = gl_FragCoord.xy / vec2(1024, 1024);
 	float d = texelFetch(sampler2D(tex, nearest), ivec2(gl_FragCoord.xy), 0).x;
 	float c0 = zn * zf;
 	float c1 = zn - zf;

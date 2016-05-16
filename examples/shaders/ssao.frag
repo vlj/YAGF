@@ -9,6 +9,7 @@ layout(set = 0, binding = 0, std140) uniform Matrixes
 {
 	float ProjectionMatrix00;
 	float ProjectionMatrix11;
+	vec2 surface_size;
 	float radius;
 	float tau;
 	float beta;
@@ -31,9 +32,8 @@ void main(void)
 {
 #define SAMPLES 16
 	float invSamples = 1. / SAMPLES;
-	vec2 screen = vec2(1024, 1024);
 
-	vec2 uv = gl_FragCoord.xy / screen;
+	vec2 uv = gl_FragCoord.xy / surface_size;
 	float lineardepth = texture(sampler2D(dtex, s), uv).x;
 	vec3 FragPos = getXcYcZc(uv.x, uv.y, lineardepth);
 
@@ -49,9 +49,6 @@ void main(void)
 	float m = 0;//log2(r) + 6 + log2(invSamples);
 
 	float occluded_factor = 0.0;
-	float theta = 2. * 3.14 * tau * .5 * invSamples + phi;
-	vec2 rotations = vec2(cos(theta), sin(theta)) * screen;
-	vec2 offset = vec2(cos(invSamples), sin(invSamples));
 	for(int i = 0; i < SAMPLES; ++i) {
 		float alpha = (i + .5) * invSamples;
 		float theta = 2. * 3.14 * alpha * tau * invSamples + phi;
@@ -59,7 +56,7 @@ void main(void)
 		float h = r * alpha;
 		vec2 localoffset = h * rotations;
 		//m = m + .5;
-		vec2 occluder_uv = uv + localoffset / 1024.;
+		vec2 occluder_uv = uv + localoffset / surface_size;
 		if (occluder_uv.x < 0 || occluder_uv.x > 1. || occluder_uv.y < 0 || occluder_uv.y > 1.) continue;
 		float LinearoccluderFragmentDepth = texture(sampler2D(dtex, s), occluder_uv).x;//, max(m, 0.)).x;
 		vec3 OccluderPos = getXcYcZc(occluder_uv.x, occluder_uv.y, LinearoccluderFragmentDepth);
