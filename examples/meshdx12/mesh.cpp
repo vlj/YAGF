@@ -226,6 +226,7 @@ void MeshSample::Init()
 	start_command_list_recording(*command_list, *command_allocator);
 	set_pipeline_barrier(*command_list, *ssao_util->linear_depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *ssao_util->ssao_result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	set_pipeline_barrier(*command_list, *ssao_util->gaussian_blurring_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
 	make_command_list_executable(*command_list);
 	submit_executable_command_list(*cmdqueue, *command_list);
 	wait_for_command_queue_idle(*dev, *cmdqueue);

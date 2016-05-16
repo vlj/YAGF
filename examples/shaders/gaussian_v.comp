@@ -4,20 +4,20 @@
 // From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch40.html
 
 layout(set = 0, binding = 1) uniform texture2D source;
-layout(set = 0, binding = 2) writeonly uniform image2D dest;
-layout(set = 1, binding = 4) uniform sampler nearest;
+layout(set = 0, binding = 2, r32f) uniform writeonly image2D dest;
+layout(set = 1, binding = 3) uniform sampler nearest;
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 2, local_size_y = 8, local_size_z = 1) in;
 shared vec4 local_src[2][8 + 2 * 8];
 
 void main()
 {
-	uvec2 DTid = gl_GlobalInvocationID.xy;
+	ivec2 DTid = ivec2(gl_GlobalInvocationID.xy);
 	uvec2 Lid = gl_LocalInvocationID.xy;
 	const float sigma = 10.;
-	local_src[Lid.x][Lid.y] = texture(sampler2D(source, nearest), DTid.xy + vec2(0., -8.));
-	local_src[Lid.x][Lid.y + 8] =  texture(sampler2D(source, nearest), DTid.xy);
-	local_src[Lid.x][Lid.y + 16] =  texture(sampler2D(source, nearest), DTid.xy + vec2(0., 8.));
+	local_src[Lid.x][Lid.y] = texelFetch(sampler2D(source, nearest), DTid + ivec2(0, -8), 0);
+	local_src[Lid.x][Lid.y + 8] = texelFetch(sampler2D(source, nearest), DTid, 0);
+	local_src[Lid.x][Lid.y + 16] = texelFetch(sampler2D(source, nearest), DTid + ivec2(0, 8), 0);
 
 	barrier();
 
@@ -31,11 +31,11 @@ void main()
 	float total_weight = g0;
 	for (int j = 1; j < 8; j++) {
 		total_weight += g0;
-		sum += local_src[Lid.y][8 + Lid.y - j] * g0;
+		sum += local_src[Lid.x][8 + Lid.y - j] * g0;
 		total_weight += g0;
-		sum += local_src[Lid.y][8 + Lid.y + j] * g0;
+		sum += local_src[Lid.x][8 + Lid.y + j] * g0;
 		g0 *= g1;
 		g1 *= g2;
 	}
-	imageStore(dest, ivec2(DTid.xy), vec4(1.));
+	imageStore(dest, DTid.xy, vec4(sum / total_weight));
 }

@@ -7,17 +7,17 @@ layout(set = 0, binding = 1) uniform texture2D source;
 layout(set = 0, binding = 2) writeonly uniform image2D dest;
 layout(set = 1, binding = 4) uniform sampler nearest;
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 2, local_size_z = 1) in;
 shared vec4 local_src[8 + 2 * 8][2];
 
 void main()
 {
-	uvec2 DTid = gl_GlobalInvocationID.xy;
+	ivec2 DTid = ivec2(gl_GlobalInvocationID.xy);
 	uvec2 Lid = gl_LocalInvocationID.xy;
 	const float sigma = 10.;
-	local_src[Lid.x][Lid.y] = texture(sampler2D(source, nearest), DTid.xy + vec2(-8., 0.));
-	local_src[Lid.x + 8][Lid.y] =  texture(sampler2D(source, nearest), DTid.xy);
-	local_src[Lid.x + 16][Lid.y] =  texture(sampler2D(source, nearest), DTid.xy + vec2(8., 0));
+	local_src[Lid.x][Lid.y] = texelFetch(sampler2D(source, nearest), DTid + ivec2(-8, 0), 0);
+	local_src[Lid.x + 8][Lid.y] = texelFetch(sampler2D(source, nearest), DTid, 0);
+	local_src[Lid.x + 16][Lid.y] = texelFetch(sampler2D(source, nearest), DTid + ivec2(8, 0), 0);
 
 	barrier();
 
@@ -37,5 +37,5 @@ void main()
 		g0 *= g1;
 		g1 *= g2;
 	}
-	imageStore(dest, ivec2(DTid.xy), vec4(sum / total_weight));
+	imageStore(dest, DTid.xy, vec4(sum / total_weight));
 }

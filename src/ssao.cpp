@@ -399,13 +399,25 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	vkCmdEndRenderPass(cmd_list);
 #endif
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_h, gaussian_input_sig);
+	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_h_pso);
 	dispatch(cmd_list, 1024, 1024, 1);
 #ifdef D3D12
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*gaussian_blurring_buffer));
+#else
+	VkImageMemoryBarrier mem_barr{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr};
+	mem_barr.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	mem_barr.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	mem_barr.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+	mem_barr.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+	mem_barr.image = *gaussian_blurring_buffer;
+	mem_barr.subresourceRange = structures::image_subresource_range();
+
+	vkCmdPipelineBarrier(cmd_list, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &mem_barr);
 #endif
 
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_v, gaussian_input_sig);
+	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_v_pso);
 	dispatch(cmd_list, 1024, 1024, 1);
 #ifdef D3D12
