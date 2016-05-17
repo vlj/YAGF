@@ -6,6 +6,7 @@
 #include <cmath>
 #include <set>
 #include <d3dcompiler.h>
+#include "..\include\Scene\IBL.h"
 
 namespace
 {
@@ -138,10 +139,8 @@ ibl_utility::ibl_utility(device_t &dev)
 	srv_cbv_uav_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 20 },{ RESOURCE_VIEW::SHADER_RESOURCE, 20 },{ RESOURCE_VIEW::UAV_BUFFER, 1 },{ RESOURCE_VIEW::TEXEL_BUFFER, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 50 } });
 	sampler_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-	input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() });
 	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() });
 
-	dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() });
 
 	anisotropic_sampler = create_sampler(dev, SAMPLER_TYPE::ANISOTROPIC);
 	set_sampler(dev, sampler_descriptors, 0, 4, *anisotropic_sampler);
@@ -153,6 +152,47 @@ struct SHCoefficients
 	float Green[9];
 	float Blue[9];
 };
+
+allocated_descriptor_set ibl_utility::get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer)
+{
+	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() });
+
+	set_image_view(dev, input_descriptors, 1, 1, probe_view);
+	set_constant_buffer_view(dev, input_descriptors, 0, 0, constant_buffer, sizeof(int));
+#ifdef D3D12
+	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, sh_buffer, sizeof(SH));
+#else
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			{ structures::descriptor_buffer_info(sh_buffer, 0, sizeof(SH)) }, 2)
+	});
+#endif
+	return input_descriptors;
+}
+
+allocated_descriptor_set ibl_utility::get_dfg_input_descriptor_set(device_t & dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view)
+{
+	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() });
+	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, constant_buffer, sizeof(float));
+
+#if D3D12
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+	dev->CreateUnorderedAccessView(std::get<1>(DFG_LUT_view), nullptr, &desc,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
+		.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+#else
+	util::update_descriptor_sets(dev, {
+		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			{ structures::descriptor_image_info(DFG_LUT_view) }, 2)
+	});
+#endif
+
+	return dfg_input_descriptor_set;
+}
 
 std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, command_queue_t& cmd_queue, image_t& probe, size_t edge_size)
 {
@@ -170,26 +210,17 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
 
 	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
-	set_image_view(dev, input_descriptors, 1, 1, *probe_view);
-	set_constant_buffer_view(dev, input_descriptors, 0, 0, *cbuf, sizeof(int));
-#ifdef D3D12
-	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, *sh_buffer, sizeof(SH));
 
+#ifdef D3D12
 	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
 	command_list->object->SetDescriptorHeaps(2, heaps.data());
 	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
-#else
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			{ structures::descriptor_buffer_info(sh_buffer->object, 0, sizeof(SH)) }, 2)
-	});
 #endif
 	set_compute_pipeline(*command_list, *compute_sh_pso);
-	bind_compute_descriptor(*command_list, 0, input_descriptors, compute_sh_sig);
+	bind_compute_descriptor(*command_list, 0, get_compute_sh_descriptor(dev, *cbuf, *probe_view, *sh_buffer), compute_sh_sig);
 	bind_compute_descriptor(*command_list, 1, sampler_descriptors, compute_sh_sig);
 
 	dispatch(*command_list, 1, 1, 1);
@@ -424,7 +455,9 @@ std::unique_ptr<image_t> ibl_utility::getDFGLUT(device_t& dev, command_queue_t& 
 		hamerleybuf[2 * j + 1] = sample.second;
 	}
 	unmap_buffer(dev, *hamersley_seq_buf);
-	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, *cbuf, sizeof(float));
+	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+
+	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *cbuf, *texture_view);
 #if D3D12
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 	srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -434,23 +467,13 @@ std::unique_ptr<image_t> ibl_utility::getDFGLUT(device_t& dev, command_queue_t& 
 	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	dev->CreateShaderResourceView(*hamersley_seq_buf, &srv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
-			.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-	dev->CreateUnorderedAccessView(*DFG_LUT_texture, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
-			.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+		.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
 	std::unique_ptr<vulkan_wrapper::buffer_view> buffer_view = std::make_unique<vulkan_wrapper::buffer_view>(dev, *hamersley_seq_buf, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
-	std::unique_ptr<vulkan_wrapper::image_view> texture_view = create_image_view(dev, *DFG_LUT_texture, VK_FORMAT_R32G32B32A32_SFLOAT, structures::image_subresource_range());
 
 	util::update_descriptor_sets(dev, {
 		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-			{ *buffer_view }, 1),
-		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			{ structures::descriptor_image_info(*texture_view) }, 2)
+		{ *buffer_view }, 1),
 	});
 #endif
 

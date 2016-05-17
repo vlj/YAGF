@@ -74,9 +74,7 @@ struct ibl_utility
 	std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap;
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
-	allocated_descriptor_set input_descriptors;
 	allocated_descriptor_set sampler_descriptors;
-	allocated_descriptor_set dfg_input_descriptor_set;
 	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
 	std::array<allocated_descriptor_set, 48> level_face_descriptor;
@@ -94,5 +92,9 @@ struct ibl_utility
 
 	std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t& cmd_queue, image_t& probe);
 	std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size = 128);
+
+private:
+	allocated_descriptor_set get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer);
+	allocated_descriptor_set get_dfg_input_descriptor_set(device_t &dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view);
 };
 #endif
