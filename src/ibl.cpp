@@ -398,15 +398,6 @@ std::unique_ptr<image_t> ibl_utility::getDFGLUT(device_t& dev, command_queue_t& 
 	float sz = DFG_LUT_size;
 	memcpy(tmp, &sz, sizeof(float));
 	unmap_buffer(dev, *cbuf);
-	std::unique_ptr<buffer_t> hamersley_seq_buf = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
-	float* hamerleybuf = (float*)map_buffer(dev, *hamersley_seq_buf);
-	for (unsigned j = 0; j < 1024; j++)
-	{
-		std::pair<float, float> sample = HammersleySequence(j, 1024);
-		hamerleybuf[2 * j] = sample.first;
-		hamerleybuf[2 * j + 1] = sample.second;
-	}
-	unmap_buffer(dev, *hamersley_seq_buf);
 	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
 	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *cbuf, *texture_view);
@@ -417,18 +408,15 @@ std::unique_ptr<image_t> ibl_utility::getDFGLUT(device_t& dev, command_queue_t& 
 	srv.Buffer.NumElements = 1024;
 	srv.Buffer.StructureByteStride = 2 * sizeof(float);
 	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	dev->CreateShaderResourceView(*hamersley_seq_buf, &srv,
+	dev->CreateShaderResourceView(*hammersley_sequence_buffer, &srv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
 		.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 #else
-	std::unique_ptr<vulkan_wrapper::buffer_view> buffer_view = std::make_unique<vulkan_wrapper::buffer_view>(dev, *hamersley_seq_buf, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
-
 	util::update_descriptor_sets(dev, {
 		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-		{ *buffer_view }, 1),
+		{ *hammersley_sequence_buffer_view }, 1),
 	});
 #endif
-
 	start_command_list_recording(*command_list, *command_storage);
 	set_compute_pipeline(*command_list, *pso);
 #ifdef D3D12
