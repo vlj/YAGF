@@ -141,24 +141,11 @@ namespace
 		return std::make_pair(float(n) / float(samples), InvertedBinaryRepresentation);
 	}
 
-	/** Returns a pseudo random (theta, phi) generated from a probability density function modeled after Phong function.
-	\param a pseudo random float pair from a uniform density function between 0 and 1.
-	\param exponent from the Phong formula. */
-	std::pair<float, float> ImportanceSamplingPhong(std::pair<float, float> Seeds, float exponent)
+	struct per_level_importance_sampling_data
 	{
-		return std::make_pair(acosf(powf(Seeds.first, 1.f / (exponent + 1.f))), 2.f * 3.14f * Seeds.second);
-	}
-
-	/** Returns a pseudo random (theta, phi) generated from a probability density function modeled after GGX distribtion function.
-	From "Real Shading in Unreal Engine 4" paper
-	\param a pseudo random float pair from a uniform density function between 0 and 1.
-	\param exponent from the Phong formula. */
-	std::pair<float, float> ImportanceSamplingGGX(std::pair<float, float> Seeds, float roughness)
-	{
-		float a = roughness * roughness;
-		float CosTheta = sqrtf((1.f - Seeds.second) / (1.f + (a * a - 1.f) * Seeds.second));
-		return std::make_pair(acosf(CosTheta), 2.f * 3.14f * Seeds.first);
-	}
+		float size;
+		float alpha;
+	};
 }
 
 ibl_utility::ibl_utility(device_t &dev)
@@ -218,25 +205,27 @@ ibl_utility::ibl_utility(device_t &dev)
 		unmap_buffer(dev, *permutation_matrix[i]);
 	}
 
+	hammersley_sequence_buffer = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
+	float *tmp = reinterpret_cast<float*>(map_buffer(dev, *hammersley_sequence_buffer));
+	for (unsigned j = 0; j < 1024; j++)
+	{
+		std::pair<float, float> sample = HammersleySequence(j, 1024);
+		tmp[2 * j] = sample.first;
+		tmp[2 * j + 1] = sample.second;
+	}
+	unmap_buffer(dev, *hammersley_sequence_buffer);
+#ifndef D3D12
+	hammersley_sequence_buffer_view = std::make_unique<vulkan_wrapper::buffer_view>(dev, *hammersley_sequence_buffer, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
+#endif
+
 	for (unsigned i = 0; i < 8; i++)
 	{
-		sample_location_buffer[i] = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
-		per_level_cbuffer[i] = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-
-		float* sz = (float*)map_buffer(dev, *per_level_cbuffer[i]);
+		per_level_cbuffer[i] = create_buffer(dev, sizeof(per_level_importance_sampling_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		per_level_importance_sampling_data* tmp = (per_level_importance_sampling_data*)map_buffer(dev, *per_level_cbuffer[i]);
 		float viewportSize = float(1 << (8 - i));
-		*sz = viewportSize;
+		tmp->size = viewportSize;
+		tmp->alpha = .05f + .95f * i / 8.f;
 		unmap_buffer(dev, *per_level_cbuffer[i].get());
-
-		float roughness = .05f + .95f * i / 8.f;
-		float *tmp = reinterpret_cast<float*>(map_buffer(dev, *sample_location_buffer[i]));
-		for (unsigned j = 0; j < 1024; j++)
-		{
-			std::pair<float, float> sample = ImportanceSamplingGGX(HammersleySequence(j, 1024), roughness);
-			tmp[2 * j] = sample.first;
-			tmp[2 * j + 1] = sample.second;
-		}
-		unmap_buffer(dev, *sample_location_buffer[i]);
 	}
 }
 
@@ -347,17 +336,16 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		dev->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
 #else
-		buffer_views[i] = std::make_unique<vulkan_wrapper::buffer_view>(dev, sample_location_buffer[i]->object, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
+
 		util::update_descriptor_sets(dev,
 		{
 			structures::write_descriptor_set(sample_buffer_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-				{buffer_views[i]->object}, 2),
+				{*hammersley_sequence_buffer_view}, 2),
 		});
 #endif
 	}
 
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
-
 	set_compute_pipeline(cmd_list, *importance_sampling);
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(importance_sampling_sig.Get());

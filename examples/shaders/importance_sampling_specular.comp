@@ -13,7 +13,31 @@ layout(set = 3, binding = 4) uniform sampler s;
 layout(set = 1, binding = 5, std140) uniform _Size
 {
 	float size;
+    float alpha;
 };
+
+
+// See Real Shading in Unreal Engine 4 (Brian Karis) for formula
+float G1_Schlick(float XdotN, float k)
+{
+	return XdotN / (XdotN * (1.f - k) + k);
+}
+
+float G_Smith(float NdotV, float NdotL, float roughness)
+{
+	float k = roughness * roughness / 2.f;
+	return G1_Schlick(NdotV, k) * G1_Schlick(NdotL, k);
+}
+
+// Given a Seed from a uniform distribution, returns a half vector direction
+// as a theta, phi pair weighted against GGX distribution.
+vec2 ImportanceSamplingGGX(vec2 Seeds, float roughness)
+{
+	float a = roughness * roughness;
+	float CosTheta = sqrt((1.f - Seeds.y) / (1.f + (a * a - 1.f) * Seeds.y));
+	return vec2(acos(CosTheta), 2.f * 3.14f * Seeds.x);
+}
+
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -32,8 +56,9 @@ void main(void)
 
     for (int i = 0; i < 1024; i++)
     {
-        float Theta = texelFetch(samples, i).r;
-        float Phi = texelFetch(samples, i).g;
+		vec2 ThetaPhi = ImportanceSamplingGGX(texelFetch(samples, i).xy, alpha);
+		float Theta = ThetaPhi.x;
+		float Phi = ThetaPhi.y;
 
         vec3 H = cos(Theta) * RayDir + sin(Theta) * cos(Phi) * Tangent + sin(Theta) * sin(Phi) * Bitangent;
         vec3 L = 2 * dot(RayDir, H) * H - RayDir;

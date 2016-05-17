@@ -81,12 +81,12 @@ struct ibl_utility
 	std::unique_ptr<buffer_t> compute_sh_cbuf;
 	std::array<std::unique_ptr<buffer_t>, 6> permutation_matrix;
 
-	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
+	std::unique_ptr<buffer_t> hammersley_sequence_buffer;
 	std::array<std::unique_ptr<buffer_t>, 8> per_level_cbuffer{};
 
 	std::array<std::unique_ptr<image_view_t>, 48> uav_views;
 #ifndef D3D12
-	std::array<std::unique_ptr<vulkan_wrapper::buffer_view>, 8> buffer_views;
+	std::unique_ptr<vulkan_wrapper::buffer_view> hammersley_sequence_buffer_view;
 #endif
 
 	ibl_utility(device_t &dev);
