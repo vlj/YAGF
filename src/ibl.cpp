@@ -322,29 +322,6 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 		set_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(PermutationMatrix));
 	}
 
-	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
-	for (unsigned i = 0; i < 8; i++)
-	{
-		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * i + 12, { mipmap_set.get() });
-		set_constant_buffer_view(dev, sample_buffer_descriptors[i], 1, 5, *per_level_cbuffer[i], sizeof(float));
-#ifdef D3D12
-		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		srv.Buffer.FirstElement = 0;
-		srv.Buffer.NumElements = 1024;
-		srv.Buffer.StructureByteStride = 2 * sizeof(float);
-		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		dev->CreateShaderResourceView(sample_location_buffer[i]->object, &srv, sample_buffer_descriptors[i]);
-#else
-
-		util::update_descriptor_sets(dev,
-		{
-			structures::write_descriptor_set(sample_buffer_descriptors[i], VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-				{*hammersley_sequence_buffer_view}, 2),
-		});
-#endif
-	}
-
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
 	set_compute_pipeline(cmd_list, *importance_sampling);
 #ifdef D3D12
@@ -358,7 +335,24 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		bind_compute_descriptor(cmd_list, 1, sample_buffer_descriptors[level], importance_sampling_sig);
+		allocated_descriptor_set per_level_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * level + 12, { mipmap_set.get() });
+		set_constant_buffer_view(dev, per_level_descriptor, 1, 5, *per_level_cbuffer[level], sizeof(float));
+#ifdef D3D12
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srv.Buffer.FirstElement = 0;
+		srv.Buffer.NumElements = 1024;
+		srv.Buffer.StructureByteStride = 2 * sizeof(float);
+		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		dev->CreateShaderResourceView(*hammersley_sequence_buffer, &srv, per_level_descriptor);
+#else
+		util::update_descriptor_sets(dev,
+		{
+			structures::write_descriptor_set(per_level_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+			{ *hammersley_sequence_buffer_view }, 2),
+		});
+#endif
+		bind_compute_descriptor(cmd_list, 1, per_level_descriptor, importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
 			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() });
