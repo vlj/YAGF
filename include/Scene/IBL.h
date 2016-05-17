@@ -85,6 +85,9 @@ struct ibl_utility
 	std::array<std::unique_ptr<buffer_t>, 8> per_level_cbuffer{};
 
 	std::array<std::unique_ptr<image_view_t>, 48> uav_views;
+#ifndef D3D12
+	std::array<std::unique_ptr<vulkan_wrapper::buffer_view>, 8> buffer_views;
+#endif
 
 	ibl_utility(device_t &dev);
 

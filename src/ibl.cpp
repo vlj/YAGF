@@ -334,10 +334,6 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	}
 
 	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
-	std::array<allocated_descriptor_set, 48> level_face_descriptor;
-#ifndef D3D12
-	std::array<std::unique_ptr<vulkan_wrapper::buffer_view>, 8> buffer_views;
-#endif
 	for (unsigned i = 0; i < 8; i++)
 	{
 		sample_buffer_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * i + 12, { mipmap_set.get() });
@@ -361,31 +357,6 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	}
 
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
-	for (unsigned level = 0; level < 8; level++)
-	{
-		for (unsigned face = 0; face < 6; face++)
-		{
-			level_face_descriptor[face + level * 6] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, {uav_set.get()});
-#ifdef D3D12
-			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = level;
-			desc.Texture2DArray.ArraySize = 1;
-			desc.Texture2DArray.FirstArraySlice = face;
-			desc.Texture2DArray.PlaneSlice = 0;
-			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-
-			dev->CreateUnorderedAccessView(result->object, nullptr, &desc,
-				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor[face + 6 * level]));
-#else
-			uav_views[face + level * 6] = create_image_view(dev, *result, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1), VK_IMAGE_VIEW_TYPE_CUBE);
-			util::update_descriptor_sets(dev, {
-				structures::write_descriptor_set(level_face_descriptor[face + level * 6], VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-				{ structures::descriptor_image_info(uav_views[face + level * 6]->object, VK_IMAGE_LAYOUT_GENERAL)}, 3)
-			});
-#endif
-		}
-	}
 
 	set_compute_pipeline(cmd_list, *importance_sampling);
 #ifdef D3D12
@@ -402,8 +373,28 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 		bind_compute_descriptor(cmd_list, 1, sample_buffer_descriptors[level], importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
+			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() });
+#ifdef D3D12
+			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipSlice = level;
+			desc.Texture2DArray.ArraySize = 1;
+			desc.Texture2DArray.FirstArraySlice = face;
+			desc.Texture2DArray.PlaneSlice = 0;
+			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+			dev->CreateUnorderedAccessView(result->object, nullptr, &desc,
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor));
+#else
+			uav_views[face + level * 6] = create_image_view(dev, *result, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1), VK_IMAGE_VIEW_TYPE_CUBE);
+			util::update_descriptor_sets(dev, {
+				structures::write_descriptor_set(level_face_descriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				{ structures::descriptor_image_info(uav_views[face + level * 6]->object, VK_IMAGE_LAYOUT_GENERAL) }, 3)
+			});
+#endif
+
 			bind_compute_descriptor(cmd_list, 0, permutation_matrix_descriptors[face], importance_sampling_sig);
-			bind_compute_descriptor(cmd_list, 2, level_face_descriptor[face + 6 * level], importance_sampling_sig);
+			bind_compute_descriptor(cmd_list, 2, level_face_descriptor, importance_sampling_sig);
 
 			dispatch(cmd_list, 256 >> level, 256 >> level, 1);
 		}
