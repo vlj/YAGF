@@ -81,6 +81,8 @@ struct ibl_utility
 
 	std::unique_ptr<sampler_t> anisotropic_sampler;
 
+	std::unique_ptr<buffer_t> compute_sh_cbuf;
+
 	ibl_utility(device_t &dev);
 
 	/** Generate the 9 first SH coefficients for each color channel
@@ -88,7 +90,7 @@ struct ibl_utility
 	*  \param textures sequence of 6 square textures.
 	*  \param row/columns count of textures.
 	*/
-	std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_queue_t& cmd_queue, image_t& probe, size_t edge_size);
+	std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view, size_t edge_size);
 
 	std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t& cmd_queue, image_t& probe);
 	std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size = 128);

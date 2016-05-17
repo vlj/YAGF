@@ -209,7 +209,8 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(*dev, *cmdqueue);
 	//ibl
 	ibl_utility ibl_util(*dev);
-	sh_coefficients = ibl_util.computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
+	start_command_list_recording(*command_list, *command_allocator);
+	sh_coefficients = ibl_util.computeSphericalHarmonics(*dev, *command_list, *skybox_view, 1024);
 	specular_cube = ibl_util.generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
 	dfg_lut = ibl_util.getDFGLUT(*dev, *cmdqueue, 128);
 
@@ -224,7 +225,7 @@ void MeshSample::Init()
 	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	set_image_view(*dev, rtt_descriptors, 4, 15, *ssao_view);
 
-	start_command_list_recording(*command_list, *command_allocator);
+
 	set_pipeline_barrier(*command_list, *ssao_util->linear_depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *ssao_util->ssao_result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_pipeline_barrier(*command_list, *ssao_util->gaussian_blurring_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);

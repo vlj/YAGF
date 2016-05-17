@@ -141,9 +141,10 @@ ibl_utility::ibl_utility(device_t &dev)
 
 	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() });
 
-
 	anisotropic_sampler = create_sampler(dev, SAMPLER_TYPE::ANISOTROPIC);
 	set_sampler(dev, sampler_descriptors, 0, 4, *anisotropic_sampler);
+
+	compute_sh_cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 }
 
 struct SHCoefficients
@@ -194,42 +195,31 @@ allocated_descriptor_set ibl_utility::get_dfg_input_descriptor_set(device_t & de
 	return dfg_input_descriptor_set;
 }
 
-std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, command_queue_t& cmd_queue, image_t& probe, size_t edge_size)
+std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view, size_t edge_size)
 {
-	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
-	std::unique_ptr<command_list_t> command_list = create_command_list(dev, *command_storage);
-
-	start_command_list_recording(*command_list, *command_storage);
-	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	void* tmp = map_buffer(dev, *cbuf);
+	void* tmp = map_buffer(dev, *compute_sh_cbuf);
 	float cube_size = static_cast<float>(edge_size) / 10.f;
 	memcpy(tmp, &cube_size, sizeof(int));
-	unmap_buffer(dev, *cbuf);
+	unmap_buffer(dev, *compute_sh_cbuf);
 
 	std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
-	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
-
-	std::unique_ptr<image_view_t> probe_view = create_image_view(dev, probe, irr::video::ECF_BC1_UNORM_SRGB, 9, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 
 #ifdef D3D12
-	command_list->object->SetComputeRootSignature(compute_sh_sig.Get());
+	cmd_list->SetComputeRootSignature(compute_sh_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
-	command_list->object->SetDescriptorHeaps(2, heaps.data());
-	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	cmd_list->SetDescriptorHeaps(2, heaps.data());
+	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
 #endif
-	set_compute_pipeline(*command_list, *compute_sh_pso);
-	bind_compute_descriptor(*command_list, 0, get_compute_sh_descriptor(dev, *cbuf, *probe_view, *sh_buffer), compute_sh_sig);
-	bind_compute_descriptor(*command_list, 1, sampler_descriptors, compute_sh_sig);
+	set_compute_pipeline(cmd_list, *compute_sh_pso);
+	bind_compute_descriptor(cmd_list, 0, get_compute_sh_descriptor(dev, *compute_sh_cbuf, probe_view, *sh_buffer), compute_sh_sig);
+	bind_compute_descriptor(cmd_list, 1, sampler_descriptors, compute_sh_sig);
 
-	dispatch(*command_list, 1, 1, 1);
-//	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
-
-	make_command_list_executable(*command_list);
-	submit_executable_command_list(cmd_queue, *command_list);
+	dispatch(cmd_list, 1, 1, 1);
 	// for debug
-	wait_for_command_queue_idle(dev, cmd_queue);
+	//	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
+	//	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
 /*	SHCoefficients Result;
 	float* Shval = (float*)map_buffer(dev, sh_buffer_readback.get());
 	memcpy(Result.Blue, Shval, 9 * sizeof(float));
