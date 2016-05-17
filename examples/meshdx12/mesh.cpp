@@ -208,9 +208,10 @@ void MeshSample::Init()
 	submit_executable_command_list(*cmdqueue, *command_list);
 	wait_for_command_queue_idle(*dev, *cmdqueue);
 	//ibl
-	sh_coefficients = computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
-	specular_cube = generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
-	dfg_lut = getDFGLUT(*dev, *cmdqueue, 128);
+	ibl_utility ibl_util(*dev);
+	sh_coefficients = ibl_util.computeSphericalHarmonics(*dev, *cmdqueue, *skybox_texture, 1024);
+	specular_cube = ibl_util.generateSpecularCubemap(*dev, *cmdqueue, *skybox_texture);
+	dfg_lut = ibl_util.getDFGLUT(*dev, *cmdqueue, 128);
 
 	specular_cube_view = create_image_view(*dev, *specular_cube, irr::video::ECF_R16G16B16A16F, 8, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 	dfg_lut_view = create_image_view(*dev, *dfg_lut, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
