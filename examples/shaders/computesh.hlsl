@@ -1,5 +1,5 @@
 TextureCube probe : register(t0, space1);
-sampler Anisotropic : register(s0, space3);
+sampler Anisotropic : register(s0, space4);
 
 cbuffer DATA : register(b0, space0)
 {
