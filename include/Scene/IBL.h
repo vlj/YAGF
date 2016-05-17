@@ -75,13 +75,16 @@ struct ibl_utility
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
 	allocated_descriptor_set sampler_descriptors;
-	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
-	std::array<allocated_descriptor_set, 8> sample_buffer_descriptors;
-	std::array<allocated_descriptor_set, 48> level_face_descriptor;
 
 	std::unique_ptr<sampler_t> anisotropic_sampler;
 
 	std::unique_ptr<buffer_t> compute_sh_cbuf;
+	std::array<std::unique_ptr<buffer_t>, 6> permutation_matrix;
+
+	std::array<std::unique_ptr<buffer_t>, 8> sample_location_buffer{};
+	std::array<std::unique_ptr<buffer_t>, 8> per_level_cbuffer{};
+
+	std::array<std::unique_ptr<image_view_t>, 48> uav_views;
 
 	ibl_utility(device_t &dev);
 
@@ -92,7 +95,7 @@ struct ibl_utility
 	*/
 	std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view, size_t edge_size);
 
-	std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_queue_t& cmd_queue, image_t& probe);
+	std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view);
 	std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size = 128);
 
 private:
