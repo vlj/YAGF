@@ -631,6 +631,25 @@ void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t
 	command_list->SetPipelineState(pipeline);
 }
 
+void set_compute_pipeline_layout(command_list_t& command_list, pipeline_layout_t& sig)
+{
+	command_list->SetComputeRootSignature(sig.Get());
+}
+
+void set_descriptor_storage_referenced(command_list_t& command_list, descriptor_storage_t& main_heap, descriptor_storage_t* sampler_heap)
+{
+	if (sampler_heap != nullptr)
+	{
+		std::array<ID3D12DescriptorHeap*, 2> heaps{ main_heap.storage, sampler_heap->storage };
+		command_list->SetDescriptorHeaps(2, heaps.data());
+	}
+	else
+	{
+		std::array<ID3D12DescriptorHeap*, 1> heaps{ main_heap.storage};
+		command_list->SetDescriptorHeaps(1, heaps.data());
+	}
+}
+
 void submit_executable_command_list(command_queue_t& command_queue, command_list_t& command_list)
 {
 	command_queue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list.object));

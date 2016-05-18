@@ -381,12 +381,11 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	bind_graphic_descriptor(cmd_list, 1, sampler_input, ssao_sig);
 	bind_vertex_buffers(cmd_list, 0, big_triangle_info);
 	draw_non_indexed(cmd_list, 3, 1, 0, 0);
-
-#ifdef D3D12
-	cmd_list->SetComputeRootSignature(gaussian_input_sig.Get());
-#else
+#ifndef D3D12
 	vkCmdEndRenderPass(cmd_list);
 #endif
+
+	set_compute_pipeline_layout(cmd_list, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_h, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_h_pso);
@@ -404,7 +403,6 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 
 	vkCmdPipelineBarrier(cmd_list, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &mem_barr);
 #endif
-
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_v, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_v_pso);

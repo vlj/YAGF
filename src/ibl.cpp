@@ -272,13 +272,10 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 
 	std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
 
+	set_compute_pipeline_layout(cmd_list, compute_sh_sig);
+	set_descriptor_storage_referenced(cmd_list, *srv_cbv_uav_heap, sampler_heap.get());
 #ifdef D3D12
-	cmd_list->SetComputeRootSignature(compute_sh_sig.Get());
-	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->storage, sampler_heap->storage };
-	cmd_list->SetDescriptorHeaps(2, heaps.data());
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-//	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
-//	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
 #endif
 	set_compute_pipeline(cmd_list, *compute_sh_pso);
 	bind_compute_descriptor(cmd_list, 0, get_compute_sh_descriptor(dev, *compute_sh_cbuf, probe_view, *sh_buffer), compute_sh_sig);
@@ -293,6 +290,8 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 	memcpy(Result.Blue, Shval, 9 * sizeof(float));
 	memcpy(Result.Green, &Shval[9], 9 * sizeof(float));
 	memcpy(Result.Red, &Shval[18], 9 * sizeof(float));*/
+	//	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+	//	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(sh_buffer->object));
 
 	return std::move(sh_buffer);
 }
@@ -310,11 +309,8 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 
 	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
 	set_compute_pipeline(cmd_list, *importance_sampling);
-#ifdef D3D12
-	cmd_list->SetComputeRootSignature(importance_sampling_sig.Get());
-	std::array<ID3D12DescriptorHeap*, 2> heaps{ srv_cbv_uav_heap->storage, sampler_heap->storage };
-	cmd_list->SetDescriptorHeaps(2, heaps.data());
-#endif
+	set_compute_pipeline_layout(cmd_list, importance_sampling_sig);
+	set_descriptor_storage_referenced(cmd_list, *srv_cbv_uav_heap, sampler_heap.get());
 
 //	bind_compute_descriptor(command_list.get(), 0, image_descriptors, importance_sampling_sig);
 	bind_compute_descriptor(cmd_list, 3, sampler_descriptors, importance_sampling_sig);
@@ -357,11 +353,8 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 
 	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *dfg_cbuf, *texture_view);
 	set_compute_pipeline(cmd_list, *pso);
-#ifdef D3D12
-	cmd_list->SetComputeRootSignature(dfg_building_sig.Get());
-	std::array<ID3D12DescriptorHeap*, 1> heaps{ srv_cbv_uav_heap->storage };
-	cmd_list->SetDescriptorHeaps(1, heaps.data());
-#endif // D3D12
+	set_compute_pipeline_layout(cmd_list, dfg_building_sig);
+	set_descriptor_storage_referenced(cmd_list, *srv_cbv_uav_heap);
 	bind_compute_descriptor(cmd_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 
 	dispatch(cmd_list, DFG_LUT_size, DFG_LUT_size, 1);
