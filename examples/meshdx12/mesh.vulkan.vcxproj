@@ -41,6 +41,9 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="host_control.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{15D57052-73AD-4977-AB53-FBD0E92C4DDF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

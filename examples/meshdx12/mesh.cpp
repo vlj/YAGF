@@ -233,6 +233,8 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(*dev, *cmdqueue);
 
 	fill_draw_commands();
+
+
 }
 
 void MeshSample::fill_descriptor_set()
