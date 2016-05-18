@@ -407,9 +407,9 @@ namespace
 	}
 }
 
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect)
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect)
 {
-	return std::make_unique<image_view_t>(dev, img, get_image_type(texture_type), get_vk_format(fmt), structures::component_mapping(), structures::image_subresource_range(get_image_aspect(aspect), 0, mipmap_count, 0, layer_count));
+	return std::make_unique<image_view_t>(dev, img, get_image_type(texture_type), get_vk_format(fmt), structures::component_mapping(), structures::image_subresource_range(get_image_aspect(aspect), base_mipmap, mipmap_count, base_layer, layer_count));
 }
 
 void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
@@ -430,6 +430,15 @@ void set_input_attachment(device_t& dev, const allocated_descriptor_set& descrip
 	});
 }
 
+void set_uav_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+{
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			{ structures::descriptor_image_info(img_view, VK_IMAGE_LAYOUT_GENERAL) }, binding_location)
+	});
+}
+
 std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)
 {
 	switch (sampler_type)
@@ -446,7 +455,7 @@ std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_ty
 	case SAMPLER_TYPE::NEAREST:
 		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0., 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-}
+	}
 	throw;
 }
 

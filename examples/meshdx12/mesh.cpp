@@ -214,14 +214,14 @@ void MeshSample::Init()
 	specular_cube = ibl_util.generateSpecularCubemap(*dev, *command_list, *skybox_view);
 	std::tie(dfg_lut, dfg_lut_view) = ibl_util.getDFGLUT(*dev, *command_list, 128);
 
-	specular_cube_view = create_image_view(*dev, *specular_cube, irr::video::ECF_R16G16B16A16F, 8, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+	specular_cube_view = create_image_view(*dev, *specular_cube, irr::video::ECF_R16G16B16A16F, 0, 8, 0, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 
 	set_image_view(*dev, ibl_descriptor, 1, 11, *specular_cube_view);
 	set_image_view(*dev, ibl_descriptor, 2, 12, *dfg_lut_view);
 	set_constant_buffer_view(*dev, ibl_descriptor, 0, 10, *sh_coefficients, 27 * sizeof(float));
 	ssao_util = std::make_unique<ssao_utility>(*dev, depth_buffer.get(), width, height);
 
-	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	ssao_view = create_image_view(*dev, *ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	set_image_view(*dev, rtt_descriptors, 4, 15, *ssao_view);
 
 
@@ -237,11 +237,11 @@ void MeshSample::Init()
 
 void MeshSample::fill_descriptor_set()
 {
-	diffuse_color_view = create_image_view(*dev, *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
-	normal_view = create_image_view(*dev, *normal, irr::video::ECF_R16G16F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
-	roughness_metalness_view = create_image_view(*dev, *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
-	skybox_view = create_image_view(*dev, *skybox_texture, irr::video::ECF_BC1_UNORM_SRGB, 11, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
-	depth_view = create_image_view(*dev, *depth_buffer, irr::video::D24U8, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
+	diffuse_color_view = create_image_view(*dev, *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	normal_view = create_image_view(*dev, *normal, irr::video::ECF_R16G16F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	roughness_metalness_view = create_image_view(*dev, *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	skybox_view = create_image_view(*dev, *skybox_texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 11, 0, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+	depth_view = create_image_view(*dev, *depth_buffer, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 
 	// scene
 	set_image_view(*dev, scene_descriptor, 2, 9, *skybox_view);

@@ -288,35 +288,42 @@ std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT f
 	return std::make_unique<image_t>(result);
 }
 
-namespace
+std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT)
 {
-	D3D12_SRV_DIMENSION get_texture_type(irr::video::E_TEXTURE_TYPE texture_type)
-	{
-		switch (texture_type)
-		{
-		case irr::video::E_TEXTURE_TYPE::ETT_2D: return D3D12_SRV_DIMENSION_TEXTURE2D;
-		case irr::video::E_TEXTURE_TYPE::ETT_CUBE: return D3D12_SRV_DIMENSION_TEXTURECUBE;
-		}
-		throw;
-	}
-}
-
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t mipmap_count, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT)
-{
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	desc.ViewDimension = get_texture_type(texture_type);
-	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	d3d12_image_view desc{};
+	desc.format = get_dxgi_samplable_format(fmt);
+	desc.image = img;
+	desc.base_layer = base_layer;
+	desc.base_mipmap = base_mipmap;
+	desc.mipmap_count = mipmap_count;
+	desc.layer_count = layer_count;
 	if (texture_type == irr::video::E_TEXTURE_TYPE::ETT_CUBE)
-		desc.TextureCube.MipLevels = mipmap_count;
+	{
+		desc.texture_type = d3d12_texture_type::texturecube;
+	}
 	if (texture_type == irr::video::E_TEXTURE_TYPE::ETT_2D)
-		desc.Texture2D.MipLevels = mipmap_count;
-	desc.Format = get_dxgi_samplable_format(fmt);
-	return std::make_unique<image_view_t>(desc, img);
+	{
+		desc.texture_type = d3d12_texture_type::texture2d;
+	}
+	return std::make_unique<image_view_t>(desc);
 }
 
 void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t, image_view_t& img_view)
 {
-	dev->CreateShaderResourceView(std::get<1>(img_view), &std::get<0>(img_view),
+	D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	desc.Format = img_view.format;
+	if (img_view.texture_type == d3d12_texture_type::texturecube)
+	{
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		desc.TextureCube.MipLevels = img_view.mipmap_count;
+	}
+	if (img_view.texture_type == d3d12_texture_type::texture2d)
+	{
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipLevels = img_view.mipmap_count;
+	}
+	dev->CreateShaderResourceView(img_view.image, &desc,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
 	);
 }
@@ -324,6 +331,38 @@ void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_se
 void set_input_attachment(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t, image_view_t& img_view)
 {
 	set_image_view(dev, descriptor_set, offset, 0, img_view);
+}
+
+namespace
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC get_uav_view(image_view_t& img_view)
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+		desc.Format = img_view.format;
+		if (img_view.texture_type == d3d12_texture_type::texture2d)
+		{
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = img_view.base_mipmap;
+			return desc;
+		}
+		if (img_view.texture_type == d3d12_texture_type::texturecube)
+		{
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.MipSlice = img_view.base_mipmap;
+			desc.Texture2DArray.ArraySize = img_view.layer_count;
+			desc.Texture2DArray.FirstArraySlice = img_view.base_layer;
+			desc.Texture2DArray.PlaneSlice = 0;
+			return desc;
+		}
+		throw;
+	}
+}
+
+void set_uav_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+{
+	dev->CreateUnorderedAccessView(img_view.image, nullptr, &get_uav_view(img_view),
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set)
+			.Offset(offset, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
 std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)

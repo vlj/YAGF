@@ -47,7 +47,25 @@ using swap_chain_t = wrapper<IDXGISwapChain3>;
 using render_pass_t = void*;
 using clear_value_structure_t = D3D12_CLEAR_VALUE;
 using descriptor_set_layout = void;
-using image_view_t = std::tuple<D3D12_SHADER_RESOURCE_VIEW_DESC, ID3D12Resource*>;
+
+enum class d3d12_texture_type
+{
+	texture2d,
+	texturecube,
+};
+
+struct d3d12_image_view
+{
+	ID3D12Resource* image;
+	DXGI_FORMAT format;
+	d3d12_texture_type texture_type;
+	uint16_t base_mipmap;
+	uint16_t mipmap_count;
+	uint16_t base_layer;
+	uint16_t layer_count;
+};
+
+using image_view_t = d3d12_image_view;
 using sampler_t = D3D12_SAMPLER_DESC;
 using buffer_view_t = std::tuple<D3D12_SHADER_RESOURCE_VIEW_DESC, ID3D12Resource*>;
 

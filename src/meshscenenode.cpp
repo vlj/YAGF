@@ -127,7 +127,7 @@ namespace irr
 				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 13 + texture_id, { model_set });
 				mesh_descriptor_set.push_back(mesh_descriptor);
 
-				Textures_views.push_back(create_image_view(dev, *texture, irr::video::ECF_BC1_UNORM_SRGB, 9, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
+				Textures_views.push_back(create_image_view(dev, *texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 9, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
 				set_image_view(dev, mesh_descriptor, 0, 2, *Textures_views.back());
 				upload_buffers.push_back(std::move(upload_buffer));
 				Textures.push_back(std::move(texture));

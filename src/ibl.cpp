@@ -256,21 +256,7 @@ allocated_descriptor_set ibl_utility::get_dfg_input_descriptor_set(device_t & de
 {
 	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() });
 	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, constant_buffer, sizeof(float));
-
-#if D3D12
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-	dev->CreateUnorderedAccessView(std::get<1>(DFG_LUT_view), nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
-		.Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-#else
-	util::update_descriptor_sets(dev, {
-		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			{ structures::descriptor_image_info(DFG_LUT_view) }, 2)
-	});
-#endif
+	set_uav_image_view(dev, dfg_input_descriptor_set, 2, 2, DFG_LUT_view);
 
 	return dfg_input_descriptor_set;
 }
@@ -340,24 +326,8 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 		for (unsigned face = 0; face < 6; face++)
 		{
 			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() });
-#ifdef D3D12
-			D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-			desc.Texture2DArray.MipSlice = level;
-			desc.Texture2DArray.ArraySize = 1;
-			desc.Texture2DArray.FirstArraySlice = face;
-			desc.Texture2DArray.PlaneSlice = 0;
-			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-
-			dev->CreateUnorderedAccessView(result->object, nullptr, &desc,
-				CD3DX12_CPU_DESCRIPTOR_HANDLE(level_face_descriptor));
-#else
-			uav_views[face + level * 6] = create_image_view(dev, *result, VK_FORMAT_R16G16B16A16_SFLOAT, structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT, level, 1, face, 1), VK_IMAGE_VIEW_TYPE_CUBE);
-			util::update_descriptor_sets(dev, {
-				structures::write_descriptor_set(level_face_descriptor, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-				{ structures::descriptor_image_info(uav_views[face + level * 6]->object, VK_IMAGE_LAYOUT_GENERAL) }, 3)
-			});
-#endif
+			uav_views[face + level * 6] = create_image_view(dev, *result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+			set_uav_image_view(dev, level_face_descriptor, 0, 3, *uav_views[face + level * 6]);
 
 			bind_compute_descriptor(cmd_list, 0, permutation_matrix_descriptors[face], importance_sampling_sig);
 			bind_compute_descriptor(cmd_list, 2, level_face_descriptor, importance_sampling_sig);
@@ -374,7 +344,7 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility::getDFGLUT(device_t& dev, command_list_t& cmd_list, uint32_t DFG_LUT_size)
 {
 	std::unique_ptr<image_t> DFG_LUT_texture = create_image(dev, irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
-	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
 	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	void* tmp = map_buffer(dev, *cbuf);
