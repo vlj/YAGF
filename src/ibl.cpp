@@ -387,18 +387,17 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 
 /** Generate the Look Up Table for the DFG texture.
 	DFG Texture is used to compute diffuse and specular response from environmental lighting. */
-std::unique_ptr<image_t> ibl_utility::getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size)
+std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility::getDFGLUT(device_t& dev, command_list_t& cmd_list, uint32_t DFG_LUT_size)
 {
 	std::unique_ptr<image_t> DFG_LUT_texture = create_image(dev, irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
-	std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(dev);
-	std::unique_ptr<command_list_t> command_list = create_command_list(dev, *command_storage);
+	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
 	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	void* tmp = map_buffer(dev, *cbuf);
 	float sz = DFG_LUT_size;
 	memcpy(tmp, &sz, sizeof(float));
 	unmap_buffer(dev, *cbuf);
-	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 1, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+
 
 	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *cbuf, *texture_view);
 #if D3D12
@@ -417,20 +416,15 @@ std::unique_ptr<image_t> ibl_utility::getDFGLUT(device_t& dev, command_queue_t& 
 		{ *hammersley_sequence_buffer_view }, 1),
 	});
 #endif
-	start_command_list_recording(*command_list, *command_storage);
-	set_compute_pipeline(*command_list, *pso);
+	set_compute_pipeline(cmd_list, *pso);
 #ifdef D3D12
-	command_list->object->SetComputeRootSignature(dfg_building_sig.Get());
+	cmd_list->SetComputeRootSignature(dfg_building_sig.Get());
 	std::array<ID3D12DescriptorHeap*, 1> heaps{ *srv_cbv_uav_heap };
-	command_list->object->SetDescriptorHeaps(1, heaps.data());
+	cmd_list->SetDescriptorHeaps(1, heaps.data());
 #endif // D3D12
-	bind_compute_descriptor(*command_list, 0, dfg_input_descriptor_set, dfg_building_sig);
+	bind_compute_descriptor(cmd_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 
-	dispatch(*command_list, DFG_LUT_size, DFG_LUT_size, 1);
+	dispatch(cmd_list, DFG_LUT_size, DFG_LUT_size, 1);
 
-	make_command_list_executable(*command_list);
-	submit_executable_command_list(cmdqueue, *command_list);
-	wait_for_command_queue_idle(dev, cmdqueue);
-
-	return DFG_LUT_texture;
+	return std::make_tuple(std::move(DFG_LUT_texture), std::move(texture_view));
 }

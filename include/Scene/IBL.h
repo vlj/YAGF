@@ -99,7 +99,7 @@ struct ibl_utility
 	std::unique_ptr<buffer_t> computeSphericalHarmonics(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view, size_t edge_size);
 
 	std::unique_ptr<image_t> generateSpecularCubemap(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view);
-	std::unique_ptr<image_t> getDFGLUT(device_t& dev, command_queue_t& cmdqueue, uint32_t DFG_LUT_size = 128);
+	std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> getDFGLUT(device_t& dev, command_list_t& cmd_list, uint32_t DFG_LUT_size = 128);
 
 private:
 	allocated_descriptor_set get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer);
