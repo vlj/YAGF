@@ -559,7 +559,8 @@ void make_command_list_executable(command_list_t& command_list)
 
 void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT)
 {
-	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, get_resource_state(before), get_resource_state(after), subresource));
+	if (get_resource_state(before) != get_resource_state(after))
+		command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, get_resource_state(before), get_resource_state(after), subresource));
 }
 
 void set_uav_flush(command_list_t& command_list, image_t& resource)
