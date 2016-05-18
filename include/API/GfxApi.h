@@ -459,6 +459,7 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth);
 void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
 void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline);
+void set_graphic_pipeline_layout(command_list_t& command_list, pipeline_layout_t& sig);
 void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t& pipeline);
 void set_compute_pipeline_layout(command_list_t& command_list, pipeline_layout_t& sig);
 void set_descriptor_storage_referenced(command_list_t& command_list, descriptor_storage_t& main_heap, descriptor_storage_t* sampler_heap = nullptr);

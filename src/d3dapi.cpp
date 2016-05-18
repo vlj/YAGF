@@ -626,6 +626,11 @@ void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipelin
 	command_list->SetPipelineState(pipeline.Get());
 }
 
+void set_graphic_pipeline_layout(command_list_t& command_list, pipeline_layout_t& sig)
+{
+	command_list->SetGraphicsRootSignature(sig.Get());
+}
+
 void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t& pipeline)
 {
 	command_list->SetPipelineState(pipeline);

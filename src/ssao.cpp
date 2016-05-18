@@ -325,11 +325,9 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	ptr->zf = zf;
 	unmap_buffer(dev, *linearize_constant_data);
 
+	set_graphic_pipeline_layout(cmd_list, linearize_depth_sig);
+	set_descriptor_storage_referenced(cmd_list, *heap, sampler_heap.get());
 #ifdef D3D12
-	std::array<ID3D12DescriptorHeap*, 2> descriptors = { heap->storage, sampler_heap->storage };
-	cmd_list->SetDescriptorHeaps(2, descriptors.data());
-	cmd_list->SetGraphicsRootSignature(linearize_depth_sig.Get());
-
 	cmd_list->OMSetRenderTargets(1, &(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart()), false, nullptr);
 #else
 	{
@@ -371,11 +369,10 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	cmd_list->OMSetRenderTargets(1, &(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 			.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV))), false, nullptr);
-
-	cmd_list->SetGraphicsRootSignature(ssao_sig.Get());
 #else
 	vkCmdNextSubpass(cmd_list, VK_SUBPASS_CONTENTS_INLINE);
 #endif
+	set_graphic_pipeline_layout(cmd_list, ssao_sig);
 	set_graphic_pipeline(cmd_list, ssao_pso);
 	bind_graphic_descriptor(cmd_list, 0, ssao_input, ssao_sig);
 	bind_graphic_descriptor(cmd_list, 1, sampler_input, ssao_sig);

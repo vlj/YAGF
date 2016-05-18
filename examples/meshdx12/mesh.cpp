@@ -334,13 +334,10 @@ void MeshSample::fill_draw_commands()
 		clear_color(*current_cmd_list, fbo_pass1[i], clearColor);
 		clear_depth_stencil(*current_cmd_list, fbo_pass1[i], 1., 0);
 
-		current_cmd_list->object->SetGraphicsRootSignature(object_sig.Get());
-
-		std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap->storage, sampler_heap->storage };
-		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
-
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #endif
+		set_graphic_pipeline_layout(*current_cmd_list, object_sig);
+		set_descriptor_storage_referenced(*current_cmd_list, *cbv_srv_descriptors_heap, sampler_heap.get());
 		set_graphic_pipeline(*current_cmd_list, objectpso);
 		bind_graphic_descriptor(*current_cmd_list, 2, scene_descriptor, object_sig);
 		bind_graphic_descriptor(*current_cmd_list, 3, sampler_descriptors, object_sig);
@@ -357,13 +354,12 @@ void MeshSample::fill_draw_commands()
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo_pass1[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 			.Offset(3, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
-
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
-		current_cmd_list->object->SetGraphicsRootSignature(sunlight_sig.Get());
-		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
 #else
 		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #endif
+		set_graphic_pipeline_layout(*current_cmd_list, sunlight_sig);
+		set_descriptor_storage_referenced(*current_cmd_list, *cbv_srv_descriptors_heap, sampler_heap.get());
 		bind_graphic_descriptor(*current_cmd_list, 0, input_attachments_descriptors, sunlight_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, sunlight_sig);
 		set_graphic_pipeline(*current_cmd_list, sunlightpso);
@@ -375,8 +371,6 @@ void MeshSample::fill_draw_commands()
 		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
 #ifdef D3D12
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
-		current_cmd_list->object->SetGraphicsRootSignature(ibl_sig.Get());
-		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
 #else
 		{
 			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -387,6 +381,8 @@ void MeshSample::fill_draw_commands()
 			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 		}
 #endif // !D3D12
+		set_graphic_pipeline_layout(*current_cmd_list, ibl_sig);
+		set_descriptor_storage_referenced(*current_cmd_list, *cbv_srv_descriptors_heap, sampler_heap.get());
 		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, ibl_sig);
 		bind_graphic_descriptor(*current_cmd_list, 2, ibl_descriptor, ibl_sig);
@@ -399,8 +395,8 @@ void MeshSample::fill_draw_commands()
 #else
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo_pass1[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
-		current_cmd_list->object->SetGraphicsRootSignature(skybox_sig.Get());
 #endif
+		set_graphic_pipeline_layout(*current_cmd_list, skybox_sig);
 		bind_graphic_descriptor(*current_cmd_list, 0, scene_descriptor, skybox_sig);
 		bind_graphic_descriptor(*current_cmd_list, 1, sampler_descriptors, skybox_sig);
 		set_graphic_pipeline(*current_cmd_list, skybox_pso);
