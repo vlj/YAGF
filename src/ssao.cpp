@@ -358,12 +358,12 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	float *tmp = Perspective.pointer();
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
-	ssao_ptr->width = width;
-	ssao_ptr->height = height;
-	ssao_ptr->radius = 100.;
-	ssao_ptr->tau = 7.;
-	ssao_ptr->beta = .1;
-	ssao_ptr->epsilon = .1;
+	ssao_ptr->width = static_cast<float>(width);
+	ssao_ptr->height = static_cast<float>(height);
+	ssao_ptr->radius = 100.f;
+	ssao_ptr->tau = 7.f;
+	ssao_ptr->beta = .1f;
+	ssao_ptr->epsilon = .1f;
 	unmap_buffer(dev, *ssao_constant_data);
 #ifdef D3D12
 	cmd_list->OMSetRenderTargets(1, &(

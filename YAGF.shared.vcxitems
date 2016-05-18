@@ -18,11 +18,13 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\Scene\IBL.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\Scene\ISceneNode.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\Scene\MeshSceneNode.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\Scene\ssao.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\Scene\textures.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ibl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\meshscenenode.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ssao.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\textures.cpp" />
   </ItemGroup>
 </Project>
