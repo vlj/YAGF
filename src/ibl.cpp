@@ -347,7 +347,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
 	void* tmp = map_buffer(dev, *dfg_cbuf);
-	float sz = DFG_LUT_size;
+	float sz = static_cast<float>(DFG_LUT_size);
 	memcpy(tmp, &sz, sizeof(float));
 	unmap_buffer(dev, *dfg_cbuf);
 
