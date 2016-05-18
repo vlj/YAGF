@@ -313,23 +313,8 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 	nearest_sampler = create_sampler(dev, SAMPLER_TYPE::NEAREST);
 	set_sampler(dev, sampler_input, 0, 3, *bilinear_clamped_sampler);
 	set_sampler(dev, sampler_input, 1, 4, *nearest_sampler);
-#ifdef D3D12
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-	desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	desc.Format = DXGI_FORMAT_R16_FLOAT;
-
-	dev->CreateUnorderedAccessView(*gaussian_blurring_buffer, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(gaussian_input_h).Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-	dev->CreateUnorderedAccessView(*ssao_bilinear_result, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(gaussian_input_v).Offset(2, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-#else
-	util::update_descriptor_sets(dev, {
-		structures::write_descriptor_set(gaussian_input_h, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			{ structures::descriptor_image_info(*gaussian_blurring_buffer_view, VK_IMAGE_LAYOUT_GENERAL) }, 2),
-		structures::write_descriptor_set(gaussian_input_v, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			{ structures::descriptor_image_info(*ssao_bilinear_result_view, VK_IMAGE_LAYOUT_GENERAL) }, 2)
-	});
-#endif
+	set_uav_image_view(dev, gaussian_input_h, 2, 2, *gaussian_blurring_buffer_view);
+	set_uav_image_view(dev, gaussian_input_v, 2, 2, *ssao_bilinear_result_view);
 }
 
 void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, image_t & depth_buffer, float zn, float zf,
