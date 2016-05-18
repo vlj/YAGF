@@ -561,6 +561,11 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, get_resource_state(before), get_resource_state(after), subresource));
 }
 
+void set_uav_flush(command_list_t& command_list, image_t& resource)
+{
+	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(resource));
+}
+
 void clear_color(command_list_t& command_list, framebuffer_t framebuffer, const std::array<float, 4> &color)
 {
 	command_list->ClearRenderTargetView(framebuffer->rtt_heap->GetCPUDescriptorHandleForHeapStart(), color.data(), 0, nullptr);

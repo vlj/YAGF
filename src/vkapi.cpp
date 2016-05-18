@@ -585,6 +585,19 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 	vkCmdPipelineBarrier(command_list, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
+void set_uav_flush(command_list_t& command_list, image_t& resource)
+{
+	VkImageMemoryBarrier mem_barr{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr };
+	mem_barr.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+	mem_barr.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+	mem_barr.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+	mem_barr.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+	mem_barr.image = resource;
+	mem_barr.subresourceRange = structures::image_subresource_range();
+
+	vkCmdPipelineBarrier(command_list, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &mem_barr);
+}
+
 void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline)
 {
 	vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->object);

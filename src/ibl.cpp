@@ -323,17 +323,19 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 		bind_compute_descriptor(cmd_list, 1, per_level_descriptor, importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
+			set_pipeline_barrier(cmd_list, *result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
+
 			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() }, 1);
 			uav_views[face + level * 6] = create_image_view(dev, *result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 			set_uav_image_view(dev, level_face_descriptor, 0, 3, *uav_views[face + level * 6]);
 
 			bind_compute_descriptor(cmd_list, 0, permutation_matrix_descriptors[face], importance_sampling_sig);
 			bind_compute_descriptor(cmd_list, 2, level_face_descriptor, importance_sampling_sig);
-
 			dispatch(cmd_list, 256 >> level, 256 >> level, 1);
+
+			set_pipeline_barrier(cmd_list, *result, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
 		}
 	}
-
 	return result;
 }
 
@@ -358,10 +360,6 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 	bind_compute_descriptor(cmd_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 
 	dispatch(cmd_list, DFG_LUT_size, DFG_LUT_size, 1);
-
-#ifdef D3D12
-	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*DFG_LUT_texture));
-#endif
 	set_pipeline_barrier(cmd_list, *DFG_LUT_texture, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	return std::make_tuple(std::move(DFG_LUT_texture), std::move(texture_view));

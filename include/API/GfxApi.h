@@ -455,6 +455,7 @@ framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&
 void wait_for_command_queue_idle(device_t& dev, command_queue_t& command_queue);
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);
 void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
+void set_uav_flush(command_list_t& command_list, image_t& resource);
 
 void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth);
 void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
