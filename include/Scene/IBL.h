@@ -80,6 +80,7 @@ struct ibl_utility
 
 	std::unique_ptr<buffer_t> compute_sh_cbuf;
 	std::array<std::unique_ptr<buffer_t>, 6> permutation_matrix;
+	std::unique_ptr<buffer_t> dfg_cbuf;
 
 	std::unique_ptr<buffer_t> hammersley_sequence_buffer;
 	std::unique_ptr<buffer_view_t> hammersley_sequence_buffer_view;

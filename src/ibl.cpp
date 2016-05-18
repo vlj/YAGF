@@ -188,6 +188,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	set_sampler(dev, sampler_descriptors, 0, 4, *anisotropic_sampler);
 
 	compute_sh_cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	dfg_cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
 	irr::core::matrix4 M[6] = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
@@ -256,6 +257,7 @@ allocated_descriptor_set ibl_utility::get_dfg_input_descriptor_set(device_t & de
 {
 	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() }, 3);
 	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, constant_buffer, sizeof(float));
+	set_uniform_texel_buffer_view(dev, dfg_input_descriptor_set, 1, 1, *hammersley_sequence_buffer_view);
 	set_uav_image_view(dev, dfg_input_descriptor_set, 2, 2, DFG_LUT_view);
 
 	return dfg_input_descriptor_set;
@@ -346,15 +348,14 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 	std::unique_ptr<image_t> DFG_LUT_texture = create_image(dev, irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
 	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
-	std::unique_ptr<buffer_t> cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	void* tmp = map_buffer(dev, *cbuf);
+	void* tmp = map_buffer(dev, *dfg_cbuf);
 	float sz = DFG_LUT_size;
 	memcpy(tmp, &sz, sizeof(float));
-	unmap_buffer(dev, *cbuf);
+	unmap_buffer(dev, *dfg_cbuf);
 
+	set_pipeline_barrier(cmd_list, *DFG_LUT_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *cbuf, *texture_view);
-	set_uniform_texel_buffer_view(dev, dfg_input_descriptor_set, 1, 1, *hammersley_sequence_buffer_view);
+	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *dfg_cbuf, *texture_view);
 	set_compute_pipeline(cmd_list, *pso);
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(dfg_building_sig.Get());
@@ -364,6 +365,11 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 	bind_compute_descriptor(cmd_list, 0, dfg_input_descriptor_set, dfg_building_sig);
 
 	dispatch(cmd_list, DFG_LUT_size, DFG_LUT_size, 1);
+
+#ifdef D3D12
+	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(*DFG_LUT_texture));
+#endif
+	set_pipeline_barrier(cmd_list, *DFG_LUT_texture, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	return std::make_tuple(std::move(DFG_LUT_texture), std::move(texture_view));
 }
