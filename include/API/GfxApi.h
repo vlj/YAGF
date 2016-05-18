@@ -427,7 +427,9 @@ void make_command_list_executable(command_list_t& command_list);
 std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags);
 void* map_buffer(device_t& dev, buffer_t& buffer);
 void unmap_buffer(device_t& dev, buffer_t& buffer);
+std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t&, irr::video::ECOLOR_FORMAT, uint64_t offset, uint32_t size);
 void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset_in_buffer = 0);
+void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view);
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);

@@ -32,6 +32,7 @@ using allocated_descriptor_set = VkDescriptorSet;
 using descriptor_set_layout = vulkan_wrapper::pipeline_descriptor_set;
 using image_view_t = vulkan_wrapper::image_view;
 using sampler_t = vulkan_wrapper::sampler;
+using buffer_view_t = vulkan_wrapper::buffer_view;
 
 struct vk_framebuffer
 {

@@ -71,6 +71,66 @@ namespace
 	{
 		return !!(properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
+
+
+	VkFormat get_vk_format(irr::video::ECOLOR_FORMAT format)
+	{
+		switch (format)
+		{
+		case irr::video::ECF_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+		case irr::video::ECF_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+		case irr::video::ECF_R16F: return VK_FORMAT_R16_SFLOAT;
+		case irr::video::ECF_R16G16F: return VK_FORMAT_R16G16_SFLOAT;
+		case irr::video::ECF_R16G16B16A16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
+		case irr::video::ECF_R32F: return VK_FORMAT_R32_SFLOAT;
+		case irr::video::ECF_R32G32F: return VK_FORMAT_R32G32_SFLOAT;
+		case irr::video::ECF_R32G32B32A32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case irr::video::ECF_A8R8G8B8: return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
+		case irr::video::ECF_BC1_UNORM: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		case irr::video::ECF_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+		case irr::video::ECF_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
+		case irr::video::ECF_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
+		case irr::video::ECF_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
+		case irr::video::ECF_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
+		case irr::video::ECF_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
+		case irr::video::ECF_BC4_SNORM: return VK_FORMAT_BC4_SNORM_BLOCK;
+		case irr::video::ECF_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
+		case irr::video::ECF_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
+		case irr::video::D24U8: return VK_FORMAT_D24_UNORM_S8_UINT;
+		case irr::video::ECF_B8G8R8A8: return VK_FORMAT_B8G8R8A8_UINT;
+		case irr::video::ECF_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
+		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
+		}
+		throw;
+	}
+
+	VkImageUsageFlags get_image_usage_flag(uint32_t flags)
+	{
+		VkImageUsageFlags result = 0;
+		if (flags & usage_depth_stencil)
+			result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		if (flags & usage_render_target)
+			result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (flags & usage_transfer_src)
+			result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		if (flags & usage_transfer_dst)
+			result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		if (flags & usage_input_attachment)
+			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+		if (flags & usage_sampled)
+			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		if (flags & usage_uav)
+			result |= VK_IMAGE_USAGE_STORAGE_BIT;
+		return result;
+	}
+
+	VkImageCreateFlags get_image_create_flag(uint32_t flags)
+	{
+		VkImageUsageFlags result = 0;
+		if (flags & usage_cube)
+			result |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		return result;
+	}
 }
 
 std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
@@ -278,73 +338,26 @@ void unmap_buffer(device_t& dev, buffer_t& buffer)
 	vkUnmapMemory(dev, buffer.baking_memory->object);
 }
 
+std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffer, irr::video::ECOLOR_FORMAT format, uint64_t offset, uint32_t size)
+{
+	return std::make_unique<buffer_view_t>(dev, buffer, get_vk_format(format), offset, size);
+}
+
+void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view)
+{
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+			{ buffer_view }, binding_location),
+	});
+}
+
 void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)
 {
 	util::update_descriptor_sets(dev, {
 		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			{ structures::descriptor_buffer_info(buffer, offset, buffer_size) }, binding_location)
 	});
-}
-
-namespace
-{
-	VkFormat get_vk_format(irr::video::ECOLOR_FORMAT format)
-	{
-		switch (format)
-		{
-		case irr::video::ECF_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
-		case irr::video::ECF_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-		case irr::video::ECF_R16F: return VK_FORMAT_R16_SFLOAT;
-		case irr::video::ECF_R16G16F: return VK_FORMAT_R16G16_SFLOAT;
-		case irr::video::ECF_R16G16B16A16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case irr::video::ECF_R32F: return VK_FORMAT_R32_SFLOAT;
-		case irr::video::ECF_R32G32B32A32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case irr::video::ECF_A8R8G8B8: return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
-		case irr::video::ECF_BC1_UNORM: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-		case irr::video::ECF_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
-		case irr::video::ECF_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
-		case irr::video::ECF_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
-		case irr::video::ECF_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
-		case irr::video::ECF_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
-		case irr::video::ECF_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-		case irr::video::ECF_BC4_SNORM: return VK_FORMAT_BC4_SNORM_BLOCK;
-		case irr::video::ECF_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-		case irr::video::ECF_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
-		case irr::video::D24U8: return VK_FORMAT_D24_UNORM_S8_UINT;
-		case irr::video::ECF_B8G8R8A8: return VK_FORMAT_B8G8R8A8_UINT;
-		case irr::video::ECF_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
-		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
-		}
-		throw;
-	}
-
-	VkImageUsageFlags get_image_usage_flag(uint32_t flags)
-	{
-		VkImageUsageFlags result = 0;
-		if (flags & usage_depth_stencil)
-			result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		if (flags & usage_render_target)
-			result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		if (flags & usage_transfer_src)
-			result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		if (flags & usage_transfer_dst)
-			result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		if (flags & usage_input_attachment)
-			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-		if (flags & usage_sampled)
-			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
-		if (flags & usage_uav)
-			result |= VK_IMAGE_USAGE_STORAGE_BIT;
-		return result;
-	}
-
-	VkImageCreateFlags get_image_create_flag(uint32_t flags)
-	{
-		VkImageUsageFlags result = 0;
-		if (flags & usage_cube)
-			result |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-		return result;
-	}
 }
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil)

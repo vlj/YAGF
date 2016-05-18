@@ -90,6 +90,32 @@ namespace
 		throw;
 	}
 
+	uint8_t get_stride_in_byte(irr::video::ECOLOR_FORMAT fmt)
+	{
+		switch (fmt)
+		{
+		case irr::video::ECF_R8G8B8A8_UNORM:
+			return 4;
+		case irr::video::ECF_R8G8B8A8_UNORM_SRGB:
+			return 4;
+		case irr::video::ECF_R16F:
+			return 2;
+		case irr::video::ECF_R16G16F:
+			return 4;
+		case irr::video::ECF_R16G16B16A16F:
+			return 8;
+		case irr::video::ECF_R32F:
+			return 4;
+		case irr::video::ECF_R32G32F:
+			return 8;
+		case irr::video::ECF_R32G32B32A32F:
+			return 16;
+		case irr::video::ECF_A8R8G8B8:
+			return 4;
+		}
+		throw;
+	}
+
 
 	DXGI_FORMAT get_dxgi_samplable_format(irr::video::ECOLOR_FORMAT fmt)
 	{
@@ -195,6 +221,24 @@ void* map_buffer(device_t& dev, buffer_t& buffer)
 void unmap_buffer(device_t& dev, buffer_t& buffer)
 {
 	buffer->Unmap(0, nullptr);
+}
+
+std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffer, irr::video::ECOLOR_FORMAT format, uint64_t offset, uint32_t size)
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+	srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	srv.Buffer.FirstElement = offset / get_stride_in_byte(format);
+	srv.Buffer.NumElements = size / get_stride_in_byte(format);
+	srv.Buffer.StructureByteStride = get_stride_in_byte(format);
+	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	return std::make_unique<buffer_view_t>(srv, buffer);
+}
+
+void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view)
+{
+	dev->CreateShaderResourceView(std::get<1>(buffer_view), &std::get<0>(buffer_view),
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set)
+			.Offset(offset_in_set, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
 void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)

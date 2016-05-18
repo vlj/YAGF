@@ -214,9 +214,7 @@ ibl_utility::ibl_utility(device_t &dev)
 		tmp[2 * j + 1] = sample.second;
 	}
 	unmap_buffer(dev, *hammersley_sequence_buffer);
-#ifndef D3D12
-	hammersley_sequence_buffer_view = std::make_unique<vulkan_wrapper::buffer_view>(dev, *hammersley_sequence_buffer, VK_FORMAT_R32G32_SFLOAT, 0, 2048 * sizeof(float));
-#endif
+	hammersley_sequence_buffer_view = create_buffer_view(dev, *hammersley_sequence_buffer, irr::video::ECF_R32G32F, 0, 2048 * sizeof(float));
 
 	for (unsigned i = 0; i < 8; i++)
 	{
@@ -337,21 +335,7 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	{
 		allocated_descriptor_set per_level_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * level + 12, { mipmap_set.get() });
 		set_constant_buffer_view(dev, per_level_descriptor, 1, 5, *per_level_cbuffer[level], sizeof(float));
-#ifdef D3D12
-		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-		srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		srv.Buffer.FirstElement = 0;
-		srv.Buffer.NumElements = 1024;
-		srv.Buffer.StructureByteStride = 2 * sizeof(float);
-		srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		dev->CreateShaderResourceView(*hammersley_sequence_buffer, &srv, per_level_descriptor);
-#else
-		util::update_descriptor_sets(dev,
-		{
-			structures::write_descriptor_set(per_level_descriptor, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-			{ *hammersley_sequence_buffer_view }, 2),
-		});
-#endif
+		set_uniform_texel_buffer_view(dev, per_level_descriptor, 0, 2, *hammersley_sequence_buffer_view);
 		bind_compute_descriptor(cmd_list, 1, per_level_descriptor, importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
@@ -400,22 +384,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 
 
 	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *cbuf, *texture_view);
-#if D3D12
-	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-	srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	srv.Buffer.FirstElement = 0;
-	srv.Buffer.NumElements = 1024;
-	srv.Buffer.StructureByteStride = 2 * sizeof(float);
-	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	dev->CreateShaderResourceView(*hammersley_sequence_buffer, &srv,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(dfg_input_descriptor_set)
-		.Offset(1, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-#else
-	util::update_descriptor_sets(dev, {
-		structures::write_descriptor_set(dfg_input_descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-		{ *hammersley_sequence_buffer_view }, 1),
-	});
-#endif
+	set_uniform_texel_buffer_view(dev, dfg_input_descriptor_set, 1, 1, *hammersley_sequence_buffer_view);
 	set_compute_pipeline(cmd_list, *pso);
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(dfg_building_sig.Get());

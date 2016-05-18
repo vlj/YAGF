@@ -49,6 +49,7 @@ using clear_value_structure_t = D3D12_CLEAR_VALUE;
 using descriptor_set_layout = void;
 using image_view_t = std::tuple<D3D12_SHADER_RESOURCE_VIEW_DESC, ID3D12Resource*>;
 using sampler_t = D3D12_SAMPLER_DESC;
+using buffer_view_t = std::tuple<D3D12_SHADER_RESOURCE_VIEW_DESC, ID3D12Resource*>;
 
 struct allocated_descriptor_set
 {
