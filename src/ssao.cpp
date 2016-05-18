@@ -381,16 +381,18 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 #ifndef D3D12
 	vkCmdEndRenderPass(cmd_list);
 #endif
+	set_pipeline_barrier(cmd_list, *gaussian_blurring_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
 	set_compute_pipeline_layout(cmd_list, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_h, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_h_pso);
 	dispatch(cmd_list, width, height, 1);
-	set_uav_flush(cmd_list, *gaussian_blurring_buffer);
+	set_pipeline_barrier(cmd_list, *gaussian_blurring_buffer, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
+	set_pipeline_barrier(cmd_list, *ssao_bilinear_result, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
 	bind_compute_descriptor(cmd_list, 0, gaussian_input_v, gaussian_input_sig);
 	bind_compute_descriptor(cmd_list, 1, sampler_input, gaussian_input_sig);
 	set_compute_pipeline(cmd_list, *gaussian_v_pso);
 	dispatch(cmd_list, width, height, 1);
-	set_uav_flush(cmd_list, *ssao_bilinear_result);
+	set_pipeline_barrier(cmd_list, *ssao_bilinear_result, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 }
