@@ -238,18 +238,9 @@ struct SHCoefficients
 allocated_descriptor_set ibl_utility::get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer)
 {
 	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() }, 3);
-
-	set_image_view(dev, input_descriptors, 1, 1, probe_view);
 	set_constant_buffer_view(dev, input_descriptors, 0, 0, constant_buffer, sizeof(int));
-#ifdef D3D12
-	create_buffer_uav_view(dev, *srv_cbv_uav_heap, 2, sh_buffer, sizeof(SH));
-#else
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(input_descriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			{ structures::descriptor_buffer_info(sh_buffer, 0, sizeof(SH)) }, 2)
-	});
-#endif
+	set_image_view(dev, input_descriptors, 1, 1, probe_view);
+	set_uav_buffer_view(dev, input_descriptors, 2, 2, sh_buffer, 0, sizeof(SH));
 	return input_descriptors;
 }
 

@@ -122,6 +122,5 @@ using framebuffer_t = std::shared_ptr<d3d12_framebuffer_t>;
 #include "../D3DAPI/pipeline_layout_helpers.h"
 
 void create_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, image_t& img, uint32_t mip_levels, irr::video::ECOLOR_FORMAT fmt, D3D12_SRV_DIMENSION dim);
-void create_buffer_uav_view(device_t& dev, descriptor_storage_t& storage, uint32_t index, buffer_t& buffer, uint32_t size);
 void clear_color(command_list_t& command_list, framebuffer_t framebuffer, const std::array<float, 4> &color);
 void clear_depth_stencil(command_list_t& command_list, framebuffer_t framebuffer, float depth, uint8_t stencil);

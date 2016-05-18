@@ -343,12 +343,21 @@ std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffe
 	return std::make_unique<buffer_view_t>(dev, buffer, get_vk_format(format), offset, size);
 }
 
-void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view)
+void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_view_t& buffer_view)
 {
 	util::update_descriptor_sets(dev,
 	{
 		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
 			{ buffer_view }, binding_location),
+	});
+}
+
+void set_uav_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_t& buffer, uint64_t offset, uint32_t size)
+{
+	util::update_descriptor_sets(dev,
+	{
+		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			{ structures::descriptor_buffer_info(buffer, 0, size) }, binding_location)
 	});
 }
 

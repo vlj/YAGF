@@ -241,6 +241,20 @@ void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set
 			.Offset(offset_in_set, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
+void set_uav_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t, buffer_t& buffer, uint64_t offset, uint32_t size)
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+	desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	desc.Format = DXGI_FORMAT_R32_TYPELESS;
+	desc.Buffer.NumElements = size / 4;
+	desc.Buffer.FirstElement = offset / 4;
+	desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+
+	dev->CreateUnorderedAccessView(buffer, nullptr, &desc,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set)
+			.Offset(offset_in_set, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+}
+
 void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)
 {
 	uint32_t stride = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -530,19 +544,6 @@ void create_image_view(device_t& dev, const allocated_descriptor_set& descriptor
 		desc.Texture2D.MipLevels = mip_levels;
 	desc.Format = get_dxgi_samplable_format(fmt);
 	dev->CreateShaderResourceView(img, &desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_set).Offset(offset, stride));
-}
-
-void create_buffer_uav_view(device_t& dev, descriptor_storage_t& storage, uint32_t index, buffer_t& buffer, uint32_t size)
-{
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-	desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-	desc.Format = DXGI_FORMAT_R32_TYPELESS;
-	desc.Buffer.NumElements = size / 4;
-	desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
-
-	dev->CreateUnorderedAccessView(buffer, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(storage.storage->GetCPUDescriptorHandleForHeapStart())
-			.Offset(index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage)
