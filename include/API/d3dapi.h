@@ -39,7 +39,14 @@ using device_t = wrapper<ID3D12Device>;
 using command_queue_t = wrapper<ID3D12CommandQueue>;
 using buffer_t = wrapper<ID3D12Resource>;
 using image_t = wrapper<ID3D12Resource>;
-using descriptor_storage_t = wrapper<ID3D12DescriptorHeap>;
+
+struct d3d12_descriptor_storage
+{
+	ID3D12DescriptorHeap *storage;
+	uint32_t first_available_index;
+};
+
+using descriptor_storage_t = d3d12_descriptor_storage;
 using pipeline_state_t = Microsoft::WRL::ComPtr<ID3D12PipelineState>;
 using compute_pipeline_state_t = wrapper<ID3D12PipelineState>;
 using pipeline_layout_t = Microsoft::WRL::ComPtr<ID3D12RootSignature>;

@@ -176,11 +176,11 @@ void MeshSample::Init()
 	fbo_pass2[0] = create_frame_buffer(*dev, { { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, ibl_skyboss_pass.get());
 	fbo_pass2[1] = create_frame_buffer(*dev, { { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, ibl_skyboss_pass.get());
 
-	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 10, { ibl_set.get() });
-	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() });
-	input_attachments_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { input_attachments_set.get() });
-	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { rtt_set.get() });
-	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(*dev, *sampler_heap, 0, { sampler_set.get() });
+	ibl_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 10, { ibl_set.get() }, 3);
+	scene_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 0, { scene_set.get() }, 3);
+	input_attachments_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { input_attachments_set.get() }, 4);
+	rtt_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *cbv_srv_descriptors_heap, 5, { rtt_set.get() }, 5);
+	sampler_descriptors = allocate_descriptor_set_from_sampler_heap(*dev, *sampler_heap, 0, { sampler_set.get() }, 2);
 
 	std::unique_ptr<buffer_t> upload_buffer;
 	std::tie(skybox_texture, upload_buffer) = load_texture(*dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), *command_list);
@@ -336,7 +336,7 @@ void MeshSample::fill_draw_commands()
 
 		current_cmd_list->object->SetGraphicsRootSignature(object_sig.Get());
 
-		std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap->object, sampler_heap->object };
+		std::array<ID3D12DescriptorHeap*, 2> descriptors = { cbv_srv_descriptors_heap->storage, sampler_heap->storage };
 		current_cmd_list->object->SetDescriptorHeaps(2, descriptors.data());
 
 		current_cmd_list->object->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

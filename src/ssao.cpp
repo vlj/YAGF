@@ -280,11 +280,11 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 
 	heap = create_descriptor_storage(dev, 5, { {RESOURCE_VIEW::CONSTANTS_BUFFER, 10}, { RESOURCE_VIEW::SHADER_RESOURCE, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 10 } });
 	sampler_heap = create_descriptor_storage(dev, 1, { { RESOURCE_VIEW::SAMPLER, 10 } });
-	linearize_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 0, { linearize_input_set.get() });
-	ssao_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 2, { ssao_input_set.get() });
-	sampler_input = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { samplers_set.get() });
-	gaussian_input_h = allocate_descriptor_set_from_sampler_heap(dev, *heap, 4, { gaussian_input_set.get() });
-	gaussian_input_v = allocate_descriptor_set_from_sampler_heap(dev, *heap, 7, { gaussian_input_set.get() });
+	linearize_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 0, { linearize_input_set.get() }, 2);
+	ssao_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 2, { ssao_input_set.get() }, 2);
+	sampler_input = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { samplers_set.get() }, 2);
+	gaussian_input_h = allocate_descriptor_set_from_sampler_heap(dev, *heap, 4, { gaussian_input_set.get() }, 3);
+	gaussian_input_v = allocate_descriptor_set_from_sampler_heap(dev, *heap, 7, { gaussian_input_set.get() }, 3);
 
 	linearize_constant_data = create_buffer(dev, sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = create_buffer(dev, sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -326,7 +326,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	unmap_buffer(dev, *linearize_constant_data);
 
 #ifdef D3D12
-	std::array<ID3D12DescriptorHeap*, 2> descriptors = { heap->object, sampler_heap->object };
+	std::array<ID3D12DescriptorHeap*, 2> descriptors = { heap->storage, sampler_heap->storage };
 	cmd_list->SetDescriptorHeaps(2, descriptors.data());
 	cmd_list->SetGraphicsRootSignature(linearize_depth_sig.Get());
 

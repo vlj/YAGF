@@ -182,7 +182,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	srv_cbv_uav_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 20 },{ RESOURCE_VIEW::SHADER_RESOURCE, 20 },{ RESOURCE_VIEW::UAV_BUFFER, 1 },{ RESOURCE_VIEW::TEXEL_BUFFER, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 50 } });
 	sampler_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() });
+	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() }, 1);
 
 	anisotropic_sampler = create_sampler(dev, SAMPLER_TYPE::ANISOTROPIC);
 	set_sampler(dev, sampler_descriptors, 0, 4, *anisotropic_sampler);
@@ -236,7 +236,7 @@ struct SHCoefficients
 
 allocated_descriptor_set ibl_utility::get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer)
 {
-	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() });
+	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() }, 3);
 
 	set_image_view(dev, input_descriptors, 1, 1, probe_view);
 	set_constant_buffer_view(dev, input_descriptors, 0, 0, constant_buffer, sizeof(int));
@@ -254,7 +254,7 @@ allocated_descriptor_set ibl_utility::get_compute_sh_descriptor(device_t &dev, b
 
 allocated_descriptor_set ibl_utility::get_dfg_input_descriptor_set(device_t & dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view)
 {
-	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() });
+	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() }, 3);
 	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, constant_buffer, sizeof(float));
 	set_uav_image_view(dev, dfg_input_descriptor_set, 2, 2, DFG_LUT_view);
 
@@ -272,7 +272,7 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(compute_sh_sig.Get());
-	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->object, sampler_heap->object };
+	std::array<ID3D12DescriptorHeap*, 2> heaps = { srv_cbv_uav_heap->storage, sampler_heap->storage };
 	cmd_list->SetDescriptorHeaps(2, heaps.data());
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 //	command_list->object->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
@@ -301,7 +301,7 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * i, { face_set.get() });
+		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * i, { face_set.get() }, 2);
 		set_image_view(dev, permutation_matrix_descriptors[i], 0, 0, probe_view);
 		set_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(PermutationMatrix));
 	}
@@ -310,7 +310,7 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	set_compute_pipeline(cmd_list, *importance_sampling);
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(importance_sampling_sig.Get());
-	std::array<ID3D12DescriptorHeap*, 2> heaps{ srv_cbv_uav_heap->object, sampler_heap->object };
+	std::array<ID3D12DescriptorHeap*, 2> heaps{ srv_cbv_uav_heap->storage, sampler_heap->storage };
 	cmd_list->SetDescriptorHeaps(2, heaps.data());
 #endif
 
@@ -319,13 +319,13 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		allocated_descriptor_set per_level_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * level + 12, { mipmap_set.get() });
+		allocated_descriptor_set per_level_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * level + 12, { mipmap_set.get() }, 2);
 		set_constant_buffer_view(dev, per_level_descriptor, 1, 5, *per_level_cbuffer[level], sizeof(float));
 		set_uniform_texel_buffer_view(dev, per_level_descriptor, 0, 2, *hammersley_sequence_buffer_view);
 		bind_compute_descriptor(cmd_list, 1, per_level_descriptor, importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() });
+			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() }, 1);
 			uav_views[face + level * 6] = create_image_view(dev, *result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 			set_uav_image_view(dev, level_face_descriptor, 0, 3, *uav_views[face + level * 6]);
 
@@ -358,7 +358,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility:
 	set_compute_pipeline(cmd_list, *pso);
 #ifdef D3D12
 	cmd_list->SetComputeRootSignature(dfg_building_sig.Get());
-	std::array<ID3D12DescriptorHeap*, 1> heaps{ *srv_cbv_uav_heap };
+	std::array<ID3D12DescriptorHeap*, 1> heaps{ srv_cbv_uav_heap->storage };
 	cmd_list->SetDescriptorHeaps(1, heaps.data());
 #endif // D3D12
 	bind_compute_descriptor(cmd_list, 0, dfg_input_descriptor_set, dfg_building_sig);

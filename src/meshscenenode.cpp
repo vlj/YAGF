@@ -39,7 +39,7 @@ namespace irr
 			: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set });
+			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set }, 2);
 			set_constant_buffer_view(dev, object_descriptor_set, 0, 0, *object_matrix, sizeof(ObjectData));
 			set_constant_buffer_view(dev, object_descriptor_set, 1, 1, *object_matrix, sizeof(ObjectData));
 
@@ -124,7 +124,7 @@ namespace irr
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS", upload_cmd_list);
-				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 13 + texture_id, { model_set });
+				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 13 + texture_id, { model_set }, 1);
 				mesh_descriptor_set.push_back(mesh_descriptor);
 
 				Textures_views.push_back(create_image_view(dev, *texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 9, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));

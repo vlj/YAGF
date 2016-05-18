@@ -471,7 +471,8 @@ std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, u
 	heapdesc.Type = get_descriptor_heap_type(std::get<0>(num_descriptors[0]));
 	heapdesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CHECK_HRESULT(dev->CreateDescriptorHeap(&heapdesc, IID_PPV_ARGS(&result)));
-	return std::make_unique<descriptor_storage_t>(result);
+	descriptor_storage_t wrapped_result{ result, 0 };
+	return std::make_unique<descriptor_storage_t>(wrapped_result);
 }
 
 void create_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, SAMPLER_TYPE sampler_type)
@@ -540,8 +541,8 @@ void create_buffer_uav_view(device_t& dev, descriptor_storage_t& storage, uint32
 	desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
 
 	dev->CreateUnorderedAccessView(buffer, nullptr, &desc,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(storage->GetCPUDescriptorHandleForHeapStart())
-		.Offset(index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(storage.storage->GetCPUDescriptorHandleForHeapStart())
+			.Offset(index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 }
 
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage)
@@ -660,23 +661,27 @@ uint32_t get_next_backbuffer_id(device_t&, swap_chain_t& chain)
 	return chain->GetCurrentBackBufferIndex();
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>)
+allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>, uint32_t descriptors_count)
 {
+	uint32_t old_index = heap.first_available_index;
+	heap.first_available_index += descriptors_count;
 	return allocated_descriptor_set(
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->GetCPUDescriptorHandleForHeapStart())
-			.Offset(starting_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)),
-		CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart())
-			.Offset(starting_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap.storage->GetCPUDescriptorHandleForHeapStart())
+			.Offset(old_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(heap.storage->GetGPUDescriptorHandleForHeapStart())
+			.Offset(old_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
 		);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>)
+allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*>, uint32_t descriptors_count)
 {
+	uint32_t old_index = heap.first_available_index;
+	heap.first_available_index += descriptors_count;
 	return allocated_descriptor_set(
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->GetCPUDescriptorHandleForHeapStart())
-		.Offset(starting_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)),
-		CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart())
-		.Offset(starting_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER))
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(heap.storage->GetCPUDescriptorHandleForHeapStart())
+		.Offset(old_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(heap.storage->GetGPUDescriptorHandleForHeapStart())
+		.Offset(old_index, dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER))
 	);
 }
 
