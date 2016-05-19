@@ -283,8 +283,8 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 	linearize_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 0, { linearize_input_set.get() }, 2);
 	ssao_input = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 2, { ssao_input_set.get() }, 2);
 	sampler_input = allocate_descriptor_set_from_sampler_heap(dev, *sampler_heap, 0, { samplers_set.get() }, 2);
-	gaussian_input_h = allocate_descriptor_set_from_sampler_heap(dev, *heap, 4, { gaussian_input_set.get() }, 3);
-	gaussian_input_v = allocate_descriptor_set_from_sampler_heap(dev, *heap, 7, { gaussian_input_set.get() }, 3);
+	gaussian_input_h = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 4, { gaussian_input_set.get() }, 3);
+	gaussian_input_v = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *heap, 7, { gaussian_input_set.get() }, 3);
 
 	linearize_constant_data = create_buffer(dev, sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = create_buffer(dev, sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
