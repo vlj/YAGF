@@ -56,7 +56,6 @@ namespace mesh_vulkan_managed
                 IntPtr.Zero);    // used with multiple windows, NULL
 
             mesh = create_vulkan_mesh(hWnd, Marshal.GetHINSTANCE(typeof(App).Module));
-            draw_vulkan_mesh(mesh);
             return new HandleRef(this, hWnd);
         }
 

@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:mesh_vulkan_managed"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
+        Title="MainWindow" Height="600" Width="600">
+    <Grid MinHeight="600">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
+            <ColumnDefinition MinWidth="600"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <local:HostedGraphicSurface Grid.Column="0"></local:HostedGraphicSurface>
-        <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="84,148,0,0" VerticalAlignment="Top" Width="75" Grid.Column="1"/>
+        <Button x:Name="button" Content="Button" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Grid.Column="1" />
     </Grid>
 </Window>
