@@ -35,35 +35,10 @@ struct MeshSample
 		: dev(std::move(_dev)), chain(std::move(_chain)), cmdqueue(std::move(_cmdqueue)), width(_w), height(_h), swap_chain_format(format)
 	{
 		Init();
-
-		Microsoft::WRL::ComPtr<ICLRMetaHost> pMetaHost;
-		Microsoft::WRL::ComPtr<ICLRRuntimeInfo> pRuntimeInfo;
-		HRESULT hr;
-		CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-		hr = CLRCreateInstance(CLSID_CLRMetaHost, IID_PPV_ARGS(pMetaHost.GetAddressOf()));
-		hr = pMetaHost->GetRuntime(L"v4.0.30319", IID_PPV_ARGS(pRuntimeInfo.GetAddressOf()));
-		hr = pRuntimeInfo->GetInterface(CLSID_CLRRuntimeHost, IID_PPV_ARGS(pRuntimeHost.GetAddressOf()));
-
-		SampleHostControl* hostControl = new SampleHostControl();
-		hr = pRuntimeHost->SetHostControl((IHostControl *)hostControl);
-
-		ICLRControl* pCLRControl = nullptr;
-		hr = pRuntimeHost->GetCLRControl(&pCLRControl);
-		LPCWSTR assemblyName = L"mesh_managed";
-		LPCWSTR appDomainManagerTypename = L"mesh_managed.CustomAppDomainManager";
-		hr = pCLRControl->SetAppDomainManagerType(assemblyName, appDomainManagerTypename);
-
-		hr = pRuntimeHost->Start();
-
-		LPWSTR text;
-		_FooInterface* appDomainManager = hostControl->GetFooInterface();
-		hr = appDomainManager->HelloWorld(L"Player One", &text);
 	}
 
 	~MeshSample()
 	{
-		HRESULT hr;
-		hr = pRuntimeHost->Stop();
 		wait_for_command_queue_idle(*dev, *cmdqueue);
 	}
 
