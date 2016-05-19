@@ -8,18 +8,6 @@ using System.Drawing;
 
 namespace mesh_managed
 {
-    public class FormTest : Form
-    {
-        public Button button1;
-        public FormTest()
-        {
-            button1 = new Button();
-            button1.Size = new Size(40, 40);
-            button1.Location = new Point(30, 30);
-            button1.Text = "Click me";
-            this.Controls.Add(button1);
-        }
-    }
 
     public sealed class CustomAppDomainManager : AppDomainManager, Interface1
     {
@@ -33,9 +21,11 @@ namespace mesh_managed
             this.InitializationFlags = AppDomainManagerInitializationOptions.RegisterWithHost;
         }
 
+        [STAThread]
         public string HelloWorld(string name)
         {
-            var tmp = new FormTest();
+            var tmp = new YAGFControl();
+            tmp.Title = "truc";
             tmp.Show();
             return "Hello " + name;
         }

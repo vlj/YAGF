@@ -18,6 +18,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "YAGF.d3d", "YAGF.d3d.vcxproj", "{C005CA5D-8870-49DF-8FCC-DAB6D1C5AD80}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "YAGF.vulkan", "YAGF.vulkan.vcxproj", "{C4B16266-AB39-4716-9057-90FF799088D7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3AA7379F-5B3E-4159-AD40-694D6A97C50D} = {3AA7379F-5B3E-4159-AD40-694D6A97C50D}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mesh.shared", "examples\meshdx12\mesh.shared.vcxitems", "{60B46A6D-28D4-4490-B7B5-8178D799AB29}"
 EndProject

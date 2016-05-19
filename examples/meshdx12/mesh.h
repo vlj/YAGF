@@ -39,7 +39,7 @@ struct MeshSample
 		Microsoft::WRL::ComPtr<ICLRMetaHost> pMetaHost;
 		Microsoft::WRL::ComPtr<ICLRRuntimeInfo> pRuntimeInfo;
 		HRESULT hr;
-
+		CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 		hr = CLRCreateInstance(CLSID_CLRMetaHost, IID_PPV_ARGS(pMetaHost.GetAddressOf()));
 		hr = pMetaHost->GetRuntime(L"v4.0.30319", IID_PPV_ARGS(pRuntimeInfo.GetAddressOf()));
 		hr = pRuntimeInfo->GetInterface(CLSID_CLRRuntimeHost, IID_PPV_ARGS(pRuntimeHost.GetAddressOf()));

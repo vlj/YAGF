@@ -19,6 +19,11 @@ packages/
 mesh.dx12/Generated*
 mesh.dx12/x64
 x64/*
+*TemporaryGeneratedFile*
+*FileListAbsolute.txt
+*.g.*
+*.baml
+*.lref
 
 *CMakeCache.txt
 *.check_cache
