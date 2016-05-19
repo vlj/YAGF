@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace mesh_vulkan_managed
 {
@@ -39,6 +40,11 @@ namespace mesh_vulkan_managed
         internal static extern void destroy_vulkan_mesh(IntPtr mesh_ptr);
         static IntPtr mesh;
 
+        private void draw(object o, EventArgs e)
+        {
+            draw_vulkan_mesh(mesh);
+        }
+
         protected override HandleRef BuildWindowCore(HandleRef hwndParent)
         {
             // create the window and use the result as the handle
@@ -56,18 +62,14 @@ namespace mesh_vulkan_managed
                 IntPtr.Zero);    // used with multiple windows, NULL
 
             mesh = create_vulkan_mesh(hWnd, Marshal.GetHINSTANCE(typeof(App).Module));
+
+            CompositionTarget.Rendering += draw;
             return new HandleRef(this, hWnd);
         }
 
         protected override void DestroyWindowCore(HandleRef hwnd)
         {
             destroy_vulkan_mesh(mesh);
-        }
-
-        protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            draw_vulkan_mesh(mesh);
-            return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
         }
     }
 }
