@@ -3,11 +3,7 @@
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
-#ifdef D3D12
-#define SAMPLE_PATH ""
-#else
 #define SAMPLE_PATH "..\\..\\..\\examples\\assets\\"
-#endif
 
 struct SceneData
 {
@@ -233,6 +229,8 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(*dev, *cmdqueue);
 
 	fill_draw_commands();
+
+
 }
 
 void MeshSample::fill_descriptor_set()

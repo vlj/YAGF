@@ -24,7 +24,6 @@
 #include <API/vkapi.h>
 #endif
 
-
 struct MeshSample
 {
 	MeshSample(std::unique_ptr<device_t> &&_dev, std::unique_ptr<swap_chain_t> &&_chain, std::unique_ptr<command_queue_t> &&_cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)

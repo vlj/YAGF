@@ -10,11 +10,7 @@
 #include <array>
 #include <unordered_map>
 
-#ifdef D3D12
-#define SAMPLE_PATH ""
-#else
 #define SAMPLE_PATH "..\\..\\..\\examples\\assets\\"
-#endif
 
 
 struct ObjectData
