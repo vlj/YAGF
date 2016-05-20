@@ -342,7 +342,7 @@ void MeshSample::fill_draw_commands()
 		set_viewport(*current_cmd_list, 0., width, 0., height, 0., 1.);
 		set_scissor(*current_cmd_list, 0, width, 0, height);
 
-		xue->fill_draw_command(*current_cmd_list, object_sig);
+		scene->fill_gbuffer_filling_command(*current_cmd_list, object_sig);
 #ifdef D3D12
 		set_pipeline_barrier(*current_cmd_list, *diffuse_color, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *normal, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);

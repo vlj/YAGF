@@ -39,6 +39,7 @@ struct MeshSample
 
 
 	float horizon_angle = 0;
+	irr::scene::IMeshSceneNode* xue;
 
 private:
 	size_t width;
@@ -100,7 +101,7 @@ private:
 	std::unique_ptr<image_t> roughness_metalness;
 
 	std::unique_ptr<irr::scene::Scene> scene;
-	irr::scene::IMeshSceneNode* xue;
+
 
 	std::unique_ptr<ssao_utility> ssao_util;
 

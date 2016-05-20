@@ -135,9 +135,6 @@ namespace irr
 
 		}
 
-
-		static float timer = 0.;
-
 		void IMeshSceneNode::fill_draw_command(command_list_t& current_cmd_list, pipeline_layout_t object_sig)
 		{
 			bind_graphic_descriptor(current_cmd_list, 1, object_descriptor_set, object_sig);
@@ -154,17 +151,14 @@ namespace irr
 		void IMeshSceneNode::update_constant_buffers(device_t& dev)
 		{
 			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, *object_matrix));
-			irr::core::matrix4 Model;
+			updateAbsolutePosition();
+			irr::core::matrix4 Model = getAbsoluteTransformation();
 			irr::core::matrix4 InvModel;
-			Model.setTranslation(irr::core::vector3df(0.f, 0.f, 0.f));
-			Model.setRotationDegrees(irr::core::vector3df(0.f, timer / 360.f, 0.f));
 			Model.getInverse(InvModel);
 
 			memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
 			memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
 			unmap_buffer(dev, *object_matrix);
-
-			timer += 16.f;
 		}
 
 	}

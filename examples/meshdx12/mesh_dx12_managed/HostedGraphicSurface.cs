@@ -40,7 +40,14 @@ namespace mesh_dx12_managed
         internal static extern void destroy_vulkan_mesh(IntPtr mesh_ptr);
         [DllImport("mesh.dx12.dll")]
         internal static extern void set_horizontal_angle(IntPtr mesh_ptr, float angle);
+        [DllImport("mesh.dx12.dll")]
+        internal static extern IntPtr get_xue(IntPtr mesh_ptr);
+        [DllImport("mesh.dx12.dll")]
+        internal static extern void set_rotation_on_node(IntPtr node_ptr, float x, float y, float z);
         static IntPtr mesh;
+        static IntPtr xue;
+
+        float timer = 0;
 
         public void set_horizontal_angle(float angle)
         {
@@ -49,6 +56,8 @@ namespace mesh_dx12_managed
 
         private void draw(object o, EventArgs e)
         {
+            set_rotation_on_node(xue, 0, timer / 360, 0);
+            timer += 16;
             draw_vulkan_mesh(mesh);
         }
 
@@ -69,7 +78,7 @@ namespace mesh_dx12_managed
                 IntPtr.Zero);    // used with multiple windows, NULL
 
             mesh = create_vulkan_mesh(hWnd, Marshal.GetHINSTANCE(typeof(App).Module));
-
+            xue = get_xue(mesh);
             CompositionTarget.Rendering += draw;
             return new HandleRef(this, hWnd);
         }
