@@ -6,20 +6,48 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\shaders\computesh.hlsl" />
-    <FxCompile Include="..\shaders\dfg.hlsl" />
-    <FxCompile Include="..\shaders\gaussianh.hlsl" />
-    <FxCompile Include="..\shaders\gaussianv.hlsl" />
-    <FxCompile Include="..\shaders\ibl.hlsl" />
-    <FxCompile Include="..\shaders\importance_sampling_specular.hlsl" />
-    <FxCompile Include="..\shaders\linearize_depth.hlsl" />
-    <FxCompile Include="..\shaders\object_gbuffer.hlsl" />
-    <FxCompile Include="..\shaders\screenquad.hlsl" />
-    <FxCompile Include="..\shaders\skinnedobject.hlsl" />
-    <FxCompile Include="..\shaders\skybox.hlsl" />
-    <FxCompile Include="..\shaders\skyboxvert.hlsl" />
-    <FxCompile Include="..\shaders\ssao.hlsl" />
-    <FxCompile Include="..\shaders\sunlight.hlsl" />
+    <FxCompile Include="..\shaders\computesh.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\dfg.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\gaussianh.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\gaussianv.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\ibl.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\importance_sampling_specular.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\linearize_depth.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\object_gbuffer.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\screenquad.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\skinnedobject.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\skybox.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\skyboxvert.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\ssao.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\sunlight.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d_interface.cpp" />
