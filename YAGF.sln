@@ -32,8 +32,14 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mesh.dx12", "mesh.dx12\mesh.dx12.vcxproj", "{28A41C30-8009-4D21-8976-C56D3049DD57}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mesh_vulkan_managed", "examples\meshdx12\mesh_vulkan_managed\mesh_vulkan_managed.csproj", "{D61C3E69-6050-4133-848D-D2007D2C2E23}"
+	ProjectSection(ProjectDependencies) = postProject
+		{15D57052-73AD-4977-AB53-FBD0E92C4DDF} = {15D57052-73AD-4977-AB53-FBD0E92C4DDF}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mesh_dx12_managed", "examples\meshdx12\mesh_dx12_managed\mesh_dx12_managed.csproj", "{779770C0-FD18-4960-9E99-B06C4BD5B9EE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{28A41C30-8009-4D21-8976-C56D3049DD57} = {28A41C30-8009-4D21-8976-C56D3049DD57}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution

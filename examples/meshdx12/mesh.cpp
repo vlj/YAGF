@@ -3,11 +3,7 @@
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
-#ifdef D3D12
-#define SAMPLE_PATH ""
-#else
 #define SAMPLE_PATH "..\\..\\..\\examples\\assets\\"
-#endif
 
 struct SceneData
 {
