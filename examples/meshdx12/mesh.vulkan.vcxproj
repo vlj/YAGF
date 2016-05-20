@@ -19,9 +19,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\assets\xue.b3d">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="..\shaders\computesh.comp" />
     <None Include="..\shaders\dfg.comp" />
     <None Include="..\shaders\gaussian_h.comp" />
@@ -36,13 +33,9 @@
     <None Include="..\shaders\skybox.vert" />
     <None Include="..\shaders\ssao.frag" />
     <None Include="..\shaders\sunlight.frag" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="host_control.h" />
+    <ClCompile Include="vulkan_interface.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{15D57052-73AD-4977-AB53-FBD0E92C4DDF}</ProjectGuid>
