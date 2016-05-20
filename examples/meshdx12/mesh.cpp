@@ -184,8 +184,10 @@ void MeshSample::Init()
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
-	xue = std::make_unique<irr::scene::IMeshSceneNode>(*dev, model, *command_list, *cbv_srv_descriptors_heap,
-		object_set.get(), model_set.get(),
+
+	scene = std::make_unique<irr::scene::Scene>();
+	xue = scene->addMeshSceneNode(
+		std::make_unique<irr::scene::IMeshSceneNode>(*dev, model, *command_list, *cbv_srv_descriptors_heap, object_set.get(), model_set.get(), nullptr),
 		nullptr);
 
 	big_triangle = create_buffer(*dev, 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -229,8 +231,6 @@ void MeshSample::Init()
 	wait_for_command_queue_idle(*dev, *cmdqueue);
 
 	fill_draw_commands();
-
-
 }
 
 void MeshSample::fill_descriptor_set()
@@ -414,7 +414,7 @@ void MeshSample::fill_draw_commands()
 
 void MeshSample::Draw()
 {
-	xue->update_constant_buffers(*dev);
+	scene->update(*dev);
 
 	SceneData * tmp = static_cast<SceneData*>(map_buffer(*dev, *scene_matrix));
 	irr::core::matrix4 Perspective;

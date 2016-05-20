@@ -9,7 +9,7 @@
 
 #include "shaders.h"
 #include <Scene/textures.h>
-#include <Scene/MeshSceneNode.h>
+#include <Scene/Scene.h>
 #include <Scene/ssao.h>
 
 #ifdef D3D12
@@ -99,7 +99,8 @@ private:
 	std::unique_ptr<image_t> normal;
 	std::unique_ptr<image_t> roughness_metalness;
 
-	std::unique_ptr<irr::scene::IMeshSceneNode> xue;
+	std::unique_ptr<irr::scene::Scene> scene;
+	irr::scene::IMeshSceneNode* xue;
 
 	std::unique_ptr<ssao_utility> ssao_util;
 
