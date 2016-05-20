@@ -13,16 +13,21 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace mesh_managed
+namespace mesh_dx12_managed
 {
     /// <summary>
-    /// Interaction logic for YAGFControl.xaml
+    /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class YAGFControl : Window
+    public partial class MainWindow : Window
     {
-        public YAGFControl()
+        public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            draw_surface.set_horizontal_angle((float)e.NewValue);
         }
     }
 }

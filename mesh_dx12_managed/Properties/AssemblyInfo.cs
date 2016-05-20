@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("mesh_managed")]
+[assembly: AssemblyTitle("mesh_dx12_managed")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("mesh_managed")]
+[assembly: AssemblyProduct("mesh_dx12_managed")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("3aa7379f-5b3e-4159-ad40-694d6a97c50d")]
+[assembly: Guid("215010f6-e704-4975-9518-b52d404dbcc3")]
 
 // Version information for an assembly consists of the following four values:
 //
