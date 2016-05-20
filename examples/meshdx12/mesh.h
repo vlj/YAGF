@@ -46,7 +46,6 @@ struct MeshSample
 	float horizon_angle = 0;
 
 private:
-	Microsoft::WRL::ComPtr<ICLRRuntimeHost> pRuntimeHost;
 	size_t width;
 	size_t height;
 

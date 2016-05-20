@@ -5,6 +5,7 @@ extern "C"
 {
 	__declspec(dllexport) void* create_vulkan_mesh(HWND window, HINSTANCE hInstance);
 	__declspec(dllexport) void draw_vulkan_mesh(void*);
+	__declspec(dllexport) void set_horizontal_angle(void* ptr, float);
 	__declspec(dllexport) void destroy_vulkan_mesh(void* ptr);
 }
 
@@ -24,6 +25,12 @@ void draw_vulkan_mesh(void* ptr)
 {
 	MeshSample* mesh_ptr = (MeshSample*)ptr;
 	mesh_ptr->Draw();
+}
+
+void set_horizontal_angle(void * ptr, float ha)
+{
+	MeshSample* mesh_ptr = (MeshSample*)ptr;
+	mesh_ptr->horizon_angle = ha;
 }
 
 void destroy_vulkan_mesh(void* ptr)

@@ -38,7 +38,14 @@ namespace mesh_vulkan_managed
         internal static extern void draw_vulkan_mesh(IntPtr mesh_ptr);
         [DllImport("mesh.vulkan.dll")]
         internal static extern void destroy_vulkan_mesh(IntPtr mesh_ptr);
+        [DllImport("mesh.vulkan.dll")]
+        internal static extern void set_horizontal_angle(IntPtr mesh_ptr, float angle);
         static IntPtr mesh;
+
+        public void set_horizontal_angle(float angle)
+        {
+            set_horizontal_angle(mesh, angle);
+        }
 
         private void draw(object o, EventArgs e)
         {
