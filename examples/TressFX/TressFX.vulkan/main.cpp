@@ -69,7 +69,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
     HWND window = Create(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
-    sample tressfx;
+    sample tressfx(hInstance, window);
 
     // this struct holds Windows event messages
     MSG msg = {};

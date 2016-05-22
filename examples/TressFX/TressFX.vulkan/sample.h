@@ -5,6 +5,6 @@
 struct sample
 {
     AMD::TressFX_Desc tressfx_helper;
-    sample();
+    sample(HINSTANCE hinstance, HWND hwnd);
 };
 
