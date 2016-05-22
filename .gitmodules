@@ -1,3 +1,6 @@
 [submodule "deps/assimp"]
 	path = deps/assimp
 	url = https://github.com/assimp/assimp.git
+[submodule "deps/tressfx"]
+	path = deps/tressfx
+	url = https://github.com/vlj/TressFX.git
