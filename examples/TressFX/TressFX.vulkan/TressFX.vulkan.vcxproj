@@ -70,6 +70,8 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sample.cpp" />
+    <ClCompile Include="StringTokenizer.cpp" />
+    <ClCompile Include="TFXFileIO.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\TressFX\amd_tressfx_vulkan\build\AMD_TressFX_Vulkan.vcxproj">
@@ -81,6 +83,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sample.h" />
+    <ClInclude Include="StringTokenizer.h" />
+    <ClInclude Include="TFXFileIO.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
