@@ -118,6 +118,7 @@ enum buffer_flags
 	none = 0,
 	usage_uav = 0x1,
 	usage_texel_buffer = 0x2,
+    usage_buffer_transfer_src = 0x4,
 };
 
 enum class SAMPLER_TYPE
