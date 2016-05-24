@@ -14,6 +14,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.bShortCutOn = false;
     tressfx_helper.hairParams.bAntialias = false;
     tressfx_helper.hairParams.strandCopies = 1;
+    tressfx_helper.backBufferHeight = 1024;
+    tressfx_helper.backBufferWidth = 1024;
 
     TressFX_Initialize(tressfx_helper);
 
