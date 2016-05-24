@@ -1,5 +1,6 @@
 #pragma once
 #define VULKAN
+#include <Api/Vkapi.h>
 #include <AMD_TressFX.h>
 
 struct sample

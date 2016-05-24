@@ -1,5 +1,4 @@
 #include "sample.h"
-#include <Api/Vkapi.h>
 #include "TFXFileIO.h"
 
 static DirectX::XMVECTOR         g_lightEyePt = DirectX::XMVectorSet(-421.25043f, 306.7890949f, -343.22232f, 1.0f);
@@ -56,7 +55,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     start_command_list_recording(*upload_command_buffer, *command_storage);
     std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
-
-    TressFX_Begin(tressfx_helper);
+    std::unique_ptr<buffer_t> constant_buffer = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+    TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
     TressFX_End(tressfx_helper);
 }
