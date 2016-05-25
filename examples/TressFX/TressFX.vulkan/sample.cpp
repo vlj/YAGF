@@ -7,6 +7,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 {
     auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(hinstance, hwnd);
     dev = std::move(std::get<0>(dev_swapchain_queue));
+    queue = std::move(std::get<2>(dev_swapchain_queue));
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
 
@@ -63,6 +64,11 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     start_command_list_recording(*upload_command_buffer, *command_storage);
     std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
+
+    make_command_list_executable(*upload_command_buffer);
+    submit_executable_command_list(*queue, *upload_command_buffer);
+    wait_for_command_queue_idle(*dev, *queue);
+
     std::unique_ptr<buffer_t> constant_buffer = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
     std::unique_ptr<buffer_t> constant_buffer2 = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
 
