@@ -69,20 +69,21 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     submit_executable_command_list(*queue, *upload_command_buffer);
     wait_for_command_queue_idle(*dev, *queue);
 
-    std::unique_ptr<buffer_t> constant_buffer = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
-    std::unique_ptr<buffer_t> constant_buffer2 = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
-
-    std::unique_ptr<command_list_t> draw_command_buffer = create_command_list(*dev, *command_storage);
+    constant_buffer = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+    draw_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*draw_command_buffer, *command_storage);
 
     set_scissor(*draw_command_buffer, 0, 0, 1024, 1024);
     set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
 
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
-    TressFX_Render(tressfx_helper, *draw_command_buffer, *constant_buffer2, 0);
+    TressFX_Render(tressfx_helper, *draw_command_buffer, *constant_buffer, 0);
     TressFX_End(tressfx_helper);
+    make_command_list_executable(*draw_command_buffer);
 }
 
 void sample::draw()
 {
+    submit_executable_command_list(*queue, *draw_command_buffer);
+    wait_for_command_queue_idle(*dev, *queue);
 }
