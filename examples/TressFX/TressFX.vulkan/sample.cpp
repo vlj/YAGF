@@ -1,7 +1,10 @@
 #include "sample.h"
 #include "TFXFileIO.h"
+#include <Maths\matrix4.h>
 
 static DirectX::XMVECTOR         g_lightEyePt = DirectX::XMVectorSet(-421.25043f, 306.7890949f, -343.22232f, 1.0f);
+static DirectX::XMVECTOR         g_defaultEyePt = DirectX::XMVectorSet(-190.0f, 70.0f, -250.0f, 1.0f);
+static DirectX::XMVECTOR         g_defaultLookAt = DirectX::XMVectorSet(0, 40, 0, 1.0f);
 
 sample::sample(HINSTANCE hinstance, HWND hwnd)
 {
@@ -13,7 +16,30 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
 
+    irr::core::matrix4 View, InvView, tmp, LightMatrix;
+    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0.f, 0.f, 200.f), irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
+    View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
+    View *= tmp;
+    View.getInverse(InvView);
+
+/*    tressfx_helper.g_vEye[0] = 0.f;
+    tressfx_helper.g_vEye[1] = 0.f;
+    tressfx_helper.g_vEye[2] = 200.f;*/
+
+    irr::core::matrix4 Model;
+
+    LightMatrix.buildProjectionMatrixPerspectiveFovRH(0.6f, 1.f, 532.f, 769.f);
+
+/*    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1], cbuf.g_PointLightPos[2]),
+        irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
+    LightMatrix *= tmp;*/
+
     tressfx_helper.lightPosition = g_lightEyePt;
+    tressfx_helper.eyePoint = g_defaultEyePt;
+    tressfx_helper.mWorld = DirectX::XMMATRIX(Model.pointer());
+    tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
+    tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
+    tressfx_helper.mViewProjLightFromLibrary = DirectX::XMMATRIX(LightMatrix.pointer());
     tressfx_helper.bShortCutOn = false;
     tressfx_helper.hairParams.bAntialias = false;
     tressfx_helper.hairParams.strandCopies = 1;
@@ -26,7 +52,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     TressFX_Initialize(tressfx_helper, *depth_texture_view);
 
     TFXProjectFile tfxproject;
-    bool tmp = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\testhair1\\TestHair1.tfxproj");
+    bool success = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\testhair1\\TestHair1.tfxproj");
 
     AMD::TressFX_HairBlob hairBlob;
 
