@@ -6,7 +6,7 @@ static DirectX::XMVECTOR         g_lightEyePt = DirectX::XMVectorSet(-421.25043f
 sample::sample(HINSTANCE hinstance, HWND hwnd)
 {
     auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(hinstance, hwnd);
-    std::unique_ptr<device_t> dev = std::move(std::get<0>(dev_swapchain_queue));
+    dev = std::move(std::get<0>(dev_swapchain_queue));
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
 
@@ -17,8 +17,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
 
-    std::unique_ptr<image_t> depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil, nullptr);
-    std::unique_ptr<image_view_t> depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
+    depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil, nullptr);
+    depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 
     TressFX_Initialize(tressfx_helper, *depth_texture_view);
 
@@ -58,12 +58,13 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
         TressFX_LoadRawAsset(tressfx_helper, guideFollowParams, &hairBlob);
     }
-    std::unique_ptr<command_list_storage_t> command_storage = create_command_storage(*dev);
+    command_storage = create_command_storage(*dev);
     std::unique_ptr<command_list_t> upload_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*upload_command_buffer, *command_storage);
     std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
     std::unique_ptr<buffer_t> constant_buffer = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+    std::unique_ptr<buffer_t> constant_buffer2 = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
 
     std::unique_ptr<command_list_t> draw_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*draw_command_buffer, *command_storage);
@@ -72,6 +73,10 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
 
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
-    TressFX_Render(tressfx_helper, *draw_command_buffer);
+    TressFX_Render(tressfx_helper, *draw_command_buffer, *constant_buffer2, 0);
     TressFX_End(tressfx_helper);
+}
+
+void sample::draw()
+{
 }

@@ -85,7 +85,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
 
-//        app.Draw();
+        tressfx.draw();
     }
 
     // return this part of the WM_QUIT message to Windows
