@@ -17,7 +17,10 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
 
-    TressFX_Initialize(tressfx_helper);
+    std::unique_ptr<image_t> depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil, nullptr);
+    std::unique_ptr<image_view_t> depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
+
+    TressFX_Initialize(tressfx_helper, *depth_texture_view);
 
     TFXProjectFile tfxproject;
     bool tmp = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\testhair1\\TestHair1.tfxproj");
