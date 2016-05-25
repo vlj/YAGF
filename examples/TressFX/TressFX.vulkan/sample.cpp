@@ -68,6 +68,9 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     std::unique_ptr<command_list_t> draw_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*draw_command_buffer, *command_storage);
 
+    set_scissor(*draw_command_buffer, 0, 0, 1024, 1024);
+    set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
+
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
     TressFX_Render(tressfx_helper, *draw_command_buffer);
     TressFX_End(tressfx_helper);
