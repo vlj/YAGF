@@ -119,8 +119,8 @@ namespace
 			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 		if (flags & usage_sampled)
 			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
-		if (flags & usage_uav)
-			result |= VK_IMAGE_USAGE_STORAGE_BIT;
+//		if (flags & usage_uav)
+//			result |= VK_IMAGE_USAGE_STORAGE_BIT;
 		return result;
 	}
 
