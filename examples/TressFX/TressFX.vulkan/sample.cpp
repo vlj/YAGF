@@ -65,6 +65,11 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
 
+    set_pipeline_barrier(*upload_command_buffer, *depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+    VkClearDepthStencilValue clear_values{};
+    clear_values.depth = 1.f;
+    vkCmdClearDepthStencilImage(*upload_command_buffer, *depth_texture, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &clear_values, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+
     make_command_list_executable(*upload_command_buffer);
     submit_executable_command_list(*queue, *upload_command_buffer);
     wait_for_command_queue_idle(*dev, *queue);
