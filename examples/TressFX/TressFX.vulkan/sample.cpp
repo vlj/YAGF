@@ -16,6 +16,27 @@ namespace
         range_of_descriptors(RESOURCE_VIEW::SAMPLER, 1, 1)},
         shader_stage::all);
 
+    std::unique_ptr<render_pass_t> get_render_pass(device_t &dev)
+    {
+        std::unique_ptr<render_pass_t> result;
+        result.reset(new render_pass_t(
+            dev,
+            {
+                // final surface
+                structures::attachment_description(
+                    VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    VK_ATTACHMENT_STORE_OP_STORE,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
+            },
+            {// IBL pass
+             subpass_description::generate_subpass_description(
+                 VK_PIPELINE_BIND_POINT_GRAPHICS)
+                 .set_color_attachments({VkAttachmentReference{
+                     0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}})},
+            {}));
+        return result;
+    }
 
     pipeline_state_t get_blit_pso(device_t &dev, pipeline_layout_t layout, render_pass_t* rp)
     {
@@ -28,7 +49,6 @@ namespace
         viewport_info.scissorCount = 1;
         std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
         VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
-
 
         vulkan_wrapper::shader_module module_vert(dev, "..\\..\\blit_vert.spv");
         vulkan_wrapper::shader_module module_frag(dev, "..\\..\\blit_frag.spv");
@@ -60,7 +80,7 @@ namespace
             get_pipeline_rasterization_state_create_info(pso_desc),
             get_pipeline_multisample_state_create_info(pso_desc),
             get_pipeline_depth_stencil_state_create_info(pso_desc), blend,
-            dynamic_state_info, layout->object, rp->object, 1,
+            dynamic_state_info, layout->object, rp->object, 0,
             VkPipeline(VK_NULL_HANDLE), 0);
     }
 
@@ -74,11 +94,32 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     chain = std::move(std::get<1>(dev_swapchain_queue));
     back_buffer = get_image_view_from_swap_chain(*dev, *chain);
 
+    blit_render_pass = get_render_pass(*dev);
+
     blit_layout_set = get_object_descriptor_set(*dev, blit_descriptor);
     blit_layout = std::make_shared<vulkan_wrapper::pipeline_layout>(
         dev->object, 0, std::vector<VkDescriptorSetLayout>{blit_layout_set->object},
         std::vector<VkPushConstantRange>());
     blit_pso = get_blit_pso(*dev, blit_layout, blit_render_pass.get());
+
+    big_triangle = create_buffer(*dev, 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+    float fullscreen_tri[]
+    {
+        -1., -3., 0., 2.,
+        3., 1., 2., 0.,
+        -1., 1., 0., 0.
+    };
+
+    memcpy(map_buffer(*dev, *big_triangle), fullscreen_tri, 4 * 3 * sizeof(float));
+    unmap_buffer(*dev, *big_triangle);
+
+    descriptor_pool =
+        create_descriptor_storage(*dev, 1, {{RESOURCE_VIEW::SHADER_RESOURCE, 1},
+                                            {RESOURCE_VIEW::SAMPLER, 1}});
+    descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *descriptor_pool, 0, { blit_layout_set.get() }, 2);
+
+    fbo[0] = create_frame_buffer(*dev, { {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 1024, 1024, blit_render_pass.get());
+    fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 1024, 1024, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
@@ -119,6 +160,10 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
     color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_transfer_src, nullptr);
     color_texture_view = create_image_view(*dev, *color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
+
+    set_image_view(*dev, descriptor, 0, 0, *color_texture_view);
+    bilinear_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
+    set_sampler(*dev, descriptor, 1, 1, *bilinear_sampler);
 
     TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view);
 
@@ -178,6 +223,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     ctmp[0] = 0.;
+    ctmp[1] = 0.;
+    ctmp[2] = 0.;
     memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
 
@@ -202,14 +249,23 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     {
         blit_command_buffer[i] = create_command_list(*dev, *command_storage);
         start_command_list_recording(*blit_command_buffer[i], *command_storage);
-        set_pipeline_barrier(*blit_command_buffer[i], *back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_COLOR);
-        VkImageBlit Regions{};
-        Regions.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        Regions.srcSubresource.layerCount = 1;
-        Regions.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        Regions.dstSubresource.layerCount = 1;
-        vkCmdBlitImage(*blit_command_buffer[i], *color_texture, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, *back_buffer[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Regions, VK_FILTER_LINEAR);
-        set_pipeline_barrier(*blit_command_buffer[i], *back_buffer[i], RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+
+        VkRenderPassBeginInfo begin_info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+        begin_info.renderPass = *blit_render_pass;
+        begin_info.framebuffer = fbo[i]->fbo;
+        begin_info.renderArea.extent.width = 900;
+        begin_info.renderArea.extent.height = 900;
+        vkCmdBeginRenderPass(*blit_command_buffer[i], &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        set_scissor(*blit_command_buffer[i], 0, 0, 1024, 1024);
+        set_viewport(*blit_command_buffer[i], 0, 1024., 0., 1024, 0., 1.);
+
+        set_graphic_pipeline(*blit_command_buffer[i], blit_pso);
+        bind_graphic_descriptor(*blit_command_buffer[i], 0, descriptor, blit_layout);
+        bind_vertex_buffers(*blit_command_buffer[i], 0, { { *big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float) } });
+        draw_non_indexed(*blit_command_buffer[i], 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(*blit_command_buffer[i]);
         make_command_list_executable(*blit_command_buffer[i]);
     }
 }

@@ -11,6 +11,7 @@ struct sample
     std::unique_ptr<swap_chain_t> chain;
 
     std::vector<std::unique_ptr<image_t>> back_buffer;
+    std::array<framebuffer_t, 2> fbo;
 
     std::unique_ptr<image_t> depth_texture;
     std::unique_ptr<image_view_t> depth_texture_view;
@@ -26,6 +27,11 @@ struct sample
     std::shared_ptr<descriptor_set_layout> blit_layout_set;
     pipeline_layout_t blit_layout;
     pipeline_state_t blit_pso;
+
+    std::unique_ptr<descriptor_storage_t> descriptor_pool;
+    allocated_descriptor_set descriptor;
+    std::unique_ptr<buffer_t> big_triangle;
+    std::unique_ptr<sampler_t> bilinear_sampler;
 
     sample(HINSTANCE hinstance, HWND hwnd);
     void draw();
