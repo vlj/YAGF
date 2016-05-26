@@ -14,7 +14,7 @@ namespace
     constexpr auto blit_descriptor = descriptor_set({
         range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1),
         range_of_descriptors(RESOURCE_VIEW::SAMPLER, 1, 1)},
-        shader_stage::all);
+        shader_stage::fragment_shader);
 
     std::unique_ptr<render_pass_t> get_render_pass(device_t &dev)
     {
@@ -156,12 +156,12 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.hairParams.density = .1;
     tressfx_helper.hairParams.thickness = 0.3f;
 
-    depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil, nullptr);
-    depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+    depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled, nullptr);
+    depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
     color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled, nullptr);
     color_texture_view = create_image_view(*dev, *color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
 
-    set_image_view(*dev, descriptor, 0, 0, *color_texture_view);
+    set_image_view(*dev, descriptor, 0, 0, *depth_texture_view);
     bilinear_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
     set_sampler(*dev, descriptor, 1, 1, *bilinear_sampler);
 
@@ -210,10 +210,15 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
 
     set_pipeline_barrier(*upload_command_buffer, *depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-    set_pipeline_barrier(*upload_command_buffer, *color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+    set_pipeline_barrier(*upload_command_buffer, *color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
     VkClearDepthStencilValue clear_values{};
     clear_values.depth = 1.f;
-    vkCmdClearDepthStencilImage(*upload_command_buffer, *depth_texture, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &clear_values, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+    vkCmdClearDepthStencilImage(
+        *upload_command_buffer, *depth_texture,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &clear_values, 1,
+        &structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT |
+                                             VK_IMAGE_ASPECT_STENCIL_BIT));
+
     set_pipeline_barrier(*upload_command_buffer, *back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
     set_pipeline_barrier(*upload_command_buffer, *back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
@@ -248,7 +253,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     {
         blit_command_buffer[i] = create_command_list(*dev, *command_storage);
         start_command_list_recording(*blit_command_buffer[i], *command_storage);
-
         VkRenderPassBeginInfo begin_info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         begin_info.renderPass = *blit_render_pass;
         begin_info.framebuffer = fbo[i]->fbo;
