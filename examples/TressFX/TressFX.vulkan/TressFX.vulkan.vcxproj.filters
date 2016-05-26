@@ -41,5 +41,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\shaders\blit.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\blit.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

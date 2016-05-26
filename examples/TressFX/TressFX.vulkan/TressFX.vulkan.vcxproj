@@ -53,6 +53,10 @@
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\blit.vert -o $(SolutionDir)\blit_vert.spv
+$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\blit.frag -o $(SolutionDir)\blit_frag.spv</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -87,6 +91,8 @@
     <ClInclude Include="TFXFileIO.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\shaders\blit.frag" />
+    <None Include="..\shaders\blit.vert" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
