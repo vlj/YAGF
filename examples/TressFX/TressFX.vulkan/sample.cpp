@@ -24,7 +24,7 @@ namespace
             {
                 // final surface
                 structures::attachment_description(
-                    VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    VK_FORMAT_B8G8R8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD,
                     VK_ATTACHMENT_STORE_OP_STORE,
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
@@ -118,8 +118,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
                                             {RESOURCE_VIEW::SAMPLER, 1}});
     descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *descriptor_pool, 0, { blit_layout_set.get() }, 2);
 
-    fbo[0] = create_frame_buffer(*dev, { {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 1024, 1024, blit_render_pass.get());
-    fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 1024, 1024, blit_render_pass.get());
+    fbo[0] = create_frame_buffer(*dev, { {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM } }, 900, 900, blit_render_pass.get());
+    fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM } }, 900, 900, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
@@ -158,7 +158,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil, nullptr);
     depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-    color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_transfer_src, nullptr);
+    color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled, nullptr);
     color_texture_view = create_image_view(*dev, *color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
 
     set_image_view(*dev, descriptor, 0, 0, *color_texture_view);
@@ -223,7 +223,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     ctmp[0] = 0.;
-    ctmp[1] = 0.;
     ctmp[2] = 0.;
     memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
@@ -236,7 +235,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     draw_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*draw_command_buffer, *command_storage);
 
-    set_scissor(*draw_command_buffer, 0, 0, 1024, 1024);
+    set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);
     set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
 
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
@@ -257,8 +256,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
         begin_info.renderArea.extent.height = 900;
         vkCmdBeginRenderPass(*blit_command_buffer[i], &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        set_scissor(*blit_command_buffer[i], 0, 0, 1024, 1024);
-        set_viewport(*blit_command_buffer[i], 0, 1024., 0., 1024, 0., 1.);
+        set_scissor(*blit_command_buffer[i], 0, 900, 0, 900);
+        set_viewport(*blit_command_buffer[i], 0, 900, 0., 900, 0., 1.);
 
         set_graphic_pipeline(*blit_command_buffer[i], blit_pso);
         bind_graphic_descriptor(*blit_command_buffer[i], 0, descriptor, blit_layout);
