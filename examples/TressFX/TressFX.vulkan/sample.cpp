@@ -45,6 +45,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
+    tressfx_helper.hairParams.density = .1;
 
     depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_transfer_src, nullptr);
     depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
@@ -101,7 +102,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     set_pipeline_barrier(*upload_command_buffer, *back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
     VkClearColorValue color_clear{};
-    float ctmp[4] = { 1., 1., 1., 1. };
+    float ctmp[4] = { .5, 1., 1., 1. };
     memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
@@ -133,7 +134,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
         Regions.srcSubresource.layerCount = 1;
         Regions.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         Regions.dstSubresource.layerCount = 1;
-        vkCmdBlitImage(*blit_command_buffer[i], *depth_texture, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, *back_buffer[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Regions, VK_FILTER_LINEAR);
+        vkCmdBlitImage(*blit_command_buffer[i], *depth_texture, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, *back_buffer[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Regions, VK_FILTER_LINEAR);
         set_pipeline_barrier(*blit_command_buffer[i], *back_buffer[i], RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
         make_command_list_executable(*blit_command_buffer[i]);
     }
