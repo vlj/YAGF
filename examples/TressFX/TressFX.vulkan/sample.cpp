@@ -165,7 +165,17 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     bilinear_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
     set_sampler(*dev, descriptor, 1, 1, *bilinear_sampler);
 
-    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view);
+    command_storage = create_command_storage(*dev);
+    std::unique_ptr<command_list_t> upload_command_buffer = create_command_list(*dev, *command_storage);
+    start_command_list_recording(*upload_command_buffer, *command_storage);
+    std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+
+    size_t offset = 0;
+    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view, *upload_command_buffer, *upload_buffer->baking_memory, *upload_buffer, offset);
+    make_command_list_executable(*upload_command_buffer);
+    submit_executable_command_list(*queue, *upload_command_buffer);
+    wait_for_command_queue_idle(*dev, *queue);
+    start_command_list_recording(*upload_command_buffer, *command_storage);
 
     TFXProjectFile tfxproject;
     bool success = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\testhair1\\TestHair1.tfxproj");
@@ -203,10 +213,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
         TressFX_LoadRawAsset(tressfx_helper, guideFollowParams, &hairBlob);
     }
-    command_storage = create_command_storage(*dev);
-    std::unique_ptr<command_list_t> upload_command_buffer = create_command_list(*dev, *command_storage);
-    start_command_list_recording(*upload_command_buffer, *command_storage);
-    std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
 
     set_pipeline_barrier(*upload_command_buffer, *depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
