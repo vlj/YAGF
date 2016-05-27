@@ -161,7 +161,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled, nullptr);
     color_texture_view = create_image_view(*dev, *color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
 
-    set_image_view(*dev, descriptor, 0, 0, *depth_texture_view);
+    set_image_view(*dev, descriptor, 0, 0, *color_texture_view);
     bilinear_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
     set_sampler(*dev, descriptor, 1, 1, *bilinear_sampler);
 

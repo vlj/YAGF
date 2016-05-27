@@ -10,6 +10,6 @@ layout(location = 0) out vec4 FragColor;
 
 void main(void)
 {
-    FragColor = texture(sampler2D(tex, s), gl_FragCoord.xy / 1024.).x > 0.999 ? vec4(1.) : vec4(0.);
+    FragColor = texture(sampler2D(tex, s), gl_FragCoord.xy / 1024.);
 }
 
