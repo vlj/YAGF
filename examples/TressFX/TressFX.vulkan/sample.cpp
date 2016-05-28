@@ -125,13 +125,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.texture_memory_index = dev->default_memory_index;
 
 
-    // For debug
-    /*mat4 viewProjMat = mat4(+1.1801878, +0.083125077, -0.66663146, -28.594688,
-        -0.07769756, +2.4074752, +0.16264437, -65.534912,
-        +0.49382877, -0.04276564, +0.86892968, +288.28705,
-        +0.49364752, -0.042749945, +0.86861074, +289.18124);
-    viewProjMat = transpose(viewProjMat);*/
-
     irr::core::matrix4 View, InvView, tmp, LightMatrix;
     tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(-190.0f, 70.0f, -250.0f), irr::core::vector3df(0.f, 40.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
     View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
