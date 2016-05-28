@@ -303,6 +303,11 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     }
 }
 
+sample::~sample()
+{
+    TressFX_Release(tressfx_helper);
+}
+
 void sample::draw()
 {
     submit_executable_command_list(*queue, *draw_command_buffer);

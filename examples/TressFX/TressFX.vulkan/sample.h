@@ -34,6 +34,7 @@ struct sample
     std::unique_ptr<sampler_t> bilinear_sampler;
 
     sample(HINSTANCE hinstance, HWND hwnd);
+    ~sample();
     void draw();
 };
 
