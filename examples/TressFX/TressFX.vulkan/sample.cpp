@@ -156,6 +156,30 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.hairParams.density = .1;
     tressfx_helper.hairParams.thickness = 0.3f;
 
+
+    tressfx_helper.hairParams.color = DirectX::XMFLOAT3(98.f / 255.f, 14.f / 255.f, 4.f / 255.f);
+
+    tressfx_helper.hairParams.Ka = 0.f; // Ka
+    tressfx_helper.hairParams.Kd = 0.4f; // Kd
+    tressfx_helper.hairParams.Ks1 = 0.04f; // Ks1
+    tressfx_helper.hairParams.Ex1 = 80.f; // Ex1
+    tressfx_helper.hairParams.Ks2 = .5f; // Ks2
+    tressfx_helper.hairParams.Ex2 = 8.0f; // Ex2
+
+    tressfx_helper.hairParams.alpha = .5f;
+    tressfx_helper.hairParams.alphaThreshold = .00388f;
+    tressfx_helper.hairParams.shadowMapAlpha = .004000f;
+
+    tressfx_helper.hairParams.ambientLightColor = DirectX::XMFLOAT4(.15f, .15f, .15f, 1.f);
+
+/*    cbuf.g_PointLightPos[0] = 421.25f;
+    cbuf.g_PointLightPos[1] = 306.79f;
+    cbuf.g_PointLightPos[2] = 343.f;
+    cbuf.g_PointLightPos[3] = 0.f;*/
+
+    tressfx_helper.hairParams.pointLightColor = DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f);
+
+
     depth_texture = create_image(*dev, irr::video::D24U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled, nullptr);
     depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
     color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled, nullptr);
@@ -178,7 +202,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     start_command_list_recording(*upload_command_buffer, *command_storage);
 
     TFXProjectFile tfxproject;
-    bool success = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\testhair1\\TestHair1.tfxproj");
+    bool success = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
 
     AMD::TressFX_HairBlob hairBlob;
 
@@ -230,13 +254,10 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     set_pipeline_barrier(*upload_command_buffer, *back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
     VkClearColorValue color_clear{};
-    float ctmp[4] = { .5, 1., 1., 1. };
-    memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
+//    float ctmp[4] = { 1., 1., 1., 1. };
+//    memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
-    ctmp[0] = 0.;
-    ctmp[2] = 0.;
-    memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
 
     make_command_list_executable(*upload_command_buffer);
