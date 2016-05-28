@@ -124,10 +124,19 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
 
+
+    // For debug
+    /*mat4 viewProjMat = mat4(+1.1801878, +0.083125077, -0.66663146, -28.594688,
+        -0.07769756, +2.4074752, +0.16264437, -65.534912,
+        +0.49382877, -0.04276564, +0.86892968, +288.28705,
+        +0.49364752, -0.042749945, +0.86861074, +289.18124);
+    viewProjMat = transpose(viewProjMat);*/
+
     irr::core::matrix4 View, InvView, tmp, LightMatrix;
     tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(-190.0f, 70.0f, -250.0f), irr::core::vector3df(0.f, 40.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
-    //View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
+    View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
     View *= tmp;
+    View = View.getTransposed();
     View.getInverse(InvView);
 
 /*    tressfx_helper.g_vEye[0] = 0.f;
@@ -149,7 +158,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
     tressfx_helper.mViewProjLightFromLibrary = DirectX::XMMATRIX(LightMatrix.pointer());
     tressfx_helper.bShortCutOn = false;
-    tressfx_helper.hairParams.bAntialias = false;
+    tressfx_helper.hairParams.bAntialias = true;
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
@@ -159,12 +168,12 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     tressfx_helper.hairParams.color = DirectX::XMFLOAT3(98.f / 255.f, 14.f / 255.f, 4.f / 255.f);
 
-    tressfx_helper.hairParams.Ka = 0.f; // Ka
-    tressfx_helper.hairParams.Kd = 0.4f; // Kd
-    tressfx_helper.hairParams.Ks1 = 0.04f; // Ks1
-    tressfx_helper.hairParams.Ex1 = 80.f; // Ex1
-    tressfx_helper.hairParams.Ks2 = .5f; // Ks2
-    tressfx_helper.hairParams.Ex2 = 8.0f; // Ex2
+    tressfx_helper.hairParams.Ka = 0.f;
+    tressfx_helper.hairParams.Kd = 0.4f;
+    tressfx_helper.hairParams.Ks1 = 0.04f;
+    tressfx_helper.hairParams.Ex1 = 80.f;
+    tressfx_helper.hairParams.Ks2 = .5f;
+    tressfx_helper.hairParams.Ex2 = 8.0f;
 
     tressfx_helper.hairParams.alpha = .5f;
     tressfx_helper.hairParams.alphaThreshold = .00388f;
@@ -202,7 +211,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     start_command_list_recording(*upload_command_buffer, *command_storage);
 
     TFXProjectFile tfxproject;
-    bool success = tfxproject.Read(L"..\\..\\..\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
+    bool success = tfxproject.Read(L"..\\..\\deps\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
 
     AMD::TressFX_HairBlob hairBlob;
 
@@ -254,8 +263,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     set_pipeline_barrier(*upload_command_buffer, *back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
     VkClearColorValue color_clear{};
-//    float ctmp[4] = { 1., 1., 1., 1. };
-//    memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
+    float ctmp[4] = { .5, .5, .5, 1. };
+    memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
