@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;C:\Users\vlj\Documents\GitHub\TressFX\amd_tressfx\inc;C:\Users\vlj\Documents\GitHub\TressFX\amd_lib\inc;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)deps\tressfx\amd_tressfx\inc;$(SolutionDir)deps\tressfx\amd_lib\inc;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -78,7 +78,10 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\bl
     <ClCompile Include="TFXFileIO.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\TressFX\amd_tressfx_vulkan\build\AMD_TressFX_Vulkan.vcxproj">
+    <ProjectReference Include="..\..\..\deps\tressfx\amd_lib\build\AMD_LIB_Minimal_2015.vcxproj">
+      <Project>{0d2aea47-7909-69e3-8221-f4b9ee7fcf44}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\deps\tressfx\amd_tressfx_vulkan\build\AMD_TressFX_Vulkan.vcxproj">
       <Project>{ed533122-434d-4ec6-9653-2f8a51ce2f18}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\YAGF.vulkan.vcxproj">
