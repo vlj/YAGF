@@ -197,7 +197,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
 
     size_t offset = 0;
-    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view, *upload_command_buffer, *upload_buffer->baking_memory, *upload_buffer, offset, 0, 1);
+    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view, *upload_command_buffer, *upload_buffer->baking_memory, *upload_buffer, offset, 3, 4);
     make_command_list_executable(*upload_command_buffer);
     submit_executable_command_list(*queue, *upload_command_buffer);
     wait_for_command_queue_idle(*dev, *queue);
@@ -274,7 +274,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
 
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
-    TressFX_Simulate(tressfx_helper, 0.16);
+    TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16);
     TressFX_Render(tressfx_helper, *draw_command_buffer, *constant_buffer, 0);
     TressFX_End(tressfx_helper);
 
