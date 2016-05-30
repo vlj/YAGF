@@ -253,7 +253,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
         shapeParam.globalShapeMatchingEffectiveRange = tfxproject.mTFXSimFile[i].globalShapeMatchingEffectiveRange;
         shapeParam.stiffnessForGlobalShapeMatching = tfxproject.mTFXSimFile[i].stiffnessForGlobalShapeMatching;
         shapeParam.stiffnessForLocalShapeMatching = tfxproject.mTFXSimFile[i].stiffnessForLocalShapeMatching;
-        tressfx_helper.simulationParams.perSectionShapeParams[numHairSectionsCounter] = shapeParam;
+        tressfx_helper.simulationParams.perSectionShapeParams[numHairSectionsCounter++] = shapeParam;
     }
 
     tressfx_helper.simulationParams.numHairSections = numHairSectionsCounter;
