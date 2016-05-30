@@ -210,6 +210,15 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     const int numHairSectionsTotal = tfxproject.CountTFXFiles();
     std::ifstream tfxFile;
+    int numHairSectionsCounter = 0;
+    tressfx_helper.simulationParams.bGuideFollowSimulation = false;
+    tressfx_helper.simulationParams.gravityMagnitude = 9.82;
+    tressfx_helper.simulationParams.numLengthConstraintIterations = tfxproject.lengthConstraintIterations;
+    tressfx_helper.simulationParams.numLocalShapeMatchingIterations = tfxproject.localShapeMatchingIterations;
+    tressfx_helper.simulationParams.windMag = tfxproject.windMag;
+//    tressfx_helper.simulationParams.>windDir = g_wind_direction;
+    tressfx_helper.bWarp = false;
+    tressfx_helper.targetFrameRate = 1. / 60.;
 
     for (int i = 0; i < numHairSectionsTotal; ++i)
     {
@@ -238,7 +247,16 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
         guideFollowParams.tipSeparationFactor = tfxproject.mTFXFile[i].tipSeparationFactor;
 
         TressFX_LoadRawAsset(tressfx_helper, guideFollowParams, &hairBlob);
+
+        AMD::TressFX_ShapeParams shapeParam;
+        shapeParam.damping = tfxproject.mTFXSimFile[i].damping;
+        shapeParam.globalShapeMatchingEffectiveRange = tfxproject.mTFXSimFile[i].globalShapeMatchingEffectiveRange;
+        shapeParam.stiffnessForGlobalShapeMatching = tfxproject.mTFXSimFile[i].stiffnessForGlobalShapeMatching;
+        shapeParam.stiffnessForLocalShapeMatching = tfxproject.mTFXSimFile[i].stiffnessForLocalShapeMatching;
+        tressfx_helper.simulationParams.perSectionShapeParams[numHairSectionsCounter] = shapeParam;
     }
+
+    tressfx_helper.simulationParams.numHairSections = numHairSectionsCounter;
 
     TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
 
