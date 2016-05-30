@@ -278,7 +278,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
-    vkCmdClearColorImage(*upload_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
 
     make_command_list_executable(*upload_command_buffer);
     submit_executable_command_list(*queue, *upload_command_buffer);
@@ -291,6 +290,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);
     set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
 
+    vkCmdClearColorImage(*draw_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
     TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16);
     TressFX_Render(tressfx_helper, *draw_command_buffer, *constant_buffer, 0);
