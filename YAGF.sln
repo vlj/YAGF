@@ -51,6 +51,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AMD_LIB_Minimal", "deps\tre
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AMD_TressFX_Vulkan", "deps\tressfx\amd_tressfx_vulkan\build\AMD_TressFX_Vulkan.vcxproj", "{ED533122-434D-4EC6-9653-2F8A51CE2F18}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "shader_builder", "deps\tressfx\amd_tressfx_vulkan\shader_builder\shader_builder\shader_builder.pyproj", "{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		YAGF.shared.vcxitems*{c005ca5d-8870-49df-8fcc-dab6d1c5ad80}*SharedItemsImports = 4
@@ -198,6 +200,14 @@ Global
 		{ED533122-434D-4EC6-9653-2F8A51CE2F18}.Release|ARM64.ActiveCfg = Release|Win32
 		{ED533122-434D-4EC6-9653-2F8A51CE2F18}.Release|x64.ActiveCfg = Release|x64
 		{ED533122-434D-4EC6-9653-2F8A51CE2F18}.Release|x64.Build.0 = Release|x64
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Release|ARM.ActiveCfg = Release|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -221,5 +231,6 @@ Global
 		{E9E01B3F-B9C8-44BC-9D5B-F545A7B27AAD} = {9512D961-879A-4BC8-8D6C-68DCCF25F17A}
 		{0D2AEA47-7909-69E3-8221-F4B9EE7FCF44} = {E9E01B3F-B9C8-44BC-9D5B-F545A7B27AAD}
 		{ED533122-434D-4EC6-9653-2F8A51CE2F18} = {E9E01B3F-B9C8-44BC-9D5B-F545A7B27AAD}
+		{5CB29E1D-E89D-42AE-9C2D-DBC0A988C843} = {E9E01B3F-B9C8-44BC-9D5B-F545A7B27AAD}
 	EndGlobalSection
 EndGlobal
