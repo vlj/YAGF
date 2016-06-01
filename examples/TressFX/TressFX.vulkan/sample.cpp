@@ -136,8 +136,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.g_vEye[1] = 0.f;
     tressfx_helper.g_vEye[2] = 200.f;*/
 
-    irr::core::matrix4 Model;
-
     LightMatrix.buildProjectionMatrixPerspectiveFovLH(0.6f, 1.f, 532.f, 769.f);
 
 /*    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1], cbuf.g_PointLightPos[2]),
@@ -146,7 +144,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     tressfx_helper.lightPosition = g_lightEyePt;
     tressfx_helper.eyePoint = g_defaultEyePt;
-    tressfx_helper.mWorld = DirectX::XMMATRIX(Model.pointer());
     tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
     tressfx_helper.mViewProjLightFromLibrary = DirectX::XMMATRIX(LightMatrix.pointer());
@@ -211,7 +208,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     const int numHairSectionsTotal = tfxproject.CountTFXFiles();
     std::ifstream tfxFile;
     int numHairSectionsCounter = 0;
-    tressfx_helper.simulationParams.bGuideFollowSimulation = false;
+    tressfx_helper.simulationParams.bGuideFollowSimulation = true;
     tressfx_helper.simulationParams.gravityMagnitude = 9.82;
     tressfx_helper.simulationParams.numLengthConstraintIterations = tfxproject.lengthConstraintIterations;
     tressfx_helper.simulationParams.numLocalShapeMatchingIterations = tfxproject.localShapeMatchingIterations;
@@ -219,6 +216,11 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 //    tressfx_helper.simulationParams.>windDir = g_wind_direction;
     tressfx_helper.bWarp = false;
     tressfx_helper.targetFrameRate = 1. / 60.;
+
+    irr::core::matrix4 Model;
+    Model.setRotationDegrees(irr::core::vector3df(0., 180., 0));
+
+    tressfx_helper.modelTransformForHead = DirectX::XMMATRIX(Model.pointer());
 
     for (int i = 0; i < numHairSectionsTotal; ++i)
     {
@@ -287,13 +289,15 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     draw_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*draw_command_buffer, *command_storage);
 
-    set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);
-    set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
+
 
     vkCmdClearColorImage(*draw_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
     TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
     TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16);
-    TressFX_Render(tressfx_helper, *draw_command_buffer, *constant_buffer, 0);
+    TressFX_RenderShadowMap(tressfx_helper, *draw_command_buffer);
+    set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);
+    set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
+    TressFX_Render(tressfx_helper, *draw_command_buffer);
     TressFX_End(tressfx_helper);
 
     make_command_list_executable(*draw_command_buffer);
