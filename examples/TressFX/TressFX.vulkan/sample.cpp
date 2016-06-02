@@ -128,7 +128,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
 
     irr::core::matrix4 View, InvView, tmp;
-    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(-190.0f, 70.0f, -250.0f), irr::core::vector3df(0.f, 40.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
+    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(-190.0f, 70.0f, -250.0f), irr::core::vector3df(0.f, 40.f, 0.f), irr::core::vector3df(0.f, -1.f, 0.f));
     View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 100.f, 600.f);
     View *= tmp;
     View = View.getTransposed();
@@ -147,7 +147,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
-    tressfx_helper.hairParams.density = .1;
+    tressfx_helper.hairParams.density = .5;
     tressfx_helper.hairParams.thickness = 0.3f;
     tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012;
 
@@ -214,7 +214,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.targetFrameRate = 1. / 60.;
 
     irr::core::matrix4 Model;
-    Model.setRotationDegrees(irr::core::vector3df(0., 180., 0));
+    Model.setRotationDegrees(irr::core::vector3df(0., 0., 0.));
 
     tressfx_helper.modelTransformForHead = DirectX::XMMATRIX(Model.pointer());
 
