@@ -143,8 +143,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
     tressfx_helper.bShortCutOn = false;
-    tressfx_helper.hairParams.bAntialias = false;
-    tressfx_helper.hairParams.strandCopies = 1;
+    tressfx_helper.hairParams.bAntialias = true;
+    tressfx_helper.hairParams.strandCopies = 2;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
     tressfx_helper.hairParams.density = .5;
@@ -214,7 +214,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.targetFrameRate = 1. / 60.;
 
     irr::core::matrix4 Model;
-    Model.setRotationDegrees(irr::core::vector3df(0., 0., 0.));
+    Model.setRotationDegrees(irr::core::vector3df(0., 180., 0.));
 
     tressfx_helper.modelTransformForHead = DirectX::XMMATRIX(Model.pointer());
 
@@ -330,7 +330,6 @@ sample::~sample()
 void sample::draw()
 {
     submit_executable_command_list(*queue, *draw_command_buffer);
-    wait_for_command_queue_idle(*dev, *queue);
 
     uint32_t current_backbuffer = get_next_backbuffer_id(*dev, *chain);
     submit_executable_command_list(*queue, *blit_command_buffer[current_backbuffer]);
