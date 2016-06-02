@@ -124,10 +124,12 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.texture_memory_index = dev->default_memory_index;
 
+    DirectX::XMFLOAT4 lightpos{ 121.386368f, 420.605896f, -426.585876f, 1.00000000f };
 
-    irr::core::matrix4 View, InvView, tmp, LightMatrix;
+
+    irr::core::matrix4 View, InvView, tmp;
     tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(-190.0f, 70.0f, -250.0f), irr::core::vector3df(0.f, 40.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
-    View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
+    View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 100.f, 600.f);
     View *= tmp;
     View = View.getTransposed();
     View.getInverse(InvView);
@@ -136,24 +138,18 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.g_vEye[1] = 0.f;
     tressfx_helper.g_vEye[2] = 200.f;*/
 
-    LightMatrix.buildProjectionMatrixPerspectiveFovLH(0.6f, 1.f, 532.f, 769.f);
-
-/*    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1], cbuf.g_PointLightPos[2]),
-        irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
-    LightMatrix *= tmp;*/
-
     tressfx_helper.lightPosition = g_lightEyePt;
     tressfx_helper.eyePoint = g_defaultEyePt;
     tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
-    tressfx_helper.mViewProjLightFromLibrary = DirectX::XMMATRIX(LightMatrix.pointer());
     tressfx_helper.bShortCutOn = false;
-    tressfx_helper.hairParams.bAntialias = true;
+    tressfx_helper.hairParams.bAntialias = false;
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
     tressfx_helper.hairParams.density = .1;
     tressfx_helper.hairParams.thickness = 0.3f;
+    tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012;
 
 
     tressfx_helper.hairParams.color = DirectX::XMFLOAT3(98.f / 255.f, 14.f / 255.f, 4.f / 255.f);
