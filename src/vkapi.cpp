@@ -136,12 +136,12 @@ namespace
 std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
 {
 	std::vector<const char*> layers = { 
-#ifdef DEBUG
+#ifndef NDEBUG
 		"VK_LAYER_LUNARG_standard_validation"
 #endif
 	};
 	std::vector<const char*> instance_extension = {
-#ifdef DEBUG
+#ifndef NDEBUG
 		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 #endif
 		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
