@@ -122,7 +122,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM } }, 900, 900, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = *dev;
-    tressfx_helper.texture_memory_index = dev->default_memory_index;
+    tressfx_helper.device_local_memory_index = dev->default_memory_index;
+    tressfx_helper.host_visible_memory_index = dev->upload_memory_index;
 
     DirectX::XMFLOAT4 lightpos{ 121.386368f, 420.605896f, -426.585876f, 1.00000000f };
 
@@ -143,8 +144,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
     tressfx_helper.bShortCutOn = false;
-    tressfx_helper.hairParams.bAntialias = true;
-    tressfx_helper.hairParams.strandCopies = 2;
+    tressfx_helper.hairParams.bAntialias = false;
+    tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
     tressfx_helper.hairParams.density = .5;
@@ -190,7 +191,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
 
     size_t offset = 0;
-    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view, *upload_command_buffer, *upload_buffer->baking_memory, *upload_buffer, offset, 3, 4);
+    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view, *upload_command_buffer, *upload_buffer->baking_memory, *upload_buffer, offset);
     make_command_list_executable(*upload_command_buffer);
     submit_executable_command_list(*queue, *upload_command_buffer);
     wait_for_command_queue_idle(*dev, *queue);
