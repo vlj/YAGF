@@ -144,7 +144,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
     tressfx_helper.bShortCutOn = true;
-    tressfx_helper.hairParams.bAntialias = false;
+    tressfx_helper.hairParams.bAntialias = true;
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
     tressfx_helper.backBufferWidth = 1024;
@@ -257,7 +257,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     tressfx_helper.simulationParams.numHairSections = numHairSectionsCounter;
 
-    TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, 0, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
+    TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
 
     set_pipeline_barrier(*upload_command_buffer, *depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
     set_pipeline_barrier(*upload_command_buffer, *color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -276,7 +276,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     submit_executable_command_list(*queue, *upload_command_buffer);
     wait_for_command_queue_idle(*dev, *queue);
 
-    constant_buffer = create_buffer(*dev, 1024 * 1024 * 10, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
     draw_command_buffer = create_command_list(*dev, *command_storage);
     start_command_list_recording(*draw_command_buffer, *command_storage);
 
@@ -289,7 +288,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 			VK_IMAGE_ASPECT_STENCIL_BIT));
 
     vkCmdClearColorImage(*draw_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
-    TressFX_Begin(tressfx_helper, *constant_buffer, *constant_buffer->baking_memory, 0);
+    TressFX_Begin(tressfx_helper);
     TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16);
     TressFX_RenderShadowMap(tressfx_helper, *draw_command_buffer);
     set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);

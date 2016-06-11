@@ -17,7 +17,6 @@ struct sample
     std::unique_ptr<image_view_t> depth_texture_view;
     std::unique_ptr<image_t> color_texture;
     std::unique_ptr<image_view_t> color_texture_view;
-    std::unique_ptr<buffer_t> constant_buffer;
 
     std::unique_ptr<command_list_storage_t> command_storage;
     std::unique_ptr<command_list_t> draw_command_buffer;
