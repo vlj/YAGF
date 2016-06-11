@@ -122,8 +122,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM } }, 900, 900, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = *dev;
-    tressfx_helper.device_local_memory_index = dev->default_memory_index;
-    tressfx_helper.host_visible_memory_index = dev->upload_memory_index;
+    tressfx_helper.memoryIndexDeviceLocal = dev->default_memory_index;
+    tressfx_helper.memoryIndexHostVisible = dev->upload_memory_index;
 
     DirectX::XMFLOAT4 lightpos{ 121.386368f, 420.605896f, -426.585876f, 1.00000000f };
 
