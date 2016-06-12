@@ -151,6 +151,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.hairParams.density = .5;
     tressfx_helper.hairParams.thickness = 0.3f;
     tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012;
+    tressfx_helper.maxConstantBuffers = 1;
 
 
     tressfx_helper.hairParams.color = DirectX::XMFLOAT3(98.f / 255.f, 14.f / 255.f, 4.f / 255.f);
@@ -288,12 +289,12 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 			VK_IMAGE_ASPECT_STENCIL_BIT));
 
     vkCmdClearColorImage(*draw_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
-    TressFX_Begin(tressfx_helper);
-    TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16);
-    TressFX_RenderShadowMap(tressfx_helper, *draw_command_buffer);
+    TressFX_Begin(tressfx_helper, 0);
+    TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16, 0);
+    TressFX_RenderShadowMap(tressfx_helper, *draw_command_buffer, 0);
     set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);
     set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
-    TressFX_Render(tressfx_helper, *draw_command_buffer);
+    TressFX_Render(tressfx_helper, *draw_command_buffer, 0);
     TressFX_End(tressfx_helper);
 
     make_command_list_executable(*draw_command_buffer);
