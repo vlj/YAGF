@@ -75,6 +75,8 @@ namespace irr
 			//! 24 bits depth and 8 bits stencil
 			D24U8,
 
+			D32U8,
+
 
 			//! Unknown color format:
 			ECF_UNKNOWN
