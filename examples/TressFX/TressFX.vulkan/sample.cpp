@@ -118,8 +118,8 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
                                             {RESOURCE_VIEW::SAMPLER, 1}});
     descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *descriptor_pool, 0, { blit_layout_set.get() }, 2);
 
-    fbo[0] = create_frame_buffer(*dev, { {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM } }, 900, 900, blit_render_pass.get());
-    fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM } }, 900, 900, blit_render_pass.get());
+    fbo[0] = create_frame_buffer(*dev, { {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 900, 900, blit_render_pass.get());
+    fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 900, 900, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = *dev;
     tressfx_helper.memoryIndexDeviceLocal = dev->default_memory_index;
