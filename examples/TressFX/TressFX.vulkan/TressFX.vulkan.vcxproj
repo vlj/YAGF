@@ -57,6 +57,7 @@
       <Command>$(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\blit.vert -o $(SolutionDir)\blit_vert.spv
 $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\blit.frag -o $(SolutionDir)\blit_frag.spv</Command>
     </PostBuildEvent>
+    <Manifest />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -73,6 +74,9 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\bl
       <AdditionalDependencies>vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

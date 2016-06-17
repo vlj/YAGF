@@ -143,7 +143,7 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.eyePoint = g_defaultEyePt;
     tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
-    tressfx_helper.bShortCutOn = false;
+    tressfx_helper.bShortCutOn = true;
     tressfx_helper.hairParams.bAntialias = true;
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = 1024;
@@ -206,12 +206,12 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     const int numHairSectionsTotal = tfxproject.CountTFXFiles();
     std::ifstream tfxFile;
     int numHairSectionsCounter = 0;
-    tressfx_helper.simulationParams.bGuideFollowSimulation = true;
+    tressfx_helper.simulationParams.bGuideFollowSimulation = false;
     tressfx_helper.simulationParams.gravityMagnitude = 9.82;
     tressfx_helper.simulationParams.numLengthConstraintIterations = tfxproject.lengthConstraintIterations;
     tressfx_helper.simulationParams.numLocalShapeMatchingIterations = tfxproject.localShapeMatchingIterations;
     tressfx_helper.simulationParams.windMag = tfxproject.windMag;
-//    tressfx_helper.simulationParams.>windDir = g_wind_direction;
+    tressfx_helper.simulationParams.windDir = DirectX::XMFLOAT3(1., 0., 0.);
     tressfx_helper.bWarp = false;
     tressfx_helper.targetFrameRate = 1. / 60.;
 
