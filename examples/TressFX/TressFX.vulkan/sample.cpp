@@ -212,7 +212,6 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     tressfx_helper.simulationParams.numLocalShapeMatchingIterations = tfxproject.localShapeMatchingIterations;
     tressfx_helper.simulationParams.windMag = tfxproject.windMag;
     tressfx_helper.simulationParams.windDir = DirectX::XMFLOAT3(1., 0., 0.);
-    tressfx_helper.bWarp = false;
     tressfx_helper.targetFrameRate = 1. / 60.;
 
     irr::core::matrix4 Model;

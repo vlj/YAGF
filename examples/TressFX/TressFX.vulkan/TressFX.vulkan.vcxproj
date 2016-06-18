@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)deps\tressfx\amd_tressfx\inc;$(SolutionDir)deps\tressfx\amd_lib\inc;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)deps\tressfx\amd_tressfx\inc;$(SolutionDir)deps\tressfx\amd_lib\shared\common\inc;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -66,7 +66,7 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\bl
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)deps\tressfx\amd_tressfx\inc;$(SolutionDir)deps\tressfx\amd_lib\inc;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)deps\tressfx\amd_tressfx\inc;$(SolutionDir)deps\tressfx\amd_lib\shared\common\inc;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -85,11 +85,11 @@ $(VULKAN_SDK)\Bin\glslangValidator -V $(SolutionDir)\examples\TressFX\shaders\bl
     <ClCompile Include="TFXFileIO.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\deps\tressfx\amd_lib\build\AMD_LIB_Minimal_2015.vcxproj">
+    <ProjectReference Include="..\..\..\deps\tressfx\amd_lib\shared\d3d11\build\AMD_LIB_Minimal_2015.vcxproj">
       <Project>{0d2aea47-7909-69e3-8221-f4b9ee7fcf44}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\deps\tressfx\amd_tressfx_vulkan\build\AMD_TressFX_Vulkan.vcxproj">
-      <Project>{ed533122-434d-4ec6-9653-2f8a51ce2f18}</Project>
+    <ProjectReference Include="..\..\..\deps\tressfx\amd_tressfx_vulkan\build\AMD_TressFX_Vulkan_2015.vcxproj">
+      <Project>{9b729252-7d58-4b28-882f-dfb4ef44a485}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\YAGF.vulkan.vcxproj">
       <Project>{c4b16266-ab39-4716-9057-90ff799088d7}</Project>
