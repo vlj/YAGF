@@ -21,6 +21,7 @@ include_directories(
 )
 
 add_subdirectory(src)
+add_subdirectory(examples)
 
 #add_executable(ssao examples/ssao.cpp)
 #target_link_libraries(ssao ${PROJECT_NAME})
