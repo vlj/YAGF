@@ -3,7 +3,7 @@
 #pragma once
 #include <vulkan\vulkan.h>
 #include <array>
-#include <gsl.h>
+#include <gsl/gsl>
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
 

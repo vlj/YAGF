@@ -8,4 +8,4 @@ file(GLOB SOURCES
     "ssao.cpp"
     "textures.cpp")
 add_library(YAGF ${HEADERS} ${SOURCES})
-target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
+target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} ${Vulkan_LIBRARY})
