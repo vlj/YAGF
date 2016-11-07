@@ -201,10 +201,7 @@ private:
 	static std::vector<std::unique_ptr<vk::ImageView> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets);
 };
 
-using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 
-
-#include "GfxApi.h"
 #include "../VKAPI/pipeline_helpers.h"
 #include "../VKAPI/pipeline_layout_helpers.h"
 #include "../VKAPI/renderpass_helpers.h"

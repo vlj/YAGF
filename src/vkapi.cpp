@@ -139,8 +139,6 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 #endif
 		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
-	VkInstance instance{};
-
 	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	app_info.pNext = NULL;
 	app_info.pApplicationName = "Nameless app";
@@ -149,6 +147,10 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	app_info.engineVersion = 1;
 	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 0);
 
+	auto instance = vk::createInstance(
+		vk::InstanceCreateInfo{}
+			.set
+	);
 	VkInstanceCreateInfo info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, nullptr, 0, &app_info, static_cast<uint32_t>(layers.size()), layers.data(), static_cast<uint32_t>(instance_extension.size()), instance_extension.data() };
 	CHECK_VKRESULT(vkCreateInstance(&info, nullptr, &instance));
 
