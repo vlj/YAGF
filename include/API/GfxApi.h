@@ -421,6 +421,7 @@ private:
 struct framebuffer_t {
 
 };
+
 struct pipeline_state_t {};
 struct compute_pipeline_state_t {};
 struct pipeline_layout_t {};
@@ -499,7 +500,9 @@ struct buffer_t {
 	virtual void unmap_buffer() = 0;
 };
 
-struct image_t {};
+struct image_t {
+	virtual ~image_t() = 0;
+};
 
 struct descriptor_storage_t {
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;

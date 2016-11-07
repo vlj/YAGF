@@ -18,6 +18,7 @@ include_directories(
     ${OPENGL_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIR}
    "${FREETYPE_INCLUDE_DIRS}/freetype2"
+   "deps/Vulkan-Hpp/"
    "deps/d3d12"
    "include"
 )
