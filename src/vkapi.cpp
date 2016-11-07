@@ -10,17 +10,7 @@
 
 namespace
 {
-	uint32_t find_graphic_queue_family(VkPhysicalDevice phys_dev, VkSurfaceKHR surface, const std::vector<VkQueueFamilyProperties> &queue_family_properties)
-	{
-		for (unsigned int i = 0; i < queue_family_properties.size(); i++) {
-			if (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				VkBool32 support_presents;
-				vkGetPhysicalDeviceSurfaceSupportKHR(phys_dev, i, surface, &support_presents);
-				if (support_presents) return i;
-			}
-		}
-		throw;
-	}
+
 
 
 	VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -139,23 +129,24 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 #endif
 		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
-	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-	app_info.pNext = NULL;
-	app_info.pApplicationName = "Nameless app";
-	app_info.applicationVersion = 1;
-	app_info.pEngineName = "Nameless app";
-	app_info.engineVersion = 1;
-	app_info.apiVersion = VK_MAKE_VERSION(1, 0, 0);
+	auto app_info = vk::ApplicationInfo{}
+		.setApiVersion(VK_MAKE_VERSION(1, 0, 0))
+		.setPApplicationName("Nameless app")
+		.setPEngineName("Nameless engine")
+		.setApplicationVersion(1)
+		.setEngineVersion(1);
 
 	auto instance = vk::createInstance(
 		vk::InstanceCreateInfo{}
-			.set
+			.setEnabledExtensionCount(layers.size())
+			.setPpEnabledLayerNames(layers.data())
+			.setEnabledExtensionCount(instance_extension.size())
+			.setPpEnabledExtensionNames(instance_extension.data())
+			.setPApplicationInfo(&app_info)
 	);
-	VkInstanceCreateInfo info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, nullptr, 0, &app_info, static_cast<uint32_t>(layers.size()), layers.data(), static_cast<uint32_t>(instance_extension.size()), instance_extension.data() };
-	CHECK_VKRESULT(vkCreateInstance(&info, nullptr, &instance));
 
 #ifndef NDEBUG
-	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
+/*	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
 	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback{};
 	VkDebugReportCallbackEXT debug_report_callback{};
 
@@ -171,86 +162,79 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	create_info.pfnCallback = dbgFunc;
 	create_info.pUserData = nullptr;
 
-	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));
+	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));*/
 
 	/* Clean up callback */
 //	dbgDestroyDebugReportCallback(instance, debug_report_callback, NULL);
 #endif
 
-	uint32_t device_count;
-	CHECK_VKRESULT(vkEnumeratePhysicalDevices(instance, &device_count, nullptr));
-	std::vector<VkPhysicalDevice> devices(device_count);
-	CHECK_VKRESULT(vkEnumeratePhysicalDevices(instance, &device_count, devices.data()));
+	const auto& devices = instance.enumeratePhysicalDevices();
+	const auto& queue_family_properties = devices[0].getQueueFamilyProperties();
 
-	uint32_t queue_count;
-	vkGetPhysicalDeviceQueueFamilyProperties(devices[0], &queue_count, nullptr);
-	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_count);
-	vkGetPhysicalDeviceQueueFamilyProperties(devices[0], &queue_count, queue_family_properties.data());
+	auto surface = instance.createWin32SurfaceKHR(
+		vk::Win32SurfaceCreateInfoKHR{}
+			.setHinstance(hinstance)
+			.setHwnd(window)
+	);
 
-	VkSurfaceKHR surface{};
-	VkWin32SurfaceCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, nullptr, 0, hinstance, window };
-	CHECK_VKRESULT(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface));
+	auto&& find_graphic_queue_family = [&]()
+	{
+		for (unsigned int i = 0; i < queue_family_properties.size(); i++) {
+			if (queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
+				if (devices[0].getSurfaceSupportKHR(i, surface)) return i;
+			}
+		}
+		throw;
+	};
 
 	float queue_priorities = 0.f;
-	VkDeviceQueueCreateInfo queue_info = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, find_graphic_queue_family(devices[0], surface, queue_family_properties), 1, &queue_priorities };
-	std::vector<VkDeviceQueueCreateInfo> queue_infos{ queue_info };
+	std::array<vk::DeviceQueueCreateInfo, 1> queue_infos{
+		vk::DeviceQueueCreateInfo{}
+			.setQueueFamilyIndex(find_graphic_queue_family())
+			.setQueueCount(1)
+			.setPQueuePriorities(&queue_priorities)
+	};
 
 	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	std::unique_ptr<device_t> dev = std::make_unique<vulkan_wrapper::device>(devices[0], queue_infos, layers, device_extension);
+	auto dev = devices[0].createDevice(
+		vk::DeviceCreateInfo{}
+			.setEnabledExtensionCount(device_extension.size())
+			.setPpEnabledExtensionNames(device_extension.data())
+			.setEnabledLayerCount(layers.size())
+			.setPpEnabledLayerNames(layers.data())
+			.setPQueueCreateInfos(queue_infos.data())
+			.setQueueCreateInfoCount(queue_infos.size())
+	);
 
-	VkPhysicalDeviceMemoryProperties mem_properties;
-	vkGetPhysicalDeviceMemoryProperties(devices[0], &mem_properties);
-	for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
+	auto mem_properties = devices[0].getMemoryProperties();
+/*	for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
 	{
 		if (mem_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 			dev->default_memory_index = i;
 		if (is_host_visible(mem_properties.memoryTypes[i].propertyFlags) & is_host_coherent(mem_properties.memoryTypes[i].propertyFlags))
 			dev->upload_memory_index = i;
-	}
+	}*/
 
-	// Get the list of VkFormats that are supported:
-	uint32_t format_count;
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devices[0], surface, &format_count, nullptr));
-	std::vector<VkSurfaceFormatKHR> surface_format(format_count);
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devices[0], surface, &format_count, surface_format.data()));
+	auto surface_format = devices[0].getSurfaceFormatsKHR(surface);
+	auto surface_capabilities = devices[0].getSurfaceCapabilitiesKHR(surface);
+	auto present_modes = devices[0].getSurfacePresentModesKHR(surface);
 
-	VkSurfaceCapabilitiesKHR surface_capabilities;
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[0], surface, &surface_capabilities));
+	auto swap_chain = vk::SwapchainCreateInfoKHR{}
+		.setSurface(surface)
+		.setMinImageCount(2)
+		.setImageFormat(surface_format[0].format)
+		.setImageExtent(surface_capabilities.currentExtent)
+		.setPreTransform(vk::SurfaceTransformFlagBitsKHR::eIdentity)
+		.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
+		.setImageArrayLayers(1)
+		.setPresentMode(vk::PresentModeKHR::eFifo)
+		.setClipped(true)
+		.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
+		.setImageSharingMode(vk::SharingMode::eExclusive);
 
-	uint32_t present_mode_count;
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(devices[0], surface, &present_mode_count, nullptr));
-	std::vector<VkPresentModeKHR> present_modes(present_mode_count);
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(devices[0], surface, &present_mode_count, present_modes.data()));
+	auto chain = dev.createSwapchainKHR(swap_chain);
 
-	VkSwapchainCreateInfoKHR swap_chain = {};
-	swap_chain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swap_chain.pNext = nullptr;
-	swap_chain.surface = surface;
-	swap_chain.minImageCount = 2;
-	swap_chain.imageFormat = surface_format[0].format;
-	swap_chain.imageExtent.width = surface_capabilities.currentExtent.width;
-	swap_chain.imageExtent.height = surface_capabilities.currentExtent.height;
-	swap_chain.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-	swap_chain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	swap_chain.imageArrayLayers = 1;
-	swap_chain.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	swap_chain.oldSwapchain = nullptr;
-	swap_chain.clipped = true;
-	swap_chain.imageColorSpace = surface_format[0].colorSpace;
-	swap_chain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	swap_chain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	swap_chain.queueFamilyIndexCount = 0;
-	swap_chain.pQueueFamilyIndices = nullptr;
-
-	std::unique_ptr<swap_chain_t> chain = std::make_unique<swap_chain_t>(dev->object);
-	CHECK_VKRESULT(vkCreateSwapchainKHR(dev->object, &swap_chain, nullptr, &(chain->object)));
-	chain->info = swap_chain;
-
-	std::unique_ptr<command_queue_t> queue = std::make_unique<vulkan_wrapper::queue>();
-	queue->info.queue_family = queue_infos[0].queueFamilyIndex;
-	queue->info.queue_index = 0;
-	vkGetDeviceQueue(dev->object, queue->info.queue_family, queue->info.queue_index, &(queue->object));
-
+	auto queue = dev.getQueue(queue_infos[0].queueFamilyIndex, 0);
 	return std::make_tuple(std::move(dev), std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
