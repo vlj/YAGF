@@ -334,14 +334,22 @@ std::unique_ptr<buffer_t> vk_device_t::create_buffer(size_t size, irr::video::E_
 		new vk_buffer_t(object, buffer, memory));
 }
 
-std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
+std::unique_ptr<descriptor_storage_t> vk_device_t::create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
 {
-	std::vector<VkDescriptorPoolSize> size;
-	for (const auto& set_size : num_descriptors)
-	{
-		size.push_back({ get_descriptor_type(std::get<0>(set_size)), std::get<1>(set_size) });
-	}
-	return std::make_unique<vulkan_wrapper::descriptor_pool>(dev, 0, num_sets, size);
+	std::vector<vk::DescriptorPoolSize> poolSizes;
+
+	std::transform(num_descriptors.begin(), num_descriptors.end(), std::back_inserter(poolSizes),
+		[](auto&& set) { return vk::DescriptorPoolSize(get_descriptor_type(std::get<0>(set_size)), std::get<1>(set_size)); });
+	return std::unique_ptr<descriptor_storage_t>(
+		new vk_descriptor_storage_t(object,
+			object.createDescriptorPool(
+				vk::DescriptorPoolCreateInfo{}
+					.setMaxSets(num_sets)
+					.setPoolSizeCount(poolSizes.size())
+					.setPPoolSizes(poolSizes.data())
+			)
+		)
+	);
 }
 
 void* vk_buffer_t::map_buffer()

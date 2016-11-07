@@ -121,6 +121,15 @@ struct vk_image_t : image_t
 };
 
 struct vk_descriptor_storage_t : descriptor_storage_t {
+	vk_descriptor_storage_t(vk::Device _dev, vk::DescriptorPool _object)
+		: object(_object), dev(_dev)
+	{}
+
+	vk::DescriptorPool object;
+	vk::Device dev;
+
+	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) override;
+	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) override;
 };
 
 struct vk_pipeline_state_t : pipeline_state_t {
