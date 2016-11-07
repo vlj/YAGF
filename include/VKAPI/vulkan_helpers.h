@@ -53,67 +53,6 @@ namespace vulkan_wrapper
 		device(const device&) = delete;
 	};
 
-	struct command_pool : public wrapper<VkCommandPool>
-	{
-		const VkCommandPoolCreateInfo info;
-
-		command_pool(VkDevice dev, VkCommandPoolCreateFlags flags, uint32_t queue_family)
-			: info({ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr, flags, queue_family }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateCommandPool(m_device, &info, nullptr, &object));
-		}
-
-		~command_pool()
-		{
-			vkDestroyCommandPool(m_device, object, nullptr);
-		}
-
-		command_pool(command_pool&&) = delete;
-		command_pool(const command_pool&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct command_buffer : public wrapper<VkCommandBuffer>
-	{
-		const VkCommandBufferAllocateInfo info;
-
-		command_buffer(VkDevice dev, VkCommandPool command_pool, VkCommandBufferLevel level)
-			: info({ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr, command_pool, level, 1 }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkAllocateCommandBuffers(m_device, &info, &object));
-		}
-
-		~command_buffer()
-		{
-			vkFreeCommandBuffers(m_device, info.commandPool, 1, &object);
-		}
-
-		command_buffer(command_buffer&&) = delete;
-		command_buffer(const command_buffer&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct queue : public wrapper<VkQueue>
-	{
-		struct {
-			uint32_t queue_family;
-			uint32_t queue_index;
-		} info;
-
-		queue()
-		{}
-
-		~queue()
-		{}
-
-		queue(queue&&) = delete;
-		queue(const queue&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
 	struct semaphore : public wrapper<VkSemaphore>
 	{
 		const VkSemaphoreCreateInfo info;
@@ -316,25 +255,6 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-
-	struct swapchain : public wrapper<VkSwapchainKHR>
-	{
-		VkSwapchainCreateInfoKHR info;
-
-		swapchain(VkDevice dev) : m_device(dev)
-		{}
-
-		~swapchain()
-		{
-			vkDestroySwapchainKHR(m_device, object, nullptr);
-		}
-
-		swapchain(swapchain&&) = delete;
-		swapchain(const swapchain&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
 	struct framebuffer : public wrapper<VkFramebuffer>
 	{
 		const std::vector<VkImageView> attachements;
@@ -362,52 +282,6 @@ namespace vulkan_wrapper
 
 namespace structures
 {
-	constexpr VkComponentMapping component_mapping(const VkComponentSwizzle r = VK_COMPONENT_SWIZZLE_R, const VkComponentSwizzle g = VK_COMPONENT_SWIZZLE_G, const VkComponentSwizzle b = VK_COMPONENT_SWIZZLE_B, const VkComponentSwizzle a = VK_COMPONENT_SWIZZLE_A)
-	{
-		return{ r, g, b, a };
-	}
-
-	constexpr VkImageSubresourceRange image_subresource_range(VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t base_mip_level = 0, uint32_t mip_level_count = 1, uint32_t base_layer = 0, uint32_t layer_count = 1)
-	{
-		return{ aspect, base_mip_level, mip_level_count, base_layer, layer_count };
-	}
-
-	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorImageInfo> &image_descriptors,
-		uint32_t dst_binding, uint32_t dst_array_element = 0)
-	{
-		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(image_descriptors.size()), descriptor_type, image_descriptors.data(), nullptr, nullptr };
-	}
-
-	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorBufferInfo> &buffer_descriptors,
-		uint32_t dst_binding, uint32_t dst_array_element = 0)
-	{
-		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(buffer_descriptors.size()), descriptor_type, nullptr, buffer_descriptors.data(), nullptr };
-	}
-
-	inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkBufferView> &texel_buffer_view_descriptors,
-		uint32_t dst_binding, uint32_t dst_array_element = 0)
-	{
-		return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(texel_buffer_view_descriptors.size()), descriptor_type, nullptr, nullptr, texel_buffer_view_descriptors.data() };
-	}
-
-	inline VkClearValue clear_value(const std::array<float, 4> &rgba)
-	{
-		VkClearValue result;
-		result.color.float32[0] = rgba[0];
-		result.color.float32[1] = rgba[1];
-		result.color.float32[2] = rgba[2];
-		result.color.float32[3] = rgba[3];
-		return result;
-	}
-
-	inline VkClearValue clear_value(float depth, uint8_t stencil)
-	{
-		VkClearValue result;
-		result.depthStencil.depth = depth;
-		result.depthStencil.stencil = stencil;
-		return result;
-	}
-
 	constexpr VkAttachmentDescription attachment_description(
 		VkFormat format,
 		VkAttachmentLoadOp load_op,
@@ -420,36 +294,5 @@ namespace structures
 		VkAttachmentDescriptionFlags flag = 0)
 	{
 		return{ flag, format, sample_count, load_op, store_op, stencil_load_op, stencil_store_op, initial_layout, final_layout };
-	}
-
-	constexpr VkBufferCopy buffer_copy(uint64_t src_offset, uint64_t dst_offset, uint64_t size)
-	{
-		return{ src_offset, dst_offset, size };
-	}
-
-	constexpr VkDescriptorBufferInfo descriptor_buffer_info(VkBuffer buffer, uint64_t offset, uint64_t size)
-	{
-		return{ buffer, offset, size };
-	}
-
-
-	constexpr VkDescriptorImageInfo descriptor_sampler_info(VkSampler sampler)
-	{
-		return{ sampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-	}
-}
-
-namespace util
-{
-	inline VkDescriptorSet allocate_descriptor_sets(VkDevice dev, VkDescriptorPool descriptor_pool, const std::vector<VkDescriptorSetLayout> &set_layouts)
-	{
-		VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool, gsl::narrow_cast<uint32_t>(set_layouts.size()), set_layouts.data() };
-		VkDescriptorSet result{};
-		CHECK_VKRESULT(vkAllocateDescriptorSets(dev, &info, &result));
-		return result;
-	}
-
-	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
-	{
 	}
 }
