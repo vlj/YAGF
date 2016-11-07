@@ -29,9 +29,9 @@ namespace irr
 		IMeshSceneNode::IMeshSceneNode(device_t& dev, const aiScene*model, command_list_t& upload_cmd_list, descriptor_storage_t& heap,
 			descriptor_set_layout* object_set, descriptor_set_layout* model_set,
 			ISceneNode* parent,
-			const core::vector3df& position,
-			const core::vector3df& rotation,
-			const core::vector3df& scale)
+			const glm::vec3& position,
+			const glm::vec3& rotation,
+			const glm::vec3& scale)
 			: ISceneNode(parent, position, rotation, scale)
 		{
 			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
@@ -152,12 +152,11 @@ namespace irr
 		{
 			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, *object_matrix));
 			updateAbsolutePosition();
-			irr::core::matrix4 Model = getAbsoluteTransformation();
-			irr::core::matrix4 InvModel;
-			Model.getInverse(InvModel);
+			glm::mat4 Model = getAbsoluteTransformation();
+			glm::mat4 InvModel = glm::inverse(Model);
 
-			memcpy(cbufdata->ModelMatrix, Model.pointer(), 16 * sizeof(float));
-			memcpy(cbufdata->InverseModelMatrix, InvModel.pointer(), 16 * sizeof(float));
+			memcpy(cbufdata->ModelMatrix, &Model, 16 * sizeof(float));
+			memcpy(cbufdata->InverseModelMatrix, &InvModel, 16 * sizeof(float));
 			unmap_buffer(dev, *object_matrix);
 		}
 

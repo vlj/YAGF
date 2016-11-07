@@ -18,7 +18,6 @@
 #include <array>
 #include <unordered_map>
 #include <Core/SColor.h>
-#include <Maths/matrix4.h>
 //#include <Core/ISkinnedMesh.h>
 #include <Scene/ISceneNode.h>
 
@@ -55,9 +54,9 @@ namespace irr
 			IMeshSceneNode(device_t& dev, const aiScene*, command_list_t& upload_cmd_list, descriptor_storage_t& heap,
 				descriptor_set_layout* object_set, descriptor_set_layout* model_set,
 				ISceneNode* parent,
-				const core::vector3df& position = core::vector3df(0, 0, 0),
-				const core::vector3df& rotation = core::vector3df(0, 0, 0),
-				const core::vector3df& scale = core::vector3df(1.f, 1.f, 1.f));
+				const glm::vec3& position = glm::vec3(0, 0, 0),
+				const glm::vec3& rotation = glm::vec3(0, 0, 0),
+				const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f));
 
 			~IMeshSceneNode();
 			void render() {}

@@ -2,11 +2,10 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <Scene/IBL.h>
-#include <Maths/matrix4.h>
 #include <cmath>
+#include <glm/mat4x4.hpp>
 #include <set>
 #include <d3dcompiler.h>
-#include "..\include\Scene\IBL.h"
 
 namespace
 {
@@ -104,10 +103,11 @@ namespace
 #endif // D3D12
 	}
 
-	irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
+	glm::mat4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 	{
-		irr::core::matrix4 resultMat;
-		float *M = resultMat.pointer();
+		glm::mat4 resultMat;
+		// TODO: Don't use this reinterpret cast
+		float *M = reinterpret_cast<float*>(&resultMat);
 		memset(M, 0, 16 * sizeof(float));
 		assert(indexX < 4);
 		assert(indexY < 4);
@@ -190,7 +190,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	compute_sh_cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	dfg_cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-	irr::core::matrix4 M[6] = {
+	std::array<glm::mat4, 6> M = {
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
 		getPermutationMatrix(2, 1., 1, -1., 0, -1.),
 		getPermutationMatrix(0, 1., 2, 1., 1, 1.),
@@ -202,7 +202,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	for (unsigned i = 0; i < 6; i++)
 	{
 		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-		memcpy(map_buffer(dev, *permutation_matrix[i]), M[i].pointer(), 16 * sizeof(float));
+		memcpy(map_buffer(dev, *permutation_matrix[i]), &M[i], 16 * sizeof(float));
 		unmap_buffer(dev, *permutation_matrix[i]);
 	}
 

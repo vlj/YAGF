@@ -2,7 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <Scene\ssao.h>
-#include <Maths\matrix4.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include "..\include\Scene\ssao.h"
 
 namespace
@@ -352,10 +352,9 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	bind_vertex_buffers(cmd_list, 0, big_triangle_info);
 	draw_non_indexed(cmd_list, 3, 1, 0, 0);
 
-	irr::core::matrix4 Perspective;
-	Perspective.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+	glm::mat4 Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
 	ssao_input_constant_data* ssao_ptr = reinterpret_cast<ssao_input_constant_data*>(map_buffer(dev, *ssao_constant_data));
-	float *tmp = Perspective.pointer();
+	float *tmp = reinterpret_cast<float*>(&Perspective);
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
 	ssao_ptr->width = static_cast<float>(width);
