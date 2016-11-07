@@ -427,7 +427,7 @@ struct compute_pipeline_state_t {};
 struct pipeline_layout_t {
 	virtual ~pipeline_layout_t() = 0;
 };
-struct swap_chain_t {};
+
 struct render_pass_t {};
 struct clear_value_structure_t {};
 
@@ -445,8 +445,8 @@ struct buffer_view_t {
 
 struct allocated_descriptor_set {
 };
-struct descriptor_set_layout {};
 
+struct descriptor_set_layout {};
 
 struct buffer_t {
 	virtual void* map_buffer() = 0;
@@ -505,6 +505,12 @@ struct command_queue_t {
 	virtual void wait_for_command_queue_idle() = 0;
 };
 
+struct swap_chain_t {
+	virtual ~swap_chain_t() = 0;
+	virtual uint32_t get_next_backbuffer_id() = 0;
+	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() = 0;
+};
+
 struct device_t {
 	virtual std::unique_ptr<command_list_storage_t> create_command_storage() = 0;
 	virtual std::unique_ptr<buffer_t> create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags) = 0;
@@ -526,5 +532,3 @@ void start_command_list_recording(command_list_t& command_list, command_list_sto
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);
-uint32_t get_next_backbuffer_id(device_t& dev, swap_chain_t& chain);
-std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& dev, swap_chain_t& chain);

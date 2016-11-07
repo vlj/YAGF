@@ -242,17 +242,12 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 		surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
-std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& dev, swap_chain_t& chain)
+std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_chain()
 {
-	uint32_t swap_chain_count;
-	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev, chain, &swap_chain_count, nullptr));
-	std::vector<VkImage> swapchain_image(swap_chain_count);
-	CHECK_VKRESULT(vkGetSwapchainImagesKHR(dev, chain, &swap_chain_count, swapchain_image.data()));
-	std::vector<std::unique_ptr<image_t>> result;
-	for (const auto& img : swapchain_image)
-	{
-		result.emplace_back(std::make_unique<vulkan_wrapper::image>(img));
-	}
+	auto swapchain_image = dev.getSwapchainImagesKHR(object);
+	auto result = std::vector<std::unique_ptr<image_t>>{};
+	std::transform(swapchain_image.begin(), swapchain_image.end(), std::back_inserter(result),
+		[](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img)); });
 	return result;
 }
 
@@ -831,13 +826,9 @@ void vk_command_list_t::next_subpass()
 	object.nextSubpass(vk::SubpassContents::eInline);
 }
 
-uint32_t get_next_backbuffer_id(device_t& dev, swap_chain_t& chain)
+uint32_t vk_swap_chain_t::get_next_backbuffer_id()
 {
-	uint32_t index;
-	// TODO: Reuse accross call to gnbi
-	auto fence = std::make_shared<vulkan_wrapper::fence>(dev);
-	CHECK_VKRESULT(vkAcquireNextImageKHR(dev, chain, UINT64_MAX, VK_NULL_HANDLE, *fence, &index));
-	return index;
+	return dev.acquireNextImageKHR(object, UINT64_MAX, vk::Semaphore(), vk::Fence()).value;
 }
 
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index)
@@ -913,8 +904,4 @@ std::unique_ptr<framebuffer_t> vk_command_list_t::create_frame_buffer(std::vecto
 std::unique_ptr<framebuffer_t> vk_command_list_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass)
 {
 	return std::unique_ptr<framebuffer_t>();
-}
-
-void vk_command_list_t::make_command_list_executable()
-{
 }

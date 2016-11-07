@@ -162,6 +162,10 @@ struct vk_swap_chain_t : swap_chain_t
 	{}
 
 	vk::SwapchainKHR object;
+	vk::Device dev;
+
+	virtual uint32_t get_next_backbuffer_id() override;
+	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() override;
 };
 /*using render_pass_t = vulkan_wrapper::render_pass;
 using clear_value_structure_t = void*; 
