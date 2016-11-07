@@ -3,7 +3,6 @@
 
 #include <Scene\ssao.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include "..\include\Scene\ssao.h"
 
 namespace
 {

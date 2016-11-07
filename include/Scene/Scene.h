@@ -26,9 +26,9 @@ namespace irr
 			irr::scene::IMeshSceneNode *addMeshSceneNode(
 				std::unique_ptr<irr::scene::IMeshSceneNode> &&mesh,
 				irr::scene::ISceneNode* parent,
-				const irr::core::vector3df& position = irr::core::vector3df(0, 0, 0),
-				const irr::core::vector3df& rotation = irr::core::vector3df(0, 0, 0),
-				const irr::core::vector3df& scale = irr::core::vector3df(1.f, 1.f, 1.f));
+				const glm::vec3& position = glm::vec3(0, 0, 0),
+				const glm::vec3& rotation = glm::vec3(0, 0, 0),
+				const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f));
 		};
 
 	}

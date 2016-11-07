@@ -33,9 +33,9 @@ void irr::scene::Scene::fill_gbuffer_filling_command(command_list_t& cmd_list, p
 irr::scene::IMeshSceneNode *Scene::addMeshSceneNode(
 	std::unique_ptr<irr::scene::IMeshSceneNode> &&mesh,
 	irr::scene::ISceneNode* parent,
-	const irr::core::vector3df& position,
-	const irr::core::vector3df& rotation,
-	const irr::core::vector3df& scale)
+	const glm::vec3& position,
+	const glm::vec3& rotation,
+	const glm::vec3& scale)
 {
 	Nodes.push_back(std::move(mesh));
 	return Nodes.back().get();

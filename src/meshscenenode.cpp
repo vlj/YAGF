@@ -3,7 +3,6 @@
 #include <Scene/MeshSceneNode.h>
 #include <Scene/textures.h>
 #include <assimp/Importer.hpp>
-#include <Maths/matrix4.h>
 #include <assimp/scene.h>
 #include <Loaders/DDS.h>
 #include <tuple>
