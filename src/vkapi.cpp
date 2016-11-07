@@ -352,10 +352,6 @@ std::unique_ptr<descriptor_storage_t> vk_device_t::create_descriptor_storage(uin
 	);
 }
 
-void vk_device_t::set_sampler(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t & sampler)
-{
-}
-
 void* vk_buffer_t::map_buffer()
 {
 	return dev.mapMemory(memory, 0, -1);
@@ -369,12 +365,6 @@ void vk_buffer_t::unmap_buffer()
 std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffer, irr::video::ECOLOR_FORMAT format, uint64_t offset, uint32_t size)
 {
 	return std::make_unique<buffer_view_t>(dev, buffer, get_vk_format(format), offset, size);
-}
-
-inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorImageInfo> &image_descriptors,
-	uint32_t dst_binding, uint32_t dst_array_element = 0)
-{
-	return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(image_descriptors.size()), descriptor_type, image_descriptors.data(), nullptr, nullptr };
 }
 
 void vk_device_t::set_uniform_texel_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_view_t& buffer_view)
