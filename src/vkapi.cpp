@@ -607,42 +607,9 @@ void vk_command_queue_t::wait_for_command_queue_idle()
 	object.waitIdle();
 }
 
-namespace
+void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
-	VkImageLayout get_image_layout(RESOURCE_USAGE usage)
-	{
-		switch (usage)
-		{
-		case RESOURCE_USAGE::PRESENT: return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		case RESOURCE_USAGE::RENDER_TARGET: return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		case RESOURCE_USAGE::READ_GENERIC: return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		case RESOURCE_USAGE::DEPTH_WRITE: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		case RESOURCE_USAGE::COPY_DEST: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		case RESOURCE_USAGE::uav: return VK_IMAGE_LAYOUT_GENERAL;
-		case RESOURCE_USAGE::undefined: return VK_IMAGE_LAYOUT_UNDEFINED;
-		}
-		throw;
-	}
-}
-
-void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
-{
-	//Prepare an image to match the new layout..
-	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-	barrier.newLayout = get_image_layout(after);
-	barrier.oldLayout = get_image_layout(before);
-	barrier.image = resource;
-	barrier.srcAccessMask = 0;
-	barrier.dstAccessMask = 0;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.subresourceRange.aspectMask = get_image_aspect(aspect);
-	barrier.subresourceRange.baseMipLevel = subresource % max(resource.info.mipLevels, 1);
-	barrier.subresourceRange.baseArrayLayer = subresource / max(resource.info.mipLevels, 1);
-	barrier.subresourceRange.levelCount = 1;
-	barrier.subresourceRange.layerCount = 1;
-
-	switch (get_image_layout(after))
+	/*switch (get_image_layout(after))
 	{
 	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; break;
@@ -670,22 +637,50 @@ void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOU
 		barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; break;
 	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT; break;
-	}
+	}*/
 
-	vkCmdPipelineBarrier(command_list, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	auto baseMipLevel = subresource;// % max(resource.info.mipLevels, 1);
+	auto baseArrayLayer = subresource;// / max(resource.info.mipLevels, 1);
+
+	auto get_image_layout = [](auto&& usage)
+	{
+		switch (usage)
+		{
+		case RESOURCE_USAGE::PRESENT: return vk::ImageLayout::ePresentSrcKHR;
+		case RESOURCE_USAGE::RENDER_TARGET: return vk::ImageLayout::eColorAttachmentOptimal;
+		case RESOURCE_USAGE::READ_GENERIC: return vk::ImageLayout::eShaderReadOnlyOptimal;
+		case RESOURCE_USAGE::DEPTH_WRITE: return vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		case RESOURCE_USAGE::COPY_DEST: return vk::ImageLayout::eTransferDstOptimal;
+		case RESOURCE_USAGE::uav: return vk::ImageLayout::eGeneral;
+		case RESOURCE_USAGE::undefined: return vk::ImageLayout::eUndefined;
+		}
+		throw;
+	};
+
+	object.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
+		vk::DependencyFlags(), {}, {},
+		{
+			vk::ImageMemoryBarrier{}
+				.setOldLayout(get_image_layout(before))
+				.setNewLayout(get_image_layout(after))
+				.setImage(dynamic_cast<vk_image_t&>(resource).object)
+				.setSubresourceRange(vk::ImageSubresourceRange(get_image_aspect(aspect), baseMipLevel, 1, baseArrayLayer, 1))
+		});
 }
 
-void set_uav_flush(command_list_t& command_list, image_t& resource)
+void vk_command_list_t::set_uav_flush(image_t& resource)
 {
-	VkImageMemoryBarrier mem_barr{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, nullptr };
-	mem_barr.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-	mem_barr.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-	mem_barr.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-	mem_barr.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-	mem_barr.image = resource;
-	mem_barr.subresourceRange = structures::image_subresource_range();
-
-	vkCmdPipelineBarrier(command_list, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &mem_barr);
+	object.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
+		vk::DependencyFlags(), {}, {},
+		{
+			vk::ImageMemoryBarrier{}
+				.setOldLayout(vk::ImageLayout::eGeneral)
+				.setNewLayout(vk::ImageLayout::eGeneral)
+				.setImage(dynamic_cast<vk_image_t&>(resource).object)
+				.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead)
+				.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead)
+				.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1))
+		});
 }
 
 void vk_command_list_t::set_graphic_pipeline(pipeline_state_t pipeline)
