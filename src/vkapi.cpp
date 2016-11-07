@@ -252,11 +252,6 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	return std::make_tuple(std::move(dev), std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
-std::unique_ptr<vulkan_wrapper::image_view> create_image_view(device_t& dev, image_t& img, VkFormat fmt, VkImageSubresourceRange range, VkImageViewType type, VkComponentMapping mapping)
-{
-	return std::make_unique<vulkan_wrapper::image_view>(dev, img.object, type, fmt, mapping, range);
-}
-
 std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& dev, swap_chain_t& chain)
 {
 	uint32_t swap_chain_count;
@@ -273,7 +268,13 @@ std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& d
 
 std::unique_ptr<command_list_t> vk_command_list_storage_t::create_command_list()
 {
-	return std::make_unique<vulkan_wrapper::command_buffer>(dev, storage, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	const auto& buffers = dev.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo{}
+		.setCommandBufferCount(1)
+		.setCommandPool(object)
+		.setLevel(vk::CommandBufferLevel::ePrimary)
+	);
+	return std::unique_ptr<command_list_t>(new vk_command_list_t(dev, buffers[0]));
 }
 
 std::unique_ptr<command_list_storage_t> vk_device_t::create_command_storage()
@@ -428,32 +429,39 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 
 namespace
 {
-	VkImageViewType get_image_type(irr::video::E_TEXTURE_TYPE texture_type)
+	auto get_image_type(irr::video::E_TEXTURE_TYPE texture_type)
 	{
 		switch (texture_type)
 		{
-		case irr::video::E_TEXTURE_TYPE::ETT_2D: return VK_IMAGE_VIEW_TYPE_2D;
-		case irr::video::E_TEXTURE_TYPE::ETT_CUBE: return VK_IMAGE_VIEW_TYPE_CUBE;
+		case irr::video::E_TEXTURE_TYPE::ETT_2D: return vk::ImageViewType::e2D;
+		case irr::video::E_TEXTURE_TYPE::ETT_CUBE: return vk::ImageViewType::eCube;
 		}
 		throw;
 	}
 
-	VkImageAspectFlags get_image_aspect(irr::video::E_ASPECT aspect)
+	vk::ImageAspectFlags get_image_aspect(irr::video::E_ASPECT aspect)
 	{
 		switch (aspect)
 		{
-		case irr::video::E_ASPECT::EA_COLOR: return VK_IMAGE_ASPECT_COLOR_BIT;
-		case irr::video::E_ASPECT::EA_DEPTH: return VK_IMAGE_ASPECT_DEPTH_BIT;
-		case irr::video::E_ASPECT::EA_STENCIL: return VK_IMAGE_ASPECT_STENCIL_BIT;
-		case irr::video::E_ASPECT::EA_DEPTH_STENCIL: return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		case irr::video::E_ASPECT::EA_COLOR: return vk::ImageAspectFlagBits::eColor;
+		case irr::video::E_ASPECT::EA_DEPTH: return vk::ImageAspectFlagBits::eDepth;
+		case irr::video::E_ASPECT::EA_STENCIL: return vk::ImageAspectFlagBits::eStencil;
+		case irr::video::E_ASPECT::EA_DEPTH_STENCIL: return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
 		}
 		throw;
 	}
 }
 
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect)
+std::unique_ptr<image_view_t> vk_device_t::create_image_view(image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect)
 {
-	return std::make_unique<image_view_t>(dev, img, get_image_type(texture_type), get_vk_format(fmt), structures::component_mapping(), structures::image_subresource_range(get_image_aspect(aspect), base_mipmap, mipmap_count, base_layer, layer_count));
+	const auto& image_view = object.createImageView(
+		vk::ImageViewCreateInfo{}
+			.setViewType(get_image_type(texture_type))
+			.setFormat(get_vk_format(fmt))
+			.setImage(dynamic_cast<vk_image_t&>(img).object)
+			.setSubresourceRange(vk::ImageSubresourceRange(get_image_aspect(aspect), base_mipmap, mipmap_count, base_layer, layer_count))
+	);
+	return std::unique_ptr<image_view_t>(new vk_image_view_t(object, image_view));
 }
 
 void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
@@ -483,24 +491,57 @@ void set_uav_image_view(device_t& dev, const allocated_descriptor_set& descripto
 	});
 }
 
-std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type)
+std::unique_ptr<sampler_t> vk_device_t::create_sampler(SAMPLER_TYPE sampler_type)
 {
-	switch (sampler_type)
+	auto&& get_sampler_desc = [](auto&& sampler_type)
 	{
-	case SAMPLER_TYPE::ANISOTROPIC:
-		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, true, 16.f, false, VK_COMPARE_OP_NEVER, 0.f, 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	case SAMPLER_TYPE::BILINEAR_CLAMPED:
-		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0.f, 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	case SAMPLER_TYPE::TRILINEAR:
-		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0.f, 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	case SAMPLER_TYPE::NEAREST:
-		return std::make_unique<vulkan_wrapper::sampler>(dev, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f, false, 1.f, false, VK_COMPARE_OP_NEVER, 0.f, 100.f, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, false);
-	}
-	throw;
+		switch (sampler_type)
+		{
+		case SAMPLER_TYPE::ANISOTROPIC:
+			return vk::SamplerCreateInfo{}
+				.setMinFilter(vk::Filter::eLinear)
+				.setMagFilter(vk::Filter::eLinear)
+				.setMipmapMode(vk::SamplerMipmapMode::eLinear)
+				.setAddressModeU(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeV(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeW(vk::SamplerAddressMode::eRepeat)
+				.setMaxLod(100.f)
+				.setAnisotropyEnable(true)
+				.setMaxAnisotropy(16.f);
+		case SAMPLER_TYPE::BILINEAR_CLAMPED:
+			return vk::SamplerCreateInfo{}
+				.setMinFilter(vk::Filter::eLinear)
+				.setMagFilter(vk::Filter::eLinear)
+				.setMipmapMode(vk::SamplerMipmapMode::eNearest)
+				.setAddressModeU(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeV(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeW(vk::SamplerAddressMode::eRepeat)
+				.setMaxLod(0.f)
+				.setAnisotropyEnable(false);
+		case SAMPLER_TYPE::TRILINEAR:
+			return vk::SamplerCreateInfo{}
+				.setMinFilter(vk::Filter::eLinear)
+				.setMagFilter(vk::Filter::eLinear)
+				.setMipmapMode(vk::SamplerMipmapMode::eLinear)
+				.setAddressModeU(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeV(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeW(vk::SamplerAddressMode::eRepeat)
+				.setMaxLod(100.f)
+				.setAnisotropyEnable(false);
+		case SAMPLER_TYPE::NEAREST:
+			return vk::SamplerCreateInfo{}
+				.setMinFilter(vk::Filter::eNearest)
+				.setMagFilter(vk::Filter::eNearest)
+				.setMipmapMode(vk::SamplerMipmapMode::eNearest)
+				.setAddressModeU(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeV(vk::SamplerAddressMode::eRepeat)
+				.setAddressModeW(vk::SamplerAddressMode::eRepeat)
+				.setMaxLod(0.f)
+				.setAnisotropyEnable(false);
+		}
+		throw;
+	};
+	return std::unique_ptr<sampler_t>(new vk_sampler_t(object, object.createSampler(get_sampler_desc(sampler_type))));
 }
 
 void set_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t& sampler)
@@ -848,14 +889,5 @@ std::unique_ptr<framebuffer_t> vk_command_list_t::create_frame_buffer(std::vecto
 }
 
 void vk_command_list_t::make_command_list_executable()
-{
-}
-
-void * vk_buffer_t::map_buffer()
-{
-	return nullptr;
-}
-
-void vk_buffer_t::unmap_buffer()
 {
 }

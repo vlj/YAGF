@@ -60,6 +60,8 @@ struct vk_command_list_t : command_list_t
 
 	vk::Device dev;
 	vk::CommandBuffer object;
+	vk_command_list_t(vk::Device _dev, vk::CommandBuffer _object) : dev(_dev), object(_object)
+	{}
 };
 
 struct vk_device_t : device_t
@@ -149,10 +151,22 @@ struct vk_descriptor_set_layout : descriptor_set_layout {
 };
 
 struct vk_image_view_t : image_view_t {
+	virtual ~vk_image_view_t() {
+		dev.destroyImageView(object);
+	}
 
+	vk_image_view_t(vk::Device _dev, vk::ImageView _object) : dev(_dev), object(_object) {}
+
+	vk::Device dev;
+	vk::ImageView object;
 };
 
 struct vk_sampler_t : sampler_t {
+	vk_sampler_t(vk::Device _dev, vk::Sampler _object) : dev(_dev), object(_object)
+	{}
+
+	vk::Sampler object;
+	vk::Device dev;
 };
 
 struct vk_buffer_view_t : buffer_view_t {

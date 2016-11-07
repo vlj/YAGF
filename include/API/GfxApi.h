@@ -431,7 +431,9 @@ struct swap_chain_t {};
 struct render_pass_t {};
 struct clear_value_structure_t {};
 
-struct image_view_t {};
+struct image_view_t {
+	virtual ~image_view_t();
+};
 struct sampler_t {};
 struct buffer_view_t {};
 
