@@ -25,8 +25,8 @@ private:
 
 struct vk_command_list_t : command_list_t
 {
-	virtual void bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t sig) override;
-	virtual void bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t sig) override;
+	virtual void bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig) override;
+	virtual void bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig) override;
 	virtual void copy_buffer_to_image_subresource(image_t & destination_image, uint32_t destination_subresource, buffer_t & source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format) override;
 	virtual void set_pipeline_barrier(image_t & resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT) override;
 	virtual void set_uav_flush(image_t & resource) override;
@@ -48,7 +48,7 @@ struct vk_command_list_t : command_list_t
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 	virtual void make_command_list_executable() override;
-private:
+
 	vk::Device dev;
 	vk::CommandBuffer object;
 };
@@ -58,9 +58,12 @@ struct vk_device_t : device_t, private vulkan_wrapper::device
 
 };
 
-struct vk_command_queue_t : command_queue_t, private vulkan_wrapper::queue
+struct vk_command_queue_t : command_queue_t
 {
+	virtual void submit_executable_command_list(command_list_t & command_list) override;
+	virtual void wait_for_command_queue_idle() override;
 
+	vk::Queue object;
 };
 
 struct vk_buffer_t : buffer_t
@@ -88,7 +91,15 @@ struct vk_compute_pipeline_state_t : compute_pipeline_state_t {
 	vk::Pipeline object;
 };
 
-using pipeline_layout_t = std::shared_ptr<vulkan_wrapper::pipeline_layout>;
+struct vk_pipeline_layout_t : pipeline_layout_t
+{
+	vk::PipelineLayout object;
+	vk::Device dev;
+	~vk_pipeline_layout_t() {
+		dev.destroyPipelineLayout(object);
+	}
+};
+
 using swap_chain_t = vulkan_wrapper::swapchain;
 using render_pass_t = vulkan_wrapper::render_pass;
 using clear_value_structure_t = void*;

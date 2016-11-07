@@ -522,14 +522,14 @@ framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&
 	return std::make_shared<vk_framebuffer>(dev, *render_pass, render_targets, depth_stencil_texture, width, height, 1);
 }
 
-void make_command_list_executable(command_list_t& command_list)
+void vk_command_list_t::make_command_list_executable()
 {
-	CHECK_VKRESULT(vkEndCommandBuffer(command_list));
+	object.end();
 }
 
-void wait_for_command_queue_idle(device_t&, command_queue_t& command_queue)
+void vk_command_queue_t::wait_for_command_queue_idle()
 {
-	CHECK_VKRESULT(vkQueueWaitIdle(command_queue));
+	object.waitIdle();
 }
 
 namespace
@@ -654,14 +654,16 @@ allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev
 	return allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 0, layouts, 0);
 }
 
-void vk_command_list_t::bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t sig)
+void vk_command_list_t::bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
 {
-	object.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, sig->object, bindpoint, { descriptor_set }, {});
+	object.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, dynamic_cast<vk_pipeline_layout_t&>(sig).object, bindpoint,
+		{ descriptor_set }, { 0 });
 }
-
-void vk_command_list_t::bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t sig)
+ 
+void vk_command_list_t::bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
 {
-	object.bindDescriptorSets(vk::PipelineBindPoint::eCompute, sig->object, bindpoint, { descriptor_set }, {});
+	object.bindDescriptorSets(vk::PipelineBindPoint::eCompute, dynamic_cast<vk_pipeline_layout_t&>(sig).object, bindpoint,
+		{ descriptor_set }, { 0 });
 }
 
 namespace
@@ -684,7 +686,7 @@ void vk_command_list_t::bind_index_buffer(buffer_t& buffer, uint64_t offset, uin
 
 void vk_command_list_t::bind_vertex_buffers(uint32_t first_bind, const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size)
 {
-	std::vector<VkBuffer> pbuffers(buffer_offset_stride_size.size());
+	std::vector<vk::Buffer> pbuffers(buffer_offset_stride_size.size());
 	std::vector<VkDeviceSize> poffsets(buffer_offset_stride_size.size());
 
 	size_t idx = 0;
@@ -692,19 +694,21 @@ void vk_command_list_t::bind_vertex_buffers(uint32_t first_bind, const std::vect
 	{
 		uint64_t offset;
 		std::tie(std::ignore, offset, std::ignore, std::ignore) = infos;
-		pbuffers[idx] = std::get<0>(infos);
+		pbuffers[idx] = dynamic_cast<vk_buffer_t&>(std::get<0>(infos)).object;
 		poffsets[idx] = offset;
 		idx++;
 	}
-	vkCmdBindVertexBuffers(commandlist, first_bind, static_cast<uint32_t>(buffer_offset_stride_size.size()), pbuffers.data(), poffsets.data());
+	object.bindVertexBuffers(first_bind, pbuffers, poffsets);
 }
 
-void submit_executable_command_list(command_queue_t& command_queue, command_list_t& command_list)
+void vk_command_queue_t::submit_executable_command_list(command_list_t& command_list)
 {
-	VkSubmitInfo info{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	info.commandBufferCount = 1;
-	info.pCommandBuffers = &(command_list.object);
-	vkQueueSubmit(command_queue, 1, &info, VK_NULL_HANDLE);
+	std::array<vk::CommandBuffer, 1> command_buffers{ dynamic_cast<vk_command_list_t&>(command_list).object };
+	object.submit({
+		vk::SubmitInfo{}
+			.setCommandBufferCount(command_buffers.size())
+			.setPCommandBuffers(command_buffers.data())
+	}, vk::Fence());
 }
 
 void vk_command_list_t::draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance)
@@ -829,3 +833,4 @@ void * vk_buffer_t::map_buffer()
 void vk_buffer_t::unmap_buffer()
 {
 }
+

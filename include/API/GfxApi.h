@@ -424,7 +424,9 @@ struct framebuffer_t {
 
 struct pipeline_state_t {};
 struct compute_pipeline_state_t {};
-struct pipeline_layout_t {};
+struct pipeline_layout_t {
+	virtual ~pipeline_layout_t() = 0;
+};
 struct swap_chain_t {};
 struct render_pass_t {};
 struct clear_value_structure_t {};
@@ -443,8 +445,8 @@ struct command_list_storage_t {
 };
 
 struct command_list_t {
-	virtual void bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig) = 0;
-	virtual void bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig) = 0;
+	virtual void bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t& sig) = 0;
+	virtual void bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t& sig) = 0;
 	virtual void copy_buffer_to_image_subresource(image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer,
 		uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format) = 0;
 	virtual void set_pipeline_barrier(image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT) = 0;
