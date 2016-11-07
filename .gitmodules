@@ -1,3 +1,6 @@
 [submodule "deps/tressfx"]
 	path = deps/tressfx
 	url = https://github.com/vlj/TressFX.git
+[submodule "deps/Vulkan-Hpp"]
+	path = deps/Vulkan-Hpp
+	url = https://github.com/KhronosGroup/Vulkan-Hpp.git
