@@ -235,7 +235,11 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	auto chain = dev.createSwapchainKHR(swap_chain);
 
 	auto queue = dev.getQueue(queue_infos[0].queueFamilyIndex, 0);
-	return std::make_tuple(std::move(dev), std::move(chain), std::move(queue), surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
+	return std::make_tuple(
+		std::unique_ptr<device_t>(new vk_device_t(dev)),
+		std::unique_ptr<swap_chain_t>(new vk_swap_chain_t(chain)),
+		std::unique_ptr<command_queue_t>(new vk_command_queue_t(queue)),
+		surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
 
 std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& dev, swap_chain_t& chain)

@@ -66,6 +66,9 @@ struct vk_command_list_t : command_list_t
 
 struct vk_device_t : device_t
 {
+	vk_device_t(vk::Device _dev) : object(_dev)
+	{}
+
 	uint32_t queue_family_index;
 	uint32_t upload_memory_index;
 	uint32_t default_memory_index;
@@ -90,6 +93,9 @@ struct vk_device_t : device_t
 
 struct vk_command_queue_t : command_queue_t
 {
+	vk_command_queue_t(vk::Queue _object) : object(_object)
+	{}
+
 	virtual void submit_executable_command_list(command_list_t & command_list) override;
 	virtual void wait_for_command_queue_idle() override;
 
@@ -150,8 +156,14 @@ struct vk_pipeline_layout_t : pipeline_layout_t
 	}
 };
 
-/*using swap_chain_t = vulkan_wrapper::swapchain;
-using render_pass_t = vulkan_wrapper::render_pass;
+struct vk_swap_chain_t : swap_chain_t
+{
+	vk_swap_chain_t(vk::SwapchainKHR _object) : object(_object)
+	{}
+
+	vk::SwapchainKHR object;
+};
+/*using render_pass_t = vulkan_wrapper::render_pass;
 using clear_value_structure_t = void*; 
 */
 
