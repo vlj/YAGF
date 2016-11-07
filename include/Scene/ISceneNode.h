@@ -13,8 +13,10 @@
 //#include "SMaterial.h"
 //#include "irrString.h"
 //#include <Maths/aabbox3d.h>
-#include <Maths/matrix4.h>
-#include <Maths/vector3d.h>
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <list>
 #include <string>
 //#include "IAttributes.h"
@@ -43,9 +45,9 @@ namespace irr
 
 			//! Constructor
 			ISceneNode(ISceneNode* parent,
-				const core::vector3df& position = core::vector3df(0, 0, 0),
-				const core::vector3df& rotation = core::vector3df(0, 0, 0),
-				const core::vector3df& scale = core::vector3df(1.0f, 1.0f, 1.0f))
+				const glm::vec3& position = glm::vec3(),
+				const glm::vec3& rotation = glm::vec3(),
+				const glm::vec3& scale = glm::vec3(1.0f, 1.0f, 1.0f))
 				: RelativeTranslation(position), RelativeRotation(rotation), RelativeScale(scale),
 				Parent(0),
 				//        AutomaticCullingState(EAC_BOX), DebugDataVisible(EDS_OFF),
@@ -169,7 +171,7 @@ namespace irr
 				  update usually happens once per frame in OnAnimate. You can enforce
 				  an update with updateAbsolutePosition().
 				  \return The absolute transformation matrix. */
-			virtual const core::matrix4& getAbsoluteTransformation() const
+			virtual const glm::mat4& getAbsoluteTransformation() const
 			{
 				return AbsoluteTransformation;
 			}
@@ -180,20 +182,10 @@ namespace irr
 			vectors: translation, rotation and scale. To get the relative
 			transformation matrix, it is calculated from these values.
 			\return The relative transformation matrix. */
-			virtual core::matrix4 getRelativeTransformation() const
+			virtual glm::mat4 getRelativeTransformation() const
 			{
-				core::matrix4 mat;
-				mat.setRotationDegrees(RelativeRotation);
-				mat.setTranslation(RelativeTranslation);
-
-				if (RelativeScale != core::vector3df(1.f, 1.f, 1.f))
-				{
-					core::matrix4 smat;
-					smat.setScale(RelativeScale);
-					mat *= smat;
-				}
-
-				return mat;
+				return glm::scale(RelativeScale) * glm::translate(RelativeTranslation) *
+					glm::eulerAngleYXZ(RelativeRotation.y, RelativeRotation.x, RelativeRotation.z);
 			}
 
 
@@ -296,14 +288,14 @@ namespace irr
 			If you want the absolute scale, use
 			getAbsoluteTransformation().getScale()
 			\return The scale of the scene node. */
-			virtual const core::vector3df& getScale() const
+			virtual const glm::vec3& getScale() const
 			{
 				return RelativeScale;
 			}
 
 			//! Sets the relative scale of the scene node.
 			/** \param scale New scale of the node, relative to its parent. */
-			virtual void setScale(const core::vector3df& scale)
+			virtual void setScale(const glm::vec3& scale)
 			{
 				RelativeScale = scale;
 			}
@@ -314,7 +306,7 @@ namespace irr
 			If you want the absolute rotation, use
 			getAbsoluteTransformation().getRotation()
 			\return Current relative rotation of the scene node. */
-			virtual const core::vector3df& getRotation() const
+			virtual const glm::vec3& getRotation() const
 			{
 				return RelativeRotation;
 			}
@@ -323,7 +315,7 @@ namespace irr
 			//! Sets the rotation of the node relative to its parent.
 			/** This only modifies the relative rotation of the node.
 			\param rotation New rotation of the node in degrees. */
-			virtual void setRotation(const core::vector3df& rotation)
+			virtual void setRotation(const glm::vec3& rotation)
 			{
 				RelativeRotation = rotation;
 			}
@@ -333,7 +325,7 @@ namespace irr
 			/** Note that the position is relative to the parent. If you want
 			the position in world coordinates, use getAbsolutePosition() instead.
 			\return The current position of the node relative to the parent. */
-			virtual const core::vector3df& getPosition() const
+			virtual const glm::vec3& getPosition() const
 			{
 				return RelativeTranslation;
 			}
@@ -341,7 +333,7 @@ namespace irr
 			//! Sets the position of the node relative to its parent.
 			/** Note that the position is relative to the parent.
 			\param newpos New relative position of the scene node. */
-			virtual void setPosition(const core::vector3df& newpos)
+			virtual void setPosition(const glm::vec3& newpos)
 			{
 				RelativeTranslation = newpos;
 			}
@@ -355,9 +347,9 @@ namespace irr
 			update usually happens once per frame in OnAnimate. You can enforce
 			an update with updateAbsolutePosition().
 			\return The current absolute position of the scene node (updated on last call of updateAbsolutePosition). */
-			virtual core::vector3df getAbsolutePosition() const
+			virtual glm::vec3 getAbsolutePosition() const
 			{
-				return AbsoluteTransformation.getTranslation();
+				return glm::vec3(AbsoluteTransformation[3]);
 			}
 
 
@@ -436,16 +428,16 @@ namespace irr
 			std::string Name;
 
 			//! Absolute transformation of the node.
-			irr::core::matrix4 AbsoluteTransformation;
+			glm::mat4 AbsoluteTransformation;
 
 			//! Relative translation of the scene node.
-			irr::core::vector3df RelativeTranslation;
+			glm::vec3 RelativeTranslation;
 
 			//! Relative rotation of the scene node.
-			irr::core::vector3df RelativeRotation;
+			glm::vec3 RelativeRotation;
 
 			//! Relative scale of the scene node.
-			irr::core::vector3df RelativeScale;
+			glm::vec3 RelativeScale;
 
 			//! Pointer to the parent
 			ISceneNode* Parent;
