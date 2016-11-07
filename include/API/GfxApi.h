@@ -418,62 +418,90 @@ private:
 };
 
 
+struct command_list_storage_t {
+	virtual std::unique_ptr<command_list_t> create_command_list() = 0;
+	virtual void reset_command_list_storage() = 0;
+};
 
-std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev);
-std::unique_ptr<command_list_t> create_command_list(device_t& dev, command_list_storage_t& storage);
-void reset_command_list_storage(device_t& dev, command_list_storage_t& storage);
+struct command_list_t {
+	virtual void bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig) = 0;
+	virtual void bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig) = 0;
+	virtual void copy_buffer_to_image_subresource(image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer,
+		uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format) = 0;
+	virtual void set_pipeline_barrier(image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT) = 0;
+	virtual void set_uav_flush(image_t& resource) = 0;
+
+	virtual void set_viewport(float x, float width, float y, float height, float min_depth, float max_depth) = 0;
+	virtual void set_scissor(uint32_t left, uint32_t right, uint32_t top, uint32_t bottom) = 0;
+	virtual void set_graphic_pipeline(pipeline_state_t pipeline) = 0;
+	virtual void set_graphic_pipeline_layout(pipeline_layout_t& sig) = 0;
+	virtual void set_compute_pipeline(compute_pipeline_state_t& pipeline) = 0;
+	virtual void set_compute_pipeline_layout(pipeline_layout_t& sig) = 0;
+	virtual void set_descriptor_storage_referenced(descriptor_storage_t& main_heap, descriptor_storage_t* sampler_heap = nullptr) = 0;
+	virtual void bind_index_buffer(buffer_t& buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type) = 0;
+	virtual void bind_vertex_buffers(uint32_t first_bind, const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size) = 0;
+	virtual void draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance) = 0;
+	virtual void draw_non_indexed(uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance) = 0;
+	virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
+	virtual void copy_buffer(buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size) = 0;
+
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
+
+	virtual void make_command_list_executable() = 0;
+};
+
+struct device_t {
+	virtual std::unique_ptr<command_list_storage_t> create_command_storage() = 0;
+	virtual std::unique_ptr<buffer_t> create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags) = 0;
+	virtual std::unique_ptr<buffer_view_t> create_buffer_view(buffer_t&, irr::video::ECOLOR_FORMAT, uint64_t offset, uint32_t size) = 0;
+	virtual void set_constant_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset_in_buffer = 0) = 0;
+	virtual void set_uniform_texel_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view) = 0;
+	virtual void set_uav_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint64_t offset, uint32_t size) = 0;
+	virtual std::unique_ptr<image_t> create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value) = 0;
+	virtual std::unique_ptr<image_view_t> create_image_view(image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect = irr::video::E_ASPECT::EA_COLOR) = 0;
+	virtual void set_image_view(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view) = 0;
+	virtual void set_input_attachment(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view) = 0;
+	virtual void set_uav_image_view(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view) = 0;
+	virtual std::unique_ptr<sampler_t> create_sampler(SAMPLER_TYPE sampler_type) = 0;
+	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors) = 0;
+
+};
+
+struct command_queue_t {
+	virtual void submit_executable_command_list(command_list_t& command_list) = 0;
+	virtual void wait_for_command_queue_idle() = 0;
+};
+
+struct buffer_t {
+	virtual void* map_buffer() = 0;
+	virtual void unmap_buffer() = 0;
+};
+
+struct image_t {};
+
+struct allocated_descriptor_set {};
+
+struct descriptor_storage_t {
+	virtual allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+	virtual allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+};
+
+struct pipeline_state_t {};
+struct compute_pipeline_state_t {};
+struct pipeline_layout_t {};
+struct swap_chain_t {};
+struct render_pass_t {};
+struct clear_value_structure_t {};
+struct descriptor_set_layout {};
+struct image_view_t {};
+struct sampler_t {};
+struct buffer_view_t {};
+
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
-void make_command_list_executable(command_list_t& command_list);
-
-std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags);
-void* map_buffer(device_t& dev, buffer_t& buffer);
-void unmap_buffer(device_t& dev, buffer_t& buffer);
-std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t&, irr::video::ECOLOR_FORMAT, uint64_t offset, uint32_t size);
-void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset_in_buffer = 0);
-void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view);
-void set_uav_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint64_t offset, uint32_t size);
-
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
-std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value);
-std::unique_ptr<image_view_t> create_image_view(device_t& dev, image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect = irr::video::E_ASPECT::EA_COLOR);
-void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view);
-void set_input_attachment(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view);
-void set_uav_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view);
-
-std::unique_ptr<sampler_t> create_sampler(device_t& dev, SAMPLER_TYPE sampler_type);
 void set_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t& sampler);
-
-std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors);
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count);
-allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count);
-void bind_graphic_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig);
-void bind_compute_descriptor(command_list_t& cmd_list, uint32_t bindpoint, const allocated_descriptor_set& descriptor_set, pipeline_layout_t sig);
-void copy_buffer_to_image_subresource(command_list_t& list, image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer,
-	uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format);
-framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass);
-framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass);
-
-void wait_for_command_queue_idle(device_t& dev, command_queue_t& command_queue);
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);
-void set_pipeline_barrier(command_list_t& command_list, image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT);
-void set_uav_flush(command_list_t& command_list, image_t& resource);
-
-void set_viewport(command_list_t& command_list, float x, float width, float y, float height, float min_depth, float max_depth);
-void set_scissor(command_list_t& command_list, uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
-void set_graphic_pipeline(command_list_t& command_list, pipeline_state_t pipeline);
-void set_graphic_pipeline_layout(command_list_t& command_list, pipeline_layout_t& sig);
-void set_compute_pipeline(command_list_t& command_list, compute_pipeline_state_t& pipeline);
-void set_compute_pipeline_layout(command_list_t& command_list, pipeline_layout_t& sig);
-void set_descriptor_storage_referenced(command_list_t& command_list, descriptor_storage_t& main_heap, descriptor_storage_t* sampler_heap = nullptr);
-
-void bind_index_buffer(command_list_t& command_list, buffer_t& buffer, uint64_t offset, uint32_t size, irr::video::E_INDEX_TYPE type);
-void bind_vertex_buffers(command_list_t& commandlist, uint32_t first_bind, const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > &buffer_offset_stride_size);
-void submit_executable_command_list(command_queue_t& command_queue, command_list_t& command_list);
-void draw_indexed(command_list_t& command_list, uint32_t index_count, uint32_t instance_count, uint32_t base_index, int32_t base_vertex, uint32_t base_instance);
-void draw_non_indexed(command_list_t& command_list, uint32_t vertex_count, uint32_t instance_count, int32_t base_vertex, uint32_t base_instance);
-void dispatch(command_list_t& command_list, uint32_t x, uint32_t y, uint32_t z);
-void copy_buffer(command_list_t& command_list, buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size);
 uint32_t get_next_backbuffer_id(device_t& dev, swap_chain_t& chain);
-
 std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& dev, swap_chain_t& chain);
