@@ -352,6 +352,10 @@ std::unique_ptr<descriptor_storage_t> vk_device_t::create_descriptor_storage(uin
 	);
 }
 
+void vk_device_t::set_sampler(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t & sampler)
+{
+}
+
 void* vk_buffer_t::map_buffer()
 {
 	return dev.mapMemory(memory, 0, -1);
@@ -367,40 +371,59 @@ std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffe
 	return std::make_unique<buffer_view_t>(dev, buffer, get_vk_format(format), offset, size);
 }
 
-void set_uniform_texel_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_view_t& buffer_view)
+inline VkWriteDescriptorSet write_descriptor_set(VkDescriptorSet dst_set, VkDescriptorType descriptor_type, const std::vector<VkDescriptorImageInfo> &image_descriptors,
+	uint32_t dst_binding, uint32_t dst_array_element = 0)
 {
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-			{ buffer_view }, binding_location),
-	});
+	return{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dst_set, dst_binding, dst_array_element, gsl::narrow_cast<uint32_t>(image_descriptors.size()), descriptor_type, image_descriptors.data(), nullptr, nullptr };
 }
 
-void set_uav_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_t& buffer, uint64_t offset, uint32_t size)
+void vk_device_t::set_uniform_texel_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_view_t& buffer_view)
 {
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			{ structures::descriptor_buffer_info(buffer, 0, size) }, binding_location)
-	});
+	const auto bv = dynamic_cast<vk_buffer_view_t&>(buffer_view).object;
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+			.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+			.setDstBinding(binding_location)
+			.setDescriptorCount(1)
+			.setPTexelBufferView(&bv)
+			.setDescriptorType(vk::DescriptorType::eUniformTexelBuffer)
+	}, {});
 }
 
-void set_constant_buffer_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)
+void vk_device_t::set_uav_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_t& buffer, uint64_t offset, uint32_t size)
 {
-	util::update_descriptor_sets(dev, {
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			{ structures::descriptor_buffer_info(buffer, offset, buffer_size) }, binding_location)
-	});
+	const auto buffer_descriptor = vk::DescriptorBufferInfo(dynamic_cast<vk_buffer_t&>(buffer).object, 0, size);
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+			.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+			.setDstBinding(binding_location)
+			.setDescriptorCount(1)
+			.setPBufferInfo(&buffer_descriptor)
+			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+	}, {});
+}
+
+void vk_device_t::set_constant_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset)
+{
+	const auto buffer_descriptor = vk::DescriptorBufferInfo(dynamic_cast<vk_buffer_t&>(buffer).object, offset, buffer_size);
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+			.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+			.setDstBinding(binding_location)
+			.setDescriptorCount(1)
+			.setPBufferInfo(&buffer_descriptor)
+			.setDescriptorType(vk::DescriptorType::eUniformBuffer)
+	}, {});
 }
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil)
 {
-	return nullptr;
+	return clear_value_structure_t();
 }
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float, 4> &color)
 {
-	return nullptr;
+	return clear_value_structure_t();
 }
 
 std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
@@ -472,31 +495,43 @@ std::unique_ptr<image_view_t> vk_device_t::create_image_view(image_t& img, irr::
 	return std::unique_ptr<image_view_t>(new vk_image_view_t(object, image_view));
 }
 
-void set_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+void vk_device_t::set_image_view(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
 {
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			{ structures::descriptor_image_info(img_view) }, binding_location)
-	});
+	const auto image_descriptor = vk::DescriptorImageInfo(vk::Sampler(), dynamic_cast<vk_image_view_t&>(img_view).object, vk::ImageLayout::eShaderReadOnlyOptimal);
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+		.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+		.setDstBinding(binding_location)
+		.setDescriptorCount(1)
+		.setPImageInfo(&image_descriptor)
+		.setDescriptorType(vk::DescriptorType::eSampledImage)
+	}, {});
 }
 
-void set_input_attachment(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+void vk_device_t::set_input_attachment(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
 {
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-		{ structures::descriptor_image_info(img_view) }, binding_location)
-	});
+	const auto image_descriptor = vk::DescriptorImageInfo(vk::Sampler(), dynamic_cast<vk_image_view_t&>(img_view).object, vk::ImageLayout::eShaderReadOnlyOptimal);
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+		.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+		.setDstBinding(binding_location)
+		.setDescriptorCount(1)
+		.setPImageInfo(&image_descriptor)
+		.setDescriptorType(vk::DescriptorType::eInputAttachment)
+	}, {});
 }
 
-void set_uav_image_view(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
+void vk_device_t::set_uav_image_view(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view)
 {
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			{ structures::descriptor_image_info(img_view, VK_IMAGE_LAYOUT_GENERAL) }, binding_location)
-	});
+	const auto image_descriptor = vk::DescriptorImageInfo(vk::Sampler(), dynamic_cast<vk_image_view_t&>(img_view).object, vk::ImageLayout::eGeneral);
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+		.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+		.setDstBinding(binding_location)
+		.setDescriptorCount(1)
+		.setPImageInfo(&image_descriptor)
+		.setDescriptorType(vk::DescriptorType::eStorageImage)
+	}, {});
 }
 
 std::unique_ptr<sampler_t> vk_device_t::create_sampler(SAMPLER_TYPE sampler_type)
@@ -552,13 +587,17 @@ std::unique_ptr<sampler_t> vk_device_t::create_sampler(SAMPLER_TYPE sampler_type
 	return std::unique_ptr<sampler_t>(new vk_sampler_t(object, object.createSampler(get_sampler_desc(sampler_type))));
 }
 
-void set_sampler(device_t& dev, const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t& sampler)
+void vk_device_t::set_sampler(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t& sampler)
 {
-	util::update_descriptor_sets(dev,
-	{
-		structures::write_descriptor_set(descriptor_set, VK_DESCRIPTOR_TYPE_SAMPLER,
-			{ structures::descriptor_sampler_info(sampler) }, binding_location)
-	});
+	const auto sampler_descriptor = vk::DescriptorImageInfo(dynamic_cast<vk_sampler_t&>(sampler).object, vk::ImageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+	object.updateDescriptorSets({
+		vk::WriteDescriptorSet{}
+		.setDstSet(static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object)
+		.setDstBinding(binding_location)
+		.setDescriptorCount(1)
+		.setPImageInfo(&sampler_descriptor)
+		.setDescriptorType(vk::DescriptorType::eSampler)
+	}, {});
 }
 
 void vk_command_list_t::copy_buffer_to_image_subresource(image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
@@ -582,9 +621,9 @@ void start_command_list_recording(command_list_t& command_list, command_list_sto
 	CHECK_VKRESULT(vkBeginCommandBuffer(command_list, &info));
 }
 
-void reset_command_list_storage(device_t& dev, command_list_storage_t& storage)
+void vk_command_list_storage_t::reset_command_list_storage()
 {
-	vkResetCommandPool(dev, storage, 0);
+	dev.resetCommandPool(object, vk::CommandPoolResetFlags());
 }
 
 framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
@@ -709,31 +748,36 @@ void vk_command_list_t::set_scissor(uint32_t left, uint32_t right, uint32_t top,
 	object.setScissor(0, { vk::Rect2D(vk::Offset2D(left, top), vk::Extent2D(right - left, bottom - top)) });
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(device_t& dev, descriptor_storage_t& heap, uint32_t, const std::vector<descriptor_set_layout*> layout, uint32_t)
+std::unique_ptr<allocated_descriptor_set> vk_descriptor_storage_t::allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t, const std::vector<descriptor_set_layout*> layout, uint32_t)
 {
-	std::vector<VkDescriptorSetLayout> l;
-	for (const auto tmp : layout)
-	{
-		l.push_back(tmp->object);
-	}
-	return util::allocate_descriptor_sets(dev, heap, l);
+	std::vector<vk::DescriptorSetLayout> set_layouts;
+	std::transform(layout.begin(), layout.end(), std::back_inserter(set_layouts),
+		[](auto&& tmp) { return dynamic_cast<vk_descriptor_set_layout*>(tmp)->object; });
+	return std::unique_ptr<allocated_descriptor_set>(
+		new vk_allocated_descriptor_set(
+			dev.allocateDescriptorSets(
+				vk::DescriptorSetAllocateInfo{}
+					.setDescriptorPool(object)
+					.setDescriptorSetCount(set_layouts.size())
+					.setPSetLayouts(set_layouts.data()))[0])
+		);
 }
 
-allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(device_t& dev, descriptor_storage_t& heap, uint32_t, const std::vector<descriptor_set_layout*> layouts, uint32_t)
+std::unique_ptr<allocated_descriptor_set> vk_descriptor_storage_t::allocate_descriptor_set_from_sampler_heap(uint32_t, const std::vector<descriptor_set_layout*> layouts, uint32_t)
 {
-	return allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 0, layouts, 0);
+	return allocate_descriptor_set_from_cbv_srv_uav_heap(0, layouts, 0);
 }
 
 void vk_command_list_t::bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
 {
 	object.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, dynamic_cast<vk_pipeline_layout_t&>(sig).object, bindpoint,
-		{ descriptor_set }, { 0 });
+		{ static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object }, { 0 });
 }
  
 void vk_command_list_t::bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
 {
 	object.bindDescriptorSets(vk::PipelineBindPoint::eCompute, dynamic_cast<vk_pipeline_layout_t&>(sig).object, bindpoint,
-		{ descriptor_set }, { 0 });
+		{ static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object }, { 0 });
 }
 
 namespace

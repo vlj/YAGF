@@ -114,171 +114,6 @@ namespace vulkan_wrapper
 		VkDevice m_device;
 	};
 
-	struct memory : public wrapper<VkDeviceMemory>
-	{
-		const VkMemoryAllocateInfo info;
-
-		memory(VkDevice dev, uint64_t size, uint32_t memory_type)
-			: info({ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, size, memory_type }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkAllocateMemory(dev, &info, nullptr, &object));
-		}
-
-		~memory()
-		{
-			vkFreeMemory(m_device, object, nullptr);
-		}
-
-		memory(memory&&) = delete;
-		memory(const memory&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct buffer : public wrapper<VkBuffer>
-	{
-		const VkBufferCreateInfo info;
-		std::shared_ptr<memory> baking_memory;
-
-		buffer(VkDevice dev, VkDeviceSize size, VkBufferCreateFlags flags, VkBufferUsageFlags usage)
-			: info({ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, nullptr, flags, size, usage, VK_SHARING_MODE_EXCLUSIVE, 0, nullptr }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateBuffer(m_device, &info, nullptr, &object));
-		}
-
-		~buffer()
-		{
-			vkDestroyBuffer(m_device, object, nullptr);
-		}
-
-		buffer(buffer&&) = delete;
-		buffer(const buffer&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct buffer_view : public wrapper<VkBufferView>
-	{
-		const VkBufferViewCreateInfo info;
-
-		buffer_view(VkDevice dev, VkBuffer b, VkFormat fmt, uint64_t offset, uint64_t size)
-			: info{ VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, nullptr, 0, b, fmt, offset, size },
-			m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateBufferView(m_device, &info, nullptr, &object));
-		}
-
-		~buffer_view()
-		{
-			vkDestroyBufferView(m_device, object, nullptr);
-		}
-
-		buffer_view(buffer_view&&) = delete;
-		buffer_view(const buffer_view&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct image : public wrapper<VkImage>
-	{
-		const VkImageCreateInfo info = {};
-		std::shared_ptr<memory> baking_memory;
-
-		// Swap images are not created
-		image(VkImage img)
-		{
-			object = img;
-		}
-
-		image(VkDevice dev, VkImageCreateFlags flags, VkImageType type, VkFormat format, VkExtent3D extent, uint32_t miplevels, uint32_t arraylayers,
-			VkSampleCountFlagBits samples, VkImageTiling tiling, VkImageUsageFlags usage, VkImageLayout initial_layout)
-			: info({ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, nullptr, flags, type, format, extent, miplevels, arraylayers, samples, tiling, usage, VK_SHARING_MODE_EXCLUSIVE, 0, nullptr, initial_layout }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateImage(m_device, &info, nullptr, &object));
-		}
-
-		~image()
-		{
-			// This image was not created
-			if (info.sType)
-				vkDestroyImage(m_device, object, nullptr);
-		}
-
-		image(image&&) = delete;
-		image(const image&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct image_view : public wrapper<VkImageView>
-	{
-		const VkImageViewCreateInfo info;
-
-		image_view(VkDevice dev, VkImage image, VkImageViewType viewtype, VkFormat format, VkComponentMapping mapping, VkImageSubresourceRange range)
-			: info({ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, nullptr, 0, image, viewtype, format, mapping, range }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateImageView(m_device, &info, nullptr, &object));
-		}
-
-		~image_view()
-		{
-			vkDestroyImageView(m_device, object, nullptr);
-		}
-
-		image_view(image_view&&) = delete;
-		image_view(const image_view&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
-	struct sampler : public wrapper<VkSampler>
-	{
-		const VkSamplerCreateInfo info;
-
-		sampler(VkDevice dev, VkFilter mag_filter, VkFilter min_filter, VkSamplerMipmapMode mipmap_mode,
-			VkSamplerAddressMode address_mode_U, VkSamplerAddressMode address_mode_V, VkSamplerAddressMode address_mode_W, float lod_bias,
-			bool anisotropy, float max_anisotropy, bool compare_enable, VkCompareOp compare_op, float min_lod, float max_lod, VkBorderColor border_color, bool unormalized_coordinates)
-			: info{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, nullptr, 0, mag_filter, min_filter, mipmap_mode,
-			address_mode_U, address_mode_V, address_mode_W, lod_bias, anisotropy, max_anisotropy, compare_enable, compare_op, min_lod, max_lod, border_color, unormalized_coordinates },
-			m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateSampler(dev, &info, nullptr, &object));
-		}
-
-		~sampler()
-		{
-			vkDestroySampler(m_device, object, nullptr);
-		}
-
-		sampler(sampler&&) = delete;
-		sampler(const sampler&) = delete;
-
-	private:
-		VkDevice m_device;
-	};
-
-	struct descriptor_pool : public wrapper<VkDescriptorPool>
-	{
-		const std::vector<VkDescriptorPoolSize> pool_size;
-		const VkDescriptorPoolCreateInfo info;
-
-		descriptor_pool(VkDevice dev, VkDescriptorPoolCreateFlags flags, uint32_t max_sets, const std::vector<VkDescriptorPoolSize> &ps)
-			: pool_size(ps), info({ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, flags, max_sets, static_cast<uint32_t>(pool_size.size()), pool_size.data() }), m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateDescriptorPool(m_device, &info, nullptr, &object));
-		}
-
-		~descriptor_pool()
-		{
-			vkDestroyDescriptorPool(m_device, object, nullptr);
-		}
-
-		descriptor_pool(descriptor_pool&&) = delete;
-		descriptor_pool(const descriptor_pool&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
 	struct semaphore : public wrapper<VkSemaphore>
 	{
 		const VkSemaphoreCreateInfo info;
@@ -482,26 +317,6 @@ namespace vulkan_wrapper
 	};
 
 
-	struct pipeline_layout : public wrapper<VkPipelineLayout>
-	{
-		// TODO: Make info/sets/pcr member when Static Analysis is fixed
-		pipeline_layout(VkDevice dev, VkPipelineLayoutCreateFlags flags, std::vector<VkDescriptorSetLayout> &&sets, std::vector<VkPushConstantRange> &&pcr)
-			: m_device(dev)
-		{
-			const VkPipelineLayoutCreateInfo info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, flags, gsl::narrow_cast<uint32_t>(sets.size()), sets.data(), gsl::narrow_cast<uint32_t>(pcr.size()), pcr.data() };
-			CHECK_VKRESULT(vkCreatePipelineLayout(m_device, &info, nullptr, &object));
-		}
-
-		~pipeline_layout()
-		{
-			vkDestroyPipelineLayout(m_device, object, nullptr);
-		}
-
-		pipeline_layout(const pipeline_layout&) = delete;
-	private:
-		VkDevice m_device;
-	};
-
 	struct swapchain : public wrapper<VkSwapchainKHR>
 	{
 		VkSwapchainCreateInfoKHR info;
@@ -617,10 +432,6 @@ namespace structures
 		return{ buffer, offset, size };
 	}
 
-	constexpr VkDescriptorImageInfo descriptor_image_info(VkImageView image_view, VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-	{
-		return{ VK_NULL_HANDLE, image_view, layout };
-	}
 
 	constexpr VkDescriptorImageInfo descriptor_sampler_info(VkSampler sampler)
 	{
@@ -640,7 +451,5 @@ namespace util
 
 	inline void update_descriptor_sets(VkDevice dev, const std::vector<VkWriteDescriptorSet> &update_info)
 	{
-		uint32_t count = gsl::narrow_cast<uint32_t>(update_info.size());
-		vkUpdateDescriptorSets(dev, count, update_info.data(),0, nullptr);
 	}
 }

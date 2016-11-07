@@ -80,6 +80,7 @@ struct vk_device_t : device_t
 	virtual void set_image_view(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
 	virtual void set_input_attachment(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
 	virtual void set_uav_image_view(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
+	virtual void set_sampler(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t & sampler) override;
 	virtual std::unique_ptr<sampler_t> create_sampler(SAMPLER_TYPE sampler_type) override;
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>>& num_descriptors) override;
 
@@ -149,10 +150,16 @@ struct vk_pipeline_layout_t : pipeline_layout_t
 	}
 };
 
-using swap_chain_t = vulkan_wrapper::swapchain;
+/*using swap_chain_t = vulkan_wrapper::swapchain;
 using render_pass_t = vulkan_wrapper::render_pass;
-using clear_value_structure_t = void*;
+using clear_value_structure_t = void*; 
+*/
+
 struct vk_allocated_descriptor_set : allocated_descriptor_set {
+	vk_allocated_descriptor_set(vk::DescriptorSet _object) : object(_object)
+	{}
+
+	vk::DescriptorSet object;
 };
 
 struct vk_descriptor_set_layout : descriptor_set_layout {
@@ -179,19 +186,19 @@ struct vk_sampler_t : sampler_t {
 };
 
 struct vk_buffer_view_t : buffer_view_t {
-
+	vk::BufferView object;
 };
 
 struct vk_framebuffer
 {
-	const std::vector<std::unique_ptr<vulkan_wrapper::image_view> > image_views;
+	const std::vector<std::unique_ptr<vk::ImageView> > image_views;
 	vulkan_wrapper::framebuffer fbo;
 
 	vk_framebuffer(device_t& dev, render_pass_t& render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
 	vk_framebuffer(device_t& dev, render_pass_t& render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
 private:
-	static std::vector<std::unique_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil);
-	static std::vector<std::unique_ptr<vulkan_wrapper::image_view> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets);
+	static std::vector<std::unique_ptr<vk::ImageView> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil);
+	static std::vector<std::unique_ptr<vk::ImageView> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets);
 };
 
 using framebuffer_t = std::shared_ptr<vk_framebuffer>;
@@ -203,4 +210,3 @@ using framebuffer_t = std::shared_ptr<vk_framebuffer>;
 #include "../VKAPI/renderpass_helpers.h"
 
 std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);
-std::unique_ptr<vulkan_wrapper::image_view> create_image_view(device_t& dev, image_t& img, VkFormat fmt, VkImageSubresourceRange range, VkImageViewType type = VK_IMAGE_VIEW_TYPE_2D, VkComponentMapping mapping = structures::component_mapping());
