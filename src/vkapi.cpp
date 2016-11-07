@@ -73,34 +73,34 @@ namespace
 	}
 
 
-	VkFormat get_vk_format(irr::video::ECOLOR_FORMAT format)
+	auto get_vk_format(irr::video::ECOLOR_FORMAT format)
 	{
 		switch (format)
 		{
-		case irr::video::ECF_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
-		case irr::video::ECF_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-		case irr::video::ECF_R16F: return VK_FORMAT_R16_SFLOAT;
-		case irr::video::ECF_R16G16F: return VK_FORMAT_R16G16_SFLOAT;
-		case irr::video::ECF_R16G16B16A16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case irr::video::ECF_R32F: return VK_FORMAT_R32_SFLOAT;
-		case irr::video::ECF_R32G32F: return VK_FORMAT_R32G32_SFLOAT;
-		case irr::video::ECF_R32G32B32A32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case irr::video::ECF_A8R8G8B8: return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
-		case irr::video::ECF_BC1_UNORM: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-		case irr::video::ECF_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
-		case irr::video::ECF_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
-		case irr::video::ECF_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
-		case irr::video::ECF_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
-		case irr::video::ECF_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
-		case irr::video::ECF_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-		case irr::video::ECF_BC4_SNORM: return VK_FORMAT_BC4_SNORM_BLOCK;
-		case irr::video::ECF_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-		case irr::video::ECF_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
-		case irr::video::D24U8: return VK_FORMAT_D24_UNORM_S8_UINT;
-		case irr::video::D32U8: return VK_FORMAT_D32_SFLOAT_S8_UINT;
-		case irr::video::ECF_B8G8R8A8: return VK_FORMAT_B8G8R8A8_UINT;
-		case irr::video::ECF_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
-		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
+		case irr::video::ECF_R8G8B8A8_UNORM: return vk::Format::eR8G8B8A8Unorm;
+		case irr::video::ECF_R8G8B8A8_UNORM_SRGB: return vk::Format::eR8G8B8A8Srgb;
+		case irr::video::ECF_R16F: return vk::Format::eR16Sfloat;
+		case irr::video::ECF_R16G16F: return vk::Format::eR16G16Sfloat;
+		case irr::video::ECF_R16G16B16A16F: return vk::Format::eR16G16B16A16Sfloat;
+		case irr::video::ECF_R32F: return vk::Format::eR32Sfloat;
+		case irr::video::ECF_R32G32F: return vk::Format::eR32G32Sfloat;;
+		case irr::video::ECF_R32G32B32A32F: return vk::Format::eR32G32B32A32Sfloat;
+		case irr::video::ECF_A8R8G8B8: return vk::Format::eA8B8G8R8UnormPack32;
+		case irr::video::ECF_BC1_UNORM: return vk::Format::eBc1RgbaUnormBlock;
+		case irr::video::ECF_BC1_UNORM_SRGB: return vk::Format::eBc1RgbaSrgbBlock;
+		case irr::video::ECF_BC2_UNORM: return vk::Format::eBc2UnormBlock;
+		case irr::video::ECF_BC2_UNORM_SRGB: return vk::Format::eBc2SrgbBlock;
+		case irr::video::ECF_BC3_UNORM: return vk::Format::eBc3UnormBlock;
+		case irr::video::ECF_BC3_UNORM_SRGB: return vk::Format::eBc3SrgbBlock;
+		case irr::video::ECF_BC4_UNORM: return vk::Format::eBc4UnormBlock;
+		case irr::video::ECF_BC4_SNORM: return vk::Format::eBc4SnormBlock;
+		case irr::video::ECF_BC5_UNORM: return vk::Format::eBc5UnormBlock;
+		case irr::video::ECF_BC5_SNORM: return vk::Format::eBc5SnormBlock;
+		case irr::video::D24U8: return vk::Format::eD24UnormS8Uint;
+		case irr::video::D32U8: return vk::Format::eD32SfloatS8Uint;
+		case irr::video::ECF_B8G8R8A8: return vk::Format::eB8G8R8A8Uint;
+		case irr::video::ECF_B8G8R8A8_UNORM: return vk::Format::eB8G8R8A8Unorm;
+		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return vk::Format::eB8G8R8A8Srgb;
 		}
 		throw;
 	}
@@ -122,14 +122,6 @@ namespace
 			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
 //		if (flags & usage_uav)
 //			result |= VK_IMAGE_USAGE_STORAGE_BIT;
-		return result;
-	}
-
-	VkImageCreateFlags get_image_create_flag(uint32_t flags)
-	{
-		VkImageUsageFlags result = 0;
-		if (flags & usage_cube)
-			result |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		return result;
 	}
 }
@@ -310,7 +302,7 @@ namespace
 
 	auto get_buffer_usage_flags(uint32_t flags)
 	{
-		auto result = vk::BufferUsageFlagBits::eTransferSrc;
+		auto result = vk::BufferUsageFlags();
 		if (flags & usage_uav)
 			result |= vk::BufferUsageFlagBits::eStorageBuffer;
 		if (flags & usage_transfer_dst)
@@ -402,16 +394,36 @@ clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const 
 	return nullptr;
 }
 
-std::unique_ptr<image_t> create_image(device_t& dev, irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
+std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
 {
-	VkExtent3D extent{ width, height, 1 };
-	auto image = std::make_unique<vulkan_wrapper::image>(dev, get_image_create_flag(flags), VK_IMAGE_TYPE_2D, get_vk_format(format), extent, mipmap, layers,
-		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, get_image_usage_flag(flags), VK_IMAGE_LAYOUT_UNDEFINED);
-	VkMemoryRequirements mem_req;
-	vkGetImageMemoryRequirements(dev, image->object, &mem_req);
-	image->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev, mem_req.size, dev.default_memory_index);
-	vkBindImageMemory(dev, image->object, image->baking_memory->object, 0);
-	return std::move(image);
+	auto&& get_image_create_flag = [](auto flags)
+	{
+		auto result = vk::ImageCreateFlag();
+		if (flags & usage_cube)
+			result |= vk::ImageCreateFlagBits::eCubeCompatible;
+		return result;
+	};
+
+	const auto& image = object.createImage(
+		vk::ImageCreateInfo{}
+			.setArrayLayers(layers)
+			.setMipLevels(mipmap)
+			.setTiling(vk::ImageTiling::eOptimal)
+			.setExtent(vk::Extent3D(width, height, 1))
+			.setImageType(vk::ImageType::e2D)
+			.setInitialLayout(vk::ImageLayout::eUndefined)
+			.setFormat(get_vk_format(format))
+			.setUsage(get_image_create_flag(flags))
+			.setSamples(vk::SampleCountFlagBits::e1)
+	);
+	const auto& mem_req = object.getImageMemoryRequirements(image);
+	const auto& memory = object.allocateMemory(
+		vk::MemoryAllocateInfo{}
+			.setAllocationSize(mem_req.size)
+			.setMemoryTypeIndex(default_memory_index)
+	);
+	object.bindImageMemory(image, memory, 0);
+	return std::unique_ptr<image_t>(new vk_image_t(object, image, memory));
 }
 
 namespace
