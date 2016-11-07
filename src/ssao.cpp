@@ -6,7 +6,6 @@
 
 namespace
 {
-
 	struct linearize_input_constant_data
 	{
 		float zn;
@@ -295,8 +294,8 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 	ssao_bilinear_result = dev.create_image(irr::video::ECF_R16F, width, height, 1, 1, usage_uav | usage_sampled, nullptr);
 	linear_depth_fbo = dev.create_frame_buffer({ { *linear_depth_buffer, irr::video::ECF_R32F }, { *ssao_result, irr::video::ECF_R16F} }, width, height, render_pass.get());
 
-	set_constant_buffer_view(dev, linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
-	set_constant_buffer_view(dev, ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
+	dev.set_constant_buffer_view(linearize_input, 0, 0, *linearize_constant_data, sizeof(linearize_input_constant_data));
+	dev.set_constant_buffer_view(ssao_input, 0, 0, *ssao_constant_data, sizeof(ssao_input_constant_data));
 
 	depth_image_view = dev.create_image_view(*depth_input, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 	linear_depth_buffer_view = dev.create_image_view(*linear_depth_buffer, irr::video::ECF_R32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
@@ -304,27 +303,27 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 	gaussian_blurring_buffer_view = dev.create_image_view(*gaussian_blurring_buffer, irr::video::ECF_R16F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 	ssao_bilinear_result_view = dev.create_image_view(*ssao_bilinear_result, irr::video::ECF_R16F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
-	set_image_view(dev, linearize_input, 1, 1, *depth_image_view);
-	set_image_view(dev, ssao_input, 1, 2, *linear_depth_buffer_view);
-	set_image_view(dev, gaussian_input_h, 1, 1, *ssao_result_view);
-	set_image_view(dev, gaussian_input_v, 1, 1, *gaussian_blurring_buffer_view);
+	dev.set_image_view(linearize_input, 1, 1, *depth_image_view);
+	dev.set_image_view(ssao_input, 1, 2, *linear_depth_buffer_view);
+	dev.set_image_view(gaussian_input_h, 1, 1, *ssao_result_view);
+	dev.set_image_view(gaussian_input_v, 1, 1, *gaussian_blurring_buffer_view);
 	bilinear_clamped_sampler = dev.create_sampler(SAMPLER_TYPE::BILINEAR_CLAMPED);
 	nearest_sampler = dev.create_sampler(SAMPLER_TYPE::NEAREST);
 	set_sampler(dev, sampler_input, 0, 3, *bilinear_clamped_sampler);
 	set_sampler(dev, sampler_input, 1, 4, *nearest_sampler);
-	set_uav_image_view(dev, gaussian_input_h, 2, 2, *gaussian_blurring_buffer_view);
-	set_uav_image_view(dev, gaussian_input_v, 2, 2, *ssao_bilinear_result_view);
+	dev.set_uav_image_view(gaussian_input_h, 2, 2, *gaussian_blurring_buffer_view);
+	dev.set_uav_image_view(gaussian_input_v, 2, 2, *ssao_bilinear_result_view);
 }
 
 void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, image_t & depth_buffer, float zn, float zf,
 	const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > &big_triangle_info)
 {
-	linearize_input_constant_data* ptr = reinterpret_cast<linearize_input_constant_data*>(map_buffer(dev, *linearize_constant_data));
+	linearize_input_constant_data* ptr = reinterpret_cast<linearize_input_constant_data*>(linearize_constant_data->map_buffer());
 	ptr->zn = zn;
 	ptr->zf = zf;
-	unmap_buffer(dev, *linearize_constant_data);
+	linearize_constant_data->unmap_buffer();
 
-	cmd_list.set_graphic_pipeline_layout(linearize_depth_sig);
+	cmd_list.set_graphic_pipeline_layout(*linearize_depth_sig);
 	cmd_list.set_descriptor_storage_referenced(*heap, sampler_heap.get());
 #ifdef D3D12
 	cmd_list->OMSetRenderTargets(1, &(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart()), false, nullptr);
@@ -345,14 +344,14 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 		vkCmdBeginRenderPass(cmd_list, &info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 #endif
-	cmd_list.set_graphic_pipeline(linearize_depth_pso);
-	cmd_list.bind_graphic_descriptor(0, linearize_input, linearize_depth_sig);
-	cmd_list.bind_graphic_descriptor(1, sampler_input, ssao_sig);
+	cmd_list.set_graphic_pipeline(*linearize_depth_pso);
+	cmd_list.bind_graphic_descriptor(0, linearize_input, *linearize_depth_sig);
+	cmd_list.bind_graphic_descriptor(1, sampler_input, *ssao_sig);
 	cmd_list.bind_vertex_buffers(0, big_triangle_info);
 	cmd_list.draw_non_indexed(3, 1, 0, 0);
 
 	glm::mat4 Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-	ssao_input_constant_data* ssao_ptr = reinterpret_cast<ssao_input_constant_data*>(map_buffer(dev, *ssao_constant_data));
+	ssao_input_constant_data* ssao_ptr = reinterpret_cast<ssao_input_constant_data*>(ssao_constant_data->map_buffer());
 	float *tmp = reinterpret_cast<float*>(&Perspective);
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
@@ -362,7 +361,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	ssao_ptr->tau = 7.f;
 	ssao_ptr->beta = .1f;
 	ssao_ptr->epsilon = .1f;
-	unmap_buffer(dev, *ssao_constant_data);
+	ssao_constant_data->unmap_buffer();
 #ifdef D3D12
 	cmd_list->OMSetRenderTargets(1, &(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart())
@@ -370,26 +369,24 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 #else
 	vkCmdNextSubpass(cmd_list, VK_SUBPASS_CONTENTS_INLINE);
 #endif
-	cmd_list.set_graphic_pipeline_layout(ssao_sig);
-	cmd_list.set_graphic_pipeline(ssao_pso);
-	cmd_list.bind_graphic_descriptor(0, ssao_input, ssao_sig);
-	cmd_list.bind_graphic_descriptor(1, sampler_input, ssao_sig);
+	cmd_list.set_graphic_pipeline_layout(*ssao_sig);
+	cmd_list.set_graphic_pipeline(*ssao_pso);
+	cmd_list.bind_graphic_descriptor(0, ssao_input, *ssao_sig);
+	cmd_list.bind_graphic_descriptor(1, sampler_input, *ssao_sig);
 	cmd_list.bind_vertex_buffers(0, big_triangle_info);
 	cmd_list.draw_non_indexed(3, 1, 0, 0);
-#ifndef D3D12
-	vkCmdEndRenderPass(cmd_list);
-#endif
+	cmd_list.end_renderpass();
 	cmd_list.set_pipeline_barrier(*gaussian_blurring_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
-	cmd_list.set_compute_pipeline_layout(gaussian_input_sig);
-	cmd_list.bind_compute_descriptor(0, gaussian_input_h, gaussian_input_sig);
-	cmd_list.bind_compute_descriptor(1, sampler_input, gaussian_input_sig);
+	cmd_list.set_compute_pipeline_layout(*gaussian_input_sig);
+	cmd_list.bind_compute_descriptor(0, gaussian_input_h, *gaussian_input_sig);
+	cmd_list.bind_compute_descriptor(1, sampler_input, *gaussian_input_sig);
 	cmd_list.set_compute_pipeline(*gaussian_h_pso);
 	cmd_list.dispatch(width, height, 1);
 	cmd_list.set_pipeline_barrier(*gaussian_blurring_buffer, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	cmd_list.set_pipeline_barrier(*ssao_bilinear_result, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
-	cmd_list.bind_compute_descriptor(0, gaussian_input_v, gaussian_input_sig);
-	cmd_list.bind_compute_descriptor(1, sampler_input, gaussian_input_sig);
+	cmd_list.bind_compute_descriptor(0, gaussian_input_v, *gaussian_input_sig);
+	cmd_list.bind_compute_descriptor(1, sampler_input, *gaussian_input_sig);
 	cmd_list.set_compute_pipeline(*gaussian_v_pso);
 	cmd_list.dispatch(width, height, 1);
 	cmd_list.set_pipeline_barrier(*ssao_bilinear_result, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);

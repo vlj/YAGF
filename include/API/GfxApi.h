@@ -5,6 +5,7 @@
 #include <vector>
 #include <tuple>
 #include <array>
+#include <memory>
 #include "..\Core\SColor.h"
 
 namespace irr
@@ -417,6 +418,23 @@ private:
 	{ }
 };
 
+struct framebuffer_t {
+
+};
+struct pipeline_state_t {};
+struct compute_pipeline_state_t {};
+struct pipeline_layout_t {};
+struct swap_chain_t {};
+struct render_pass_t {};
+struct clear_value_structure_t {};
+
+struct image_view_t {};
+struct sampler_t {};
+struct buffer_view_t {};
+
+struct allocated_descriptor_set {};
+struct descriptor_set_layout {};
+
 
 struct command_list_storage_t {
 	virtual std::unique_ptr<command_list_t> create_command_list() = 0;
@@ -445,8 +463,11 @@ struct command_list_t {
 	virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
 	virtual void copy_buffer(buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size) = 0;
 
-	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
-	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
+	virtual void next_subpass() = 0;
+	virtual void end_renderpass() = 0;
+
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 
 	virtual void make_command_list_executable() = 0;
 };
@@ -480,23 +501,10 @@ struct buffer_t {
 
 struct image_t {};
 
-struct allocated_descriptor_set {};
-
 struct descriptor_storage_t {
-	virtual allocated_descriptor_set allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
-	virtual allocated_descriptor_set allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
 };
-
-struct pipeline_state_t {};
-struct compute_pipeline_state_t {};
-struct pipeline_layout_t {};
-struct swap_chain_t {};
-struct render_pass_t {};
-struct clear_value_structure_t {};
-struct descriptor_set_layout {};
-struct image_view_t {};
-struct sampler_t {};
-struct buffer_view_t {};
 
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
