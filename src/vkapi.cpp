@@ -281,12 +281,18 @@ std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain(device_t& d
 
 std::unique_ptr<command_list_t> vk_command_list_storage_t::create_command_list()
 {
-	return std::make_unique<vulkan_wrapper::command_buffer>(dev, storage, VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+	return std::make_unique<vulkan_wrapper::command_buffer>(dev, storage, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
-std::unique_ptr<command_list_storage_t> create_command_storage(device_t& dev)
+std::unique_ptr<command_list_storage_t> vk_device_t::create_command_storage()
 {
-	return std::make_unique<command_list_storage_t>(dev, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, dev.queue_family_index);
+	return std::unique_ptr<command_list_storage_t>(new vk_command_list_storage_t(
+		object, object.createCommandPool(
+			vk::CommandPoolCreateInfo{}
+				.setQueueFamilyIndex(queue_family_index)
+				.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+		)
+	));
 }
 
 namespace
@@ -302,29 +308,37 @@ namespace
 		throw;
 	}
 
-	VkBufferUsageFlags get_buffer_usage_flags(uint32_t flags)
+	auto get_buffer_usage_flags(uint32_t flags)
 	{
-		VkBufferUsageFlags result =  VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		auto result = vk::BufferUsageFlagBits::eTransferSrc;
 		if (flags & usage_uav)
-			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			result |= vk::BufferUsageFlagBits::eStorageBuffer;
 		if (flags & usage_transfer_dst)
-			result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			result |= vk::BufferUsageFlagBits::eTransferDst;
 		if (flags & usage_texel_buffer)
-			result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+			result |= vk::BufferUsageFlagBits::eUniformTexelBuffer;
 		if (flags & usage_buffer_transfer_src)
-			result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			result |= vk::BufferUsageFlagBits::eTransferSrc;
 		return result;
 	}
 }
 
-std::unique_ptr<buffer_t> create_buffer(device_t& dev, size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags)
+std::unique_ptr<buffer_t> vk_device_t::create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags)
 {
-	auto buffer = std::make_unique<vulkan_wrapper::buffer>(dev, size, 0, get_buffer_usage_flags(flags));
-	VkMemoryRequirements mem_req;
-	vkGetBufferMemoryRequirements(dev, buffer->object, &mem_req);
-	buffer->baking_memory = std::make_shared<vulkan_wrapper::memory>(dev, mem_req.size, dev.upload_memory_index);
-	vkBindBufferMemory(dev, buffer->object, buffer->baking_memory->object, 0);
-	return buffer;
+	const auto& buffer = object.createBuffer(
+		vk::BufferCreateInfo{}
+			.setSize(size)
+			.setUsage(get_buffer_usage_flags(flags))
+	);
+	const auto& mem_req = object.getBufferMemoryRequirements(buffer);
+	const auto& memory = object.allocateMemory(
+		vk::MemoryAllocateInfo{}
+			.setAllocationSize(mem_req.size)
+			.setMemoryTypeIndex(upload_memory_index)
+	);
+	object.bindBufferMemory(buffer, memory, 0);
+	return  std::unique_ptr<buffer_t>(
+		new vk_buffer_t(object, buffer, memory));
 }
 
 std::unique_ptr<descriptor_storage_t> create_descriptor_storage(device_t& dev, uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors)
@@ -833,4 +847,3 @@ void * vk_buffer_t::map_buffer()
 void vk_buffer_t::unmap_buffer()
 {
 }
-

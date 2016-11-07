@@ -8,6 +8,7 @@
 #include <vector>
 #include "..\Core\SColor.h"
 #include <fstream>
+#include <API\GfxApi.h>
 
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
@@ -18,6 +19,14 @@ struct vk_command_list_storage_t : command_list_storage_t
 {
 	virtual std::unique_ptr<command_list_t> create_command_list() override;
 	virtual void reset_command_list_storage() override;
+	vk_command_list_storage_t(vk::Device _dev, vk::CommandPool _object)
+		: dev(_dev), object(_object)
+	{}
+
+	virtual ~vk_command_list_storage_t() override
+	{
+		dev.destroyCommandPool(object);
+	}
 private:
 	vk::Device dev;
 	vk::CommandPool object;
@@ -53,9 +62,26 @@ struct vk_command_list_t : command_list_t
 	vk::CommandBuffer object;
 };
 
-struct vk_device_t : device_t, private vulkan_wrapper::device
+struct vk_device_t : device_t
 {
+	uint32_t queue_family_index;
+	uint32_t upload_memory_index;
+	virtual std::unique_ptr<command_list_storage_t> create_command_storage() override;
+	virtual std::unique_ptr<buffer_t> create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags) override;
+	virtual std::unique_ptr<buffer_view_t> create_buffer_view(buffer_t &, irr::video::ECOLOR_FORMAT, uint64_t offset, uint32_t size) override;
+	virtual void set_constant_buffer_view(const allocated_descriptor_set & descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t & buffer, uint32_t buffer_size, uint64_t offset_in_buffer = 0) override;
+	virtual void set_uniform_texel_buffer_view(const allocated_descriptor_set & descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t & buffer_view) override;
+	virtual void set_uav_buffer_view(const allocated_descriptor_set & descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t & buffer, uint64_t offset, uint32_t size) override;
+	virtual std::unique_ptr<image_t> create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t * clear_value) override;
+	virtual std::unique_ptr<image_view_t> create_image_view(image_t & img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect = irr::video::E_ASPECT::EA_COLOR) override;
+	virtual void set_image_view(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
+	virtual void set_input_attachment(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
+	virtual void set_uav_image_view(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
+	virtual std::unique_ptr<sampler_t> create_sampler(SAMPLER_TYPE sampler_type) override;
+	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>>& num_descriptors) override;
 
+	vk::Device object;
+	vk::Instance instance;
 };
 
 struct vk_command_queue_t : command_queue_t
@@ -71,6 +97,10 @@ struct vk_buffer_t : buffer_t
 	virtual void * map_buffer() override;
 	virtual void unmap_buffer() override;
 
+	vk_buffer_t(vk::Device _dev, vk::Buffer _object, vk::DeviceMemory _memory)
+		: object(_object), dev(_dev), memory(_memory)
+	{}
+
 	vk::Buffer object;
 	vk::DeviceMemory memory;
 	vk::Device dev;
@@ -81,7 +111,8 @@ struct vk_image_t : image_t
 	vk::Image object;
 };
 
-using descriptor_storage_t = vulkan_wrapper::descriptor_pool;
+struct vk_descriptor_storage_t : descriptor_storage_t {
+};
 
 struct vk_pipeline_state_t : pipeline_state_t {
 	vk::Pipeline object;
@@ -103,11 +134,23 @@ struct vk_pipeline_layout_t : pipeline_layout_t
 using swap_chain_t = vulkan_wrapper::swapchain;
 using render_pass_t = vulkan_wrapper::render_pass;
 using clear_value_structure_t = void*;
-using allocated_descriptor_set = VkDescriptorSet;
-using descriptor_set_layout = vulkan_wrapper::pipeline_descriptor_set;
-using image_view_t = vulkan_wrapper::image_view;
-using sampler_t = vulkan_wrapper::sampler;
-using buffer_view_t = vulkan_wrapper::buffer_view;
+struct vk_allocated_descriptor_set : allocated_descriptor_set {
+};
+
+struct vk_descriptor_set_layout : descriptor_set_layout {
+
+};
+
+struct vk_image_view_t : image_view_t {
+
+};
+
+struct vk_sampler_t : sampler_t {
+};
+
+struct vk_buffer_view_t : buffer_view_t {
+
+};
 
 struct vk_framebuffer
 {

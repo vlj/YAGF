@@ -439,9 +439,13 @@ struct allocated_descriptor_set {};
 struct descriptor_set_layout {};
 
 
-struct command_list_storage_t {
-	virtual std::unique_ptr<command_list_t> create_command_list() = 0;
-	virtual void reset_command_list_storage() = 0;
+struct buffer_t {
+	virtual void* map_buffer() = 0;
+	virtual void unmap_buffer() = 0;
+};
+
+struct image_t {
+	virtual ~image_t() = 0;
 };
 
 struct command_list_t {
@@ -475,6 +479,23 @@ struct command_list_t {
 	virtual void make_command_list_executable() = 0;
 };
 
+
+struct command_list_storage_t {
+	virtual std::unique_ptr<command_list_t> create_command_list() = 0;
+	virtual void reset_command_list_storage() = 0;
+	virtual ~command_list_storage_t() = 0;
+};
+
+struct command_queue_t {
+	virtual void submit_executable_command_list(command_list_t& command_list) = 0;
+	virtual void wait_for_command_queue_idle() = 0;
+};
+
+struct descriptor_storage_t {
+	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+};
+
 struct device_t {
 	virtual std::unique_ptr<command_list_storage_t> create_command_storage() = 0;
 	virtual std::unique_ptr<buffer_t> create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags) = 0;
@@ -489,26 +510,6 @@ struct device_t {
 	virtual void set_uav_image_view(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view) = 0;
 	virtual std::unique_ptr<sampler_t> create_sampler(SAMPLER_TYPE sampler_type) = 0;
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors) = 0;
-
-};
-
-struct command_queue_t {
-	virtual void submit_executable_command_list(command_list_t& command_list) = 0;
-	virtual void wait_for_command_queue_idle() = 0;
-};
-
-struct buffer_t {
-	virtual void* map_buffer() = 0;
-	virtual void unmap_buffer() = 0;
-};
-
-struct image_t {
-	virtual ~image_t() = 0;
-};
-
-struct descriptor_storage_t {
-	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
-	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
 };
 
 void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
