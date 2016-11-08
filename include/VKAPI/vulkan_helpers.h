@@ -254,30 +254,6 @@ namespace vulkan_wrapper
 	private:
 		VkDevice m_device;
 	};
-
-	struct framebuffer : public wrapper<VkFramebuffer>
-	{
-		const std::vector<VkImageView> attachements;
-		const VkFramebufferCreateInfo info;
-
-		framebuffer(VkDevice dev, VkRenderPass render_pass, const std::vector<VkImageView> &att, uint32_t width, uint32_t height, uint32_t layers)
-			: attachements(att),
-			info({ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr, 0, render_pass, gsl::narrow_cast<uint32_t>(attachements.size()), attachements.data(), width, height, layers }),
-			m_device(dev)
-		{
-			CHECK_VKRESULT(vkCreateFramebuffer(m_device, &info, nullptr, &object));
-		}
-
-		~framebuffer()
-		{
-			vkDestroyFramebuffer(m_device, object, nullptr);
-		}
-
-		framebuffer(framebuffer&&) = delete;
-		framebuffer(const framebuffer&) = delete;
-	private:
-		VkDevice m_device;
-	};
 }
 
 namespace structures

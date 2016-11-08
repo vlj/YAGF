@@ -247,7 +247,7 @@ std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_
 	auto swapchain_image = dev.getSwapchainImagesKHR(object);
 	auto result = std::vector<std::unique_ptr<image_t>>{};
 	std::transform(swapchain_image.begin(), swapchain_image.end(), std::back_inserter(result),
-		[](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img)); });
+		[this](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img)); });
 	return result;
 }
 
@@ -842,17 +842,35 @@ namespace
 	}
 }
 
-vk_framebuffer::vk_framebuffer(device_t& dev, render_pass_t& render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
-	: image_views(build_image_views(dev, render_targets)),
-	fbo(dev, render_pass, get_image_view_vector(image_views), width, height, layers)
+vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
+	: dev(_dev)
 {
+	std::vector<vk::ImageView> image_views;
+	object = dev.createFramebuffer(
+		vk::FramebufferCreateInfo{}
+			.setAttachmentCount(image_views.size())
+			.setPAttachments(image_views.data())
+			.setLayers(layers)
+			.setWidth(width)
+			.setHeight(height)
+			.setRenderPass(render_pass)
+	);
 }
 
-vk_framebuffer::vk_framebuffer(device_t& dev, render_pass_t& render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets,
+vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets,
 	const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
-	: image_views(build_image_views(dev, render_targets, depth_stencil)),
-	fbo(dev, render_pass, get_image_view_vector(image_views), width, height, layers)
+	: dev(_dev)
 {
+	std::vector<vk::ImageView> image_views;
+	object = dev.createFramebuffer(
+		vk::FramebufferCreateInfo{}
+			.setAttachmentCount(image_views.size())
+			.setPAttachments(image_views.data())
+			.setLayers(layers)
+			.setWidth(width)
+			.setHeight(height)
+			.setRenderPass(render_pass)
+	);
 }
 
 std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets)

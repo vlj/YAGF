@@ -168,8 +168,11 @@ struct vk_swap_chain_t : swap_chain_t
 	virtual uint32_t get_next_backbuffer_id() override;
 	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() override;
 };
-/*using render_pass_t = vulkan_wrapper::render_pass;
-using clear_value_structure_t = void*; 
+
+struct vk_render_pass_t : render_pass_t {
+	vk::RenderPass object;
+};
+/*using clear_value_structure_t = void*; 
 */
 
 struct vk_allocated_descriptor_set : allocated_descriptor_set {
@@ -208,14 +211,16 @@ struct vk_buffer_view_t : buffer_view_t {
 
 struct vk_framebuffer : framebuffer_t
 {
-	const std::vector<std::unique_ptr<vk::ImageView> > image_views;
-	vulkan_wrapper::framebuffer fbo;
+	vk::Framebuffer object;
+	vk::Device dev;
 
-	vk_framebuffer(device_t& dev, render_pass_t& render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
-	vk_framebuffer(device_t& dev, render_pass_t& render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
-private:
-	static std::vector<std::unique_ptr<vk::ImageView> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil);
-	static std::vector<std::unique_ptr<vk::ImageView> > build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets);
+	vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
+
+	virtual ~vk_framebuffer()
+	{
+		dev.destroyFramebuffer(object);
+	}
 };
 
 
