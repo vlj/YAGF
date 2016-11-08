@@ -39,4 +39,3 @@ inline std::shared_ptr<vulkan_wrapper::pipeline_descriptor_set> get_object_descr
 	}
 	return std::make_shared<vulkan_wrapper::pipeline_descriptor_set>(dev, descriptor_range_storage);
 }
-
