@@ -405,7 +405,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 {
 	auto&& get_image_create_flag = [](auto flags)
 	{
-		auto result = vk::ImageCreateFlag();
+		auto result = vk::ImageCreateFlags();
 		if (flags & usage_cube)
 			result |= vk::ImageCreateFlagBits::eCubeCompatible;
 		return result;
@@ -420,7 +420,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			.setImageType(vk::ImageType::e2D)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setFormat(get_vk_format(format))
-			.setUsage(get_image_create_flag(flags))
+			.setFlags(get_image_create_flag(flags))
 			.setSamples(vk::SampleCountFlagBits::e1)
 	);
 	const auto& mem_req = object.getImageMemoryRequirements(image);
