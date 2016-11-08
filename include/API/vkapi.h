@@ -55,6 +55,7 @@ struct vk_command_list_t : command_list_t
 	virtual void next_subpass() override;
 	virtual void end_renderpass() override;
 	virtual void make_command_list_executable() override;
+	virtual void start_command_list_recording(command_list_storage_t& storage) override;
 
 	vk::Device dev;
 	vk::CommandBuffer object;

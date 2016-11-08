@@ -488,6 +488,7 @@ struct command_list_t {
 	virtual void end_renderpass() = 0;
 
 	virtual void make_command_list_executable() = 0;
+	virtual void start_command_list_recording(struct command_list_storage_t& storage) = 0;
 };
 
 
@@ -527,7 +528,6 @@ struct device_t {
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 };
 
-void start_command_list_recording(command_list_t& command_list, command_list_storage_t& storage);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
 void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);
