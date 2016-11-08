@@ -697,11 +697,11 @@ void vk_command_list_t::set_compute_pipeline(compute_pipeline_state_t& pipeline)
 	object.bindPipeline(vk::PipelineBindPoint::eCompute, static_cast<vk_compute_pipeline_state_t&>(pipeline).object);
 }
 
-void set_graphic_pipeline_layout(command_list_t&, pipeline_layout_t&) {}
+void vk_command_list_t::set_graphic_pipeline_layout(pipeline_layout_t&) {}
 
-void set_compute_pipeline_layout(command_list_t&, pipeline_layout_t&) {}
+void vk_command_list_t::set_compute_pipeline_layout(pipeline_layout_t&) {}
 
-void set_descriptor_storage_referenced(command_list_t&, descriptor_storage_t&, descriptor_storage_t*) {}
+void vk_command_list_t::set_descriptor_storage_referenced(descriptor_storage_t&, descriptor_storage_t*) {}
 
 void vk_command_list_t::set_viewport(float x, float width, float y, float height, float min_depth, float max_depth)
 {
