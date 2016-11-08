@@ -54,8 +54,6 @@ struct vk_command_list_t : command_list_t
 	virtual void copy_buffer(buffer_t & src, uint64_t src_offset, buffer_t & dst, uint64_t dst_offset, uint64_t size) override;
 	virtual void next_subpass() override;
 	virtual void end_renderpass() override;
-	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
-	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 	virtual void make_command_list_executable() override;
 
 	vk::Device dev;
@@ -86,6 +84,8 @@ struct vk_device_t : device_t
 	virtual void set_sampler(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t & sampler) override;
 	virtual std::unique_ptr<sampler_t> create_sampler(SAMPLER_TYPE sampler_type) override;
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>>& num_descriptors) override;
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 
 	vk::Device object;
 	vk::Instance instance;
@@ -205,7 +205,7 @@ struct vk_buffer_view_t : buffer_view_t {
 	vk::BufferView object;
 };
 
-struct vk_framebuffer
+struct vk_framebuffer : framebuffer_t
 {
 	const std::vector<std::unique_ptr<vk::ImageView> > image_views;
 	vulkan_wrapper::framebuffer fbo;

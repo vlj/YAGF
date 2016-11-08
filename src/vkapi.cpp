@@ -601,16 +601,6 @@ void vk_command_list_storage_t::reset_command_list_storage()
 	dev.resetCommandPool(object, vk::CommandPoolResetFlags());
 }
 
-framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
-{
-	return std::make_shared<vk_framebuffer>(dev, *render_pass, render_targets, width, height, 1);
-}
-
-framebuffer_t create_frame_buffer(device_t& dev, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
-{
-	return std::make_shared<vk_framebuffer>(dev, *render_pass, render_targets, depth_stencil_texture, width, height, 1);
-}
-
 void vk_command_list_t::make_command_list_executable()
 {
 	object.end();
@@ -891,17 +881,19 @@ std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_
 	return result;
 }
 
+std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
+{
+	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(object, *render_pass, render_targets, width, height, 1));
+}
+
+std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
+{
+	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(dev, *render_pass, render_targets, depth_stencil_texture, width, height, 1));
+}
+
+
+
 void vk_command_list_t::end_renderpass()
 {
 	object.endRenderPass();
-}
-
-std::unique_ptr<framebuffer_t> vk_command_list_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass)
-{
-	return std::unique_ptr<framebuffer_t>();
-}
-
-std::unique_ptr<framebuffer_t> vk_command_list_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass)
-{
-	return std::unique_ptr<framebuffer_t>();
 }
