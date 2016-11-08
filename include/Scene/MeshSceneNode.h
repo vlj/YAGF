@@ -44,8 +44,8 @@ namespace irr
 
 			std::unique_ptr<buffer_t> object_matrix;
 
-			allocated_descriptor_set object_descriptor_set;
-			std::vector<allocated_descriptor_set> mesh_descriptor_set;
+			std::unique_ptr<allocated_descriptor_set> object_descriptor_set;
+			std::vector<std::unique_ptr<allocated_descriptor_set>> mesh_descriptor_set;
 		public:
 
 			//! Constructor
@@ -61,7 +61,7 @@ namespace irr
 			~IMeshSceneNode();
 			void render() {}
 
-			void fill_draw_command(command_list_t& cmd_list, pipeline_layout_t object_sig);
+			void fill_draw_command(command_list_t& cmd_list, pipeline_layout_t& object_sig);
 			void update_constant_buffers(device_t& dev);
 		};
 

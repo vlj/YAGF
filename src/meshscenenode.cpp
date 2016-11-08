@@ -33,10 +33,10 @@ namespace irr
 			const glm::vec3& scale)
 			: ISceneNode(parent, position, rotation, scale)
 		{
-			object_matrix = create_buffer(dev, sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			object_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 3, { object_set }, 2);
-			set_constant_buffer_view(dev, object_descriptor_set, 0, 0, *object_matrix, sizeof(ObjectData));
-			set_constant_buffer_view(dev, object_descriptor_set, 1, 1, *object_matrix, sizeof(ObjectData));
+			object_matrix = dev.create_buffer(sizeof(ObjectData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			object_descriptor_set = heap.allocate_descriptor_set_from_cbv_srv_uav_heap(3, { object_set }, 2);
+			dev.set_constant_buffer_view(*object_descriptor_set, 0, 0, *object_matrix, sizeof(ObjectData));
+			dev.set_constant_buffer_view(*object_descriptor_set, 1, 1, *object_matrix, sizeof(ObjectData));
 
 			// Format Weight
 
@@ -66,14 +66,14 @@ namespace irr
 				total_index_cnt += mesh->mNumFaces * 3;
 			}
 
-			index_buffer = create_buffer(dev, total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			uint16_t *indexmap = (uint16_t *)map_buffer(dev, *index_buffer);
-			vertex_pos = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_pos_map = (aiVector3D*)map_buffer(dev, *vertex_pos);
-			vertex_normal = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_normal_map = (aiVector3D*)map_buffer(dev, *vertex_normal);
-			vertex_uv0 = create_buffer(dev, total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-			aiVector3D *vertex_uv_map = (aiVector3D*)map_buffer(dev, *vertex_uv0);
+			index_buffer = dev.create_buffer(total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			uint16_t *indexmap = (uint16_t *)index_buffer->map_buffer();
+			vertex_pos = dev.create_buffer(total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			aiVector3D *vertex_pos_map = (aiVector3D*)vertex_pos->map_buffer();
+			vertex_normal = dev.create_buffer(total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			aiVector3D *vertex_normal_map = (aiVector3D*)vertex_normal->map_buffer();
+			vertex_uv0 = dev.create_buffer(total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+			aiVector3D *vertex_uv_map = (aiVector3D*)vertex_uv0->map_buffer();
 
 			uint32_t basevertex = 0;
 			uint32_t baseindex = 0;
@@ -99,10 +99,10 @@ namespace irr
 				texture_mapping.push_back(mesh->mMaterialIndex);
 			}
 
-			unmap_buffer(dev, *index_buffer);
-			unmap_buffer(dev, *vertex_pos);
-			unmap_buffer(dev, *vertex_normal);
-			unmap_buffer(dev, *vertex_uv0);
+			index_buffer->unmap_buffer();
+			vertex_pos->unmap_buffer();
+			vertex_normal->unmap_buffer();
+			vertex_uv0->unmap_buffer();
 			// TODO: Upload to GPUmem
 
 			vertex_buffers_info.emplace_back(*vertex_pos, 0, static_cast<uint32_t>(sizeof(aiVector3D)), static_cast<uint32_t>(total_vertex_cnt * sizeof(aiVector3D)));
@@ -119,11 +119,11 @@ namespace irr
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS", upload_cmd_list);
-				allocated_descriptor_set mesh_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, heap, 13 + texture_id, { model_set }, 1);
+				const auto& mesh_descriptor = heap.allocate_descriptor_set_from_cbv_srv_uav_heap(13 + texture_id, { model_set }, 1);
 				mesh_descriptor_set.push_back(mesh_descriptor);
 
-				Textures_views.push_back(create_image_view(dev, *texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 9, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
-				set_image_view(dev, mesh_descriptor, 0, 2, *Textures_views.back());
+				Textures_views.push_back(dev.create_image_view(*texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 9, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
+				dev.set_image_view(*mesh_descriptor, 0, 2, *Textures_views.back());
 				upload_buffers.push_back(std::move(upload_buffer));
 				Textures.push_back(std::move(texture));
 			}
@@ -134,29 +134,29 @@ namespace irr
 
 		}
 
-		void IMeshSceneNode::fill_draw_command(command_list_t& current_cmd_list, pipeline_layout_t object_sig)
+		void IMeshSceneNode::fill_draw_command(command_list_t& current_cmd_list, pipeline_layout_t& object_sig)
 		{
-			bind_graphic_descriptor(current_cmd_list, 1, object_descriptor_set, object_sig);
-			bind_index_buffer(current_cmd_list, *index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
-			bind_vertex_buffers(current_cmd_list, 0, vertex_buffers_info);
+			current_cmd_list.bind_graphic_descriptor(1, *object_descriptor_set, object_sig);
+			current_cmd_list.bind_index_buffer(*index_buffer, 0, total_index_cnt * sizeof(uint16_t), irr::video::E_INDEX_TYPE::EIT_16BIT);
+			current_cmd_list.bind_vertex_buffers(0, vertex_buffers_info);
 
 			for (unsigned i = 0; i < meshOffset.size(); i++)
 			{
-				bind_graphic_descriptor(current_cmd_list, 0, mesh_descriptor_set[texture_mapping[i]], object_sig);
-				draw_indexed(current_cmd_list, std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
+				current_cmd_list.bind_graphic_descriptor(0, *mesh_descriptor_set[texture_mapping[i]], object_sig);
+				current_cmd_list.draw_indexed(std::get<0>(meshOffset[i]), 1, std::get<2>(meshOffset[i]), std::get<1>(meshOffset[i]), 0);
 			}
 		}
 
 		void IMeshSceneNode::update_constant_buffers(device_t& dev)
 		{
-			ObjectData *cbufdata = static_cast<ObjectData*>(map_buffer(dev, *object_matrix));
+			ObjectData *cbufdata = static_cast<ObjectData*>(object_matrix->map_buffer());
 			updateAbsolutePosition();
 			glm::mat4 Model = getAbsoluteTransformation();
 			glm::mat4 InvModel = glm::inverse(Model);
 
 			memcpy(cbufdata->ModelMatrix, &Model, 16 * sizeof(float));
 			memcpy(cbufdata->InverseModelMatrix, &InvModel, 16 * sizeof(float));
-			unmap_buffer(dev, *object_matrix);
+			object_matrix->unmap_buffer();
 		}
 
 	}
