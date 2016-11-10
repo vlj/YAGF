@@ -47,9 +47,16 @@ namespace
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1)},
 		shader_stage::fragment_shader);
 
-	pipeline_state_t get_linearize_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t& rp)
+	auto get_linearize_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t& rp)
 	{
-		constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
+		auto attribs = std::vector<pipeline_vertex_attributes>{
+			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
+			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
+		};
+		auto pso_desc = pipeline_state_description::get()
+			.set_vertex_shader("sunlight_vert")
+			.set_fragment_shader("linearize_depth")
+			.set_vertex_attributes(attribs);
 #ifdef D3D12
 		pipeline_state_t result;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -80,7 +87,8 @@ namespace
 		CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 		return result;
 #else
-		const blend_state blend = blend_state::get();
+		return dev.create_graphic_pso(pso_desc);
+/*	const blend_state blend = blend_state::get();
 
 		VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
 		VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
@@ -113,13 +121,20 @@ namespace
 		vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 		vertex_input.pVertexAttributeDescriptions = attribute.data();
 
-		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);
+		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);*/
 #endif
 	}
 
-	pipeline_state_t get_ssao_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t &rp)
+	auto get_ssao_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t &rp)
 	{
-		constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
+		auto attribs = std::vector<pipeline_vertex_attributes>{
+			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
+			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
+		};
+		auto pso_desc = pipeline_state_description::get()
+			.set_vertex_shader("sunlight_vert")
+			.set_fragment_shader("ssao")
+			.set_vertex_attributes(attribs);
 #ifdef D3D12
 		pipeline_state_t result;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -150,7 +165,8 @@ namespace
 		CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 		return result;
 #else
-		const blend_state blend = blend_state::get();
+		return dev.create_graphic_pso(pso_desc);
+/*		const blend_state blend = blend_state::get();
 
 		VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
 		VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
@@ -183,11 +199,11 @@ namespace
 		vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
 		vertex_input.pVertexAttributeDescriptions = attribute.data();
 
-		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);
+		return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);*/
 #endif
 	}
 
-	std::unique_ptr<compute_pipeline_state_t> get_gaussian_h_pso(device_t& dev, pipeline_layout_t layout)
+	auto get_gaussian_h_pso(device_t& dev, pipeline_layout_t& layout)
 	{
 #ifdef D3D12
 		ID3D12PipelineState* result;
@@ -208,7 +224,7 @@ namespace
 #endif // D3D12
 	}
 
-	std::unique_ptr<compute_pipeline_state_t> get_gaussian_v_pso(device_t& dev, pipeline_layout_t layout)
+	auto get_gaussian_v_pso(device_t& dev, pipeline_layout_t& layout)
 	{
 #ifdef D3D12
 		ID3D12PipelineState* result;

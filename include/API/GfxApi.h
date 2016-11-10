@@ -187,47 +187,62 @@ constexpr descriptor_set_ descriptor_set(const range_of_descriptors (&arr)[N], c
 	return descriptor_set_(arr, N, stage);
 }
 
+struct pipeline_vertex_attributes
+{
+	uint32_t location;
+	irr::video::ECOLOR_FORMAT format;
+	uint32_t binding;
+	uint32_t stride;
+	uint32_t offset;
+};
+
 struct pipeline_state_description
 {
-	const bool rasterization_depth_clamp_enable;
-	const bool rasterization_discard_enable;
-	const irr::video::E_POLYGON_MODE rasterization_polygon_mode;
-	const irr::video::E_CULL_MODE rasterization_cull_mode;
-	const irr::video::E_FRONT_FACE rasterization_front_face;
-	const bool rasterization_depth_bias_enable;
-	const float rasterization_depth_bias_constant_factor;
-	const float rasterization_depth_bias_clamp;
-	const float rasterization_depth_bias_slope_factor;
-	const float rasterization_line_width;
-	const bool rasterization_conservative_enable;
+	std::string vertex_path;
+	std::string fragment_path;
+	std::string compute_path;
 
-	const bool multisample_multisample_enable;
-	const irr::video::E_SAMPLE_COUNT multisample_sample_count;
-	const float multisample_min_sample_shading;
+	std::vector<pipeline_vertex_attributes> attributes;
+
+	bool rasterization_depth_clamp_enable;
+	bool rasterization_discard_enable;
+	irr::video::E_POLYGON_MODE rasterization_polygon_mode;
+	irr::video::E_CULL_MODE rasterization_cull_mode;
+	irr::video::E_FRONT_FACE rasterization_front_face;
+	bool rasterization_depth_bias_enable;
+	float rasterization_depth_bias_constant_factor;
+	float rasterization_depth_bias_clamp;
+	float rasterization_depth_bias_slope_factor;
+	float rasterization_line_width;
+	bool rasterization_conservative_enable;
+
+	bool multisample_multisample_enable;
+	irr::video::E_SAMPLE_COUNT multisample_sample_count;
+	float multisample_min_sample_shading;
 	// sample mask ?
-	const bool multisample_alpha_to_coverage;
-	const bool multisample_alpha_to_one;
+	bool multisample_alpha_to_coverage;
+	bool multisample_alpha_to_one;
 
-	const irr::video::E_PRIMITIVE_TYPE input_assembly_topology;
-	const bool input_assembly_primitive_restart;
+	irr::video::E_PRIMITIVE_TYPE input_assembly_topology;
+	bool input_assembly_primitive_restart;
 
-	const bool depth_stencil_depth_test;
-	const bool depth_stencil_depth_write;
-	const irr::video::E_COMPARE_FUNCTION depth_stencil_depth_compare_op;
-	const bool depth_stencil_depth_clip_enable;
-	const bool depth_stencil_stencil_test;
-	const irr::video::E_STENCIL_OP depth_stencil_front_stencil_fail_op;
-	const irr::video::E_STENCIL_OP depth_stencil_front_stencil_depth_fail_op;
-	const irr::video::E_STENCIL_OP depth_stencil_front_stencil_pass_op;
-	const irr::video::E_COMPARE_FUNCTION depth_stencil_front_stencil_compare_op;
-	const irr::video::E_STENCIL_OP depth_stencil_back_stencil_fail_op;
-	const irr::video::E_STENCIL_OP depth_stencil_back_stencil_depth_fail_op;
-	const irr::video::E_STENCIL_OP depth_stencil_back_stencil_pass_op;
-	const irr::video::E_COMPARE_FUNCTION depth_stencil_back_stencil_compare_op;
-	const float depth_stencil_min_depth_clip;
-	const float depth_stencil_max_depth_clip;
+	bool depth_stencil_depth_test;
+	bool depth_stencil_depth_write;
+	irr::video::E_COMPARE_FUNCTION depth_stencil_depth_compare_op;
+	bool depth_stencil_depth_clip_enable;
+	bool depth_stencil_stencil_test;
+	irr::video::E_STENCIL_OP depth_stencil_front_stencil_fail_op;
+	irr::video::E_STENCIL_OP depth_stencil_front_stencil_depth_fail_op;
+	irr::video::E_STENCIL_OP depth_stencil_front_stencil_pass_op;
+	irr::video::E_COMPARE_FUNCTION depth_stencil_front_stencil_compare_op;
+	irr::video::E_STENCIL_OP depth_stencil_back_stencil_fail_op;
+	irr::video::E_STENCIL_OP depth_stencil_back_stencil_depth_fail_op;
+	irr::video::E_STENCIL_OP depth_stencil_back_stencil_pass_op;
+	irr::video::E_COMPARE_FUNCTION depth_stencil_back_stencil_compare_op;
+	float depth_stencil_min_depth_clip;
+	float depth_stencil_max_depth_clip;
 
-	static constexpr pipeline_state_description get()
+	static pipeline_state_description get()
 	{
 		return pipeline_state_description(false, false, irr::video::E_POLYGON_MODE::EPM_FILL, irr::video::E_CULL_MODE::ECM_BACK, irr::video::E_FRONT_FACE::EFF_CW, false, 0.f, 0.f, 0.f, 1.f, false,
 			false, irr::video::E_SAMPLE_COUNT::ESC_1, 0.f, false, false, irr::video::E_PRIMITIVE_TYPE::EPT_TRIANGLES, false, true, true, irr::video::E_COMPARE_FUNCTION::ECF_LESS, false, false,
@@ -236,7 +251,7 @@ struct pipeline_state_description
 			0.f, 1.f);
 	}
 
-	constexpr pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare) const
+	pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare) const
 	{
 		return pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
@@ -273,7 +288,7 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	constexpr pipeline_state_description set_depth_write(bool depthwrite) const
+	pipeline_state_description set_depth_write(bool depthwrite) const
 	{
 		return pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
@@ -310,7 +325,7 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	constexpr pipeline_state_description set_depth_test(bool depth_test) const
+	pipeline_state_description set_depth_test(bool depth_test) const
 	{
 		return pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
@@ -347,8 +362,31 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
+	pipeline_state_description set_vertex_shader(const std::string& path)
+	{
+		vertex_path = path;
+		return *this;
+	}
+
+	pipeline_state_description set_fragment_shader(const std::string& path)
+	{
+		fragment_path = path;
+		return *this;
+	}
+
+	pipeline_state_description set_vertex_attributes(const gsl::span<pipeline_vertex_attributes> &attributes_)
+	{
+		attributes = std::vector<pipeline_vertex_attributes>(attributes_.begin(), attributes_.end());
+		return *this;
+	}
+
+	pipeline_state_description()
+	{
+
+	}
+
 private:
-	constexpr pipeline_state_description(
+	pipeline_state_description(
 		bool depth_clamp_enable,
 		bool rasterizer_discard_enable,
 		irr::video::E_POLYGON_MODE polygon_mode,
@@ -529,6 +567,8 @@ struct device_t {
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
+	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const pipeline_state_description&) = 0;
+	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const pipeline_state_description&) = 0;
 };
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
