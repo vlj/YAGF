@@ -508,6 +508,11 @@ struct swap_chain_t {
 	virtual ~swap_chain_t() = 0;
 	virtual uint32_t get_next_backbuffer_id() = 0;
 	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() = 0;
+	virtual void present(command_queue_t& cmdqueue, uint32_t backbuffer_index) = 0;
+};
+
+struct pipeline_descriptor_set_t {
+
 };
 
 struct device_t {
@@ -527,8 +532,8 @@ struct device_t {
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
+	virtual std::unique_ptr<pipeline_descriptor_set_t> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
 };
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
-void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index);

@@ -251,6 +251,10 @@ std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_
 	return result;
 }
 
+void vk_swap_chain_t::present(command_queue_t & cmdqueue, uint32_t backbuffer_index)
+{
+}
+
 std::unique_ptr<command_list_t> vk_command_list_storage_t::create_command_list()
 {
 	const auto& buffers = dev.allocateCommandBuffers(
@@ -819,27 +823,13 @@ uint32_t vk_swap_chain_t::get_next_backbuffer_id()
 	return dev.acquireNextImageKHR(object, UINT64_MAX, vk::Semaphore(), vk::Fence()).value;
 }
 
-void present(device_t& dev, command_queue_t& cmdqueue, swap_chain_t& chain, uint32_t backbuffer_index)
+void vk_swap_chain_t::present(command_queue_t& cmdqueue, uint32_t backbuffer_index)
 {
-	VkPresentInfoKHR info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	info.swapchainCount = 1;
-	info.pSwapchains = &(chain.object);
-	info.pImageIndices = &backbuffer_index;
-
-	CHECK_VKRESULT(vkQueuePresentKHR(cmdqueue, &info));
-}
-
-namespace
-{
-	std::vector<VkImageView> get_image_view_vector(const std::vector<std::unique_ptr<vulkan_wrapper::image_view> > &vectors)
-	{
-		std::vector<VkImageView> result;
-		for (const auto& iv : vectors)
-		{
-			result.emplace_back(iv->object);
-		}
-		return result;
-	}
+	auto presentInfo = vk::PresentInfoKHR{}
+		.setPSwapchains(&object)
+		.setSwapchainCount(1)
+		.setPImageIndices(&backbuffer_index);
+	dynamic_cast<vk_command_queue_t&>(cmdqueue).object.presentKHR(&presentInfo);
 }
 
 vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, gsl::span<const vk::ImageView> render_targets,
@@ -856,30 +846,6 @@ vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, gsl:
 			.setRenderPass(render_pass)
 	);
 }
-
-/*std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets)
-{
-	std::vector<std::unique_ptr<vulkan_wrapper::image_view> >  result;
-	for (const auto & rtt_info : render_targets)
-	{
-		VkComponentMapping default_mapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		VkImageSubresourceRange ranges{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		result.emplace_back(
-			std::make_unique<vulkan_wrapper::image_view>(dev, std::get<0>(rtt_info), VK_IMAGE_VIEW_TYPE_2D, get_vk_format(std::get<1>(rtt_info)), default_mapping, ranges)
-		);
-	}
-	return result;
-}
-
-std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets,
-	const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil)
-{
-	std::vector<std::unique_ptr<vulkan_wrapper::image_view> > result = std::move(build_image_views(dev, render_targets));
-	VkImageSubresourceRange ranges{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 };
-	VkComponentMapping default_mapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-	result.emplace_back(std::make_unique<vulkan_wrapper::image_view>(dev, std::get<0>(depth_stencil), VK_IMAGE_VIEW_TYPE_2D, get_vk_format(std::get<1>(depth_stencil)), default_mapping, ranges));
-	return result;
-}*/
 
 std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
 {
@@ -904,3 +870,21 @@ void vk_command_list_t::end_renderpass()
 {
 	object.endRenderPass();
 }
+
+std::unique_ptr<pipeline_descriptor_set_t> vk_device_t::get_object_descriptor_set(const descriptor_set_ &ds)
+{
+	std::vector<VkDescriptorSetLayoutBinding> descriptor_range_storage;
+	descriptor_range_storage.reserve(ds.count);
+	for (uint32_t i = 0; i < ds.count; i++)
+	{
+		const range_of_descriptors &rod = ds.descriptors_ranges[i];
+		VkDescriptorSetLayoutBinding range{};
+		range.binding = rod.bind_point;
+		range.descriptorCount = rod.count;
+		range.descriptorType = get_descriptor_type(rod.range_type);
+		range.stageFlags = get_shader_stage(ds.stage);
+		descriptor_range_storage.emplace_back(range);
+	}
+	return std::unique_ptr<pipeline_descriptor_set_t>(object, descriptor_range_storage);
+}
+

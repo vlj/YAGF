@@ -87,6 +87,7 @@ struct vk_device_t : device_t
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>>& num_descriptors) override;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
+	virtual std::unique_ptr<pipeline_descriptor_set_t> get_object_descriptor_set(const descriptor_set_ &ds) override;
 
 	vk::Device object;
 	vk::Instance instance;
@@ -167,6 +168,7 @@ struct vk_swap_chain_t : swap_chain_t
 
 	virtual uint32_t get_next_backbuffer_id() override;
 	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() override;
+	virtual void present(command_queue_t & cmdqueue, uint32_t backbuffer_index) override;
 };
 
 struct vk_render_pass_t : render_pass_t {
