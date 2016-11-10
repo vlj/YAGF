@@ -279,9 +279,9 @@ namespace
 	{
 		switch (memory_pool)
 		{
-		case irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL: return  dev->default_memory_index;
+		/*case irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL: return  dev->default_memory_index;
 		case irr::video::E_MEMORY_POOL::EMP_CPU_READABLE:
-		case irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE: return  dev->upload_memory_index;
+		case irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE: return  dev->upload_memory_index;*/
 		}
 		throw;
 	}
@@ -842,14 +842,14 @@ namespace
 	}
 }
 
-vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers)
+vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, gsl::span<const vk::ImageView> render_targets,
+	uint32_t width, uint32_t height, uint32_t layers)
 	: dev(_dev)
 {
-	std::vector<vk::ImageView> image_views;
 	object = dev.createFramebuffer(
 		vk::FramebufferCreateInfo{}
-			.setAttachmentCount(image_views.size())
-			.setPAttachments(image_views.data())
+			.setAttachmentCount(render_targets.size())
+			.setPAttachments(render_targets.data())
 			.setLayers(layers)
 			.setWidth(width)
 			.setHeight(height)
@@ -857,23 +857,7 @@ vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, std:
 	);
 }
 
-vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets,
-	const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers)
-	: dev(_dev)
-{
-	std::vector<vk::ImageView> image_views;
-	object = dev.createFramebuffer(
-		vk::FramebufferCreateInfo{}
-			.setAttachmentCount(image_views.size())
-			.setPAttachments(image_views.data())
-			.setLayers(layers)
-			.setWidth(width)
-			.setHeight(height)
-			.setRenderPass(render_pass)
-	);
-}
-
-std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets)
+/*std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_image_views(VkDevice dev, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets)
 {
 	std::vector<std::unique_ptr<vulkan_wrapper::image_view> >  result;
 	for (const auto & rtt_info : render_targets)
@@ -895,16 +879,23 @@ std::vector<std::unique_ptr<vulkan_wrapper::image_view> > vk_framebuffer::build_
 	VkComponentMapping default_mapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 	result.emplace_back(std::make_unique<vulkan_wrapper::image_view>(dev, std::get<0>(depth_stencil), VK_IMAGE_VIEW_TYPE_2D, get_vk_format(std::get<1>(depth_stencil)), default_mapping, ranges));
 	return result;
+}*/
+
+std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
+{
+	std::vector<vk::ImageView> attachments;
+	std::transform(render_targets.begin(), render_targets.end(), std::back_inserter(attachments),
+		[&](auto&& input) { return dynamic_cast<const vk_image_view_t*>(input)->object; });
+	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(object, static_cast<vk_render_pass_t*>(render_pass)->object, attachments, width, height, 1));
 }
 
-std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass)
+std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
 {
-	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(object, *render_pass, render_targets, width, height, 1));
-}
-
-std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass)
-{
-	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(dev, *render_pass, render_targets, depth_stencil_texture, width, height, 1));
+	std::vector<vk::ImageView> attachments;
+	std::transform(render_targets.begin(), render_targets.end(), std::back_inserter(attachments),
+		[&](auto&& input) { return dynamic_cast<const vk_image_view_t*>(input)->object; });
+		attachments.push_back(dynamic_cast<const vk_image_view_t&>(depth_stencil_texture).object);
+	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(object, static_cast<vk_render_pass_t*>(render_pass)->object, attachments, width, height, 1));
 }
 
 

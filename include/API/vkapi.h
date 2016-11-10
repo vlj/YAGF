@@ -85,8 +85,8 @@ struct vk_device_t : device_t
 	virtual void set_sampler(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, sampler_t & sampler) override;
 	virtual std::unique_ptr<sampler_t> create_sampler(SAMPLER_TYPE sampler_type) override;
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>>& num_descriptors) override;
-	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
-	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, std::tuple<image_t&, irr::video::ECOLOR_FORMAT> depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
+	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 
 	vk::Device object;
 	vk::Instance instance;
@@ -214,8 +214,7 @@ struct vk_framebuffer : framebuffer_t
 	vk::Framebuffer object;
 	vk::Device dev;
 
-	vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> render_targets, uint32_t width, uint32_t height, uint32_t layers);
-	vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, const std::vector<std::tuple<image_t&, irr::video::ECOLOR_FORMAT>> &render_targets, const std::tuple<image_t&, irr::video::ECOLOR_FORMAT> &depth_stencil, uint32_t width, uint32_t height, uint32_t layers);
+	vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, gsl::span<const vk::ImageView> render_targets, uint32_t width, uint32_t height, uint32_t layers);
 
 	virtual ~vk_framebuffer()
 	{
