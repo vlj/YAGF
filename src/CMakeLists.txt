@@ -7,7 +7,7 @@ file(GLOB SOURCES
     "scene.cpp"
     "ssao.cpp"
     "textures.cpp"
-    "vkapi.cpp"
-    "d3dapi.cpp")
+    "vkapi.cpp")
+#Z    "d3dapi.cpp")
 add_library(YAGF ${HEADERS} ${SOURCES})
 target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} ${Vulkan_LIBRARY})
