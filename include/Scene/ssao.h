@@ -22,11 +22,11 @@ struct ssao_utility
 
 	std::unique_ptr<descriptor_storage_t> heap;
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
-	allocated_descriptor_set linearize_input;
-	allocated_descriptor_set ssao_input;
-	allocated_descriptor_set sampler_input;
-	allocated_descriptor_set gaussian_input_h;
-	allocated_descriptor_set gaussian_input_v;
+	std::unique_ptr<allocated_descriptor_set> linearize_input;
+	std::unique_ptr<allocated_descriptor_set> ssao_input;
+	std::unique_ptr<allocated_descriptor_set> sampler_input;
+	std::unique_ptr<allocated_descriptor_set> gaussian_input_h;
+	std::unique_ptr<allocated_descriptor_set> gaussian_input_v;
 
 	std::unique_ptr<buffer_t> linearize_constant_data;
 	std::unique_ptr<buffer_t> ssao_constant_data;

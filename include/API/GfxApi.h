@@ -511,10 +511,6 @@ struct swap_chain_t {
 	virtual void present(command_queue_t& cmdqueue, uint32_t backbuffer_index) = 0;
 };
 
-struct pipeline_descriptor_set_t {
-
-};
-
 struct device_t {
 	virtual std::unique_ptr<command_list_storage_t> create_command_storage() = 0;
 	virtual std::unique_ptr<buffer_t> create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags) = 0;
@@ -532,7 +528,7 @@ struct device_t {
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
-	virtual std::unique_ptr<pipeline_descriptor_set_t> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
+	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
 };
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
