@@ -1,6 +1,5 @@
 #pragma once
 #include <assimp/Importer.hpp>
-#include <Maths/matrix4.h>
 #include <assimp/scene.h>
 #include <Loaders/DDS.h>
 #include <tuple>
@@ -12,17 +11,8 @@
 #include <Scene/Scene.h>
 #include <Scene/ssao.h>
 
-#ifdef D3D12
-#include <API/d3dapi.h>
-#include <d3dx12.h>
-#include <d3dcompiler.h>
+#include <API/GfxApi.h>
 
-#pragma comment (lib, "d3d12.lib")
-#pragma comment (lib, "dxgi.lib")
-#pragma comment (lib, "d3dcompiler.lib")
-#else
-#include <API/vkapi.h>
-#endif
 
 struct MeshSample
 {
@@ -34,7 +24,7 @@ struct MeshSample
 
 	~MeshSample()
 	{
-		wait_for_command_queue_idle(*dev, *cmdqueue);
+		cmdqueue->wait_for_command_queue_idle();
 	}
 
 
@@ -109,14 +99,14 @@ private:
 	std::unique_ptr<render_pass_t> ibl_skyboss_pass;
 	framebuffer_t fbo_pass1[2];
 	framebuffer_t fbo_pass2[2];
-	pipeline_layout_t object_sig;
-	pipeline_state_t objectpso;
-	pipeline_layout_t sunlight_sig;
-	pipeline_state_t sunlightpso;
-	pipeline_layout_t skybox_sig;
-	pipeline_state_t skybox_pso;
-	pipeline_layout_t ibl_sig;
-	pipeline_state_t ibl_pso;
+	std::unique_ptr<pipeline_layout_t> object_sig;
+	std::unique_ptr<pipeline_state_t> objectpso;
+	std::unique_ptr<pipeline_layout_t> sunlight_sig;
+	std::unique_ptr<pipeline_state_t> sunlightpso;
+	std::unique_ptr<pipeline_layout_t> skybox_sig;
+	std::unique_ptr<pipeline_state_t> skybox_pso;
+	std::unique_ptr<pipeline_layout_t> ibl_sig;
+	std::unique_ptr<pipeline_state_t> ibl_pso;
 	void fill_draw_commands();
 	void Init();
 
