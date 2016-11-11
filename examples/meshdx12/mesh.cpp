@@ -172,10 +172,10 @@ void MeshSample::Init()
 
 
 	fbo_pass1[0] = dev->create_frame_buffer(
-		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get, back_buffer_view[0].get() },
+		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get(), back_buffer_view[0].get() },
 		*depth_view, width, height, object_sunlight_pass.get());
 	fbo_pass1[1] = dev->create_frame_buffer(
-		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get, back_buffer_view[1].get() },
+		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get(), back_buffer_view[1].get() },
 		*depth_view, width, height, object_sunlight_pass.get());
 
 	fbo_pass2[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, *depth_view, width, height, ibl_skyboss_pass.get());

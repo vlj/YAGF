@@ -398,17 +398,17 @@ void vk_device_t::set_constant_buffer_view(const allocated_descriptor_set& descr
 	}, {});
 }
 
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil)
+clear_value_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil)
 {
-	return clear_value_structure_t();
+	return std::make_tuple(depth, stencil);
 }
 
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float, 4> &color)
+clear_value_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float, 4> &color)
 {
-	return clear_value_structure_t();
+	return color;
 }
 
-std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t*)
+std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_t*)
 {
 	auto&& get_image_create_flag = [](auto flags)
 	{

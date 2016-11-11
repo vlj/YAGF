@@ -204,7 +204,7 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 
 	linearize_constant_data = dev.create_buffer(sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	ssao_constant_data = dev.create_buffer(sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	clear_value_structure_t clear_value = get_clear_value(irr::video::ECF_R32F, { 0., 0., 0., 0. });
+	clear_value_t clear_value = get_clear_value(irr::video::ECF_R32F, { 0., 0., 0., 0. });
 	linear_depth_buffer = dev.create_image(irr::video::ECF_R32F, width, height, 1, 1, usage_render_target | usage_sampled, &clear_value);
 	clear_value = get_clear_value(irr::video::ECF_R16F, { 0., 0., 0., 0. });
 	ssao_result = dev.create_image(irr::video::ECF_R16F, width, height, 1, 1, usage_render_target | usage_sampled, &clear_value);
@@ -246,21 +246,10 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	cmd_list.set_descriptor_storage_referenced(*heap, sampler_heap.get());
 #ifdef D3D12
 	cmd_list->OMSetRenderTargets(1, &(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart()), false, nullptr);
-/*		std::array<float, 4> clearColor = { 0.f };
-		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		info.renderPass = render_pass->object;
-		info.framebuffer = linear_depth_fbo->fbo;
-		info.renderArea.extent.width = width;
-		info.renderArea.extent.height = height;
-		info.clearValueCount = 2;
-		VkClearValue clear_values[2] = {
-			structures::clear_value(clearColor),
-			structures::clear_value(clearColor)
-		};
-		info.pClearValues = clear_values;
-		vkCmdBeginRenderPass(cmd_list, &info, VK_SUBPASS_CONTENTS_INLINE);*/
 #endif
-	cmd_list.begin_renderpass();
+	cmd_list.begin_renderpass(*render_pass, *linear_depth_fbo,
+		std::vector<clear_value_t>{std::array<float, 4>{}, std::array<float, 4>{}},
+		width, height);
 	cmd_list.set_graphic_pipeline(*linearize_depth_pso);
 	cmd_list.bind_graphic_descriptor(0, *linearize_input, *linearize_depth_sig);
 	cmd_list.bind_graphic_descriptor(1, *sampler_input, *ssao_sig);
