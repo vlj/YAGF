@@ -61,6 +61,8 @@ struct vk_command_list_t : command_list_t
 	vk::CommandBuffer object;
 	vk_command_list_t(vk::Device _dev, vk::CommandBuffer _object) : dev(_dev), object(_object)
 	{}
+
+	virtual void begin_renderpass() override;
 };
 
 struct vk_device_t : device_t
@@ -91,6 +93,10 @@ struct vk_device_t : device_t
 
 	vk::Device object;
 	vk::Instance instance;
+
+	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description &) override;
+	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description &) override;
+	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout*>) override;
 };
 
 struct vk_command_queue_t : command_queue_t

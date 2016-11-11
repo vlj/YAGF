@@ -40,7 +40,7 @@ namespace
 		std::wstring message_w = converter.from_bytes(message.str());
 
 #ifdef _WIN32
-		MessageBox(NULL, message_w.c_str(), L"Alert", MB_OK);
+		MessageBox(NULL, message.str().c_str(), "Alert", MB_OK);
 #else
 		std::cout << message.str() << std::endl;
 #endif
@@ -594,6 +594,10 @@ void vk_command_list_t::start_command_list_recording(command_list_storage_t&)
 	);
 }
 
+void vk_command_list_t::begin_renderpass()
+{
+}
+
 void vk_command_list_storage_t::reset_command_list_storage()
 {
 	dev.resetCommandPool(object, vk::CommandPoolResetFlags());
@@ -882,5 +886,20 @@ std::unique_ptr<descriptor_set_layout> vk_device_t::get_object_descriptor_set(co
 		descriptor_range_storage.emplace_back(range);
 	}
 	return std::unique_ptr<descriptor_set_layout>(object, descriptor_range_storage);
+}
+
+std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &)
+{
+	return std::unique_ptr<pipeline_state_t>();
+}
+
+std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const compute_pipeline_state_description &)
+{
+	return std::unique_ptr<compute_pipeline_state_t>();
+}
+
+std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span<const descriptor_set_layout*>)
+{
+	return std::unique_ptr<pipeline_layout_t>();
 }
 
