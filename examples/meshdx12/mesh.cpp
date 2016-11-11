@@ -190,7 +190,7 @@ void MeshSample::Init()
 		std::make_unique<irr::scene::IMeshSceneNode>(*dev, model, *command_list, *cbv_srv_descriptors_heap, object_set.get(), model_set.get(), nullptr),
 		nullptr);
 
-	big_triangle = dev.create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	float fullscreen_tri[]
 	{
 		-1., -3., 0., 2.,
@@ -266,29 +266,23 @@ void MeshSample::fill_descriptor_set()
 
 void MeshSample::load_program_and_pipeline_layout()
 {
-#ifdef D3D12
-	object_sig = get_pipeline_layout_from_desc(*dev, { model_descriptor_set_type, object_descriptor_set_type, scene_descriptor_set_type, sampler_descriptor_set_type });
-	sunlight_sig = get_pipeline_layout_from_desc(*dev, { input_attachments_descriptor_set_type, scene_descriptor_set_type });
-	skybox_sig = get_pipeline_layout_from_desc(*dev, { scene_descriptor_set_type, sampler_descriptor_set_type });
-	ibl_sig = get_pipeline_layout_from_desc(*dev, { rtt_descriptor_set_type, scene_descriptor_set_type, ibl_descriptor_set_type, sampler_descriptor_set_type });
-#else
-	sampler_set = get_object_descriptor_set(*dev, sampler_descriptor_set_type);
-	object_set = get_object_descriptor_set(*dev, object_descriptor_set_type);
-	scene_set = get_object_descriptor_set(*dev, scene_descriptor_set_type);
-	input_attachments_set = get_object_descriptor_set(*dev, input_attachments_descriptor_set_type);
-	rtt_set = get_object_descriptor_set(*dev, rtt_descriptor_set_type);
-	model_set = get_object_descriptor_set(*dev, model_descriptor_set_type);
-	ibl_set = get_object_descriptor_set(*dev, ibl_descriptor_set_type);
+	sampler_set = dev->get_object_descriptor_set(sampler_descriptor_set_type);
+	object_set = dev->get_object_descriptor_set(object_descriptor_set_type);
+	scene_set = dev->get_object_descriptor_set(scene_descriptor_set_type);
+	input_attachments_set = dev->get_object_descriptor_set(input_attachments_descriptor_set_type);
+	rtt_set = dev->get_object_descriptor_set(rtt_descriptor_set_type);
+	model_set = dev->get_object_descriptor_set(model_descriptor_set_type);
+	ibl_set = dev->get_object_descriptor_set(ibl_descriptor_set_type);
 
-	object_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ model_set->object, object_set->object, scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-	sunlight_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ input_attachments_set->object, scene_set->object }, std::vector<VkPushConstantRange>());
-	skybox_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ scene_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-	ibl_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev->object, 0, std::vector<VkDescriptorSetLayout>{ rtt_set->object, scene_set->object, ibl_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-#endif // D3D12
-	objectpso = get_skinned_object_pipeline_state(dev.get(), object_sig, object_sunlight_pass.get());
-	sunlightpso = get_sunlight_pipeline_state(dev.get(), sunlight_sig, object_sunlight_pass.get());
-	skybox_pso = get_skybox_pipeline_state(dev.get(), skybox_sig, ibl_skyboss_pass.get());
-	ibl_pso = get_ibl_pipeline_state(dev.get(), ibl_sig, ibl_skyboss_pass.get());
+	object_sig = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{ model_set.get(), object_set.get(), scene_set.get(), sampler_set.get() });
+	sunlight_sig = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{ input_attachments_set.get(), scene_set.get() });
+	skybox_sig = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{ scene_set.get(), sampler_set.get() });
+	ibl_sig = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{ rtt_set.get(), scene_set.get(), ibl_set.get(), sampler_set.get() });
+
+	objectpso = get_skinned_object_pipeline_state(*dev, *object_sig, *object_sunlight_pass);
+	sunlightpso = get_sunlight_pipeline_state(*dev, *sunlight_sig, *object_sunlight_pass);
+	skybox_pso = get_skybox_pipeline_state(*dev, *skybox_sig, *ibl_skyboss_pass);
+	ibl_pso = get_ibl_pipeline_state(*dev, *ibl_sig, *ibl_skyboss_pass);
 }
 
 void MeshSample::fill_draw_commands()
@@ -353,9 +347,8 @@ void MeshSample::fill_draw_commands()
 			.Offset(3, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
 		};
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
-#else
-		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
 #endif
+		current_cmd_list->next_subpass();
 		current_cmd_list->set_graphic_pipeline_layout(*sunlight_sig);
 		current_cmd_list->set_descriptor_storage_referenced(*cbv_srv_descriptors_heap, sampler_heap.get());
 		current_cmd_list->bind_graphic_descriptor(0, input_attachments_descriptors, *sunlight_sig);
@@ -363,9 +356,7 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->set_graphic_pipeline(*sunlightpso);
 		current_cmd_list->bind_vertex_buffers(0, big_triangle_info);
 		current_cmd_list->draw_non_indexed(3, 1, 0, 0);
-#ifndef D3D12
-		vkCmdEndRenderPass(current_cmd_list->object);
-#endif // !D3D12
+		current_cmd_list->end_renderpass();
 		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
 #ifdef D3D12
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
@@ -379,30 +370,28 @@ void MeshSample::fill_draw_commands()
 			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
 		}
 #endif // !D3D12
-		set_graphic_pipeline_layout(*current_cmd_list, ibl_sig);
-		set_descriptor_storage_referenced(*current_cmd_list, *cbv_srv_descriptors_heap, sampler_heap.get());
-		bind_graphic_descriptor(*current_cmd_list, 0, rtt_descriptors, ibl_sig);
-		bind_graphic_descriptor(*current_cmd_list, 1, scene_descriptor, ibl_sig);
-		bind_graphic_descriptor(*current_cmd_list, 2, ibl_descriptor, ibl_sig);
-		bind_graphic_descriptor(*current_cmd_list, 3, sampler_descriptors, ibl_sig);
-		set_graphic_pipeline(*current_cmd_list, ibl_pso);
-		bind_vertex_buffers(*current_cmd_list, 0, big_triangle_info);
-		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
-#ifndef D3D12
-		vkCmdNextSubpass(current_cmd_list->object, VK_SUBPASS_CONTENTS_INLINE);
-#else
+		current_cmd_list->set_graphic_pipeline_layout(*ibl_sig);
+		current_cmd_list->set_descriptor_storage_referenced(*cbv_srv_descriptors_heap, sampler_heap.get());
+		current_cmd_list->bind_graphic_descriptor(0, rtt_descriptors, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(1, scene_descriptor, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(2, ibl_descriptor, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(3, sampler_descriptors, *ibl_sig);
+		current_cmd_list->set_graphic_pipeline(*ibl_pso);
+		current_cmd_list->bind_vertex_buffers(0, big_triangle_info);
+		current_cmd_list->draw_non_indexed(3, 1, 0, 0);
+#ifdef D3D12
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, &(fbo_pass1[i]->dsv_heap->GetCPUDescriptorHandleForHeapStart()));
 		set_pipeline_barrier(*current_cmd_list, *depth_buffer, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH);
 #endif
-		set_graphic_pipeline_layout(*current_cmd_list, skybox_sig);
-		bind_graphic_descriptor(*current_cmd_list, 0, scene_descriptor, skybox_sig);
-		bind_graphic_descriptor(*current_cmd_list, 1, sampler_descriptors, skybox_sig);
-		set_graphic_pipeline(*current_cmd_list, skybox_pso);
-		bind_vertex_buffers(*current_cmd_list, 0, big_triangle_info);
-		draw_non_indexed(*current_cmd_list, 3, 1, 0, 0);
-#ifndef D3D12
-		vkCmdEndRenderPass(current_cmd_list->object);
-#else
+		current_cmd_list->next_subpass();
+		current_cmd_list->set_graphic_pipeline_layout(*skybox_sig);
+		current_cmd_list->bind_graphic_descriptor(0, scene_descriptor, *skybox_sig);
+		current_cmd_list->bind_graphic_descriptor(1, sampler_descriptors, *skybox_sig);
+		current_cmd_list->set_graphic_pipeline(*skybox_pso);
+		current_cmd_list->bind_vertex_buffers(0, big_triangle_info);
+		current_cmd_list->draw_non_indexed(3, 1, 0, 0);
+		current_cmd_list->end_renderpass();
+#ifdef D3D12
 		set_pipeline_barrier(*current_cmd_list, *diffuse_color, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *normal, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *roughness_metalness, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
