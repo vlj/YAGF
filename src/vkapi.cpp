@@ -247,7 +247,7 @@ std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_
 	auto swapchain_image = dev.getSwapchainImagesKHR(object);
 	auto result = std::vector<std::unique_ptr<image_t>>{};
 	std::transform(swapchain_image.begin(), swapchain_image.end(), std::back_inserter(result),
-		[this](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img)); });
+		[this](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img, vk::DeviceMemory())); });
 	return result;
 }
 
@@ -324,7 +324,7 @@ std::unique_ptr<descriptor_storage_t> vk_device_t::create_descriptor_storage(uin
 	std::vector<vk::DescriptorPoolSize> poolSizes;
 
 	std::transform(num_descriptors.begin(), num_descriptors.end(), std::back_inserter(poolSizes),
-		[](auto&& set) { return vk::DescriptorPoolSize(get_descriptor_type(std::get<0>(set_size)), std::get<1>(set_size)); });
+		[](auto&& set) { return vk::DescriptorPoolSize(get_descriptor_type(std::get<0>(set)), std::get<1>(set)); });
 	return std::unique_ptr<descriptor_storage_t>(
 		new vk_descriptor_storage_t(object,
 			object.createDescriptorPool(
@@ -347,9 +347,16 @@ void vk_buffer_t::unmap_buffer()
 	dev.unmapMemory(memory);
 }
 
-std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffer, irr::video::ECOLOR_FORMAT format, uint64_t offset, uint32_t size)
+std::unique_ptr<buffer_view_t> vk_device_t::create_buffer_view(buffer_t& buffer, irr::video::ECOLOR_FORMAT format, uint64_t offset, uint32_t size)
 {
-	return std::unique_ptr<buffer_view_t>(new vk_buffer_view_t(dev, buffer, get_vk_format(format), offset, size));
+	return std::unique_ptr<buffer_view_t>(new vk_buffer_view_t(object, object.createBufferView(
+		vk::BufferViewCreateInfo{}
+			.setBuffer(dynamic_cast<vk_buffer_t&>(buffer).object)
+			.setFormat(get_vk_format(format))
+			.setOffset(offset)
+			.setRange(size)
+		)
+	));
 }
 
 void vk_device_t::set_uniform_texel_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_view_t& buffer_view)
@@ -881,7 +888,7 @@ std::unique_ptr<descriptor_set_layout> vk_device_t::get_object_descriptor_set(co
 		VkDescriptorSetLayoutBinding range{};
 		range.binding = rod.bind_point;
 		range.descriptorCount = rod.count;
-		range.descriptorType = get_descriptor_type(rod.range_type);
+//		range.descriptorType = get_descriptor_type(rod.range_type);
 		range.stageFlags = get_shader_stage(ds.stage);
 		descriptor_range_storage.emplace_back(range);
 	}

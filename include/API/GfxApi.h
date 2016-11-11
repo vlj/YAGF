@@ -502,7 +502,9 @@ struct buffer_view_t {
 struct allocated_descriptor_set {
 };
 
-struct descriptor_set_layout {};
+struct descriptor_set_layout {
+	virtual ~descriptor_set_layout() = 0;
+};
 
 struct buffer_t {
 	virtual void* map_buffer() = 0;

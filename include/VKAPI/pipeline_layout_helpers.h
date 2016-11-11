@@ -5,18 +5,18 @@
 #include "../API/GfxApi.h"
 
 
-constexpr VkDescriptorType get_descriptor_type(const RESOURCE_VIEW type)
+constexpr auto get_descriptor_type(const RESOURCE_VIEW type)
 {
-	return (type == RESOURCE_VIEW::CONSTANTS_BUFFER) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER :
-		(type == RESOURCE_VIEW::SHADER_RESOURCE) ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE :
-		(type == RESOURCE_VIEW::SAMPLER) ? VK_DESCRIPTOR_TYPE_SAMPLER :
-		(type == RESOURCE_VIEW::INPUT_ATTACHMENT) ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT :
-		(type == RESOURCE_VIEW::UAV_BUFFER) ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER :
-		(type == RESOURCE_VIEW::UAV_IMAGE) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE :
-		(type == RESOURCE_VIEW::TEXEL_BUFFER) ? VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER : throw;
+	return (type == RESOURCE_VIEW::CONSTANTS_BUFFER) ? vk::DescriptorType::eUniformBuffer :
+		(type == RESOURCE_VIEW::SHADER_RESOURCE) ? vk::DescriptorType::eSampledImage :
+		(type == RESOURCE_VIEW::SAMPLER) ? vk::DescriptorType::eSampler :
+		(type == RESOURCE_VIEW::INPUT_ATTACHMENT) ? vk::DescriptorType::eInputAttachment :
+		(type == RESOURCE_VIEW::UAV_BUFFER) ? vk::DescriptorType::eStorageBuffer :
+		(type == RESOURCE_VIEW::UAV_IMAGE) ? vk::DescriptorType::eStorageImage :
+		(type == RESOURCE_VIEW::TEXEL_BUFFER) ? vk::DescriptorType::eUniformTexelBuffer : throw;
 }
 
-constexpr VkShaderStageFlags get_shader_stage(const shader_stage stage)
+constexpr auto get_shader_stage(const shader_stage stage)
 {
 	return (stage == shader_stage::vertex_shader) ? VK_SHADER_STAGE_VERTEX_BIT :
 		(stage == shader_stage::fragment_shader) ? VK_SHADER_STAGE_FRAGMENT_BIT :

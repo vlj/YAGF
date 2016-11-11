@@ -209,7 +209,16 @@ struct vk_allocated_descriptor_set : allocated_descriptor_set {
 };
 
 struct vk_descriptor_set_layout : descriptor_set_layout {
+	vk::DescriptorSetLayout object;
+	vk::Device dev;
 
+	vk_descriptor_set_layout(vk::Device _dev, vk::DescriptorSetLayout _o) : dev(_dev), object(_o)
+	{}
+
+	virtual ~vk_descriptor_set_layout()
+	{
+		dev.destroyDescriptorSetLayout(object);
+	}
 };
 
 struct vk_image_view_t : image_view_t {
@@ -233,6 +242,15 @@ struct vk_sampler_t : sampler_t {
 
 struct vk_buffer_view_t : buffer_view_t {
 	vk::BufferView object;
+	vk::Device dev;
+
+	vk_buffer_view_t(vk::Device _dev, vk::BufferView bf) : dev(_dev), object(bf)
+	{}
+
+	virtual ~vk_buffer_view_t()
+	{
+		dev.destroyBufferView(object);
+	}
 };
 
 struct vk_framebuffer : framebuffer_t
