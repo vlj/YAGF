@@ -62,7 +62,9 @@ struct vk_command_list_t : command_list_t
 	vk_command_list_t(vk::Device _dev, vk::CommandBuffer _object) : dev(_dev), object(_object)
 	{}
 
-	virtual void begin_renderpass() override;
+	virtual void begin_renderpass(render_pass_t& rp, framebuffer_t &fbo,
+		gsl::span<clear_value_t> clear_values,
+		uint32_t width, uint32_t height) override;
 };
 
 struct vk_device_t : device_t
@@ -79,7 +81,7 @@ struct vk_device_t : device_t
 	virtual void set_constant_buffer_view(const allocated_descriptor_set & descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t & buffer, uint32_t buffer_size, uint64_t offset_in_buffer = 0) override;
 	virtual void set_uniform_texel_buffer_view(const allocated_descriptor_set & descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t & buffer_view) override;
 	virtual void set_uav_buffer_view(const allocated_descriptor_set & descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t & buffer, uint64_t offset, uint32_t size) override;
-	virtual std::unique_ptr<image_t> create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t * clear_value) override;
+	virtual std::unique_ptr<image_t> create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_t * clear_value) override;
 	virtual std::unique_ptr<image_view_t> create_image_view(image_t & img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect = irr::video::E_ASPECT::EA_COLOR) override;
 	virtual void set_image_view(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
 	virtual void set_input_attachment(const allocated_descriptor_set & descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t & img_view) override;
@@ -198,8 +200,6 @@ struct vk_swap_chain_t : swap_chain_t
 struct vk_render_pass_t : render_pass_t {
 	vk::RenderPass object;
 };
-/*using clear_value_structure_t = void*; 
-*/
 
 struct vk_allocated_descriptor_set : allocated_descriptor_set {
 	vk_allocated_descriptor_set(vk::DescriptorSet _object) : object(_object)

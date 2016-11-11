@@ -73,7 +73,7 @@ namespace
 	{
 		std::unique_ptr<render_pass_t> result;
 #ifndef D3D12
-		result.reset(new render_pass_t(dev->object,
+/*		result.reset(new render_pass_t(dev->object,
 		{
 			// color
 			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
@@ -98,7 +98,7 @@ namespace
 		},
 		{
 			get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_INPUT_ATTACHMENT_READ_BIT)
-		}));
+		}));*/
 #endif // !D3D12
 		return result;
 	}
@@ -107,7 +107,7 @@ namespace
 	{
 		std::unique_ptr<render_pass_t> result;
 #ifndef D3D12
-		result.reset(new render_pass_t(dev,
+/*		result.reset(new render_pass_t(dev,
 		{
 			// final surface
 			structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
@@ -126,7 +126,7 @@ namespace
 		},
 		{
 			get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT)
-		}));
+		}));*/
 #endif // !D3D12
 		return result;
 	}
@@ -151,7 +151,7 @@ void MeshSample::Init()
 	scene_matrix = dev->create_buffer(sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 	sun_data = dev->create_buffer(7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
 
-	clear_value_structure_t clear_val = get_clear_value(irr::video::D24U8, 1., 0);
+	clear_value_t clear_val = get_clear_value(irr::video::D24U8, 1., 0);
 #ifndef D3D12
 	command_list->set_pipeline_barrier(*back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->set_pipeline_barrier(*back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -304,6 +304,7 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+		current_cmd_list->begin_renderpass(*object_sunlight_pass, *fbo_pass1[i], width, height);
 #ifndef D3D12
 		{
 			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };

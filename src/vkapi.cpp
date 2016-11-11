@@ -601,8 +601,30 @@ void vk_command_list_t::start_command_list_recording(command_list_storage_t&)
 	);
 }
 
-void vk_command_list_t::begin_renderpass()
+struct clear_value_visitor {
+	auto operator()(const std::array<float, 4> &colors) const {
+		return vk::ClearValue(vk::ClearColorValue(colors));
+	}
+
+	auto operator()(const std::tuple<float, uint8_t> &depth_stencil) const {
+		return vk::ClearValue(vk::ClearDepthStencilValue(std::get<0>(depth_stencil), std::get<1>(depth_stencil)));
+	}
+};
+
+void vk_command_list_t::begin_renderpass(render_pass_t& rp, framebuffer_t &fbo, gsl::span<clear_value_t> clear_values, uint32_t width, uint32_t height)
 {
+	std::vector<vk::ClearValue> clearValues;
+	std::transform(clear_values.begin(), clear_values.end(), std::back_inserter(clearValues),
+		[&](auto&& v) { return std::visit(clear_value_visitor(), v); });
+	object.beginRenderPass(
+		vk::RenderPassBeginInfo{}
+			.setFramebuffer(dynamic_cast<vk_framebuffer&>(fbo).object)
+			.setRenderPass(dynamic_cast<vk_render_pass_t&>(rp).object)
+			.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(width, height)))
+			.setPClearValues(clearValues.data())
+			.setClearValueCount(clearValues.size()),
+		vk::SubpassContents::eInline
+	);
 }
 
 void vk_command_list_storage_t::reset_command_list_storage()

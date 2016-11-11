@@ -7,6 +7,7 @@
 #include <array>
 #include <memory>
 #include <gsl/gsl>
+#include <variant>
 #include "..\Core\SColor.h"
 
 namespace irr
@@ -469,7 +470,7 @@ private:
 };
 
 struct framebuffer_t {
-
+	virtual ~framebuffer_t() = 0;
 };
 
 struct pipeline_state_t {
@@ -484,8 +485,11 @@ struct pipeline_layout_t {
 	virtual ~pipeline_layout_t() = 0;
 };
 
-struct render_pass_t {};
-struct clear_value_structure_t {};
+struct render_pass_t {
+	virtual ~render_pass_t() = 0;
+};
+
+using clear_value_t = std::variant<std::array<float, 4>, std::tuple<float, uint8_t> >;
 
 struct image_view_t {
 	virtual ~image_view_t() = 0;
@@ -542,7 +546,9 @@ struct command_list_t {
 	virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
 	virtual void copy_buffer(buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size) = 0;
 
-	virtual void begin_renderpass() = 0;
+	virtual void begin_renderpass(render_pass_t& rp, framebuffer_t& fbo,
+		gsl::span<clear_value_t> clear_values,
+		uint32_t width, uint32_t height) = 0;
 	virtual void next_subpass() = 0;
 	virtual void end_renderpass() = 0;
 
@@ -576,7 +582,7 @@ struct device_t {
 	virtual void set_constant_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint32_t buffer_size, uint64_t offset_in_buffer = 0) = 0;
 	virtual void set_uniform_texel_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_view_t& buffer_view) = 0;
 	virtual void set_uav_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t offset_in_set, uint32_t binding_location, buffer_t& buffer, uint64_t offset, uint32_t size) = 0;
-	virtual std::unique_ptr<image_t> create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_structure_t *clear_value) = 0;
+	virtual std::unique_ptr<image_t> create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_t *clear_value) = 0;
 	virtual std::unique_ptr<image_view_t> create_image_view(image_t& img, irr::video::ECOLOR_FORMAT fmt, uint16_t base_mipmap, uint16_t mipmap_count, uint16_t base_layer, uint16_t layer_count, irr::video::E_TEXTURE_TYPE texture_type, irr::video::E_ASPECT aspect = irr::video::E_ASPECT::EA_COLOR) = 0;
 	virtual void set_image_view(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view) = 0;
 	virtual void set_input_attachment(const allocated_descriptor_set& descriptor_set, uint32_t offset, uint32_t binding_location, image_view_t& img_view) = 0;
@@ -592,5 +598,5 @@ struct device_t {
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
 };
 
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
-clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
+clear_value_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
+clear_value_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array<float,4> &color);
