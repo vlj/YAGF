@@ -349,7 +349,7 @@ void vk_buffer_t::unmap_buffer()
 
 std::unique_ptr<buffer_view_t> create_buffer_view(device_t& dev, buffer_t& buffer, irr::video::ECOLOR_FORMAT format, uint64_t offset, uint32_t size)
 {
-	return std::make_unique<buffer_view_t>(dev, buffer, get_vk_format(format), offset, size);
+	return std::unique_ptr<buffer_view_t>(new vk_buffer_view_t(dev, buffer, get_vk_format(format), offset, size));
 }
 
 void vk_device_t::set_uniform_texel_buffer_view(const allocated_descriptor_set& descriptor_set, uint32_t, uint32_t binding_location, buffer_view_t& buffer_view)
@@ -689,7 +689,7 @@ void vk_command_list_t::set_uav_flush(image_t& resource)
 		});
 }
 
-void vk_command_list_t::set_graphic_pipeline(pipeline_state_t pipeline)
+void vk_command_list_t::set_graphic_pipeline(pipeline_state_t& pipeline)
 {
 	object.bindPipeline(vk::PipelineBindPoint::eGraphics, static_cast<vk_pipeline_state_t&>(pipeline).object);
 }
@@ -885,12 +885,107 @@ std::unique_ptr<descriptor_set_layout> vk_device_t::get_object_descriptor_set(co
 		range.stageFlags = get_shader_stage(ds.stage);
 		descriptor_range_storage.emplace_back(range);
 	}
-	return std::unique_ptr<descriptor_set_layout>(object, descriptor_range_storage);
+//	return std::unique_ptr<descriptor_set_layout>(object, descriptor_range_storage);
 }
 
-std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &)
+namespace
 {
-	return std::unique_ptr<pipeline_state_t>();
+	struct shader_module
+	{
+		std::vector<uint32_t> spirv_code;
+		vk::ShaderModule object;
+		vk::Device dev;
+
+		shader_module(vk::Device _dev, const std::string &filename) :
+			spirv_code(load_binary_file(filename)),
+			dev(_dev)
+		{
+			object = dev.createShaderModule(
+				vk::ShaderModuleCreateInfo{}
+					.setCodeSize(spirv_code.size() * sizeof(uint32_t))
+					.setPCode(spirv_code.data()));
+		}
+
+		~shader_module()
+		{
+			dev.destroyShaderModule(object);
+		}
+
+		shader_module(shader_module&&) = delete;
+		shader_module(const shader_module&) = delete;
+
+	private:
+
+		static std::vector<uint32_t> load_binary_file(const std::string &filename)
+		{
+			std::ifstream file(filename, std::ios::binary | std::ios::in | std::ios::ate);
+			if (!file.is_open()) throw;
+
+			std::vector<uint32_t> code(file.tellg() / sizeof(uint32_t));
+			// go back to the beginning
+			file.seekg(0, std::ios::beg);
+			file.read((char*)code.data(), code.size() * sizeof(uint32_t));
+			file.close();
+			return code;
+		}
+	};
+}
+
+std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &pso_desc)
+{
+	const blend_state blend = blend_state::get();
+
+	auto tesselation_info = vk::PipelineTessellationStateCreateInfo{};
+	auto viewport_info = vk::PipelineViewportStateCreateInfo{}
+		.setViewportCount(1)
+		.setScissorCount(1);
+	auto dynamic_states = std::array<vk::DynamicState, 2>{ vk::DynamicState::eViewport, vk::DynamicState::eScissor };
+	auto dynamic_state_info = vk::PipelineDynamicStateCreateInfo{}
+		.setDynamicStateCount(dynamic_states.size())
+		.setPDynamicStates(dynamic_states.data());
+
+	shader_module module_vert(object, "..\\..\\..\\" + pso_desc.vertex_path + ".spv");
+	shader_module module_frag(object, "..\\..\\..\\" + pso_desc.fragment_path + ".spv");
+
+	auto shader_stages = std::vector<vk::PipelineShaderStageCreateInfo>{
+		vk::PipelineShaderStageCreateInfo{}
+			.setStage(vk::ShaderStageFlagBits::eVertex)
+			.setModule(module_vert.object)
+			.setPName("main"),
+		vk::PipelineShaderStageCreateInfo{}
+			.setStage(vk::ShaderStageFlagBits::eFragment)
+			.setModule(module_frag.object)
+			.setPName("main")
+	};
+
+	auto vertex_input = vk::PipelineVertexInputStateCreateInfo{};
+
+	/*auto vertex_buffers = std::vector<vk::VertexInputBindingDescription>{
+		vk::VertexInputBindingDescription{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
+	};
+	vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
+	vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
+
+	auto attribute = std::vector<vk::VertexInputAttributeDescription>{
+	{ 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
+	{ 1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float) },
+	};
+	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
+	vertex_input.pVertexAttributeDescriptions = attribute.data();*/
+
+//	return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);*/
+	vk::Pipeline pso = object.createGraphicsPipeline(
+		vk::PipelineCache{},
+		vk::GraphicsPipelineCreateInfo{}
+			.setPTessellationState(&tesselation_info)
+			.setPDynamicState(&dynamic_state_info)
+			.setSubpass(0)
+			.setStageCount(shader_stages.size())
+			.setPStages(shader_stages.data())
+			.setPVertexInputState(&vertex_input)
+			.setPViewportState(&viewport_info)
+	);
+	return std::unique_ptr<pipeline_state_t>(new vk_pipeline_state_t(object, pso));
 }
 
 std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const compute_pipeline_state_description &)

@@ -41,7 +41,7 @@ struct vk_command_list_t : command_list_t
 	virtual void set_uav_flush(image_t & resource) override;
 	virtual void set_viewport(float x, float width, float y, float height, float min_depth, float max_depth) override;
 	virtual void set_scissor(uint32_t left, uint32_t right, uint32_t top, uint32_t bottom) override;
-	virtual void set_graphic_pipeline(pipeline_state_t pipeline) override;
+	virtual void set_graphic_pipeline(pipeline_state_t& pipeline) override;
 	virtual void set_graphic_pipeline_layout(pipeline_layout_t & sig) override;
 	virtual void set_compute_pipeline(compute_pipeline_state_t & pipeline) override;
 	virtual void set_compute_pipeline_layout(pipeline_layout_t & sig) override;
@@ -149,10 +149,28 @@ struct vk_descriptor_storage_t : descriptor_storage_t {
 
 struct vk_pipeline_state_t : pipeline_state_t {
 	vk::Pipeline object;
+	vk::Device dev;
+
+	vk_pipeline_state_t(vk::Device _dev, vk::Pipeline pso) : dev(_dev), object(pso)
+	{}
+
+	virtual ~vk_pipeline_state_t()
+	{
+		dev.destroyPipeline(object);
+	}
 };
 
 struct vk_compute_pipeline_state_t : compute_pipeline_state_t {
 	vk::Pipeline object;
+	vk::Device dev;
+
+	vk_compute_pipeline_state_t(vk::Device _dev, vk::Pipeline pso) : dev(_dev), object(pso)
+	{}
+
+	virtual ~vk_compute_pipeline_state_t()
+	{
+		dev.destroyPipeline(object);
+	}
 };
 
 struct vk_pipeline_layout_t : pipeline_layout_t

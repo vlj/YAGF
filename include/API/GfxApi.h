@@ -472,8 +472,14 @@ struct framebuffer_t {
 
 };
 
-struct pipeline_state_t {};
-struct compute_pipeline_state_t {};
+struct pipeline_state_t {
+	virtual ~pipeline_state_t() = 0;
+};
+
+struct compute_pipeline_state_t {
+	virtual ~compute_pipeline_state_t() = 0;
+};
+
 struct pipeline_layout_t {
 	virtual ~pipeline_layout_t() = 0;
 };
@@ -522,7 +528,7 @@ struct command_list_t {
 
 	virtual void set_viewport(float x, float width, float y, float height, float min_depth, float max_depth) = 0;
 	virtual void set_scissor(uint32_t left, uint32_t right, uint32_t top, uint32_t bottom) = 0;
-	virtual void set_graphic_pipeline(pipeline_state_t pipeline) = 0;
+	virtual void set_graphic_pipeline(pipeline_state_t& pipeline) = 0;
 	virtual void set_graphic_pipeline_layout(pipeline_layout_t& sig) = 0;
 	virtual void set_compute_pipeline(compute_pipeline_state_t& pipeline) = 0;
 	virtual void set_compute_pipeline_layout(pipeline_layout_t& sig) = 0;

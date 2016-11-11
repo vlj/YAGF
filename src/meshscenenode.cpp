@@ -119,8 +119,8 @@ namespace irr
 				std::unique_ptr<image_t> texture;
 				std::unique_ptr<buffer_t> upload_buffer;
 				std::tie(texture, upload_buffer) = load_texture(dev, SAMPLE_PATH + texture_path.substr(0, texture_path.find_last_of('.')) + ".DDS", upload_cmd_list);
-				const auto& mesh_descriptor = heap.allocate_descriptor_set_from_cbv_srv_uav_heap(13 + texture_id, { model_set }, 1);
-				mesh_descriptor_set.push_back(mesh_descriptor);
+				auto&& mesh_descriptor = heap.allocate_descriptor_set_from_cbv_srv_uav_heap(13 + texture_id, { model_set }, 1);
+				mesh_descriptor_set.push_back(std::move(mesh_descriptor));
 
 				Textures_views.push_back(dev.create_image_view(*texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 9, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
 				dev.set_image_view(*mesh_descriptor, 0, 2, *Textures_views.back());
