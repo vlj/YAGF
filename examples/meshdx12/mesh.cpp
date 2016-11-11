@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include <Scene\IBL.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
@@ -414,19 +415,18 @@ void MeshSample::Draw()
 	scene->update(*dev);
 
 	SceneData * tmp = static_cast<SceneData*>(scene_matrix->map_buffer());
-	irr::core::matrix4 Perspective;
-	irr::core::matrix4 InvPerspective;
-	irr::core::matrix4 View;
-	irr::core::matrix4 InvView;
 	float horizon_angle_in_radian = horizon_angle * 3.14f / 100.f;
-	View.buildCameraLookAtMatrixLH(irr::core::vector3df(0., 2. * sin(horizon_angle_in_radian), -2. * cos(horizon_angle_in_radian)), irr::core::vector3df(), irr::core::vector3df(0., cos(horizon_angle_in_radian), sin(horizon_angle_in_radian)));
-	View.getInverse(InvView);
-	Perspective.buildProjectionMatrixPerspectiveFovLH(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-	Perspective.getInverse(InvPerspective);
-	memcpy(tmp->ProjectionMatrix, Perspective.pointer(), 16 * sizeof(float));
-	memcpy(tmp->InverseProjectionMatrix, InvPerspective.pointer(), 16 * sizeof(float));
-	memcpy(tmp->ViewMatrix, View.pointer(), 16 * sizeof(float));
-	memcpy(tmp->InverseViewMatrix, InvView.pointer(), 16 * sizeof(float));
+	auto View = glm::lookAtLH(
+		glm::vec3(0., 2. * sin(horizon_angle_in_radian), -2. * cos(horizon_angle_in_radian)),
+		glm::vec3(0., cos(horizon_angle_in_radian), sin(horizon_angle_in_radian)),
+		glm::vec3(0., 1., 0.));
+	auto InvView = glm::inverse(View);
+	auto Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+	auto InvPerspective = glm::inverse(Perspective);
+	memcpy(tmp->ProjectionMatrix, &Perspective, 16 * sizeof(float));
+	memcpy(tmp->InverseProjectionMatrix, &InvPerspective, 16 * sizeof(float));
+	memcpy(tmp->ViewMatrix, &View, 16 * sizeof(float));
+	memcpy(tmp->InverseViewMatrix, &InvView, 16 * sizeof(float));
 	scene_matrix->unmap_buffer();
 
 	float * sun_tmp = (float*)sun_data->map_buffer();
