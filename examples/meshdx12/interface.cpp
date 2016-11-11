@@ -31,7 +31,7 @@ void * get_xue(void * ptr)
 void set_rotation_on_node(void * ptr, float x, float y, float z)
 {
 	irr::scene::IMeshSceneNode *node_ptr = (irr::scene::IMeshSceneNode *)ptr;
-	node_ptr->setRotation(irr::core::vector3df(x, y, z));
+	node_ptr->setRotation(glm::vec3(x, y, z));
 }
 
 void destroy_vulkan_mesh(void* ptr)
