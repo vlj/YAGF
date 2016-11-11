@@ -53,7 +53,7 @@ namespace
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
-		auto pso_desc = pipeline_state_description::get()
+		auto pso_desc = graphic_pipeline_state_description::get()
 			.set_vertex_shader("sunlight_vert")
 			.set_fragment_shader("linearize_depth")
 			.set_vertex_attributes(attribs);
@@ -131,7 +131,7 @@ namespace
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
-		auto pso_desc = pipeline_state_description::get()
+		auto pso_desc = graphic_pipeline_state_description::get()
 			.set_vertex_shader("sunlight_vert")
 			.set_fragment_shader("ssao")
 			.set_vertex_attributes(attribs);
@@ -205,50 +205,22 @@ namespace
 
 	auto get_gaussian_h_pso(device_t& dev, pipeline_layout_t& layout)
 	{
-#ifdef D3D12
-		ID3D12PipelineState* result;
-		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		CHECK_HRESULT(D3DReadFileToBlob(L"gaussianh.cso", blob.GetAddressOf()));
-
-		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
-		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
-		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
-		pipeline_desc.pRootSignature = layout.Get();
-
-		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
-		return std::make_unique<compute_pipeline_state_t>(result);
-#else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\gaussian_h.spv");
-		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
-		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, layout->object, VkPipeline(VK_NULL_HANDLE), -1);
-#endif // D3D12
+		auto pso_desc = compute_pipeline_state_description{}
+			.set_compute_shader("gaussian_h");
+		return dev.create_compute_pso(pso_desc);
 	}
 
 	auto get_gaussian_v_pso(device_t& dev, pipeline_layout_t& layout)
 	{
-#ifdef D3D12
-		ID3D12PipelineState* result;
-		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		CHECK_HRESULT(D3DReadFileToBlob(L"gaussianv.cso", blob.GetAddressOf()));
-
-		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
-		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
-		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
-		pipeline_desc.pRootSignature = layout.Get();
-
-		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
-		return std::make_unique<compute_pipeline_state_t>(result);
-#else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\gaussian_v.spv");
-		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
-		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, layout->object, VkPipeline(VK_NULL_HANDLE), -1);
-#endif // D3D12
+		auto pso_desc = compute_pipeline_state_description{}
+		.set_compute_shader("gaussian_v");
+		return dev.create_compute_pso(pso_desc);
 	}
 
-	std::unique_ptr<render_pass_t> create_render_pass(device_t& dev)
+	auto create_render_pass(device_t& dev)
 	{
 		std::unique_ptr<render_pass_t> result;
-#ifndef D3D12
+#ifdef D3D12
 		result.reset(new render_pass_t(dev,
 		{
 			structures::attachment_description(VK_FORMAT_R32_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
@@ -273,24 +245,19 @@ namespace
 
 ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, uint32_t h) : depth_input(_depth_input), width(w), height(h)
 {
-#ifdef D3D12
-	linearize_depth_sig = get_pipeline_layout_from_desc(dev, { linearize_input_set_type, samplers_set_type });
-	ssao_sig = get_pipeline_layout_from_desc(dev, { ssao_input_set_type, samplers_set_type });
-	gaussian_input_sig = get_pipeline_layout_from_desc(dev, { gaussian_input_set_type, samplers_set_type });
-#else
 	linearize_input_set = dev.get_object_descriptor_set(linearize_input_set_type);
 	samplers_set = dev.get_object_descriptor_set(samplers_set_type);
-	linearize_depth_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ linearize_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
+	linearize_depth_sig = dev.create_pipeline_layout(std::vector<const descriptor_set_layout*>{ linearize_input_set.get(), samplers_set.get() });
 	ssao_input_set = dev.get_object_descriptor_set(ssao_input_set_type);
-	ssao_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ ssao_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
+	ssao_sig = dev.create_pipeline_layout(std::vector<const descriptor_set_layout*>{ ssao_input_set.get(), samplers_set.get() });
 	gaussian_input_set = dev.get_object_descriptor_set(gaussian_input_set_type);
-	gaussian_input_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ gaussian_input_set->object, samplers_set->object }, std::vector<VkPushConstantRange>());
-#endif
+	gaussian_input_sig = dev.create_pipeline_layout(std::vector<const descriptor_set_layout*>{ gaussian_input_set.get(), samplers_set.get() });
+
 	render_pass = create_render_pass(dev);
-	linearize_depth_pso = get_linearize_pso(dev, linearize_depth_sig, *render_pass);
-	ssao_pso = get_ssao_pso(dev, ssao_sig, *render_pass);
-	gaussian_h_pso = get_gaussian_h_pso(dev, gaussian_input_sig);
-	gaussian_v_pso = get_gaussian_v_pso(dev, gaussian_input_sig);
+	linearize_depth_pso = get_linearize_pso(dev, *linearize_depth_sig, *render_pass);
+	ssao_pso = get_ssao_pso(dev, *ssao_sig, *render_pass);
+	gaussian_h_pso = get_gaussian_h_pso(dev, *gaussian_input_sig);
+	gaussian_v_pso = get_gaussian_v_pso(dev, *gaussian_input_sig);
 
 	heap = dev.create_descriptor_storage(5, { {RESOURCE_VIEW::CONSTANTS_BUFFER, 10}, { RESOURCE_VIEW::SHADER_RESOURCE, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 10 } });
 	sampler_heap = dev.create_descriptor_storage(1, { { RESOURCE_VIEW::SAMPLER, 10 } });
@@ -344,9 +311,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	cmd_list.set_descriptor_storage_referenced(*heap, sampler_heap.get());
 #ifdef D3D12
 	cmd_list->OMSetRenderTargets(1, &(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart()), false, nullptr);
-#else
-	{
-		std::array<float, 4> clearColor = { 0.f };
+/*		std::array<float, 4> clearColor = { 0.f };
 		VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		info.renderPass = render_pass->object;
 		info.framebuffer = linear_depth_fbo->fbo;
@@ -358,9 +323,9 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 			structures::clear_value(clearColor)
 		};
 		info.pClearValues = clear_values;
-		vkCmdBeginRenderPass(cmd_list, &info, VK_SUBPASS_CONTENTS_INLINE);
-	}
+		vkCmdBeginRenderPass(cmd_list, &info, VK_SUBPASS_CONTENTS_INLINE);*/
 #endif
+	cmd_list.begin_renderpass();
 	cmd_list.set_graphic_pipeline(*linearize_depth_pso);
 	cmd_list.bind_graphic_descriptor(0, *linearize_input, *linearize_depth_sig);
 	cmd_list.bind_graphic_descriptor(1, *sampler_input, *ssao_sig);

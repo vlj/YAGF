@@ -50,7 +50,7 @@ constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE get_primitive_topology(const irr::video:
 }
 
 
-constexpr D3D12_GRAPHICS_PIPELINE_STATE_DESC get_pipeline_state_desc(const pipeline_state_description desc)
+constexpr D3D12_GRAPHICS_PIPELINE_STATE_DESC get_pipeline_state_desc(const graphic_pipeline_state_description desc)
 {
 	return{ nullptr, {}, {}, {}, {}, {}, {}, {}, (UINT)-1,
 		{

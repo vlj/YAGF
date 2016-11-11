@@ -196,11 +196,22 @@ struct pipeline_vertex_attributes
 	uint32_t offset;
 };
 
-struct pipeline_state_description
+struct compute_pipeline_state_description
+{
+	std::string compute_path;
+
+	compute_pipeline_state_description set_compute_shader(const std::string& path)
+	{
+		compute_path = path;
+		return *this;
+	}
+};
+
+struct graphic_pipeline_state_description
 {
 	std::string vertex_path;
 	std::string fragment_path;
-	std::string compute_path;
+
 
 	std::vector<pipeline_vertex_attributes> attributes;
 
@@ -242,18 +253,18 @@ struct pipeline_state_description
 	float depth_stencil_min_depth_clip;
 	float depth_stencil_max_depth_clip;
 
-	static pipeline_state_description get()
+	static graphic_pipeline_state_description get()
 	{
-		return pipeline_state_description(false, false, irr::video::E_POLYGON_MODE::EPM_FILL, irr::video::E_CULL_MODE::ECM_BACK, irr::video::E_FRONT_FACE::EFF_CW, false, 0.f, 0.f, 0.f, 1.f, false,
+		return graphic_pipeline_state_description(false, false, irr::video::E_POLYGON_MODE::EPM_FILL, irr::video::E_CULL_MODE::ECM_BACK, irr::video::E_FRONT_FACE::EFF_CW, false, 0.f, 0.f, 0.f, 1.f, false,
 			false, irr::video::E_SAMPLE_COUNT::ESC_1, 0.f, false, false, irr::video::E_PRIMITIVE_TYPE::EPT_TRIANGLES, false, true, true, irr::video::E_COMPARE_FUNCTION::ECF_LESS, false, false,
 			irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_COMPARE_FUNCTION::ECF_NEVER,
 			irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_STENCIL_OP::ESO_KEEP, irr::video::E_COMPARE_FUNCTION::ECF_NEVER,
 			0.f, 1.f);
 	}
 
-	pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare) const
+	graphic_pipeline_state_description set_depth_compare_function(irr::video::E_COMPARE_FUNCTION depth_compare) const
 	{
-		return pipeline_state_description(rasterization_depth_clamp_enable,
+		return graphic_pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
 			rasterization_polygon_mode,
 			rasterization_cull_mode,
@@ -288,9 +299,9 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	pipeline_state_description set_depth_write(bool depthwrite) const
+	graphic_pipeline_state_description set_depth_write(bool depthwrite) const
 	{
-		return pipeline_state_description(rasterization_depth_clamp_enable,
+		return graphic_pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
 			rasterization_polygon_mode,
 			rasterization_cull_mode,
@@ -325,9 +336,9 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	pipeline_state_description set_depth_test(bool depth_test) const
+	graphic_pipeline_state_description set_depth_test(bool depth_test) const
 	{
-		return pipeline_state_description(rasterization_depth_clamp_enable,
+		return graphic_pipeline_state_description(rasterization_depth_clamp_enable,
 			rasterization_discard_enable,
 			rasterization_polygon_mode,
 			rasterization_cull_mode,
@@ -362,31 +373,31 @@ struct pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	pipeline_state_description set_vertex_shader(const std::string& path)
+	graphic_pipeline_state_description set_vertex_shader(const std::string& path)
 	{
 		vertex_path = path;
 		return *this;
 	}
 
-	pipeline_state_description set_fragment_shader(const std::string& path)
+	graphic_pipeline_state_description set_fragment_shader(const std::string& path)
 	{
 		fragment_path = path;
 		return *this;
 	}
 
-	pipeline_state_description set_vertex_attributes(const gsl::span<pipeline_vertex_attributes> &attributes_)
+	graphic_pipeline_state_description set_vertex_attributes(const gsl::span<pipeline_vertex_attributes> &attributes_)
 	{
 		attributes = std::vector<pipeline_vertex_attributes>(attributes_.begin(), attributes_.end());
 		return *this;
 	}
 
-	pipeline_state_description()
+	graphic_pipeline_state_description()
 	{
 
 	}
 
 private:
-	pipeline_state_description(
+	graphic_pipeline_state_description(
 		bool depth_clamp_enable,
 		bool rasterizer_discard_enable,
 		irr::video::E_POLYGON_MODE polygon_mode,
@@ -523,6 +534,7 @@ struct command_list_t {
 	virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
 	virtual void copy_buffer(buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size) = 0;
 
+	virtual void begin_renderpass() = 0;
 	virtual void next_subpass() = 0;
 	virtual void end_renderpass() = 0;
 
@@ -567,8 +579,9 @@ struct device_t {
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
-	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const pipeline_state_description&) = 0;
-	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const pipeline_state_description&) = 0;
+	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description&) = 0;
+	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&) = 0;
+	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
 };
 
 clear_value_structure_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);

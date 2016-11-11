@@ -10,7 +10,7 @@
 
 pipeline_state_t get_skinned_object_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
-	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
+	constexpr graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get();
 #ifdef D3D12
 	pipeline_state_t result;
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -108,7 +108,7 @@ pipeline_state_t get_skinned_object_pipeline_state(device_t* dev, pipeline_layou
 
 pipeline_state_t get_sunlight_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
-	constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
+	constexpr graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get();
 #ifdef D3D12
 	pipeline_state_t result;
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -179,7 +179,7 @@ pipeline_state_t get_sunlight_pipeline_state(device_t* dev, pipeline_layout_t la
 
 pipeline_state_t get_ibl_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
-	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
+	constexpr graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
 		.set_depth_write(false)
 		.set_depth_test(false);
 #ifdef D3D12
@@ -259,7 +259,7 @@ pipeline_state_t get_ibl_pipeline_state(device_t* dev, pipeline_layout_t layout,
 
 pipeline_state_t get_skybox_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
 {
-	constexpr pipeline_state_description pso_desc = pipeline_state_description::get()
+	constexpr graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
 		.set_depth_write(false)
 		.set_depth_compare_function(irr::video::E_COMPARE_FUNCTION::ECF_LEQUAL);
 #ifdef D3D12
