@@ -10,7 +10,6 @@
 
 std::unique_ptr<pipeline_state_t> get_skinned_object_pipeline_state(device_t& dev, pipeline_layout_t& layout, render_pass_t& rp)
 {
-	graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get();
 #ifdef D3D12
 	pipeline_state_t result;
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -54,9 +53,20 @@ std::unique_ptr<pipeline_state_t> get_skinned_object_pipeline_state(device_t& de
 	psodesc.NodeMask = 1;
 	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
-#else
+#endif
 
-	const std::vector<VkPipelineColorBlendAttachmentState> pipeline_attachments
+	graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
+		.set_vertex_shader("skinnedobject")
+		.set_fragment_shader("object_gbuffer")
+		.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
+			pipeline_vertex_attributes{ 0, irr::video::ECF_R32G32B32F, 0, sizeof(aiVector3D), 0 },
+			pipeline_vertex_attributes{ 1, irr::video::ECF_R32G32B32F, 1, sizeof(aiVector3D), 0 },
+			pipeline_vertex_attributes{ 2, irr::video::ECF_R32G32F, 2, sizeof(aiVector3D), 0 }
+		});
+
+	return dev.create_graphic_pso(pso_desc);
+
+/*	const std::vector<VkPipelineColorBlendAttachmentState> pipeline_attachments
 	{
 		VkPipelineColorBlendAttachmentState{false, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_COMPONENT_SWIZZLE_R | VK_COMPONENT_SWIZZLE_G | VK_COMPONENT_SWIZZLE_B| VK_COMPONENT_SWIZZLE_A },
 		VkPipelineColorBlendAttachmentState{false, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_COMPONENT_SWIZZLE_R | VK_COMPONENT_SWIZZLE_G | VK_COMPONENT_SWIZZLE_B | VK_COMPONENT_SWIZZLE_A },
@@ -64,51 +74,13 @@ std::unique_ptr<pipeline_state_t> get_skinned_object_pipeline_state(device_t& de
 	};
 	VkPipelineColorBlendStateCreateInfo blend{
 		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, false, VK_LOGIC_OP_NO_OP, 3, pipeline_attachments.data()
-	};
-
-	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
-	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-	viewport_info.viewportCount = 1;
-	viewport_info.scissorCount = 1;
-	std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
-
-
-	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\vert.spv");
-	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\frag.spv");
-
-	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
-	};
-
-	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
-	const std::vector<VkVertexInputBindingDescription> vertex_buffers{
-		{ 0, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX },
-		{ 1, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX },
-		{ 2, static_cast<uint32_t>(sizeof(aiVector3D)), VK_VERTEX_INPUT_RATE_VERTEX }
-	};
-	vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
-	vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
-
-	const std::vector<VkVertexInputAttributeDescription> attribute{
-		{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },
-		{ 1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0 },
-		{ 2, 2, VK_FORMAT_R32G32_SFLOAT, 0 },
-	};
-	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
-	vertex_input.pVertexAttributeDescriptions = attribute.data();
-
-	return std::make_unique<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
-
-#endif
+	};*/
 }
 
 
 std::unique_ptr<pipeline_state_t> get_sunlight_pipeline_state(device_t& dev, pipeline_layout_t& layout, render_pass_t& rp)
 {
-	graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get();
+
 #ifdef D3D12
 	pipeline_state_t result;
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -138,50 +110,19 @@ std::unique_ptr<pipeline_state_t> get_sunlight_pipeline_state(device_t& dev, pip
 	psodesc.NodeMask = 1;
 	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
-#else
-	const blend_state blend = blend_state::get();
-
-	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
-	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-	viewport_info.viewportCount = 1;
-	viewport_info.scissorCount = 1;
-	std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
-
-
-	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\sunlight_vert.spv");
-	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\sunlight_frag.spv");
-
-	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
-	};
-
-	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
-	const std::vector<VkVertexInputBindingDescription> vertex_buffers{
-		{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
-	};
-	vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
-	vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
-
-	const std::vector<VkVertexInputAttributeDescription> attribute{
-		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
-		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float) },
-	};
-	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
-	vertex_input.pVertexAttributeDescriptions = attribute.data();
-
-	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp->object, 1, VkPipeline(VK_NULL_HANDLE), 0);
-
 #endif
+	graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
+		.set_vertex_shader("sunlight_vert")
+		.set_fragment_shader("sunlight_frag")
+		.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
+			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
+			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
+		});
+	return dev.create_graphic_pso(pso_desc);
 }
 
 std::unique_ptr<pipeline_state_t> get_ibl_pipeline_state(device_t& dev, pipeline_layout_t& layout, render_pass_t& rp)
 {
-	graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
-		.set_depth_write(false)
-		.set_depth_test(false);
 #ifdef D3D12
 	pipeline_state_t result;
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -218,43 +159,21 @@ std::unique_ptr<pipeline_state_t> get_ibl_pipeline_state(device_t& dev, pipeline
 	psodesc.NodeMask = 1;
 	CHECK_HRESULT(dev->object->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 	return result;
-#else
-	VkPipelineColorBlendAttachmentState blend_attachment_state{ true, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE , VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, -1 };
-	VkPipelineColorBlendStateCreateInfo blend_state{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, false, VK_LOGIC_OP_NO_OP, 1, &blend_attachment_state };
-
-	VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
-	VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-	viewport_info.viewportCount = 1;
-	viewport_info.scissorCount = 1;
-	std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
-
-
-	vulkan_wrapper::shader_module module_vert(dev->object, "..\\..\\..\\sunlight_vert.spv");
-	vulkan_wrapper::shader_module module_frag(dev->object, "..\\..\\..\\ibl_frag.spv");
-
-	const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
-	};
-
-	VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
-	const std::vector<VkVertexInputBindingDescription> vertex_buffers{
-		{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
-	};
-	vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
-	vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
-
-	const std::vector<VkVertexInputAttributeDescription> attribute{
-		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
-		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float) },
-	};
-	vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
-	vertex_input.pVertexAttributeDescriptions = attribute.data();
-
-	return std::make_shared<vulkan_wrapper::pipeline>(dev->object, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend_state, dynamic_state_info, layout->object, rp->object, 0, VkPipeline(VK_NULL_HANDLE), 0);
 #endif
+	graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
+		.set_depth_write(false)
+		.set_depth_test(false)
+		.set_vertex_shader("sunlight_vert")
+		.set_fragment_shader("ibl_frag")
+		.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
+			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
+			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
+		});
+
+	return dev.create_graphic_pso(pso_desc);
+
+/*	VkPipelineColorBlendAttachmentState blend_attachment_state{ true, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE , VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, -1 };
+	VkPipelineColorBlendStateCreateInfo blend_state{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, false, VK_LOGIC_OP_NO_OP, 1, &blend_attachment_state };*/
 }
 
 std::unique_ptr<pipeline_state_t> get_skybox_pipeline_state(device_t* dev, pipeline_layout_t layout, render_pass_t* rp)
