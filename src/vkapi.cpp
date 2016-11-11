@@ -251,10 +251,6 @@ std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_
 	return result;
 }
 
-void vk_swap_chain_t::present(command_queue_t & cmdqueue, uint32_t backbuffer_index)
-{
-}
-
 std::unique_ptr<command_list_t> vk_command_list_storage_t::create_command_list()
 {
 	const auto& buffers = dev.allocateCommandBuffers(
@@ -871,7 +867,7 @@ void vk_command_list_t::end_renderpass()
 	object.endRenderPass();
 }
 
-std::unique_ptr<pipeline_descriptor_set_t> vk_device_t::get_object_descriptor_set(const descriptor_set_ &ds)
+std::unique_ptr<descriptor_set_layout> vk_device_t::get_object_descriptor_set(const descriptor_set_ &ds)
 {
 	std::vector<VkDescriptorSetLayoutBinding> descriptor_range_storage;
 	descriptor_range_storage.reserve(ds.count);
@@ -885,6 +881,6 @@ std::unique_ptr<pipeline_descriptor_set_t> vk_device_t::get_object_descriptor_se
 		range.stageFlags = get_shader_stage(ds.stage);
 		descriptor_range_storage.emplace_back(range);
 	}
-	return std::unique_ptr<pipeline_descriptor_set_t>(object, descriptor_range_storage);
+	return std::unique_ptr<descriptor_set_layout>(object, descriptor_range_storage);
 }
 

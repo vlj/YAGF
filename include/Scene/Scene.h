@@ -21,7 +21,7 @@ namespace irr
 			~Scene();
 
 			void update(device_t &dev);
-			void fill_gbuffer_filling_command(command_list_t& cmd_list, pipeline_layout_t object_sig);
+			void fill_gbuffer_filling_command(command_list_t& cmd_list, pipeline_layout_t& object_sig);
 
 			irr::scene::IMeshSceneNode *addMeshSceneNode(
 				std::unique_ptr<irr::scene::IMeshSceneNode> &&mesh,
