@@ -304,26 +304,10 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
-		current_cmd_list->begin_renderpass(*object_sunlight_pass, *fbo_pass1[i], width, height);
-#ifndef D3D12
-		{
-			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			info.renderPass = object_sunlight_pass->object;
-			info.framebuffer = fbo_pass1[i]->fbo.object;
-			info.clearValueCount = 5;
-			VkClearValue clear_values[5] = {
-				structures::clear_value(clearColor),
-				structures::clear_value(clearColor),
-				structures::clear_value(clearColor),
-				structures::clear_value(clearColor),
-				structures::clear_value(1.f, 0)
-			};
-			info.pClearValues = clear_values;
-			info.renderArea.extent.width = width;
-			info.renderArea.extent.height = height;
-			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
-		}
-#else // !D3D12
+		current_cmd_list->begin_renderpass(*object_sunlight_pass, *fbo_pass1[i],
+			std::vector<clear_value_t>{ std::array<float, 4>{}, std::array<float, 4>{}, std::array<float, 4>{}, std::array<float, 4>{}, std::make_tuple(1.f, 0)},
+			width, height);
+#ifdef D3D12
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtt_to_use = {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(fbo_pass1[i]->rtt_heap->GetCPUDescriptorHandleForHeapStart())
 				.Offset(0, dev->object->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)),
@@ -370,16 +354,8 @@ void MeshSample::fill_draw_commands()
 		ssao_util->fill_command_list(*dev, *current_cmd_list, *depth_buffer, 1.f, 100.f, big_triangle_info);
 #ifdef D3D12
 		current_cmd_list->object->OMSetRenderTargets(present_rtt.size(), present_rtt.data(), false, nullptr);
-#else
-		{
-			VkRenderPassBeginInfo info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			info.renderPass = ibl_skyboss_pass->object;
-			info.framebuffer = fbo_pass2[i]->fbo.object;
-			info.renderArea.extent.width = width;
-			info.renderArea.extent.height = height;
-			vkCmdBeginRenderPass(current_cmd_list->object, &info, VK_SUBPASS_CONTENTS_INLINE);
-		}
 #endif // !D3D12
+		current_cmd_list->begin_renderpass(*ibl_skyboss_pass, *fbo_pass2[i], std::vector<clear_value_t>{}, width, height);
 		current_cmd_list->set_graphic_pipeline_layout(*ibl_sig);
 		current_cmd_list->set_descriptor_storage_referenced(*cbv_srv_descriptors_heap, sampler_heap.get());
 		current_cmd_list->bind_graphic_descriptor(0, *rtt_descriptors, *ibl_sig);
