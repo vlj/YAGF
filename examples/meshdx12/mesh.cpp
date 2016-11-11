@@ -166,11 +166,19 @@ void MeshSample::Init()
 	command_list->set_pipeline_barrier(*normal, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->set_pipeline_barrier(*roughness_metalness, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	fbo_pass1[0] = dev->create_frame_buffer({ { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
-	fbo_pass1[1] = dev->create_frame_buffer({ { *diffuse_color, irr::video::ECF_R8G8B8A8_UNORM }, { *normal, irr::video::ECF_R16G16F },{ *roughness_metalness, irr::video::ECF_R8G8B8A8_UNORM }, { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, object_sunlight_pass.get());
+	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
+		[&](auto&& img) { return dev->create_image_view(*img, swap_chain_format, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
 
-	fbo_pass2[0] = dev->create_frame_buffer({ { *back_buffer[0], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, ibl_skyboss_pass.get());
-	fbo_pass2[1] = dev->create_frame_buffer({ { *back_buffer[1], swap_chain_format } }, { *depth_buffer, irr::video::ECOLOR_FORMAT::D24U8 }, width, height, ibl_skyboss_pass.get());
+
+	fbo_pass1[0] = dev->create_frame_buffer(
+		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get, back_buffer_view[0].get() },
+		*depth_view, width, height, object_sunlight_pass.get());
+	fbo_pass1[1] = dev->create_frame_buffer(
+		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get, back_buffer_view[1].get() },
+		*depth_view, width, height, object_sunlight_pass.get());
+
+	fbo_pass2[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, *depth_view, width, height, ibl_skyboss_pass.get());
+	fbo_pass2[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, *depth_view, width, height, ibl_skyboss_pass.get());
 
 	ibl_descriptor = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(10, { ibl_set.get() }, 3);
 	scene_descriptor = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { scene_set.get() }, 3);
@@ -214,13 +222,13 @@ void MeshSample::Init()
 
 	specular_cube_view = dev->create_image_view(*specular_cube, irr::video::ECF_R16G16B16A16F, 0, 8, 0, 6, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
 
-	dev->set_image_view(ibl_descriptor, 1, 11, *specular_cube_view);
-	dev->set_image_view(ibl_descriptor, 2, 12, *dfg_lut_view);
-	dev->set_constant_buffer_view(ibl_descriptor, 0, 10, *sh_coefficients, 27 * sizeof(float));
+	dev->set_image_view(*ibl_descriptor, 1, 11, *specular_cube_view);
+	dev->set_image_view(*ibl_descriptor, 2, 12, *dfg_lut_view);
+	dev->set_constant_buffer_view(*ibl_descriptor, 0, 10, *sh_coefficients, 27 * sizeof(float));
 	ssao_util = std::make_unique<ssao_utility>(*dev, depth_buffer.get(), width, height);
 
 	ssao_view = dev->create_image_view(*ssao_util->ssao_bilinear_result, irr::video::ECOLOR_FORMAT::ECF_R16F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
-	dev->set_image_view(rtt_descriptors, 4, 15, *ssao_view);
+	dev->set_image_view(*rtt_descriptors, 4, 15, *ssao_view);
 
 	command_list->set_pipeline_barrier(*ssao_util->linear_depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->set_pipeline_barrier(*ssao_util->ssao_result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -242,26 +250,26 @@ void MeshSample::fill_descriptor_set()
 	depth_view = dev->create_image_view(*depth_buffer, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 
 	// scene
-	dev->set_image_view(scene_descriptor, 2, 9, *skybox_view);
-	dev->set_constant_buffer_view(scene_descriptor, 0, 7, *scene_matrix, sizeof(SceneData));
-	dev->set_constant_buffer_view(scene_descriptor, 1, 8, *sun_data, sizeof(7 * sizeof(float)));
+	dev->set_image_view(*scene_descriptor, 2, 9, *skybox_view);
+	dev->set_constant_buffer_view(*scene_descriptor, 0, 7, *scene_matrix, sizeof(SceneData));
+	dev->set_constant_buffer_view(*scene_descriptor, 1, 8, *sun_data, sizeof(7 * sizeof(float)));
 
 	// rtt
-	dev->set_input_attachment(input_attachments_descriptors, 0, 4, *diffuse_color_view);
-	dev->set_input_attachment(input_attachments_descriptors, 1, 5, *normal_view);
-	dev->set_input_attachment(input_attachments_descriptors, 2, 14, *roughness_metalness_view);
-	dev->set_input_attachment(input_attachments_descriptors, 3, 6, *depth_view);
+	dev->set_input_attachment(*input_attachments_descriptors, 0, 4, *diffuse_color_view);
+	dev->set_input_attachment(*input_attachments_descriptors, 1, 5, *normal_view);
+	dev->set_input_attachment(*input_attachments_descriptors, 2, 14, *roughness_metalness_view);
+	dev->set_input_attachment(*input_attachments_descriptors, 3, 6, *depth_view);
 
-	dev->set_image_view(rtt_descriptors, 0, 4, *diffuse_color_view);
-	dev->set_image_view(rtt_descriptors, 1, 5, *normal_view);
-	dev->set_image_view(rtt_descriptors, 2, 14, *roughness_metalness_view);
-	dev->set_image_view(rtt_descriptors, 3, 6, *depth_view);
+	dev->set_image_view(*rtt_descriptors, 0, 4, *diffuse_color_view);
+	dev->set_image_view(*rtt_descriptors, 1, 5, *normal_view);
+	dev->set_image_view(*rtt_descriptors, 2, 14, *roughness_metalness_view);
+	dev->set_image_view(*rtt_descriptors, 3, 6, *depth_view);
 
 	bilinear_clamped_sampler = dev->create_sampler(SAMPLER_TYPE::BILINEAR_CLAMPED);
 	anisotropic_sampler = dev->create_sampler(SAMPLER_TYPE::ANISOTROPIC);
 
-	dev->set_sampler(sampler_descriptors, 0, 3, *anisotropic_sampler);
-	dev->set_sampler(sampler_descriptors, 1, 13, *bilinear_clamped_sampler);
+	dev->set_sampler(*sampler_descriptors, 0, 3, *anisotropic_sampler);
+	dev->set_sampler(*sampler_descriptors, 1, 13, *bilinear_clamped_sampler);
 }
 
 void MeshSample::load_program_and_pipeline_layout()
@@ -331,8 +339,8 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->set_graphic_pipeline_layout(*object_sig);
 		current_cmd_list->set_descriptor_storage_referenced(*cbv_srv_descriptors_heap, sampler_heap.get());
 		current_cmd_list->set_graphic_pipeline(*objectpso);
-		current_cmd_list->bind_graphic_descriptor(2, scene_descriptor, *object_sig);
-		current_cmd_list->bind_graphic_descriptor(3, sampler_descriptors, *object_sig);
+		current_cmd_list->bind_graphic_descriptor(2, *scene_descriptor, *object_sig);
+		current_cmd_list->bind_graphic_descriptor(3, *sampler_descriptors, *object_sig);
 		current_cmd_list->set_viewport(0., width, 0., height, 0., 1.);
 		current_cmd_list->set_scissor(0, width, 0, height);
 
@@ -351,8 +359,8 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->next_subpass();
 		current_cmd_list->set_graphic_pipeline_layout(*sunlight_sig);
 		current_cmd_list->set_descriptor_storage_referenced(*cbv_srv_descriptors_heap, sampler_heap.get());
-		current_cmd_list->bind_graphic_descriptor(0, input_attachments_descriptors, *sunlight_sig);
-		current_cmd_list->bind_graphic_descriptor(1, scene_descriptor, *sunlight_sig);
+		current_cmd_list->bind_graphic_descriptor(0, *input_attachments_descriptors, *sunlight_sig);
+		current_cmd_list->bind_graphic_descriptor(1, *scene_descriptor, *sunlight_sig);
 		current_cmd_list->set_graphic_pipeline(*sunlightpso);
 		current_cmd_list->bind_vertex_buffers(0, big_triangle_info);
 		current_cmd_list->draw_non_indexed(3, 1, 0, 0);
@@ -372,10 +380,10 @@ void MeshSample::fill_draw_commands()
 #endif // !D3D12
 		current_cmd_list->set_graphic_pipeline_layout(*ibl_sig);
 		current_cmd_list->set_descriptor_storage_referenced(*cbv_srv_descriptors_heap, sampler_heap.get());
-		current_cmd_list->bind_graphic_descriptor(0, rtt_descriptors, *ibl_sig);
-		current_cmd_list->bind_graphic_descriptor(1, scene_descriptor, *ibl_sig);
-		current_cmd_list->bind_graphic_descriptor(2, ibl_descriptor, *ibl_sig);
-		current_cmd_list->bind_graphic_descriptor(3, sampler_descriptors, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(0, *rtt_descriptors, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(1, *scene_descriptor, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(2, *ibl_descriptor, *ibl_sig);
+		current_cmd_list->bind_graphic_descriptor(3, *sampler_descriptors, *ibl_sig);
 		current_cmd_list->set_graphic_pipeline(*ibl_pso);
 		current_cmd_list->bind_vertex_buffers(0, big_triangle_info);
 		current_cmd_list->draw_non_indexed(3, 1, 0, 0);
@@ -385,8 +393,8 @@ void MeshSample::fill_draw_commands()
 #endif
 		current_cmd_list->next_subpass();
 		current_cmd_list->set_graphic_pipeline_layout(*skybox_sig);
-		current_cmd_list->bind_graphic_descriptor(0, scene_descriptor, *skybox_sig);
-		current_cmd_list->bind_graphic_descriptor(1, sampler_descriptors, *skybox_sig);
+		current_cmd_list->bind_graphic_descriptor(0, *scene_descriptor, *skybox_sig);
+		current_cmd_list->bind_graphic_descriptor(1, *sampler_descriptors, *skybox_sig);
 		current_cmd_list->set_graphic_pipeline(*skybox_pso);
 		current_cmd_list->bind_vertex_buffers(0, big_triangle_info);
 		current_cmd_list->draw_non_indexed(3, 1, 0, 0);
@@ -396,8 +404,8 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(*current_cmd_list, *normal, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *roughness_metalness, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 #endif // !D3D12
-		set_pipeline_barrier(*current_cmd_list, *back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-		make_command_list_executable(*current_cmd_list);
+		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+		current_cmd_list->make_command_list_executable();
 	}
 }
 
@@ -405,7 +413,7 @@ void MeshSample::Draw()
 {
 	scene->update(*dev);
 
-	SceneData * tmp = static_cast<SceneData*>(map_buffer(*dev, *scene_matrix));
+	SceneData * tmp = static_cast<SceneData*>(scene_matrix->map_buffer());
 	irr::core::matrix4 Perspective;
 	irr::core::matrix4 InvPerspective;
 	irr::core::matrix4 View;
@@ -419,9 +427,9 @@ void MeshSample::Draw()
 	memcpy(tmp->InverseProjectionMatrix, InvPerspective.pointer(), 16 * sizeof(float));
 	memcpy(tmp->ViewMatrix, View.pointer(), 16 * sizeof(float));
 	memcpy(tmp->InverseViewMatrix, InvView.pointer(), 16 * sizeof(float));
-	unmap_buffer(*dev, *scene_matrix);
+	scene_matrix->unmap_buffer();
 
-	float * sun_tmp = (float*)map_buffer(*dev, *sun_data);
+	float * sun_tmp = (float*)sun_data->map_buffer();
 	sun_tmp[0] = 0.;
 	sun_tmp[1] = 1.;
 	sun_tmp[2] = 0.;
@@ -429,7 +437,7 @@ void MeshSample::Draw()
 	sun_tmp[4] = 10.;
 	sun_tmp[5] = 10.;
 	sun_tmp[6] = 10.;
-	unmap_buffer(*dev, *sun_data);
+	sun_data->unmap_buffer();
 
 //	double intpart;
 //	float frame = (float)modf(timer / 10000., &intpart);
@@ -440,8 +448,8 @@ void MeshSample::Draw()
 			memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
 			//unmap_buffer(dev, jointbuffer);
 
-	uint32_t current_backbuffer = get_next_backbuffer_id(*dev, *chain);
-	submit_executable_command_list(*cmdqueue, *command_list_for_back_buffer[current_backbuffer]);
-	wait_for_command_queue_idle(*dev, *cmdqueue);
-	present(*dev, *cmdqueue, *chain, current_backbuffer);
+	uint32_t current_backbuffer = chain->get_next_backbuffer_id();
+	cmdqueue->submit_executable_command_list(*command_list_for_back_buffer[current_backbuffer]);
+	cmdqueue->wait_for_command_queue_idle();
+	chain->present(*cmdqueue, current_backbuffer);
 }

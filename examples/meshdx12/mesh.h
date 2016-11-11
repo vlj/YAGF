@@ -40,6 +40,7 @@ private:
 	irr::video::ECOLOR_FORMAT swap_chain_format;
 	std::unique_ptr<swap_chain_t> chain;
 	std::vector<std::unique_ptr<image_t>> back_buffer;
+	std::vector<std::unique_ptr<image_view_t>> back_buffer_view;
 
 
 	std::unique_ptr<command_list_storage_t> command_allocator;
@@ -68,22 +69,22 @@ private:
 	std::unique_ptr<sampler_t> anisotropic_sampler;
 	std::unique_ptr<sampler_t> bilinear_clamped_sampler;
 
-	std::shared_ptr<image_view_t> skybox_view;
-	std::shared_ptr<image_view_t> diffuse_color_view;
-	std::shared_ptr<image_view_t> normal_view;
-	std::shared_ptr<image_view_t> roughness_metalness_view;
-	std::shared_ptr<image_view_t> depth_view;
-	std::shared_ptr<image_view_t> specular_cube_view;
-	std::shared_ptr<image_view_t> dfg_lut_view;
-	std::shared_ptr<image_view_t> ssao_view;
+	std::unique_ptr<image_view_t> skybox_view;
+	std::unique_ptr<image_view_t> diffuse_color_view;
+	std::unique_ptr<image_view_t> normal_view;
+	std::unique_ptr<image_view_t> roughness_metalness_view;
+	std::unique_ptr<image_view_t> depth_view;
+	std::unique_ptr<image_view_t> specular_cube_view;
+	std::unique_ptr<image_view_t> dfg_lut_view;
+	std::unique_ptr<image_view_t> ssao_view;
 
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
-	allocated_descriptor_set ibl_descriptor;
-	allocated_descriptor_set sampler_descriptors;
-	allocated_descriptor_set input_attachments_descriptors;
-	allocated_descriptor_set rtt_descriptors;
-	allocated_descriptor_set scene_descriptor;
+	std::unique_ptr<allocated_descriptor_set> ibl_descriptor;
+	std::unique_ptr<allocated_descriptor_set> sampler_descriptors;
+	std::unique_ptr<allocated_descriptor_set> input_attachments_descriptors;
+	std::unique_ptr<allocated_descriptor_set> rtt_descriptors;
+	std::unique_ptr<allocated_descriptor_set> scene_descriptor;
 
 	std::unique_ptr<image_t> depth_buffer;
 	std::unique_ptr<image_t> diffuse_color;
@@ -97,8 +98,8 @@ private:
 
 	std::unique_ptr<render_pass_t> object_sunlight_pass;
 	std::unique_ptr<render_pass_t> ibl_skyboss_pass;
-	framebuffer_t fbo_pass1[2];
-	framebuffer_t fbo_pass2[2];
+	std::array<std::unique_ptr<framebuffer_t>, 2> fbo_pass1;
+	std::array<std::unique_ptr<framebuffer_t>, 2> fbo_pass2;
 	std::unique_ptr<pipeline_layout_t> object_sig;
 	std::unique_ptr<pipeline_state_t> objectpso;
 	std::unique_ptr<pipeline_layout_t> sunlight_sig;
