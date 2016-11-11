@@ -880,19 +880,22 @@ void vk_command_list_t::end_renderpass()
 
 std::unique_ptr<descriptor_set_layout> vk_device_t::get_object_descriptor_set(const descriptor_set_ &ds)
 {
-	std::vector<VkDescriptorSetLayoutBinding> descriptor_range_storage;
+	std::vector<vk::DescriptorSetLayoutBinding> descriptor_range_storage;
 	descriptor_range_storage.reserve(ds.count);
-	for (uint32_t i = 0; i < ds.count; i++)
-	{
-		const range_of_descriptors &rod = ds.descriptors_ranges[i];
-		VkDescriptorSetLayoutBinding range{};
-		range.binding = rod.bind_point;
-		range.descriptorCount = rod.count;
-//		range.descriptorType = get_descriptor_type(rod.range_type);
-		range.stageFlags = get_shader_stage(ds.stage);
-		descriptor_range_storage.emplace_back(range);
-	}
-//	return std::unique_ptr<descriptor_set_layout>(object, descriptor_range_storage);
+	std::transform(ds.descriptors_ranges, ds.descriptors_ranges + ds.count, std::back_inserter(descriptor_range_storage),
+		[&](auto&& rod) {
+		return vk::DescriptorSetLayoutBinding{}
+			.setBinding(rod.bind_point)
+			.setDescriptorCount(rod.count)
+			.setDescriptorType(get_descriptor_type(rod.range_type))
+			.setStageFlags(get_shader_stage(ds.stage));
+	});
+	return std::unique_ptr<descriptor_set_layout>(new vk_descriptor_set_layout(object,
+		object.createDescriptorSetLayout(
+			vk::DescriptorSetLayoutCreateInfo{}
+				.setBindingCount(descriptor_range_storage.size())
+				.setPBindings(descriptor_range_storage.data())
+	)));
 }
 
 namespace

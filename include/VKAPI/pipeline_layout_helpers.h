@@ -18,7 +18,7 @@ constexpr auto get_descriptor_type(const RESOURCE_VIEW type)
 
 constexpr auto get_shader_stage(const shader_stage stage)
 {
-	return (stage == shader_stage::vertex_shader) ? VK_SHADER_STAGE_VERTEX_BIT :
-		(stage == shader_stage::fragment_shader) ? VK_SHADER_STAGE_FRAGMENT_BIT :
-		(stage == shader_stage::all) ? VK_SHADER_STAGE_ALL : throw;
+	return (stage == shader_stage::vertex_shader) ? vk::ShaderStageFlagBits::eVertex :
+		(stage == shader_stage::fragment_shader) ? vk::ShaderStageFlagBits::eFragment :
+		(stage == shader_stage::all) ? vk::ShaderStageFlagBits::eAll : throw;
 }
