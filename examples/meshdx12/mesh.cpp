@@ -437,5 +437,8 @@ DEFINE_string(backend, "vulkan", "renderer to use (vulkan or dx12)");
 int main(int argc, char *argv[])
 {
 	gflags::ParseCommandLineFlags(&argc, &argv, true);
-	return 0;
+	if (FLAGS_backend == "vulkan")
+		return 0;
+	else if (FLAGS_backend == "dx12")
+		return 0;
 }
