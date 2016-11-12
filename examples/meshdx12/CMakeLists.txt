@@ -1,5 +1,8 @@
 project(mesh)
 
+find_package(gflags REQUIRED)
+include_directories(${gflags_INCLUDE_DIR})
+
 file(GLOB_RECURSE HEADERS "*.h")
 file(GLOB SOURCES
 	"interface.cpp"
@@ -7,4 +10,4 @@ file(GLOB SOURCES
 	"shaders.cpp"
 	"vulkan_interface.cpp")
 add_executable(mesh ${HEADERS} ${SOURCES})
-target_link_libraries(mesh YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY})
+target_link_libraries(mesh YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} gflags)
