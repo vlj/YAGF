@@ -430,3 +430,8 @@ void MeshSample::Draw()
 	cmdqueue->wait_for_command_queue_idle();
 	chain->present(*cmdqueue, current_backbuffer);
 }
+
+void main()
+{
+
+}
