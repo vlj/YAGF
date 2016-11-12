@@ -32,8 +32,8 @@ struct MeshSample
 	irr::scene::IMeshSceneNode* xue;
 
 private:
-	size_t width;
-	size_t height;
+	uint32_t width;
+	uint32_t height;
 
 	std::unique_ptr<device_t> dev;
 	std::unique_ptr<command_queue_t> cmdqueue;
