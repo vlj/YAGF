@@ -9,6 +9,7 @@
 #include "..\Core\SColor.h"
 #include <fstream>
 #include <API\GfxApi.h>
+#include <glfw/glfw3.h>
 
 
 #define CHECK_VKRESULT(cmd) { VkResult res = (cmd); if (res != VK_SUCCESS) throw; }
@@ -282,4 +283,4 @@ struct vk_framebuffer : framebuffer_t
 #include "../VKAPI/pipeline_layout_helpers.h"
 #include "../VKAPI/renderpass_helpers.h"
 
-std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window);
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window);

@@ -7,6 +7,8 @@
 #include <codecvt>
 #include <string>
 
+#include <GLFW\glfw3.h>
+
 
 namespace
 {
@@ -116,7 +118,7 @@ namespace
 	}
 }
 
-std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(HINSTANCE hinstance, HWND window)
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window)
 {
 	std::vector<const char*> layers = { 
 #ifndef NDEBUG
@@ -171,11 +173,9 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	const auto& devices = instance.enumeratePhysicalDevices();
 	const auto& queue_family_properties = devices[0].getQueueFamilyProperties();
 
-	auto surface = instance.createWin32SurfaceKHR(
-		vk::Win32SurfaceCreateInfoKHR{}
-			.setHinstance(hinstance)
-			.setHwnd(window)
-	);
+	VkSurfaceKHR _surface;
+	glfwCreateWindowSurface(instance, window, nullptr, &_surface);
+	vk::SurfaceKHR surface(_surface);
 
 	const auto find_graphic_queue_family = [&]()
 	{

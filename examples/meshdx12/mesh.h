@@ -19,12 +19,6 @@ struct MeshSample
 {
 	MeshSample();
 
-	MeshSample(std::unique_ptr<device_t> &&_dev, std::unique_ptr<swap_chain_t> &&_chain, std::unique_ptr<command_queue_t> &&_cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)
-		: dev(std::move(_dev)), chain(std::move(_chain)), cmdqueue(std::move(_cmdqueue)), width(_w), height(_h), swap_chain_format(format)
-	{
-		Init();
-	}
-
 	~MeshSample()
 	{
 		cmdqueue->wait_for_command_queue_idle();
