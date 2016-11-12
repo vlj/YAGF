@@ -138,9 +138,9 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 
 	auto instance = vk::createInstance(
 		vk::InstanceCreateInfo{}
-			.setEnabledExtensionCount(layers.size())
+			.setEnabledExtensionCount(static_cast<uint32_t>(layers.size()))
 			.setPpEnabledLayerNames(layers.data())
-			.setEnabledExtensionCount(instance_extension.size())
+			.setEnabledExtensionCount(static_cast<uint32_t>(instance_extension.size()))
 			.setPpEnabledExtensionNames(instance_extension.data())
 			.setPApplicationInfo(&app_info)
 	);
@@ -198,12 +198,12 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	auto dev = devices[0].createDevice(
 		vk::DeviceCreateInfo{}
-			.setEnabledExtensionCount(device_extension.size())
+			.setEnabledExtensionCount(static_cast<uint32_t>(device_extension.size()))
 			.setPpEnabledExtensionNames(device_extension.data())
-			.setEnabledLayerCount(layers.size())
+			.setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
 			.setPpEnabledLayerNames(layers.data())
 			.setPQueueCreateInfos(queue_infos.data())
-			.setQueueCreateInfoCount(queue_infos.size())
+			.setQueueCreateInfoCount(static_cast<uint32_t>(queue_infos.size()))
 	);
 
 	auto mem_properties = devices[0].getMemoryProperties();
@@ -330,7 +330,7 @@ std::unique_ptr<descriptor_storage_t> vk_device_t::create_descriptor_storage(uin
 			object.createDescriptorPool(
 				vk::DescriptorPoolCreateInfo{}
 					.setMaxSets(num_sets)
-					.setPoolSizeCount(poolSizes.size())
+					.setPoolSizeCount(static_cast<uint32_t>(poolSizes.size()))
 					.setPPoolSizes(poolSizes.data())
 			)
 		)
@@ -622,7 +622,7 @@ void vk_command_list_t::begin_renderpass(render_pass_t& rp, framebuffer_t &fbo, 
 			.setRenderPass(dynamic_cast<vk_render_pass_t&>(rp).object)
 			.setRenderArea(vk::Rect2D(vk::Offset2D(), vk::Extent2D(width, height)))
 			.setPClearValues(clearValues.data())
-			.setClearValueCount(clearValues.size()),
+			.setClearValueCount(static_cast<uint32_t>(clearValues.size())),
 		vk::SubpassContents::eInline
 	);
 }
@@ -754,7 +754,7 @@ std::unique_ptr<allocated_descriptor_set> vk_descriptor_storage_t::allocate_desc
 			dev.allocateDescriptorSets(
 				vk::DescriptorSetAllocateInfo{}
 					.setDescriptorPool(object)
-					.setDescriptorSetCount(set_layouts.size())
+					.setDescriptorSetCount(static_cast<uint32_t>(set_layouts.size()))
 					.setPSetLayouts(set_layouts.data()))[0])
 		);
 }
@@ -816,7 +816,7 @@ void vk_command_queue_t::submit_executable_command_list(command_list_t& command_
 	std::array<vk::CommandBuffer, 1> command_buffers{ dynamic_cast<vk_command_list_t&>(command_list).object };
 	object.submit({
 		vk::SubmitInfo{}
-			.setCommandBufferCount(command_buffers.size())
+			.setCommandBufferCount(static_cast<uint32_t>(command_buffers.size()))
 			.setPCommandBuffers(command_buffers.data())
 	}, vk::Fence());
 }
@@ -867,7 +867,7 @@ vk_framebuffer::vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, gsl:
 {
 	object = dev.createFramebuffer(
 		vk::FramebufferCreateInfo{}
-			.setAttachmentCount(render_targets.size())
+			.setAttachmentCount(static_cast<uint32_t>(render_targets.size()))
 			.setPAttachments(render_targets.data())
 			.setLayers(layers)
 			.setWidth(width)
@@ -915,7 +915,7 @@ std::unique_ptr<descriptor_set_layout> vk_device_t::get_object_descriptor_set(co
 	return std::unique_ptr<descriptor_set_layout>(new vk_descriptor_set_layout(object,
 		object.createDescriptorSetLayout(
 			vk::DescriptorSetLayoutCreateInfo{}
-				.setBindingCount(descriptor_range_storage.size())
+				.setBindingCount(static_cast<uint32_t>(descriptor_range_storage.size()))
 				.setPBindings(descriptor_range_storage.data())
 	)));
 }
@@ -973,7 +973,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 		.setScissorCount(1);
 	auto dynamic_states = std::array<vk::DynamicState, 2>{ vk::DynamicState::eViewport, vk::DynamicState::eScissor };
 	auto dynamic_state_info = vk::PipelineDynamicStateCreateInfo{}
-		.setDynamicStateCount(dynamic_states.size())
+		.setDynamicStateCount(static_cast<uint32_t>(dynamic_states.size()))
 		.setPDynamicStates(dynamic_states.data());
 
 	shader_module module_vert(object, "..\\..\\..\\" + pso_desc.vertex_path + ".spv");
@@ -1012,7 +1012,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPTessellationState(&tesselation_info)
 			.setPDynamicState(&dynamic_state_info)
 			.setSubpass(0)
-			.setStageCount(shader_stages.size())
+			.setStageCount(static_cast<uint32_t>(shader_stages.size()))
 			.setPStages(shader_stages.data())
 			.setPVertexInputState(&vertex_input)
 			.setPViewportState(&viewport_info)
