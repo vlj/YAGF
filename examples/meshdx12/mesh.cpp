@@ -2,6 +2,9 @@
 #include <Scene\IBL.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <gflags/gflags.h>
+#define GLFW_INCLUDE_VULKAN
+#include <glfw/glfw3.h>
+
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
@@ -295,6 +298,13 @@ void MeshSample::load_program_and_pipeline_layout()
 	ibl_pso = get_ibl_pipeline_state(*dev, *ibl_sig, *ibl_skyboss_pass);
 }
 
+MeshSample::MeshSample()
+{
+	glfwInit();
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	window = glfwCreateWindow(640, 480, "Window Title", nullptr, nullptr);
+}
+
 void MeshSample::fill_draw_commands()
 {
 	for (unsigned i = 0; i < 2; i++)
@@ -436,9 +446,13 @@ DEFINE_string(backend, "vulkan", "renderer to use (vulkan or dx12)");
 
 int main(int argc, char *argv[])
 {
-	gflags::ParseCommandLineFlags(&argc, &argv, true);
-	if (FLAGS_backend == "vulkan")
+	gflags::ParseCommandLineFlags(&argc, &argv, false);
+
+/*	if (FLAGS_backend == "vulkan")
 		return 0;
 	else if (FLAGS_backend == "dx12")
-		return 0;
+		return 0;*/
+
+	MeshSample sample;
+	sample.Loop();
 }
