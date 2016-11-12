@@ -99,6 +99,12 @@ struct vk_device_t : device_t
 	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description &) override;
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description &) override;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout*>) override;
+
+	virtual ~vk_device_t()
+	{
+		object.destroy();
+		instance.destroy();
+	}
 };
 
 struct vk_command_queue_t : command_queue_t
@@ -147,6 +153,11 @@ struct vk_descriptor_storage_t : descriptor_storage_t {
 
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) override;
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) override;
+
+	virtual ~vk_descriptor_storage_t()
+	{
+		dev.destroyDescriptorPool(object);
+	}
 };
 
 struct vk_pipeline_state_t : pipeline_state_t {

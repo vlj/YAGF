@@ -470,44 +470,44 @@ private:
 };
 
 struct framebuffer_t {
-	virtual ~framebuffer_t() = 0;
+	virtual ~framebuffer_t() {}
 };
 
 struct pipeline_state_t {
-	virtual ~pipeline_state_t() = 0;
+	virtual ~pipeline_state_t() {}
 };
 
 struct compute_pipeline_state_t {
-	virtual ~compute_pipeline_state_t() = 0;
+	virtual ~compute_pipeline_state_t() {}
 };
 
 struct pipeline_layout_t {
-	virtual ~pipeline_layout_t() = 0;
+	virtual ~pipeline_layout_t() {}
 };
 
 struct render_pass_t {
-	virtual ~render_pass_t() = 0;
+	virtual ~render_pass_t() {}
 };
 
 using clear_value_t = std::variant<std::array<float, 4>, std::tuple<float, uint8_t> >;
 
 struct image_view_t {
-	virtual ~image_view_t() = 0;
+	virtual ~image_view_t() {}
 };
 
 struct sampler_t {
-	virtual ~sampler_t() = 0;
+	virtual ~sampler_t() {}
 };
 
 struct buffer_view_t {
-	virtual ~buffer_view_t() = 0;
+	virtual ~buffer_view_t() {}
 };
 
 struct allocated_descriptor_set {
 };
 
 struct descriptor_set_layout {
-	virtual ~descriptor_set_layout() = 0;
+	virtual ~descriptor_set_layout() {}
 };
 
 struct buffer_t {
@@ -516,7 +516,7 @@ struct buffer_t {
 };
 
 struct image_t {
-	virtual ~image_t() = 0;
+	virtual ~image_t() {}
 };
 
 struct descriptor_storage_t {
@@ -560,7 +560,7 @@ struct command_list_t {
 struct command_list_storage_t {
 	virtual std::unique_ptr<command_list_t> create_command_list() = 0;
 	virtual void reset_command_list_storage() = 0;
-	virtual ~command_list_storage_t() = 0;
+	virtual ~command_list_storage_t() {}
 };
 
 struct command_queue_t {
@@ -569,7 +569,7 @@ struct command_queue_t {
 };
 
 struct swap_chain_t {
-	virtual ~swap_chain_t() = 0;
+	virtual ~swap_chain_t() {}
 	virtual uint32_t get_next_backbuffer_id() = 0;
 	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() = 0;
 	virtual void present(command_queue_t& cmdqueue, uint32_t backbuffer_index) = 0;
@@ -596,6 +596,8 @@ struct device_t {
 	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description&) = 0;
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&) = 0;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
+
+	virtual ~device_t() {};
 };
 
 clear_value_t get_clear_value(irr::video::ECOLOR_FORMAT format, float depth, uint8_t stencil);
