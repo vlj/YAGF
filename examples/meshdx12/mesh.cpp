@@ -1,6 +1,7 @@
 #include "mesh.h"
 #include <Scene\IBL.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <gflags/gflags.h>
 
 #define CHECK_HRESULT(cmd) {HRESULT hr = cmd; if (hr != 0) throw;}
 
@@ -431,7 +432,10 @@ void MeshSample::Draw()
 	chain->present(*cmdqueue, current_backbuffer);
 }
 
-void main()
-{
+DEFINE_string(backend, "vulkan", "renderer to use (vulkan or dx12)");
 
+int main(int argc, char *argv[])
+{
+	gflags::ParseCommandLineFlags(&argc, &argv, true);
+	return 0;
 }
