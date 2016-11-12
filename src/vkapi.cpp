@@ -47,17 +47,17 @@ namespace
 		return false;
 	}
 
-	bool is_device_local_memory(uint32_t properties)
+	constexpr auto is_device_local_memory(uint32_t properties)
 	{
 		return !!(properties & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	}
 
-	bool is_host_visible(uint32_t properties)
+	constexpr auto is_host_visible(uint32_t properties)
 	{
 		return !!(properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 	}
 
-	bool is_host_coherent(uint32_t properties)
+	constexpr auto is_host_coherent(uint32_t properties)
 	{
 		return !!(properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
@@ -129,14 +129,14 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 #endif
 		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
-	auto app_info = vk::ApplicationInfo{}
+	const auto app_info = vk::ApplicationInfo{}
 		.setApiVersion(VK_MAKE_VERSION(1, 0, 0))
 		.setPApplicationName("Nameless app")
 		.setPEngineName("Nameless engine")
 		.setApplicationVersion(1)
 		.setEngineVersion(1);
 
-	auto instance = vk::createInstance(
+	const auto instance = vk::createInstance(
 		vk::InstanceCreateInfo{}
 			.setEnabledExtensionCount(static_cast<uint32_t>(layers.size()))
 			.setPpEnabledLayerNames(layers.data())
@@ -177,7 +177,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 			.setHwnd(window)
 	);
 
-	auto&& find_graphic_queue_family = [&]()
+	const auto find_graphic_queue_family = [&]()
 	{
 		for (unsigned int i = 0; i < queue_family_properties.size(); i++) {
 			if (queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
@@ -188,14 +188,14 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	};
 
 	float queue_priorities = 0.f;
-	std::array<vk::DeviceQueueCreateInfo, 1> queue_infos{
+	const auto queue_infos = std::array<vk::DeviceQueueCreateInfo, 1> {
 		vk::DeviceQueueCreateInfo{}
 			.setQueueFamilyIndex(find_graphic_queue_family())
 			.setQueueCount(1)
 			.setPQueuePriorities(&queue_priorities)
 	};
 
-	std::vector<const char*> device_extension = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const auto device_extension = std::vector<const char*>{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	auto dev = devices[0].createDevice(
 		vk::DeviceCreateInfo{}
 			.setEnabledExtensionCount(static_cast<uint32_t>(device_extension.size()))
@@ -275,7 +275,7 @@ std::unique_ptr<command_list_storage_t> vk_device_t::create_command_storage()
 
 namespace
 {
-	uint32_t get_memory_index(irr::video::E_MEMORY_POOL memory_pool, device_t *dev)
+	uint32_t get_memory_index(irr::video::E_MEMORY_POOL memory_pool, const device_t *dev)
 	{
 		switch (memory_pool)
 		{
@@ -410,7 +410,7 @@ clear_value_t get_clear_value(irr::video::ECOLOR_FORMAT format, const std::array
 
 std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT format, uint32_t width, uint32_t height, uint16_t mipmap, uint32_t layers, uint32_t flags, clear_value_t*)
 {
-	auto&& get_image_create_flag = [](auto flags)
+	const auto& get_image_create_flag = [](auto flags)
 	{
 		auto result = vk::ImageCreateFlags();
 		if (flags & usage_cube)
@@ -518,7 +518,7 @@ void vk_device_t::set_uav_image_view(const allocated_descriptor_set& descriptor_
 
 std::unique_ptr<sampler_t> vk_device_t::create_sampler(SAMPLER_TYPE sampler_type)
 {
-	auto&& get_sampler_desc = [](auto&& sampler_type)
+	const auto& get_sampler_desc = [](auto&& sampler_type)
 	{
 		switch (sampler_type)
 		{
@@ -584,8 +584,8 @@ void vk_device_t::set_sampler(const allocated_descriptor_set& descriptor_set, ui
 
 void vk_command_list_t::copy_buffer_to_image_subresource(image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
-	auto mipLevel = destination_subresource;// % max(destination_image.info.mipLevels, 1);
-	auto baseArrayLayer = destination_subresource;// / max(destination_image.info.mipLevels, 1);
+	const auto& mipLevel = destination_subresource;// % max(destination_image.info.mipLevels, 1);
+	const auto& baseArrayLayer = destination_subresource;// / max(destination_image.info.mipLevels, 1);
 
 	object.copyBufferToImage(dynamic_cast<vk_buffer_t&>(source).object, dynamic_cast<vk_image_t&>(destination_image).object, vk::ImageLayout::eTransferDstOptimal,
 		{
@@ -674,10 +674,10 @@ void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE b
 		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT; break;
 	}*/
 
-	auto baseMipLevel = subresource;// % max(resource.info.mipLevels, 1);
-	auto baseArrayLayer = subresource;// / max(resource.info.mipLevels, 1);
+	const auto& baseMipLevel = subresource;// % max(resource.info.mipLevels, 1);
+	const auto& baseArrayLayer = subresource;// / max(resource.info.mipLevels, 1);
 
-	auto get_image_layout = [](auto&& usage)
+	const auto& get_image_layout = [](auto&& usage)
 	{
 		switch (usage)
 		{
@@ -854,7 +854,7 @@ uint32_t vk_swap_chain_t::get_next_backbuffer_id()
 
 void vk_swap_chain_t::present(command_queue_t& cmdqueue, uint32_t backbuffer_index)
 {
-	auto presentInfo = vk::PresentInfoKHR{}
+	const auto presentInfo = vk::PresentInfoKHR{}
 		.setPSwapchains(&object)
 		.setSwapchainCount(1)
 		.setPImageIndices(&backbuffer_index);
@@ -888,7 +888,7 @@ std::unique_ptr<framebuffer_t> vk_device_t::create_frame_buffer(gsl::span<const 
 {
 	std::vector<vk::ImageView> attachments;
 	std::transform(render_targets.begin(), render_targets.end(), std::back_inserter(attachments),
-		[&](auto&& input) { return dynamic_cast<const vk_image_view_t*>(input)->object; });
+		[&](const auto input) { return dynamic_cast<const vk_image_view_t*>(input)->object; });
 		attachments.push_back(dynamic_cast<const vk_image_view_t&>(depth_stencil_texture).object);
 	return std::unique_ptr<framebuffer_t>(new vk_framebuffer(object, static_cast<vk_render_pass_t*>(render_pass)->object, attachments, width, height, 1));
 }
