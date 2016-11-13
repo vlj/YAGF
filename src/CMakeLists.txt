@@ -50,4 +50,4 @@ foreach(F ${COMP_SHADERS})
 endforeach()
 
 # For shader content
-include_directories(.)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})

@@ -7,6 +7,10 @@
 #include <set>
 #include <d3dcompiler.h>
 
+const auto dfg_code = std::vector<uint32_t>
+#include <generatedShaders\dfg.h>
+;
+
 namespace
 {
 	constexpr auto object_descriptor_set_type = descriptor_set({
