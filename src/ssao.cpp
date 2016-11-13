@@ -4,6 +4,14 @@
 #include <Scene\ssao.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+const auto gaussian_h_code = std::vector<uint32_t>
+#include <generatedShaders\gaussian_h.h>
+;
+
+const auto gaussian_v_code = std::vector<uint32_t>
+#include <generatedShaders\gaussian_v.h>
+;
+
 namespace
 {
 	struct linearize_input_constant_data
@@ -141,14 +149,14 @@ namespace
 	auto get_gaussian_h_pso(device_t& dev, pipeline_layout_t& layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
-			.set_compute_shader("gaussian_h");
+			.set_compute_shader(gaussian_h_code);
 		return dev.create_compute_pso(pso_desc);
 	}
 
 	auto get_gaussian_v_pso(device_t& dev, pipeline_layout_t& layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
-		.set_compute_shader("gaussian_v");
+		.set_compute_shader(gaussian_v_code);
 		return dev.create_compute_pso(pso_desc);
 	}
 
