@@ -198,7 +198,7 @@ struct vk_pipeline_layout_t : pipeline_layout_t
 
 struct vk_swap_chain_t : swap_chain_t
 {
-	vk_swap_chain_t(vk::SwapchainKHR _object) : object(_object)
+	vk_swap_chain_t(vk::Device _dev, vk::SwapchainKHR _object) : dev(_dev), object(_object)
 	{}
 
 	vk::SwapchainKHR object;

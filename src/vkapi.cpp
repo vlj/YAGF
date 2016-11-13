@@ -148,7 +148,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	);
 
 #ifndef NDEBUG
-/*	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
+	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
 	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback{};
 	VkDebugReportCallbackEXT debug_report_callback{};
 
@@ -164,7 +164,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	create_info.pfnCallback = dbgFunc;
 	create_info.pUserData = nullptr;
 
-	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));*/
+	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));
 
 	/* Clean up callback */
 //	dbgDestroyDebugReportCallback(instance, debug_report_callback, NULL);
@@ -237,7 +237,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	auto queue = dev.getQueue(queue_infos[0].queueFamilyIndex, 0);
 	return std::make_tuple(
 		std::unique_ptr<device_t>(new vk_device_t(dev)),
-		std::unique_ptr<swap_chain_t>(new vk_swap_chain_t(chain)),
+		std::unique_ptr<swap_chain_t>(new vk_swap_chain_t(dev, chain)),
 		std::unique_ptr<command_queue_t>(new vk_command_queue_t(queue)),
 		surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
 }
