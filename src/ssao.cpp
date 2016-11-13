@@ -13,7 +13,16 @@ const auto gaussian_v_code = std::vector<uint32_t>
 ;
 
 const auto sunlight_vert_code = std::vector<uint32_t>
-#include <generatedShaders\s>
+#include <generatedShaders\sunlight.h>
+;
+
+const auto ssao_code = std::vector<uint32_t>
+#include <generatedShaders\ssao.h>
+;
+
+const auto linearize_depth_code = std::vector<uint32_t>
+#include <generatedShaders\linearize_depth.h>
+;
 
 namespace
 {
@@ -65,8 +74,8 @@ namespace
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
 		auto pso_desc = graphic_pipeline_state_description::get()
-			.set_vertex_shader("")
-			.set_fragment_shader("linearize_depth")
+			.set_vertex_shader(sunlight_vert_code)
+			.set_fragment_shader(linearize_depth_code)
 			.set_vertex_attributes(attribs);
 #ifdef D3D12
 		pipeline_state_t result;
@@ -143,8 +152,8 @@ namespace
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
 		auto pso_desc = graphic_pipeline_state_description::get()
-			.set_vertex_shader("sunlight_vert")
-			.set_fragment_shader("ssao")
+			.set_vertex_shader(sunlight_vert_code)
+			.set_fragment_shader(ssao_code)
 			.set_vertex_attributes(attribs);
 		return dev.create_graphic_pso(pso_desc);
 	}

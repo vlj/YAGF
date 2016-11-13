@@ -924,18 +924,16 @@ namespace
 {
 	struct shader_module
 	{
-		std::vector<uint32_t> spirv_code;
 		vk::ShaderModule object;
 		vk::Device dev;
 
-		shader_module(vk::Device _dev, const std::string &filename) :
-			spirv_code(load_binary_file(filename)),
+		shader_module(vk::Device _dev, gsl::span<const uint32_t> bin) :
 			dev(_dev)
 		{
 			object = dev.createShaderModule(
 				vk::ShaderModuleCreateInfo{}
-					.setCodeSize(spirv_code.size() * sizeof(uint32_t))
-					.setPCode(spirv_code.data()));
+					.setCodeSize(bin.size_bytes())
+					.setPCode(bin.data()));
 		}
 
 		~shader_module()
@@ -945,21 +943,6 @@ namespace
 
 		shader_module(shader_module&&) = delete;
 		shader_module(const shader_module&) = delete;
-
-	private:
-
-		static std::vector<uint32_t> load_binary_file(const std::string &filename)
-		{
-			std::ifstream file(filename, std::ios::binary | std::ios::in | std::ios::ate);
-			if (!file.is_open()) throw;
-
-			std::vector<uint32_t> code(file.tellg() / sizeof(uint32_t));
-			// go back to the beginning
-			file.seekg(0, std::ios::beg);
-			file.read((char*)code.data(), code.size() * sizeof(uint32_t));
-			file.close();
-			return code;
-		}
 	};
 }
 
@@ -976,8 +959,8 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 		.setDynamicStateCount(static_cast<uint32_t>(dynamic_states.size()))
 		.setPDynamicStates(dynamic_states.data());
 
-	shader_module module_vert(object, "..\\..\\..\\" + pso_desc.vertex_path + ".spv");
-	shader_module module_frag(object, "..\\..\\..\\" + pso_desc.fragment_path + ".spv");
+	shader_module module_vert(object, pso_desc.vertex_binary);
+	shader_module module_frag(object, pso_desc.fragment_binary);
 
 	auto shader_stages = std::vector<vk::PipelineShaderStageCreateInfo>{
 		vk::PipelineShaderStageCreateInfo{}
