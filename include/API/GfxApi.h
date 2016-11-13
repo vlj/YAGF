@@ -199,11 +199,11 @@ struct pipeline_vertex_attributes
 
 struct compute_pipeline_state_description
 {
-	std::string compute_path;
+	std::vector<uint32_t> compute_binary;
 
-	compute_pipeline_state_description set_compute_shader(const std::string& path)
+	compute_pipeline_state_description set_compute_shader(gsl::span<const uint32_t> code)
 	{
-		compute_path = path;
+		std::copy(code.begin(), code.end(), std::back_inserter(compute_binary));
 		return *this;
 	}
 };

@@ -11,6 +11,14 @@ const auto dfg_code = std::vector<uint32_t>
 #include <generatedShaders\dfg.h>
 ;
 
+const auto importance_sampling_specular_code = std::vector<uint32_t>
+#include <generatedShaders\importance_sampling_specular.h>
+;
+
+const auto computesh_code = std::vector<uint32_t>
+#include <generatedShaders\computesh.h>
+;
+
 namespace
 {
 	constexpr auto object_descriptor_set_type = descriptor_set({
@@ -47,21 +55,21 @@ namespace
 	auto get_compute_sh_pipeline_state(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
-			.set_compute_shader("computesh");
+			.set_compute_shader(computesh_code);
 		return dev.create_compute_pso(pso_desc);
 	}
 
 	auto ImportanceSamplingForSpecularCubemap(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
-			.set_compute_shader("importance_sampling_specular");
+			.set_compute_shader(importance_sampling_specular_code);
 		return dev.create_compute_pso(pso_desc);
 	}
 
 	auto dfg_building_pso(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
-			.set_compute_shader("dfg");
+			.set_compute_shader(dfg_code);
 		return dev.create_compute_pso(pso_desc);
 	}
 
