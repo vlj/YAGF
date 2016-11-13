@@ -20,9 +20,7 @@ if(BUILD_DX12)
   SET_SOURCE_FILES_PROPERTIES(examples/shaders/pix.hlsl PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 5.0 VS_SHADER_ENTRYPOINT main )
 endif()
 
-file(GLOB COMP_SHADERS "shaders/glsl/*.comp")
-file(GLOB VERT_SHADERS "shaders/glsl/*.comp")
-file(GLOB FRAG_SHADERS "shaders/glsl/*.comp")
+file(GLOB SHADERS "shaders/glsl/*.comp" "shaders/glsl/*.vert" "shaders/glsl/*.frag")
 
 file(GLOB_RECURSE HEADERS "../include/*.h")
 file(GLOB SOURCES
@@ -39,7 +37,8 @@ target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY}
 set(directory "${CMAKE_CURRENT_BINARY_DIR}/generatedShaders")
 file(MAKE_DIRECTORY ${directory})
 
-foreach(F ${COMP_SHADERS})
+
+foreach(F ${SHADERS})
     get_filename_component(outF ${F} NAME_WE)
     set(outF ${outF}.h)
     add_custom_command(TARGET YAGF

@@ -12,7 +12,7 @@ in vec4 color;
 
 layout(location = 0) out vec4 Colors;
 layout(location = 1) out vec4 EncodedNormal;
-layout(location = 2) out vec4 Roughness_Metalness;
+out vec4 Roughness_Metalness;
 
 // from Crytek "a bit more deferred CryEngine"
 vec2 EncodeNormal(vec3 n)

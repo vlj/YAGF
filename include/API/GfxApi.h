@@ -210,8 +210,8 @@ struct compute_pipeline_state_description
 
 struct graphic_pipeline_state_description
 {
-	std::string vertex_path;
-	std::string fragment_path;
+	std::vector<uint32_t> vertex_binary;
+	std::vector<uint32_t> fragment_binary;
 
 
 	std::vector<pipeline_vertex_attributes> attributes;
@@ -374,15 +374,15 @@ struct graphic_pipeline_state_description
 			depth_stencil_max_depth_clip);
 	}
 
-	graphic_pipeline_state_description set_vertex_shader(const std::string& path)
+	graphic_pipeline_state_description set_vertex_shader(gsl::span<const uint32_t> binary)
 	{
-		vertex_path = path;
+		std::copy(binary.begin(), binary.end(), std::back_inserter(vertex_binary));
 		return *this;
 	}
 
-	graphic_pipeline_state_description set_fragment_shader(const std::string& path)
+	graphic_pipeline_state_description set_fragment_shader(gsl::span<const uint32_t> binary)
 	{
-		fragment_path = path;
+		std::copy(binary.begin(), binary.end(), std::back_inserter(fragment_binary));
 		return *this;
 	}
 

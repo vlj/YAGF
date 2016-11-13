@@ -12,6 +12,9 @@ const auto gaussian_v_code = std::vector<uint32_t>
 #include <generatedShaders\gaussian_v.h>
 ;
 
+const auto sunlight_vert_code = std::vector<uint32_t>
+#include <generatedShaders\s>
+
 namespace
 {
 	struct linearize_input_constant_data
@@ -62,7 +65,7 @@ namespace
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
 		auto pso_desc = graphic_pipeline_state_description::get()
-			.set_vertex_shader("sunlight_vert")
+			.set_vertex_shader("")
 			.set_fragment_shader("linearize_depth")
 			.set_vertex_attributes(attribs);
 #ifdef D3D12
