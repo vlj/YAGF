@@ -6,7 +6,7 @@
 #include <array>
 #include <unordered_map>
 
-#include "shaders.h"
+#include <Scene/pso.h>
 #include <Scene/textures.h>
 #include <Scene/Scene.h>
 #include <Scene/ssao.h>
