@@ -25,13 +25,14 @@ file(GLOB SHADERS "shaders/glsl/*.comp" "shaders/glsl/*.vert" "shaders/glsl/*.fr
 file(GLOB_RECURSE HEADERS "../include/*.h")
 file(GLOB SOURCES
     "ibl.cpp"
+    "pso.cpp"
     "meshscenenode.cpp"
     "scene.cpp"
     "ssao.cpp"
     "textures.cpp"
     "vkapi.cpp")
 #Z    "d3dapi.cpp")
-add_library(YAGF ${HEADERS} ${SOURCES} ${COMP_SHADERS})
+add_library(YAGF ${HEADERS} ${SOURCES} ${SHADERS})
 target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} ${Vulkan_LIBRARY})
 
 set(directory "${CMAKE_CURRENT_BINARY_DIR}/generatedShaders")
