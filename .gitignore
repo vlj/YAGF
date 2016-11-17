@@ -3,22 +3,15 @@
 *.cache
 Doxyfile
 
+.vs
+CMakeSettings.json
 # in build folder
-ftconfig.h
-glfw3.pc
-glfw_config.h
-*.pc
 *.cso
 *.exp
-pnglibconf.h
 *.res
 *.spv
 *.targets
 *.nupkg
-packages/
-mesh.dx12/Generated*
-mesh.dx12/x64
-x64/*
 *TemporaryGeneratedFile*
 *FileListAbsolute.txt
 *.g.*
