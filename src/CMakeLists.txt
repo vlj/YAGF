@@ -33,7 +33,7 @@ file(GLOB SOURCES
     "vkapi.cpp")
 #Z    "d3dapi.cpp")
 add_library(YAGF ${HEADERS} ${SOURCES} ${SHADERS})
-target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} ${Vulkan_LIBRARY})
+target_link_libraries(YAGF ${GLEW_LIBRARY} ${GLFW_LIBRARIES} ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} "$ENV{VULKAN_SDK}/Bin/vulkan-1.lib")
 
 set(directory "${CMAKE_CURRENT_BINARY_DIR}/generatedShaders")
 file(MAKE_DIRECTORY ${directory})
