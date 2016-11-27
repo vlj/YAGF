@@ -10,6 +10,8 @@ find_package(Freetype)
 option(BUILD_OPENCL "Build Sample using OpenCL" OFF)
 option(BUILD_DX12 "Build Sample using DX12" OFF)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+
 include_directories(
     ${GLEW_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
