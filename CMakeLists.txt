@@ -1,12 +1,11 @@
 project(YAGF)
-cmake_minimum_required(VERSION 3.6)
 
 add_definitions(-DGLEW_STATIC)
 find_package(GLEW REQUIRED)
 #find_package(glfw3 3.2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Freetype)
-find_package(Vulkan REQUIRED)
+#find_package(Vulkan REQUIRED)
 
 option(BUILD_OPENCL "Build Sample using OpenCL" OFF)
 option(BUILD_DX12 "Build Sample using DX12" OFF)
@@ -16,11 +15,11 @@ include_directories(
     ${GLFW_INCLUDE_DIRS}
     ${FREETYPE_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIR}
-    ${Vulkan_INCLUDE_DIR}
-   "${FREETYPE_INCLUDE_DIRS}/freetype2"
-   "deps/Vulkan-Hpp/"
-   "deps/d3d12"
-   "include"
+    "$ENV{VULKAN_SDK}/Include"
+    "${FREETYPE_INCLUDE_DIRS}/freetype2"
+    "deps/Vulkan-Hpp/"
+    "deps/d3d12"
+    "include"
 )
 
 add_subdirectory(deps)
