@@ -44,9 +44,8 @@ foreach(F ${SHADERS})
     set(outF ${outF}.h)
     add_custom_command(TARGET YAGF
         PRE_BUILD
-        COMMAND glslc_exe ${F} -mfmt=c -o ${directory}/${outF}
-        COMMENT "Compiling ${F}"
-        DEPENDS glslc_exe)
+        COMMAND "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/glslc.exe ${F}" -mfmt=c -o ${directory}/${outF}
+        COMMENT "Compiling ${F}")
 endforeach()
 
 # For shader content
