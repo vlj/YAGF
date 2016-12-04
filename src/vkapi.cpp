@@ -229,6 +229,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 		.setImageArrayLayers(1)
 		.setPresentMode(vk::PresentModeKHR::eFifo)
 		.setClipped(true)
+		.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
 		.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear)
 		.setImageSharingMode(vk::SharingMode::eExclusive);
 
@@ -428,6 +429,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setFormat(get_vk_format(format))
 			.setFlags(get_image_create_flag(flags))
+			.setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled)
 			.setSamples(vk::SampleCountFlagBits::e1)
 	);
 	const auto& mem_req = object.getImageMemoryRequirements(image);

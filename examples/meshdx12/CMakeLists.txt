@@ -10,4 +10,4 @@ file(GLOB SOURCES
 	"shaders.cpp"
 	"vulkan_interface.cpp")
 add_executable(mesh ${HEADERS} ${SOURCES})
-target_link_libraries(mesh YAGF ${GLEW_LIBRARY} glfw3dll ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} gflags ${ASSIMP_LIBRARIES})
+target_link_libraries(mesh YAGF ${GLEW_LIBRARY} glfw3dll ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} gflags assimp-vc140-mtd)
