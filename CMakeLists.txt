@@ -2,9 +2,10 @@ project(YAGF)
 
 add_definitions(-DGLEW_STATIC)
 find_package(GLEW REQUIRED)
-#find_package(glfw3 3.2 REQUIRED)
+find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Freetype)
+find_package(Assimp REQUIRED)
 #find_package(Vulkan REQUIRED)
 
 option(BUILD_OPENCL "Build Sample using OpenCL" OFF)
