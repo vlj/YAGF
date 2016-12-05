@@ -276,6 +276,24 @@ std::unique_ptr<command_list_storage_t> vk_device_t::create_command_storage()
 
 namespace
 {
+	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
+	{
+		// Iterate over all memory types available for the device used in this example
+		for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
+		{
+			if ((typeBits & 1) == 1)
+			{
+				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				{
+					return i;
+				}
+			}
+			typeBits >>= 1;
+		}
+		throw "Could not find a suitable memory type!";
+	}
+
+
 	uint32_t get_memory_index(irr::video::E_MEMORY_POOL memory_pool, const device_t *dev)
 	{
 		switch (memory_pool)
