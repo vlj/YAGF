@@ -646,36 +646,6 @@ void vk_command_queue_t::wait_for_command_queue_idle()
 
 void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
-	/*switch (get_image_layout(after))
-	{
-	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; break;
-	case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT; break;
-	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; break;
-	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; break;
-	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT; break;
-	}
-
-	switch (get_image_layout(before))
-	{
-	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; break;
-	case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT; break;
-	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; break;
-	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; break;
-	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT; break;
-	}*/
-
 	const auto& baseMipLevel = subresource;// % max(resource.info.mipLevels, 1);
 	const auto& baseArrayLayer = subresource;// / max(resource.info.mipLevels, 1);
 
@@ -694,12 +664,55 @@ void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE b
 		throw;
 	};
 
+	auto&& srcAccess = [=]() -> vk::AccessFlags
+	{
+		switch (get_image_layout(before))
+		{
+		case vk::ImageLayout::eTransferDstOptimal:
+			return vk::AccessFlagBits::eTransferWrite;
+		case vk::ImageLayout::eTransferSrcOptimal:
+		case vk::ImageLayout::ePresentSrcKHR:
+			return vk::AccessFlagBits::eTransferRead;
+		case vk::ImageLayout::eColorAttachmentOptimal:
+			return vk::AccessFlagBits::eColorAttachmentWrite;
+		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+			return vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+		case vk::ImageLayout::eShaderReadOnlyOptimal:
+			return vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eInputAttachmentRead;
+		}
+		return vk::AccessFlags();
+	};
+
+	auto&& dstAccess = [=]() -> vk::AccessFlags
+	{
+		switch (get_image_layout(after))
+		{
+		case vk::ImageLayout::eTransferDstOptimal:
+			return vk::AccessFlagBits::eTransferWrite;
+		case vk::ImageLayout::eTransferSrcOptimal:
+		case vk::ImageLayout::ePresentSrcKHR:
+			return vk::AccessFlagBits::eTransferRead;
+		case vk::ImageLayout::eColorAttachmentOptimal:
+			return vk::AccessFlagBits::eColorAttachmentWrite;
+		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+			return vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+		case vk::ImageLayout::eShaderReadOnlyOptimal:
+			return vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eInputAttachmentRead;
+		}
+		return vk::AccessFlags();
+	};
+
+	auto dst = dstAccess();
+	auto src = srcAccess();
+
 	object.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eBottomOfPipe,
 		vk::DependencyFlags(), {}, {},
 		{
 			vk::ImageMemoryBarrier{}
 				.setOldLayout(get_image_layout(before))
 				.setNewLayout(get_image_layout(after))
+				.setSrcAccessMask(src)
+				.setDstAccessMask(dst)
 				.setImage(dynamic_cast<vk_image_t&>(resource).object)
 				.setSubresourceRange(vk::ImageSubresourceRange(get_image_aspect(aspect), baseMipLevel, 1, baseArrayLayer, 1))
 		});
