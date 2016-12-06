@@ -207,13 +207,6 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	);
 
 	auto mem_properties = devices[0].getMemoryProperties();
-/*	for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
-	{
-		if (mem_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-			dev->default_memory_index = i;
-		if (is_host_visible(mem_properties.memoryTypes[i].propertyFlags) & is_host_coherent(mem_properties.memoryTypes[i].propertyFlags))
-			dev->upload_memory_index = i;
-	}*/
 
 	auto surface_format = devices[0].getSurfaceFormatsKHR(surface);
 	auto surface_capabilities = devices[0].getSurfaceCapabilitiesKHR(surface);
@@ -235,9 +228,12 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 
 	auto chain = dev.createSwapchainKHR(swap_chain);
 
+	auto&& wrapped_dev = std::make_unique<vk_device_t>(dev);
+	wrapped_dev->mem_properties = devices[0].getMemoryProperties();
+
 	auto queue = dev.getQueue(queue_infos[0].queueFamilyIndex, 0);
 	return std::make_tuple(
-		std::unique_ptr<device_t>(new vk_device_t(dev)),
+		std::move(wrapped_dev),
 		std::unique_ptr<swap_chain_t>(new vk_swap_chain_t(dev, chain)),
 		std::unique_ptr<command_queue_t>(new vk_command_queue_t(queue)),
 		surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
@@ -276,14 +272,14 @@ std::unique_ptr<command_list_storage_t> vk_device_t::create_command_storage()
 
 namespace
 {
-	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
+	uint32_t getMemoryTypeIndex(uint32_t typeBits, const vk::PhysicalDeviceMemoryProperties &memprops, vk::MemoryPropertyFlags properties)
 	{
 		// Iterate over all memory types available for the device used in this example
-		for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
+		for (uint32_t i = 0; i < memprops.memoryTypeCount; i++)
 		{
 			if ((typeBits & 1) == 1)
 			{
-				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				if ((memprops.memoryTypes[i].propertyFlags & properties) == properties)
 				{
 					return i;
 				}
@@ -291,18 +287,6 @@ namespace
 			typeBits >>= 1;
 		}
 		throw "Could not find a suitable memory type!";
-	}
-
-
-	uint32_t get_memory_index(irr::video::E_MEMORY_POOL memory_pool, const device_t *dev)
-	{
-		switch (memory_pool)
-		{
-		/*case irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL: return  dev->default_memory_index;
-		case irr::video::E_MEMORY_POOL::EMP_CPU_READABLE:
-		case irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE: return  dev->upload_memory_index;*/
-		}
-		throw;
 	}
 
 	auto get_buffer_usage_flags(uint32_t flags)
@@ -331,7 +315,7 @@ std::unique_ptr<buffer_t> vk_device_t::create_buffer(size_t size, irr::video::E_
 	const auto& memory = object.allocateMemory(
 		vk::MemoryAllocateInfo{}
 			.setAllocationSize(mem_req.size)
-			.setMemoryTypeIndex(upload_memory_index)
+			.setMemoryTypeIndex(getMemoryTypeIndex(mem_req.memoryTypeBits, mem_properties, vk::MemoryPropertyFlagBits::eHostCoherent))
 	);
 	object.bindBufferMemory(buffer, memory, 0);
 	return  std::unique_ptr<buffer_t>(
@@ -454,7 +438,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 	const auto& memory = object.allocateMemory(
 		vk::MemoryAllocateInfo{}
 			.setAllocationSize(mem_req.size)
-			.setMemoryTypeIndex(default_memory_index)
+			.setMemoryTypeIndex(getMemoryTypeIndex(mem_req.memoryTypeBits, mem_properties, vk::MemoryPropertyFlagBits::eDeviceLocal))
 	);
 	object.bindImageMemory(image, memory, 0);
 	return std::unique_ptr<image_t>(new vk_image_t(object, image, memory));

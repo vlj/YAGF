@@ -111,6 +111,10 @@ private:
 	void fill_draw_commands();
 	void Init();
 
+	void createDescriptorSets();
+
+	void createTextures();
+
 	void fill_descriptor_set();
 	void load_program_and_pipeline_layout();
 public:

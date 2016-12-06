@@ -160,12 +160,9 @@ void MeshSample::Init()
 	command_list->set_pipeline_barrier(*back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->set_pipeline_barrier(*back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 #endif // !D3D12
-	depth_buffer = dev->create_image(irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
-	clear_val = get_clear_value(irr::video::ECF_R8G8B8A8_UNORM, { 0., 0., 0., 0. });
-	diffuse_color = dev->create_image(irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	roughness_metalness = dev->create_image(irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
-	clear_val = get_clear_value(irr::video::ECF_R16G16F, { 0., 0., 0., 0. });
-	normal = dev->create_image(irr::video::ECF_R16G16F, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	createTextures();
+	std::unique_ptr<buffer_t> upload_buffer;
+	std::tie(skybox_texture, upload_buffer) = load_texture(*dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), *command_list);
 	command_list->set_pipeline_barrier(*depth_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
 	command_list->set_pipeline_barrier(*diffuse_color, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->set_pipeline_barrier(*normal, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -174,6 +171,8 @@ void MeshSample::Init()
 	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
 		[&](auto&& img) { return dev->create_image_view(*img, swap_chain_format, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
 
+	createDescriptorSets();
+	fill_descriptor_set();
 
 	fbo_pass1[0] = dev->create_frame_buffer(
 		std::vector<const image_view_t*>{ diffuse_color_view.get(), normal_view.get(), roughness_metalness_view.get(), back_buffer_view[0].get() },
@@ -184,16 +183,6 @@ void MeshSample::Init()
 
 	fbo_pass2[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, *depth_view, width, height, ibl_skyboss_pass.get());
 	fbo_pass2[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, *depth_view, width, height, ibl_skyboss_pass.get());
-
-	ibl_descriptor = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(10, { ibl_set.get() }, 3);
-	scene_descriptor = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { scene_set.get() }, 3);
-	input_attachments_descriptors = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(5, { input_attachments_set.get() }, 4);
-	rtt_descriptors = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(5, { rtt_set.get() }, 5);
-	sampler_descriptors = sampler_heap->allocate_descriptor_set_from_sampler_heap(0, { sampler_set.get() }, 2);
-
-	std::unique_ptr<buffer_t> upload_buffer;
-	std::tie(skybox_texture, upload_buffer) = load_texture(*dev, SAMPLE_PATH + std::string("w_sky_1BC1.DDS"), *command_list);
-	fill_descriptor_set();
 
 	Assimp::Importer importer;
 	auto model = importer.ReadFile(std::string(SAMPLE_PATH) + "xue.b3d", 0);
@@ -244,6 +233,26 @@ void MeshSample::Init()
 	cmdqueue->wait_for_command_queue_idle();
 
 	fill_draw_commands();
+}
+
+void MeshSample::createDescriptorSets()
+{
+	ibl_descriptor = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(10, { ibl_set.get() }, 3);
+	scene_descriptor = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { scene_set.get() }, 3);
+	input_attachments_descriptors = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(5, { input_attachments_set.get() }, 4);
+	rtt_descriptors = cbv_srv_descriptors_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(5, { rtt_set.get() }, 5);
+	sampler_descriptors = sampler_heap->allocate_descriptor_set_from_sampler_heap(0, { sampler_set.get() }, 2);
+}
+
+void MeshSample::createTextures()
+{
+	clear_value_t clear_val = get_clear_value(irr::video::D24U8, 1., 0);
+	depth_buffer = dev->create_image(irr::video::D24U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_input_attachment, &clear_val);
+	clear_val = get_clear_value(irr::video::ECF_R8G8B8A8_UNORM, { 0., 0., 0., 0. });
+	diffuse_color = dev->create_image(irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	roughness_metalness = dev->create_image(irr::video::ECF_R8G8B8A8_UNORM, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
+	clear_val = get_clear_value(irr::video::ECF_R16G16F, { 0., 0., 0., 0. });
+	normal = dev->create_image(irr::video::ECF_R16G16F, width, height, 1, 1, usage_render_target | usage_sampled | usage_input_attachment, &clear_val);
 }
 
 void MeshSample::fill_descriptor_set()

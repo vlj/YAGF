@@ -74,8 +74,7 @@ struct vk_device_t : device_t
 	{}
 
 	uint32_t queue_family_index;
-	uint32_t upload_memory_index;
-	uint32_t default_memory_index;
+	vk::PhysicalDeviceMemoryProperties mem_properties;
 	virtual std::unique_ptr<command_list_storage_t> create_command_storage() override;
 	virtual std::unique_ptr<buffer_t> create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool, uint32_t flags) override;
 	virtual std::unique_ptr<buffer_view_t> create_buffer_view(buffer_t &, irr::video::ECOLOR_FORMAT, uint64_t offset, uint32_t size) override;
