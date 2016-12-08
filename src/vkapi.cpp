@@ -64,6 +64,16 @@ namespace
 		return !!(properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
+	auto is_depth_format(irr::video::ECOLOR_FORMAT format)
+	{
+		switch (format)
+		{
+		case irr::video::D24U8:
+		case irr::video::D32U8: return true;
+		default:
+			return false;
+		}
+	}
 
 	auto get_vk_format(irr::video::ECOLOR_FORMAT format)
 	{
@@ -431,7 +441,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setFormat(get_vk_format(format))
 			.setFlags(get_image_create_flag(flags))
-			.setUsage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled)
+			.setUsage(is_depth_format(format) ? vk::ImageUsageFlagBits::eDepthStencilAttachment : vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled)
 			.setSamples(vk::SampleCountFlagBits::e1)
 	);
 	const auto& mem_req = object.getImageMemoryRequirements(image);
@@ -476,6 +486,7 @@ std::unique_ptr<image_view_t> vk_device_t::create_image_view(image_t& img, irr::
 			.setViewType(get_image_type(texture_type))
 			.setFormat(get_vk_format(fmt))
 			.setImage(dynamic_cast<vk_image_t&>(img).object)
+			.setComponents(vk::ComponentMapping())
 			.setSubresourceRange(vk::ImageSubresourceRange(get_image_aspect(aspect), base_mipmap, mipmap_count, base_layer, layer_count))
 	);
 	return std::unique_ptr<image_view_t>(new vk_image_view_t(object, image_view));
