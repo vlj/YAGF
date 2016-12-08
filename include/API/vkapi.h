@@ -134,13 +134,14 @@ struct vk_buffer_t : buffer_t
 
 struct vk_image_t : image_t
 {
-	vk_image_t(vk::Device _dev, vk::Image _object, vk::DeviceMemory _memory)
-		: object(_object), dev(_dev), memory(_memory)
+	vk_image_t(vk::Device _dev, vk::Image _object, vk::DeviceMemory _memory, uint32_t _mip_levels)
+		: object(_object), dev(_dev), memory(_memory), mip_levels(_mip_levels)
 	{}
 
 	vk::Image object;
 	vk::DeviceMemory memory;
 	vk::Device dev;
+	uint32_t mip_levels;
 };
 
 struct vk_descriptor_storage_t : descriptor_storage_t {

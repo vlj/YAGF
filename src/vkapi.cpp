@@ -244,7 +244,7 @@ std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_
 	auto swapchain_image = dev.getSwapchainImagesKHR(object);
 	auto result = std::vector<std::unique_ptr<image_t>>{};
 	std::transform(swapchain_image.begin(), swapchain_image.end(), std::back_inserter(result),
-		[this](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img, vk::DeviceMemory())); });
+		[this](auto&& img) { return std::unique_ptr<image_t>(new vk_image_t(dev, img, vk::DeviceMemory(), 1)); });
 	return result;
 }
 
@@ -441,7 +441,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			.setMemoryTypeIndex(getMemoryTypeIndex(mem_req.memoryTypeBits, mem_properties, vk::MemoryPropertyFlagBits::eDeviceLocal))
 	);
 	object.bindImageMemory(image, memory, 0);
-	return std::unique_ptr<image_t>(new vk_image_t(object, image, memory));
+	return std::unique_ptr<image_t>(new vk_image_t(object, image, memory, mipmap));
 }
 
 namespace
@@ -588,8 +588,8 @@ void vk_device_t::set_sampler(const allocated_descriptor_set& descriptor_set, ui
 
 void vk_command_list_t::copy_buffer_to_image_subresource(image_t& destination_image, uint32_t destination_subresource, buffer_t& source, uint64_t offset_in_buffer, uint32_t width, uint32_t height, uint32_t row_pitch, irr::video::ECOLOR_FORMAT format)
 {
-	const auto& mipLevel = destination_subresource;// % max(destination_image.info.mipLevels, 1);
-	const auto& baseArrayLayer = destination_subresource;// / max(destination_image.info.mipLevels, 1);
+	const auto& mipLevel = destination_subresource % max(dynamic_cast<vk_image_t&>(destination_image).mip_levels, 1);
+	const auto& baseArrayLayer = destination_subresource / max(dynamic_cast<vk_image_t&>(destination_image).mip_levels, 1);
 
 	object.copyBufferToImage(dynamic_cast<vk_buffer_t&>(source).object, dynamic_cast<vk_image_t&>(destination_image).object, vk::ImageLayout::eTransferDstOptimal,
 		{
@@ -648,8 +648,8 @@ void vk_command_queue_t::wait_for_command_queue_idle()
 
 void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE before, RESOURCE_USAGE after, uint32_t subresource, irr::video::E_ASPECT aspect)
 {
-	const auto& baseMipLevel = subresource;// % max(resource.info.mipLevels, 1);
-	const auto& baseArrayLayer = subresource;// / max(resource.info.mipLevels, 1);
+	const auto& baseMipLevel = subresource % max(dynamic_cast<vk_image_t&>(resource).mip_levels, 1);
+	const auto& baseArrayLayer = subresource / max(dynamic_cast<vk_image_t&>(resource).mip_levels, 1);
 
 	const auto& get_image_layout = [](auto&& usage)
 	{
