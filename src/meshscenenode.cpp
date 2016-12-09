@@ -123,7 +123,7 @@ namespace irr
 				mesh_descriptor_set.push_back(std::move(mesh_descriptor));
 
 				Textures_views.push_back(dev.create_image_view(*texture, irr::video::ECF_BC1_UNORM_SRGB, 0, 9, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D));
-				dev.set_image_view(*mesh_descriptor, 0, 2, *Textures_views.back());
+				dev.set_image_view(*mesh_descriptor_set.back(), 0, 2, *Textures_views.back());
 				upload_buffers.push_back(std::move(upload_buffer));
 				Textures.push_back(std::move(texture));
 			}
