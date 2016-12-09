@@ -141,7 +141,7 @@ void MeshSample::Init()
 
 	memcpy(big_triangle->map_buffer(), fullscreen_tri, 4 * 3 * sizeof(float));
 	big_triangle->unmap_buffer();
-	big_triangle_info = { { *big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float) } };
+	big_triangle_info = { { *big_triangle, 0, 4 * static_cast<uint32_t>(sizeof(float)), 4 * 3 * static_cast<uint32_t>(sizeof(float)) } };
 
 	command_list->make_command_list_executable();
 	cmdqueue->submit_executable_command_list(*command_list);
