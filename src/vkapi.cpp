@@ -1044,32 +1044,70 @@ std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span
 std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass()
 {
 
-	std::unique_ptr<render_pass_t> result;
-#ifndef D3D12
-	/*		result.reset(new render_pass_t(dev,
-	{
-	// final surface
-	structures::attachment_description(VK_FORMAT_R8G8B8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-	// depth
-	structures::attachment_description(VK_FORMAT_D24_UNORM_S8_UINT, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-	},
-	{
-	// IBL pass
-	subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-	.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-	.set_input_attachments({ VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL } }),
-	// Draw skybox
-	subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-	.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-	.set_depth_stencil_attachment(VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
-	},
-	{
-	get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT)
-	}));*/
-#endif // !D3D12
-	return result;
+	const auto& attachments = std::array<vk::AttachmentDescription, 2>{
+		vk::AttachmentDescription{}
+			.setFormat(vk::Format::eR8G8B8A8Unorm)
+			.setLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setStoreOp(vk::AttachmentStoreOp::eStore)
+			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
+			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal),
+		vk::AttachmentDescription{}
+			.setFormat(vk::Format::eD24UnormS8Uint)
+			.setLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setStoreOp(vk::AttachmentStoreOp::eStore)
+			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setInitialLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+			.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+	};
 
-	return std::unique_ptr<render_pass_t>();
+	const auto& color_attachment_ref = std::array<vk::AttachmentReference, 1>{
+		vk::AttachmentReference{0, vk::ImageLayout::eColorAttachmentOptimal}
+	};
+
+	const auto& ibl_input_attachement_ref = std::array<vk::AttachmentReference, 1> {
+		vk::AttachmentReference{ 1, vk::ImageLayout::eDepthStencilReadOnlyOptimal }
+	};
+	const auto& skybox_ds_attachment_ref = vk::AttachmentReference{ 1, vk::ImageLayout::eDepthStencilAttachmentOptimal };
+
+	const auto& subpasses = std::array<vk::SubpassDescription, 2>{
+		// IBL pass
+		vk::SubpassDescription{}
+			.setPColorAttachments(color_attachment_ref.data())
+			.setColorAttachmentCount(static_cast<uint32_t>(color_attachment_ref.size()))
+			.setPInputAttachments(ibl_input_attachement_ref.data())
+			.setInputAttachmentCount(static_cast<uint32_t>(ibl_input_attachement_ref.size()))
+			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics),
+		// Draw skybox
+		vk::SubpassDescription{}
+			.setPColorAttachments(color_attachment_ref.data())
+			.setColorAttachmentCount(static_cast<uint32_t>(color_attachment_ref.size()))
+			.setPDepthStencilAttachment(&skybox_ds_attachment_ref)
+			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+	};
+
+	const auto& dependencies = std::array<vk::SubpassDependency, 1>{
+		vk::SubpassDependency{}
+			.setSrcSubpass(0)
+			.setSrcAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead)
+			.setSrcStageMask(vk::PipelineStageFlagBits::eFragmentShader)
+			.setDstSubpass(1)
+			.setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite)
+			.setDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests)
+	};
+
+	auto&& result = object.createRenderPass(
+		vk::RenderPassCreateInfo{}
+			.setPAttachments(attachments.data())
+			.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
+			.setPSubpasses(subpasses.data())
+			.setSubpassCount(static_cast<uint32_t>(subpasses.size()))
+			.setPDependencies(dependencies.data())
+			.setDependencyCount(static_cast<uint32_t>(subpasses.size()))
+	);
+	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
 
 std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass()
