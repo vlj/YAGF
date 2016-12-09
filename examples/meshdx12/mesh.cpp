@@ -132,14 +132,13 @@ void MeshSample::Init()
 		nullptr);
 
 	big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	float fullscreen_tri[]
-	{
+	const auto& fullscreen_tri = std::array<float, 12> {
 		-1., -3., 0., 2.,
 		3., 1., 2., 0.,
 		-1., 1., 0., 0.
 	};
 
-	memcpy(big_triangle->map_buffer(), fullscreen_tri, 4 * 3 * sizeof(float));
+	memcpy(big_triangle->map_buffer(), fullscreen_tri.data(), fullscreen_tri.size() * sizeof(float));
 	big_triangle->unmap_buffer();
 	big_triangle_info = { { *big_triangle, 0, 4 * static_cast<uint32_t>(sizeof(float)), 4 * 3 * static_cast<uint32_t>(sizeof(float)) } };
 
@@ -265,7 +264,7 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->start_command_list_recording(*command_allocator);
 		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
-		std::array<float, 4> clearColor = { .25f, .25f, 0.35f, 1.0f };
+		const auto& clearColor = std::array<float, 4>{ .25f, .25f, 0.35f, 1.0f };
 		current_cmd_list->begin_renderpass(*object_sunlight_pass, *fbo_pass1[i],
 			std::vector<clear_value_t>{ std::array<float, 4>{}, std::array<float, 4>{}, std::array<float, 4>{}, std::array<float, 4>{}, std::make_tuple(1.f, 0)},
 			width, height);
@@ -354,7 +353,7 @@ void MeshSample::Draw()
 	scene->update(*dev);
 
 	SceneData * tmp = static_cast<SceneData*>(scene_matrix->map_buffer());
-	float horizon_angle_in_radian = horizon_angle * 3.14f / 100.f;
+	const float horizon_angle_in_radian = horizon_angle * 3.14f / 100.f;
 	auto View = glm::lookAtLH(
 		glm::vec3(0., 2. * sin(horizon_angle_in_radian), -2. * cos(horizon_angle_in_radian)),
 		glm::vec3(0., cos(horizon_angle_in_radian), sin(horizon_angle_in_radian)),
@@ -368,7 +367,7 @@ void MeshSample::Draw()
 	memcpy(tmp->InverseViewMatrix, &InvView, 16 * sizeof(float));
 	scene_matrix->unmap_buffer();
 
-	float * sun_tmp = (float*)sun_data->map_buffer();
+	const auto& sun_tmp = gsl::span<float, 7>(static_cast<float*>(sun_data->map_buffer()), 7);
 	sun_tmp[0] = 0.;
 	sun_tmp[1] = 1.;
 	sun_tmp[2] = 0.;
@@ -387,7 +386,7 @@ void MeshSample::Draw()
 			memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
 			//unmap_buffer(dev, jointbuffer);
 
-	uint32_t current_backbuffer = chain->get_next_backbuffer_id();
+	const auto& current_backbuffer = chain->get_next_backbuffer_id();
 	cmdqueue->submit_executable_command_list(*command_list_for_back_buffer[current_backbuffer]);
 	cmdqueue->wait_for_command_queue_idle();
 	chain->present(*cmdqueue, current_backbuffer);
