@@ -597,6 +597,10 @@ struct device_t {
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&) = 0;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
 
+
+	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass() = 0;
+	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass() = 0;
+
 	virtual ~device_t() {};
 };
 

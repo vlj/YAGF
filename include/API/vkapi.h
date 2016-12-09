@@ -105,6 +105,10 @@ struct vk_device_t : device_t
 		object.destroy();
 		instance.destroy();
 	}
+
+	// Hérité via device_t
+	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass() override;
+	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass() override;
 };
 
 struct vk_command_queue_t : command_queue_t
@@ -211,6 +215,16 @@ struct vk_swap_chain_t : swap_chain_t
 
 struct vk_render_pass_t : render_pass_t {
 	vk::RenderPass object;
+	vk::Device dev;
+
+	vk_render_pass_t(vk::Device _dev, vk::RenderPass _object)
+		: dev(_dev), object(_object)
+	{}
+
+	~vk_render_pass_t()
+	{
+		dev.destroyRenderPass(object);
+	}
 };
 
 struct vk_allocated_descriptor_set : allocated_descriptor_set {
