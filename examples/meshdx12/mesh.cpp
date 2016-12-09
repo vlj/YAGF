@@ -12,10 +12,10 @@
 
 struct SceneData
 {
-	float ViewMatrix[16];
-	float InverseViewMatrix[16];
-	float ProjectionMatrix[16];
-	float InverseProjectionMatrix[16];
+	glm::mat4 ViewMatrix;
+	glm::mat4 InverseViewMatrix;
+	glm::mat4 ProjectionMatrix;
+	glm::mat4 InverseProjectionMatrix;
 };
 
 /*struct JointTransform
@@ -352,19 +352,17 @@ void MeshSample::Draw()
 {
 	scene->update(*dev);
 
-	SceneData * tmp = static_cast<SceneData*>(scene_matrix->map_buffer());
+	auto&& tmp = *static_cast<SceneData*>(scene_matrix->map_buffer());
 	const float horizon_angle_in_radian = horizon_angle * 3.14f / 100.f;
 	auto View = glm::lookAtLH(
 		glm::vec3(0., 2. * sin(horizon_angle_in_radian), -2. * cos(horizon_angle_in_radian)),
 		glm::vec3(0., cos(horizon_angle_in_radian), sin(horizon_angle_in_radian)),
 		glm::vec3(0., 1., 0.));
-	auto InvView = glm::inverse(View);
-	auto Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-	auto InvPerspective = glm::inverse(Perspective);
-	memcpy(tmp->ProjectionMatrix, &Perspective, 16 * sizeof(float));
-	memcpy(tmp->InverseProjectionMatrix, &InvPerspective, 16 * sizeof(float));
-	memcpy(tmp->ViewMatrix, &View, 16 * sizeof(float));
-	memcpy(tmp->InverseViewMatrix, &InvView, 16 * sizeof(float));
+	tmp.ViewMatrix = View;
+	tmp.InverseViewMatrix = glm::inverse(View);
+	const auto& Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+	tmp.ProjectionMatrix = Perspective;
+	tmp.InverseProjectionMatrix = glm::inverse(Perspective);
 	scene_matrix->unmap_buffer();
 
 	const auto& sun_tmp = gsl::span<float, 7>(static_cast<float*>(sun_data->map_buffer()), 7);
