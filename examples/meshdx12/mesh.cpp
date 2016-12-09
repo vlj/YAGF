@@ -289,7 +289,7 @@ void MeshSample::fill_draw_commands()
 		current_cmd_list->set_graphic_pipeline(*objectpso);
 		current_cmd_list->bind_graphic_descriptor(2, *scene_descriptor, *object_sig);
 		current_cmd_list->bind_graphic_descriptor(3, *sampler_descriptors, *object_sig);
-		current_cmd_list->set_viewport(0., width, 0., height, 0., 1.);
+		current_cmd_list->set_viewport(0.f, static_cast<float>(width), 0.f, static_cast<float>(height), 0.f, 1.f);
 		current_cmd_list->set_scissor(0, width, 0, height);
 
 		scene->fill_gbuffer_filling_command(*current_cmd_list, *object_sig);

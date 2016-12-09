@@ -128,7 +128,7 @@ namespace
 	}
 }
 
-std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, size_t, size_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window)
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window)
 {
 	std::vector<const char*> layers = { 
 #ifndef NDEBUG
@@ -171,7 +171,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
 	create_info.pNext = nullptr;
 	create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-	create_info.pfnCallback = dbgFunc;
+	create_info.pfnCallback = &dbgFunc;
 	create_info.pUserData = nullptr;
 
 	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));
@@ -441,7 +441,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setFormat(get_vk_format(format))
 			.setFlags(get_image_create_flag(flags))
-			.setUsage(is_depth_format(format) ? vk::ImageUsageFlagBits::eDepthStencilAttachment : vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled)
+			.setUsage((is_depth_format(format) ? vk::ImageUsageFlagBits::eDepthStencilAttachment : vk::ImageUsageFlagBits::eColorAttachment) | vk::ImageUsageFlagBits::eSampled)
 			.setSamples(vk::SampleCountFlagBits::e1)
 	);
 	const auto& mem_req = object.getImageMemoryRequirements(image);
@@ -1181,7 +1181,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass()
 			.setPSubpasses(subpasses.data())
 			.setSubpassCount(static_cast<uint32_t>(subpasses.size()))
 			.setPDependencies(dependencies.data())
-			.setDependencyCount(dependencies.size())
+			.setDependencyCount(static_cast<uint32_t>(dependencies.size()))
 	);
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
