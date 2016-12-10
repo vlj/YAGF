@@ -1005,6 +1005,16 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 {
 	const blend_state blend = blend_state::get();
 
+	const auto& attachments = std::vector<vk::PipelineColorBlendAttachmentState>{
+		vk::PipelineColorBlendAttachmentState{}
+			.setBlendEnable(false)
+			.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eR)
+	};
+
+	const auto color_blend = vk::PipelineColorBlendStateCreateInfo{}
+		.setPAttachments(attachments.data())
+		.setAttachmentCount(static_cast<uint32_t>(attachments.size()));
+
 	auto tesselation_info = vk::PipelineTessellationStateCreateInfo{};
 	auto viewport_info = vk::PipelineViewportStateCreateInfo{}
 		.setViewportCount(1)
@@ -1100,6 +1110,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPStages(shader_stages.data())
 			.setPVertexInputState(&vertex_input)
 			.setPViewportState(&viewport_info)
+			.setPColorBlendState(&color_blend)
 	);
 	return std::unique_ptr<pipeline_state_t>(new vk_pipeline_state_t(object, pso));
 }
