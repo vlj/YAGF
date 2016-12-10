@@ -2,6 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #include "../include/API/vkapi.h"
 #include <sstream>
+#include <set>
 
 #include <locale>
 #include <codecvt>
@@ -1026,7 +1027,34 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPName("main")
 	};
 
-	auto vertex_input = vk::PipelineVertexInputStateCreateInfo{};
+	const auto& vertex_input_binding = [&]()
+	{
+		auto&& result = std::vector<vk::VertexInputBindingDescription>{};
+		auto&& already_defined_buffer = std::set<uint32_t>{};
+		for (const auto& attrib : pso_desc.attributes)
+		{
+			if (already_defined_buffer.find(attrib.location) != already_defined_buffer.end())
+				continue;
+			result.emplace_back(attrib.location, attrib.stride, vk::VertexInputRate::eVertex);
+			already_defined_buffer.insert(attrib.location);
+		}
+		return result;
+	}();
+
+	const auto vertex_input = vk::PipelineVertexInputStateCreateInfo{}
+		.setPVertexBindingDescriptions(vertex_input_binding.data())
+		.setVertexBindingDescriptionCount(static_cast<uint32_t>(vertex_input_binding.size()));
+
+	const auto input_assembly = vk::PipelineInputAssemblyStateCreateInfo{}
+		.setPrimitiveRestartEnable(false)
+		.setTopology(vk::PrimitiveTopology::eTriangleList);
+
+	const auto rasterization = vk::PipelineRasterizationStateCreateInfo{}
+		.setPolygonMode(vk::PolygonMode::eFill)
+		.setCullMode(vk::CullModeFlagBits::eNone);
+
+	const auto multisample = vk::PipelineMultisampleStateCreateInfo{}
+		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 
 	/*auto vertex_buffers = std::vector<vk::VertexInputBindingDescription>{
 		vk::VertexInputBindingDescription{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
@@ -1042,9 +1070,15 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 	vertex_input.pVertexAttributeDescriptions = attribute.data();*/
 
 //	return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);*/
-	/*vk::Pipeline pso = object.createGraphicsPipeline(
+
+	vk::Pipeline pso = object.createGraphicsPipeline(
 		vk::PipelineCache{},
 		vk::GraphicsPipelineCreateInfo{}
+			.setPVertexInputState(&vertex_input)
+			.setPInputAssemblyState(&input_assembly)
+			.setPRasterizationState(&rasterization)
+			.setPMultisampleState(&multisample)
+			//.setRenderPass()
 			.setPTessellationState(&tesselation_info)
 			.setPDynamicState(&dynamic_state_info)
 			.setSubpass(0)
@@ -1052,8 +1086,8 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPStages(shader_stages.data())
 			.setPVertexInputState(&vertex_input)
 			.setPViewportState(&viewport_info)
-	);*/
-	return std::unique_ptr<pipeline_state_t>();
+	);
+	return std::unique_ptr<pipeline_state_t>(new vk_pipeline_state_t(object, pso));
 }
 
 std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const compute_pipeline_state_description &)
