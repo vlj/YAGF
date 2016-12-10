@@ -301,6 +301,10 @@ namespace
 			result |= vk::BufferUsageFlagBits::eUniformTexelBuffer;
 		if (flags & usage_buffer_transfer_src)
 			result |= vk::BufferUsageFlagBits::eTransferSrc;
+		if (flags & usage_index)
+			result |= vk::BufferUsageFlagBits::eIndexBuffer;
+		if (flags & usage_vertex)
+			result |= vk::BufferUsageFlagBits::eVertexBuffer;
 		return result;
 	}
 }
@@ -1028,7 +1032,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 	vertex_input.pVertexAttributeDescriptions = attribute.data();*/
 
 //	return std::make_shared<vulkan_wrapper::pipeline>(dev, 0, shader_stages, vertex_input, get_pipeline_input_assembly_state_info(pso_desc), tesselation_info, viewport_info, get_pipeline_rasterization_state_create_info(pso_desc), get_pipeline_multisample_state_create_info(pso_desc), get_pipeline_depth_stencil_state_create_info(pso_desc), blend, dynamic_state_info, layout->object, rp, 1, VkPipeline(VK_NULL_HANDLE), 0);*/
-	vk::Pipeline pso = object.createGraphicsPipeline(
+	/*vk::Pipeline pso = object.createGraphicsPipeline(
 		vk::PipelineCache{},
 		vk::GraphicsPipelineCreateInfo{}
 			.setPTessellationState(&tesselation_info)
@@ -1038,8 +1042,8 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPStages(shader_stages.data())
 			.setPVertexInputState(&vertex_input)
 			.setPViewportState(&viewport_info)
-	);
-	return std::unique_ptr<pipeline_state_t>(new vk_pipeline_state_t(object, pso));
+	);*/
+	return std::unique_ptr<pipeline_state_t>();
 }
 
 std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const compute_pipeline_state_description &)

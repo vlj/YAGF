@@ -131,7 +131,7 @@ void MeshSample::Init()
 		std::make_unique<irr::scene::IMeshSceneNode>(*dev, model, *command_list, *cbv_srv_descriptors_heap, object_set.get(), model_set.get(), nullptr),
 		nullptr);
 
-	big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
 	const auto& fullscreen_tri = std::array<float, 12> {
 		-1., -3., 0., 2.,
 		3., 1., 2., 0.,

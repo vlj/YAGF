@@ -143,8 +143,8 @@ ibl_utility::ibl_utility(device_t &dev)
 	anisotropic_sampler = dev.create_sampler(SAMPLER_TYPE::ANISOTROPIC);
 	dev.set_sampler(*sampler_descriptors, 0, 4, *anisotropic_sampler);
 
-	compute_sh_cbuf = dev.create_buffer(sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	dfg_cbuf = dev.create_buffer(sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	compute_sh_cbuf = dev.create_buffer(sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+	dfg_cbuf = dev.create_buffer(sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 
 	auto M = std::array<glm::mat4, 6>{
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
@@ -157,7 +157,7 @@ ibl_utility::ibl_utility(device_t &dev)
 
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix[i] = dev.create_buffer(sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		permutation_matrix[i] = dev.create_buffer(sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 		memcpy(permutation_matrix[i]->map_buffer(), &M[i], 16 * sizeof(float));
 		permutation_matrix[i]->unmap_buffer();
 	}
@@ -175,7 +175,7 @@ ibl_utility::ibl_utility(device_t &dev)
 
 	for (unsigned i = 0; i < 8; i++)
 	{
-		per_level_cbuffer[i] = dev.create_buffer(sizeof(per_level_importance_sampling_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+		per_level_cbuffer[i] = dev.create_buffer(sizeof(per_level_importance_sampling_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 		per_level_importance_sampling_data* tmp = (per_level_importance_sampling_data*)per_level_cbuffer[i]->map_buffer();
 		float viewportSize = float(1 << (8 - i));
 		tmp->size = viewportSize;
