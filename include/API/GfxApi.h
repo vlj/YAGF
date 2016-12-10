@@ -119,6 +119,7 @@ enum image_flags
 enum buffer_flags
 {
 	none = 0,
+	usage_uniform,
 	usage_uav = 0x1,
 	usage_texel_buffer = 0x2,
     usage_buffer_transfer_src = 0x4,

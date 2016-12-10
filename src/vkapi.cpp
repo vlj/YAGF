@@ -64,17 +64,6 @@ namespace
 		return !!(properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
-	auto is_depth_format(irr::video::ECOLOR_FORMAT format)
-	{
-		switch (format)
-		{
-		case irr::video::D24U8:
-		case irr::video::D32U8: return true;
-		default:
-			return false;
-		}
-	}
-
 	auto get_vk_format(irr::video::ECOLOR_FORMAT format)
 	{
 		switch (format)
@@ -187,7 +176,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	glfwCreateWindowSurface(instance, window, nullptr, &_surface);
 	vk::SurfaceKHR surface(_surface);
 
-	const auto find_graphic_queue_family = [&]()
+	const auto queue_family_index = [&]()
 	{
 		for (unsigned int i = 0; i < queue_family_properties.size(); i++) {
 			if (queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
@@ -195,12 +184,11 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 			}
 		}
 		throw;
-	};
-
+	}();
 	float queue_priorities = 0.f;
 	const auto queue_infos = std::array<vk::DeviceQueueCreateInfo, 1> {
 		vk::DeviceQueueCreateInfo{}
-			.setQueueFamilyIndex(find_graphic_queue_family())
+			.setQueueFamilyIndex(queue_family_index)
 			.setQueueCount(1)
 			.setPQueuePriorities(&queue_priorities)
 	};
@@ -240,6 +228,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 
 	auto&& wrapped_dev = std::make_unique<vk_device_t>(dev);
 	wrapped_dev->mem_properties = devices[0].getMemoryProperties();
+	wrapped_dev->queue_family_index = queue_family_index;
 
 	auto queue = dev.getQueue(queue_infos[0].queueFamilyIndex, 0);
 	return std::make_tuple(
@@ -302,6 +291,8 @@ namespace
 	auto get_buffer_usage_flags(uint32_t flags)
 	{
 		auto result = vk::BufferUsageFlags();
+		if (flags & usage_uniform)
+			result |= vk::BufferUsageFlagBits::eUniformBuffer;
 		if (flags & usage_uav)
 			result |= vk::BufferUsageFlagBits::eStorageBuffer;
 		if (flags & usage_transfer_dst)
@@ -431,6 +422,24 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 		return result;
 	};
 
+	const auto& get_image_usage = [&]()
+	{
+		auto&& result = vk::ImageUsageFlags();
+		if (flags & usage_transfer_src)
+			result |= vk::ImageUsageFlagBits::eTransferSrc;
+		if (flags & usage_depth_stencil)
+			result |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+		if (flags & usage_sampled)
+			result |= vk::ImageUsageFlagBits::eSampled;
+		if (flags & usage_transfer_dst)
+			result |= vk::ImageUsageFlagBits::eTransferDst;
+		if (flags & usage_render_target)
+			result |= vk::ImageUsageFlagBits::eColorAttachment;
+		if (flags & usage_input_attachment)
+			result |= vk::ImageUsageFlagBits::eInputAttachment;
+		return result;
+	};
+
 	const auto& image = object.createImage(
 		vk::ImageCreateInfo{}
 			.setArrayLayers(layers)
@@ -441,7 +450,7 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setFormat(get_vk_format(format))
 			.setFlags(get_image_create_flag(flags))
-			.setUsage((is_depth_format(format) ? vk::ImageUsageFlagBits::eDepthStencilAttachment : vk::ImageUsageFlagBits::eColorAttachment) | vk::ImageUsageFlagBits::eSampled)
+			.setUsage(get_image_usage())
 			.setSamples(vk::SampleCountFlagBits::e1)
 	);
 	const auto& mem_req = object.getImageMemoryRequirements(image);
@@ -684,8 +693,9 @@ void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE b
 		case vk::ImageLayout::eTransferDstOptimal:
 			return vk::AccessFlagBits::eTransferWrite;
 		case vk::ImageLayout::eTransferSrcOptimal:
-		case vk::ImageLayout::ePresentSrcKHR:
 			return vk::AccessFlagBits::eTransferRead;
+		case vk::ImageLayout::ePresentSrcKHR:
+			return vk::AccessFlagBits::eMemoryRead;
 		case vk::ImageLayout::eColorAttachmentOptimal:
 			return vk::AccessFlagBits::eColorAttachmentWrite;
 		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
@@ -703,8 +713,9 @@ void vk_command_list_t::set_pipeline_barrier(image_t& resource, RESOURCE_USAGE b
 		case vk::ImageLayout::eTransferDstOptimal:
 			return vk::AccessFlagBits::eTransferWrite;
 		case vk::ImageLayout::eTransferSrcOptimal:
-		case vk::ImageLayout::ePresentSrcKHR:
 			return vk::AccessFlagBits::eTransferRead;
+		case vk::ImageLayout::ePresentSrcKHR:
+			return vk::AccessFlagBits::eMemoryRead;
 		case vk::ImageLayout::eColorAttachmentOptimal:
 			return vk::AccessFlagBits::eColorAttachmentWrite;
 		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
@@ -1105,7 +1116,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass()
 			.setPSubpasses(subpasses.data())
 			.setSubpassCount(static_cast<uint32_t>(subpasses.size()))
 			.setPDependencies(dependencies.data())
-			.setDependencyCount(static_cast<uint32_t>(subpasses.size()))
+			.setDependencyCount(static_cast<uint32_t>(dependencies.size()))
 	);
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }

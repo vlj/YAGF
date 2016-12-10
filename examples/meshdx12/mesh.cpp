@@ -91,8 +91,8 @@ void MeshSample::Init()
 
 	load_program_and_pipeline_layout();
 
-	scene_matrix = dev->create_buffer(sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	sun_data = dev->create_buffer(7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	scene_matrix = dev->create_buffer(sizeof(SceneData), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+	sun_data = dev->create_buffer(7 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 
 	clear_value_t clear_val = get_clear_value(irr::video::D24U8, 1., 0);
 #ifndef D3D12
