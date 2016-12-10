@@ -1079,6 +1079,8 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 	const auto multisample = vk::PipelineMultisampleStateCreateInfo{}
 		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 
+	const auto depth_stencil = vk::PipelineDepthStencilStateCreateInfo{};
+
 	/*auto vertex_buffers = std::vector<vk::VertexInputBindingDescription>{
 		vk::VertexInputBindingDescription{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
 	};
@@ -1111,6 +1113,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPVertexInputState(&vertex_input)
 			.setPViewportState(&viewport_info)
 			.setPColorBlendState(&color_blend)
+			.setPDepthStencilState(&depth_stencil)
 	);
 	return std::unique_ptr<pipeline_state_t>(new vk_pipeline_state_t(object, pso));
 }
