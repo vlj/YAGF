@@ -107,8 +107,8 @@ struct vk_device_t : device_t
 	}
 
 	// Hérité via device_t
-	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass() override;
-	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass() override;
+	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT&) override;
+	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass(const irr::video::ECOLOR_FORMAT&) override;
 };
 
 struct vk_command_queue_t : command_queue_t

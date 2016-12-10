@@ -601,8 +601,8 @@ struct device_t {
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
 
 
-	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass() = 0;
-	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass() = 0;
+	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT&) = 0;
+	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass(const irr::video::ECOLOR_FORMAT&) = 0;
 
 	virtual ~device_t() {};
 };

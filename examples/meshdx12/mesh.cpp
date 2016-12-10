@@ -86,8 +86,8 @@ void MeshSample::Init()
 
 	cbv_srv_descriptors_heap = dev->create_descriptor_storage(100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 10 },{ RESOURCE_VIEW::SHADER_RESOURCE, 1000 },{ RESOURCE_VIEW::INPUT_ATTACHMENT, 4 },{ RESOURCE_VIEW::UAV_BUFFER, 1 } });
 	sampler_heap = dev->create_descriptor_storage(10, { { RESOURCE_VIEW::SAMPLER, 10 } });
-	object_sunlight_pass = dev->create_object_sunlight_pass();
-	ibl_skyboss_pass = dev->create_ibl_sky_pass();
+	object_sunlight_pass = dev->create_object_sunlight_pass(swap_chain_format);
+	ibl_skyboss_pass = dev->create_ibl_sky_pass(swap_chain_format);
 
 	load_program_and_pipeline_layout();
 

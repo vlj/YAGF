@@ -231,11 +231,21 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	wrapped_dev->queue_family_index = queue_family_index;
 
 	auto queue = dev.getQueue(queue_infos[0].queueFamilyIndex, 0);
+	const auto& fmt = [&]() {
+		switch (surface_format[0].format)
+		{
+		case vk::Format::eB8G8R8A8Unorm: return irr::video::ECF_B8G8R8A8_UNORM;
+		case vk::Format::eR8G8B8A8Unorm: return irr::video::ECF_R8G8B8A8_UNORM;
+		case vk::Format::eB8G8R8A8Srgb: return irr::video::ECF_B8G8R8A8_UNORM_SRGB;
+		case vk::Format::eR8G8B8A8Srgb: return irr::video::ECF_R8G8B8A8_UNORM_SRGB;
+		}
+		throw;
+	}();
 	return std::make_tuple(
 		std::move(wrapped_dev),
 		std::unique_ptr<swap_chain_t>(new vk_swap_chain_t(dev, chain)),
 		std::unique_ptr<command_queue_t>(new vk_command_queue_t(queue)),
-		surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, irr::video::ECF_B8G8R8A8_UNORM);
+		surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height, fmt);
 }
 
 std::vector<std::unique_ptr<image_t>> vk_swap_chain_t::get_image_view_from_swap_chain()
@@ -1056,12 +1066,12 @@ std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span
 	return std::unique_ptr<pipeline_layout_t>();
 }
 
-std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass()
+std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT& fmt)
 {
 
 	const auto& attachments = std::array<vk::AttachmentDescription, 2>{
 		vk::AttachmentDescription{}
-			.setFormat(vk::Format::eR8G8B8A8Unorm)
+			.setFormat(get_vk_format(fmt))
 			.setLoadOp(vk::AttachmentLoadOp::eLoad)
 			.setStoreOp(vk::AttachmentStoreOp::eStore)
 			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
@@ -1125,7 +1135,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass()
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
 
-std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass()
+std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const irr::video::ECOLOR_FORMAT& fmt)
 {
 	const auto& attachments = std::array<vk::AttachmentDescription, 5>{
 		// color
@@ -1141,7 +1151,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass()
 			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal },
 		// final surface
-		vk::AttachmentDescription{ vk::AttachmentDescriptionFlagBits{}, vk::Format::eR8G8B8A8Unorm, vk::SampleCountFlagBits::e1,
+		vk::AttachmentDescription{ vk::AttachmentDescriptionFlagBits{}, get_vk_format(fmt), vk::SampleCountFlagBits::e1,
 			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal },
 		// depth
