@@ -150,7 +150,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 
 	const auto instance = vk::createInstance(
 		vk::InstanceCreateInfo{}
-			.setEnabledExtensionCount(static_cast<uint32_t>(layers.size()))
+			.setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
 			.setPpEnabledLayerNames(layers.data())
 			.setEnabledExtensionCount(static_cast<uint32_t>(instance_extension.size()))
 			.setPpEnabledExtensionNames(instance_extension.data())
