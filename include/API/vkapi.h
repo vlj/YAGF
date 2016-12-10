@@ -96,7 +96,7 @@ struct vk_device_t : device_t
 	vk::Device object;
 	vk::Instance instance;
 
-	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description &) override;
+	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description &, const render_pass_t&, const pipeline_layout_t&) override;
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description &) override;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout*>) override;
 

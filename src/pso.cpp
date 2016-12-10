@@ -91,7 +91,7 @@ std::unique_ptr<pipeline_state_t> get_skinned_object_pipeline_state(device_t& de
 			pipeline_vertex_attributes{ 2, irr::video::ECF_R32G32F, 2, sizeof(aiVector3D), 0 }
 	});
 
-	return dev.create_graphic_pso(pso_desc);
+	return dev.create_graphic_pso(pso_desc, rp, layout);
 
 	/*	const std::vector<VkPipelineColorBlendAttachmentState> pipeline_attachments
 	{
@@ -145,7 +145,7 @@ std::unique_ptr<pipeline_state_t> get_sunlight_pipeline_state(device_t& dev, pip
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
 	});
-	return dev.create_graphic_pso(pso_desc);
+	return dev.create_graphic_pso(pso_desc, rp, layout);
 }
 
 std::unique_ptr<pipeline_state_t> get_ibl_pipeline_state(device_t& dev, pipeline_layout_t& layout, render_pass_t& rp)
@@ -197,7 +197,7 @@ std::unique_ptr<pipeline_state_t> get_ibl_pipeline_state(device_t& dev, pipeline
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
 	});
 
-	return dev.create_graphic_pso(pso_desc);
+	return dev.create_graphic_pso(pso_desc, rp, layout);
 
 	/*	VkPipelineColorBlendAttachmentState blend_attachment_state{ true, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE , VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, -1 };
 	VkPipelineColorBlendStateCreateInfo blend_state{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, false, VK_LOGIC_OP_NO_OP, 1, &blend_attachment_state };*/
@@ -244,5 +244,5 @@ std::unique_ptr<pipeline_state_t> get_skybox_pipeline_state(device_t& dev, pipel
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
 	});
-	return dev.create_graphic_pso(pso_desc);
+	return dev.create_graphic_pso(pso_desc, rp, layout);
 }

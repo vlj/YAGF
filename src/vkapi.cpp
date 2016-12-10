@@ -93,6 +93,7 @@ namespace
 		case irr::video::ECF_B8G8R8A8: return vk::Format::eB8G8R8A8Uint;
 		case irr::video::ECF_B8G8R8A8_UNORM: return vk::Format::eB8G8R8A8Unorm;
 		case irr::video::ECF_B8G8R8A8_UNORM_SRGB: return vk::Format::eB8G8R8A8Srgb;
+		case irr::video::ECF_R32G32B32F: return vk::Format::eR32G32B32Sfloat;
 		}
 		throw;
 	}
@@ -1000,7 +1001,7 @@ namespace
 	};
 }
 
-std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &pso_desc)
+std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &pso_desc, const render_pass_t& render_pass, const pipeline_layout_t& layout)
 {
 	const blend_state blend = blend_state::get();
 
@@ -1041,9 +1042,21 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 		return result;
 	}();
 
+	const auto& vertex_input_attributes = [&]()
+	{
+		auto&& result = std::vector<vk::VertexInputAttributeDescription>{};
+		std::transform(pso_desc.attributes.begin(), pso_desc.attributes.end(), std::back_inserter(result),
+			[&](const auto& attrib) -> vk::VertexInputAttributeDescription {
+				return {attrib.location, attrib.binding, get_vk_format(attrib.format), attrib.offset};
+		});
+		return result;
+	}();
+
 	const auto vertex_input = vk::PipelineVertexInputStateCreateInfo{}
 		.setPVertexBindingDescriptions(vertex_input_binding.data())
-		.setVertexBindingDescriptionCount(static_cast<uint32_t>(vertex_input_binding.size()));
+		.setVertexBindingDescriptionCount(static_cast<uint32_t>(vertex_input_binding.size()))
+		.setPVertexAttributeDescriptions(vertex_input_attributes.data())
+		.setVertexAttributeDescriptionCount(static_cast<uint32_t>(vertex_input_attributes.size()));
 
 	const auto input_assembly = vk::PipelineInputAssemblyStateCreateInfo{}
 		.setPrimitiveRestartEnable(false)
@@ -1078,7 +1091,8 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setPInputAssemblyState(&input_assembly)
 			.setPRasterizationState(&rasterization)
 			.setPMultisampleState(&multisample)
-			//.setRenderPass()
+			.setRenderPass(dynamic_cast<const vk_render_pass_t&>(render_pass).object)
+			.setLayout(dynamic_cast<const vk_pipeline_layout_t&>(layout).object)
 			.setPTessellationState(&tesselation_info)
 			.setPDynamicState(&dynamic_state_info)
 			.setSubpass(0)
