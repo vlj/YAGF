@@ -133,9 +133,9 @@ void MeshSample::Init()
 
 	big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
 	const auto& fullscreen_tri = std::array<float, 12> {
-		-1., -3., 0., 2.,
-		3., 1., 2., 0.,
-		-1., 1., 0., 0.
+		-1.f, -3.f, 0.f, 2.f,
+		3.f, 1.f, 2.f, 0.f,
+		-1.f, 1.f, 0.f, 0.f
 	};
 
 	memcpy(big_triangle->map_buffer(), fullscreen_tri.data(), fullscreen_tri.size() * sizeof(float));
