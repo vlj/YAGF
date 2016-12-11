@@ -44,25 +44,25 @@ namespace
 		float epsilon;
 	};
 
-	constexpr auto linearize_input_set_type = descriptor_set(
+	const auto linearize_input_set_type = descriptor_set(
 		{ range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1) },
 		shader_stage::fragment_shader
 	);
 
-	constexpr auto ssao_input_set_type = descriptor_set({
+	const auto ssao_input_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
 		shader_stage::fragment_shader);
 
-	constexpr auto gaussian_input_set_type = descriptor_set({
+	const auto gaussian_input_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
 		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 2, 1) },
 		shader_stage::all);
 
 	// Bilinear and nearest
-	constexpr auto samplers_set_type = descriptor_set(
+	const auto samplers_set_type = descriptor_set(
 		{ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1)},
 		shader_stage::fragment_shader);

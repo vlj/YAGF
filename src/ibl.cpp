@@ -50,7 +50,7 @@ namespace
 
 	const auto sampler_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1) },
-		shader_stage::fragment_shader);
+		shader_stage::all);
 
 	auto get_compute_sh_pipeline_state(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
