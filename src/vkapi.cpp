@@ -1123,9 +1123,20 @@ std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const 
 	return std::unique_ptr<compute_pipeline_state_t>();
 }
 
-std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span<const descriptor_set_layout*>)
+std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span<const descriptor_set_layout*> sets)
 {
-	return std::unique_ptr<pipeline_layout_t>();
+	const auto& descriptor_layout = [&]() {
+		std::vector<vk::DescriptorSetLayout> result;
+		std::transform(sets.begin(), sets.end(), std::back_inserter(result),
+			[](const auto input) { return dynamic_cast<const vk_descriptor_set_layout*>(input)->object; });
+		return result;
+	}();
+	const auto& result = object.createPipelineLayout(
+		vk::PipelineLayoutCreateInfo{}
+			.setPSetLayouts(descriptor_layout.data())
+			.setSetLayoutCount(static_cast<uint32_t>(descriptor_layout.size()))
+	);
+	return std::unique_ptr<pipeline_layout_t>(new vk_pipeline_layout_t(object, result));
 }
 
 std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT& fmt)

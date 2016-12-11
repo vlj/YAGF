@@ -195,6 +195,11 @@ struct vk_pipeline_layout_t : pipeline_layout_t
 {
 	vk::PipelineLayout object;
 	vk::Device dev;
+
+	vk_pipeline_layout_t(vk::Device _dev, vk::PipelineLayout _object)
+		: dev(_dev), object(_object)
+	{}
+
 	~vk_pipeline_layout_t() {
 		dev.destroyPipelineLayout(object);
 	}
