@@ -1073,6 +1073,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 		.setTopology(vk::PrimitiveTopology::eTriangleList);
 
 	const auto rasterization = vk::PipelineRasterizationStateCreateInfo{}
+		.setLineWidth(1.f)
 		.setPolygonMode(vk::PolygonMode::eFill)
 		.setCullMode(vk::CullModeFlagBits::eNone);
 
