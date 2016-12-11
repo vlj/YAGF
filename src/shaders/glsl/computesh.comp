@@ -7,7 +7,8 @@ layout(set = 0, binding = 0, std140) uniform DATA
   float edge_size;
 };
 
-layout(set = 0, binding = 1) uniform samplerCube probe;
+layout(set = 0, binding = 1) uniform textureCube probe;
+layout(set = 1, binding = 4) uniform sampler s;
 
 layout(set = 0, binding = 2, std430) buffer SH
 {
@@ -128,7 +129,7 @@ void main()
         float Y20 = c20 * (3 * z * z - 1.) * solidangle;
         float Y22 = c22 * (x * x - y * y) * solidangle;
 
-        vec4 color = texture(probe, vect);
+        vec4 color = texture(samplerCube(probe, s), vect);
         vec4 SH00 = color * Y00;
         bL00 +=SH00.b;
         rL00 += SH00.r;

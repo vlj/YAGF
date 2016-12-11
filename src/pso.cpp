@@ -20,7 +20,7 @@ const auto sunlight_vert_code = std::vector<uint32_t>
 ;
 
 const auto sunlight_frag_code = std::vector<uint32_t>
-#include <generatedShaders\skybox_frag.h>
+#include <generatedShaders\sunlight.h>
 ;
 
 const auto ibl_frag_code = std::vector<uint32_t>
