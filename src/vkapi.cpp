@@ -433,6 +433,8 @@ std::unique_ptr<image_t> vk_device_t::create_image(irr::video::ECOLOR_FORMAT for
 			result |= vk::ImageUsageFlagBits::eColorAttachment;
 		if (flags & usage_input_attachment)
 			result |= vk::ImageUsageFlagBits::eInputAttachment;
+		if (flags & usage_uav)
+			result |= vk::ImageUsageFlagBits::eStorage;
 		return result;
 	};
 
@@ -808,7 +810,7 @@ void vk_command_list_t::bind_graphic_descriptor(uint32_t bindpoint, const alloca
 void vk_command_list_t::bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
 {
 	object.bindDescriptorSets(vk::PipelineBindPoint::eCompute, dynamic_cast<vk_pipeline_layout_t&>(sig).object, bindpoint,
-		{ static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object }, { 0 });
+		{ static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object }, { });
 }
 
 namespace

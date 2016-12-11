@@ -217,7 +217,7 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 	memcpy(tmp, &cube_size, sizeof(int));
 	compute_sh_cbuf->unmap_buffer();
 
-	auto sh_buffer = dev.create_buffer(sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
+	auto sh_buffer = dev.create_buffer(sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav | usage_uniform);
 
 	cmd_list.set_compute_pipeline_layout(*compute_sh_sig);
 	cmd_list.set_descriptor_storage_referenced(*srv_cbv_uav_heap, sampler_heap.get());
@@ -273,7 +273,7 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 			cmd_list.set_pipeline_barrier(*result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
 
 			auto level_face_descriptor = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(face + level * 6 + 28, { uav_set.get() }, 1);
-			uav_views[face + level * 6] = dev.create_image_view(*result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
+			uav_views[face + level * 6] = dev.create_image_view(*result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 			dev.set_uav_image_view(*level_face_descriptor, 0, 3, *uav_views[face + level * 6]);
 
 			cmd_list.bind_compute_descriptor(0, *permutation_matrix_descriptors[face], *importance_sampling_sig);
