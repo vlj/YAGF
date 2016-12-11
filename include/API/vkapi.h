@@ -91,7 +91,7 @@ struct vk_device_t : device_t
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>>& num_descriptors) override;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t * render_pass) override;
-	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set_ &ds) override;
+	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set &ds) override;
 
 	vk::Device object;
 	vk::Instance instance;

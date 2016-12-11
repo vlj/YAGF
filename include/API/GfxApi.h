@@ -175,21 +175,15 @@ struct range_of_descriptors
 	{}
 };
 
-struct descriptor_set_
+struct descriptor_set
 {
-	const range_of_descriptors *descriptors_ranges;
-	const uint32_t count;
-	shader_stage stage;
+	const std::vector<range_of_descriptors> descriptors_ranges;
+	const shader_stage stage;
 
-	constexpr descriptor_set_(const range_of_descriptors * ptr, const uint32_t cnt, shader_stage st) : descriptors_ranges(ptr), count(cnt), stage(st)
+	descriptor_set(const std::initializer_list<range_of_descriptors>& ranges, const shader_stage& st)
+		: descriptors_ranges(ranges), stage(st)
 	{ }
 };
-
-template<size_t N>
-constexpr descriptor_set_ descriptor_set(const range_of_descriptors (&arr)[N], const shader_stage stage)
-{
-	return descriptor_set_(arr, N, stage);
-}
 
 struct pipeline_vertex_attributes
 {
@@ -595,7 +589,7 @@ struct device_t {
 	virtual std::unique_ptr<descriptor_storage_t> create_descriptor_storage(uint32_t num_sets, const std::vector<std::tuple<RESOURCE_VIEW, uint32_t> > &num_descriptors) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
-	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
+	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set &ds) = 0;
 	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description&, const render_pass_t&, const pipeline_layout_t&) = 0;
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&, const pipeline_layout_t&) = 0;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;

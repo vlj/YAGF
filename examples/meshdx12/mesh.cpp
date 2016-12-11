@@ -25,25 +25,24 @@ struct SceneData
 
 namespace
 {
-
 	// (inv)modelmatrix, jointmatrix
-	constexpr auto object_descriptor_set_type = descriptor_set({
+	const auto object_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) },
 		shader_stage::all);
 
-	constexpr auto model_descriptor_set_type = descriptor_set({
+	const auto model_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 2, 1) },
 		shader_stage::fragment_shader);
 
 	// anisotropic, bilinear
-	constexpr auto sampler_descriptor_set_type = descriptor_set({
+	const auto sampler_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 13, 1) },
 		shader_stage::fragment_shader);
 
 	// color, normal, roughness+metalness, depth
-	constexpr auto input_attachments_descriptor_set_type = descriptor_set({
+	const auto input_attachments_descriptor_set_type = descriptor_set({
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 4, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 5, 1),
 			range_of_descriptors(RESOURCE_VIEW::INPUT_ATTACHMENT, 6, 1),
@@ -51,7 +50,7 @@ namespace
 			shader_stage::fragment_shader);
 
 	// color, normal,roughness+metalness, depth, ssao
-	constexpr auto rtt_descriptor_set_type = descriptor_set({
+	const auto rtt_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 4, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 5, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 6, 1),
@@ -60,14 +59,14 @@ namespace
 		shader_stage::fragment_shader);
 
 	// view/proj matrixes, sunlight data, skybox
-	constexpr auto scene_descriptor_set_type = descriptor_set({
+	const auto scene_descriptor_set_type = descriptor_set({
 			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 7, 1),
 			range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 8, 1),
 			range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 9, 1) },
 			shader_stage::all);
 
 	// IBL data
-	constexpr auto ibl_descriptor_set_type = descriptor_set({
+	const auto ibl_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 10, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 11, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 12, 1) },

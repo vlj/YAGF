@@ -21,34 +21,34 @@ const auto computesh_code = std::vector<uint32_t>
 
 namespace
 {
-	constexpr auto object_descriptor_set_type = descriptor_set({
+	const auto object_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
 		range_of_descriptors(RESOURCE_VIEW::UAV_BUFFER, 2, 1) },
 		shader_stage::all);
 
 
-	constexpr auto face_set_type = descriptor_set({
+	const auto face_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) },
 		shader_stage::all);
 
-	constexpr auto mipmap_set_type = descriptor_set({
+	const auto mipmap_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::TEXEL_BUFFER, 2, 1),
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 5, 1) },
 		shader_stage::all);
 
-	constexpr auto uav_set_type = descriptor_set({
+	const auto uav_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 3, 1) },
 		shader_stage::all);
 
-	constexpr auto dfg_input = descriptor_set({
+	const auto dfg_input = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::TEXEL_BUFFER, 1, 1),
 		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 2, 1) },
 		shader_stage::all);
 
-	constexpr auto sampler_descriptor_set_type = descriptor_set({
+	const auto sampler_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1) },
 		shader_stage::fragment_shader);
 
