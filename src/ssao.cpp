@@ -162,14 +162,14 @@ namespace
 	{
 		auto pso_desc = compute_pipeline_state_description{}
 			.set_compute_shader(gaussian_h_code);
-		return dev.create_compute_pso(pso_desc);
+		return dev.create_compute_pso(pso_desc, layout);
 	}
 
 	auto get_gaussian_v_pso(device_t& dev, pipeline_layout_t& layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
 		.set_compute_shader(gaussian_v_code);
-		return dev.create_compute_pso(pso_desc);
+		return dev.create_compute_pso(pso_desc, layout);
 	}
 
 	auto create_render_pass(device_t& dev)

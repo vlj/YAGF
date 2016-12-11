@@ -597,7 +597,7 @@ struct device_t {
 	virtual std::unique_ptr<framebuffer_t> create_frame_buffer(gsl::span<const image_view_t*> render_targets, const image_view_t& depth_stencil_texture, uint32_t width, uint32_t height, render_pass_t* render_pass) = 0;
 	virtual std::unique_ptr<descriptor_set_layout> get_object_descriptor_set(const descriptor_set_ &ds) = 0;
 	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description&, const render_pass_t&, const pipeline_layout_t&) = 0;
-	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&) = 0;
+	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&, const pipeline_layout_t&) = 0;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
 
 

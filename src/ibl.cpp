@@ -56,21 +56,21 @@ namespace
 	{
 		auto pso_desc = compute_pipeline_state_description{}
 			.set_compute_shader(computesh_code);
-		return dev.create_compute_pso(pso_desc);
+		return dev.create_compute_pso(pso_desc, pipeline_layout);
 	}
 
 	auto ImportanceSamplingForSpecularCubemap(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
 			.set_compute_shader(importance_sampling_specular_code);
-		return dev.create_compute_pso(pso_desc);
+		return dev.create_compute_pso(pso_desc, pipeline_layout);
 	}
 
 	auto dfg_building_pso(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
 		auto pso_desc = compute_pipeline_state_description{}
 			.set_compute_shader(dfg_code);
-		return dev.create_compute_pso(pso_desc);
+		return dev.create_compute_pso(pso_desc, pipeline_layout);
 	}
 
 	auto getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)

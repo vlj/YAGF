@@ -1118,9 +1118,19 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 	return std::unique_ptr<pipeline_state_t>(new vk_pipeline_state_t(object, pso));
 }
 
-std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const compute_pipeline_state_description &)
+std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(const compute_pipeline_state_description &pso_desc, const pipeline_layout_t& layout)
 {
-	return std::unique_ptr<compute_pipeline_state_t>();
+	const auto& module = shader_module(object, pso_desc.compute_binary);
+	auto&& result = object.createComputePipeline(vk::PipelineCache{},
+		vk::ComputePipelineCreateInfo{}
+			.setStage(vk::PipelineShaderStageCreateInfo{}
+				.setModule(module.object)
+				.setPName("main")
+				.setStage(vk::ShaderStageFlagBits::eCompute)
+			)
+			.setLayout(dynamic_cast<const vk_pipeline_layout_t&>(layout).object)
+	);
+	return std::unique_ptr<compute_pipeline_state_t>(new vk_compute_pipeline_state_t(object, result));
 }
 
 std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span<const descriptor_set_layout*> sets)
