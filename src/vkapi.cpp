@@ -97,26 +97,6 @@ namespace
 		}
 		throw;
 	}
-
-	VkImageUsageFlags get_image_usage_flag(uint32_t flags)
-	{
-		VkImageUsageFlags result = 0;
-		if (flags & usage_depth_stencil)
-			result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		if (flags & usage_render_target)
-			result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		if (flags & usage_transfer_src)
-			result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		if (flags & usage_transfer_dst)
-			result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		if (flags & usage_input_attachment)
-			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-		if (flags & usage_sampled)
-			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
-//		if (flags & usage_uav)
-//			result |= VK_IMAGE_USAGE_STORAGE_BIT;
-		return result;
-	}
 }
 
 std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window)
@@ -1001,7 +981,7 @@ namespace
 	};
 }
 
-std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &pso_desc, const render_pass_t& render_pass, const pipeline_layout_t& layout)
+std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_pipeline_state_description &pso_desc, const render_pass_t& render_pass, const pipeline_layout_t& layout, const uint32_t& subpass)
 {
 	const blend_state blend = blend_state::get();
 
@@ -1108,7 +1088,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			.setLayout(dynamic_cast<const vk_pipeline_layout_t&>(layout).object)
 			.setPTessellationState(&tesselation_info)
 			.setPDynamicState(&dynamic_state_info)
-			.setSubpass(0)
+			.setSubpass(subpass)
 			.setStageCount(static_cast<uint32_t>(shader_stages.size()))
 			.setPStages(shader_stages.data())
 			.setPVertexInputState(&vertex_input)
@@ -1250,6 +1230,10 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const ir
 		vk::AttachmentReference{2, vk::ImageLayout::eColorAttachmentOptimal}
 	};
 
+	const auto& ibl_subpass_attachments = std::array<vk::AttachmentReference, 1> {
+		vk::AttachmentReference{ 0, vk::ImageLayout::eColorAttachmentOptimal }
+	};
+
 	const auto& ibl_subpass_input_attachements = std::array<vk::AttachmentReference, 4> {
 		vk::AttachmentReference{ 0, vk::ImageLayout::eShaderReadOnlyOptimal },
 		vk::AttachmentReference{ 1, vk::ImageLayout::eShaderReadOnlyOptimal },
@@ -1268,6 +1252,8 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const ir
 			.setPDepthStencilAttachment(&depthAttachments),
 		// Sunlight pass IBL pass
 		vk::SubpassDescription{}
+			.setPColorAttachments(ibl_subpass_attachments.data())
+			.setColorAttachmentCount(static_cast<uint32_t>(ibl_subpass_attachments.size()))
 			.setPInputAttachments(ibl_subpass_input_attachements.data())
 			.setInputAttachmentCount(static_cast<uint32_t>(ibl_subpass_input_attachements.size()))
 			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)

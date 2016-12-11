@@ -107,7 +107,7 @@ namespace
 		CHECK_HRESULT(dev->CreateGraphicsPipelineState(&psodesc, IID_PPV_ARGS(result.GetAddressOf())));
 		return result;
 #else
-		return dev.create_graphic_pso(pso_desc, rp, layout);
+		return dev.create_graphic_pso(pso_desc, rp, layout, 0);
 /*	const blend_state blend = blend_state::get();
 
 		VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
@@ -155,7 +155,7 @@ namespace
 			.set_vertex_shader(sunlight_vert_code)
 			.set_fragment_shader(ssao_code)
 			.set_vertex_attributes(attribs);
-		return dev.create_graphic_pso(pso_desc, rp, layout);
+		return dev.create_graphic_pso(pso_desc, rp, layout, 0);
 	}
 
 	auto get_gaussian_h_pso(device_t& dev, pipeline_layout_t& layout)
