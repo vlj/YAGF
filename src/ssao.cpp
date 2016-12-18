@@ -174,27 +174,7 @@ namespace
 
 	auto create_render_pass(device_t& dev)
 	{
-		std::unique_ptr<render_pass_t> result;
-#ifdef D3D12
-		result.reset(new render_pass_t(dev,
-		{
-			structures::attachment_description(VK_FORMAT_R32_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-			structures::attachment_description(VK_FORMAT_R16_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-	},
-	{
-		// Linearize depth pass
-		subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-			.set_color_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } }),
-		// SSAO pass
-		subpass_description::generate_subpass_description(VK_PIPELINE_BIND_POINT_GRAPHICS)
-			.set_color_attachments({ VkAttachmentReference{ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } })
-			.set_input_attachments({ VkAttachmentReference{ 0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } })
-	},
-	{
-		get_subpass_dependency(0, 1, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT),
-	}));
-#endif // !D3D12
-		return result;
+		return dev.create_ssao_pass();
 	}
 }
 

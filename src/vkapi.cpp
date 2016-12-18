@@ -1283,3 +1283,71 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const ir
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
 
+std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
+{
+	const auto& attachments = std::array<vk::AttachmentDescription, 2>{
+		vk::AttachmentDescription{}
+			.setFormat(vk::Format::eR32Sfloat)
+			.setLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
+			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+			.setSamples(vk::SampleCountFlagBits::e1),
+		vk::AttachmentDescription{}
+			.setFormat(vk::Format::eR16Sfloat)
+			.setLoadOp(vk::AttachmentLoadOp::eClear)
+			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
+			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+			.setSamples(vk::SampleCountFlagBits::e1)
+	};
+
+	const auto& lineardepth_subpass_attachments = std::array<vk::AttachmentReference, 1> {
+		vk::AttachmentReference{ 0, vk::ImageLayout::eColorAttachmentOptimal }
+	};
+
+	const auto& ssao_subpass_attachments = std::array<vk::AttachmentReference, 1> {
+		vk::AttachmentReference{ 1, vk::ImageLayout::eColorAttachmentOptimal }
+	};
+
+	const auto& ssao_subpass_input = std::array<vk::AttachmentReference, 1> {
+		vk::AttachmentReference{ 0, vk::ImageLayout::eShaderReadOnlyOptimal }
+	};
+
+	const auto& subpasses = std::array<vk::SubpassDescription, 2> {
+		// Linearize depth
+		vk::SubpassDescription{}
+			.setPColorAttachments(lineardepth_subpass_attachments.data())
+			.setColorAttachmentCount(static_cast<uint32_t>(lineardepth_subpass_attachments.size()))
+			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics),
+		// SSAO
+		vk::SubpassDescription{}
+			.setPColorAttachments(ssao_subpass_attachments.data())
+			.setColorAttachmentCount(static_cast<uint32_t>(ssao_subpass_attachments.size()))
+			.setPInputAttachments(ssao_subpass_input.data())
+			.setInputAttachmentCount(static_cast<uint32_t>(ssao_subpass_input.size()))
+			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+	};
+
+	const auto& dependencies = std::array<vk::SubpassDependency, 1> {
+		vk::SubpassDependency{}
+			.setSrcSubpass(0)
+			.setDstSubpass(1)
+			.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+			.setDstStageMask(vk::PipelineStageFlagBits::eFragmentShader)
+			.setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
+			.setDstAccessMask(vk::AccessFlagBits::eShaderRead)
+	};
+
+	auto&& result = object.createRenderPass(
+		vk::RenderPassCreateInfo{}
+		.setPAttachments(attachments.data())
+		.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
+		.setPSubpasses(subpasses.data())
+		.setSubpassCount(static_cast<uint32_t>(subpasses.size()))
+		.setPDependencies(dependencies.data())
+		.setDependencyCount(static_cast<uint32_t>(dependencies.size()))
+	);
+	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
+}
+
