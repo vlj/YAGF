@@ -76,7 +76,8 @@ namespace
 		auto pso_desc = graphic_pipeline_state_description::get()
 			.set_vertex_shader(sunlight_vert_code)
 			.set_fragment_shader(linearize_depth_code)
-			.set_vertex_attributes(attribs);
+			.set_vertex_attributes(attribs)
+			.set_color_outputs(std::vector<color_output>{ {false} });
 #ifdef D3D12
 		pipeline_state_t result;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc(get_pipeline_state_desc(pso_desc));
@@ -154,8 +155,9 @@ namespace
 		auto pso_desc = graphic_pipeline_state_description::get()
 			.set_vertex_shader(sunlight_vert_code)
 			.set_fragment_shader(ssao_code)
-			.set_vertex_attributes(attribs);
-		return dev.create_graphic_pso(pso_desc, rp, layout, 0);
+			.set_vertex_attributes(attribs)
+			.set_color_outputs(std::vector<color_output>{ {false} });
+		return dev.create_graphic_pso(pso_desc, rp, layout, 1);
 	}
 
 	auto get_gaussian_h_pso(device_t& dev, pipeline_layout_t& layout)
@@ -252,7 +254,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 		width, height);
 	cmd_list.set_graphic_pipeline(*linearize_depth_pso);
 	cmd_list.bind_graphic_descriptor(0, *linearize_input, *linearize_depth_sig);
-	cmd_list.bind_graphic_descriptor(1, *sampler_input, *ssao_sig);
+	cmd_list.bind_graphic_descriptor(1, *sampler_input, *linearize_depth_sig);
 	cmd_list.bind_vertex_buffers(0, big_triangle_info);
 	cmd_list.draw_non_indexed(3, 1, 0, 0);
 

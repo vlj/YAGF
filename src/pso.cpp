@@ -93,16 +93,6 @@ std::unique_ptr<pipeline_state_t> get_skinned_object_pipeline_state(device_t& de
 		.set_color_outputs(std::vector<color_output>{ {false}, {false}, {false} });
 
 	return dev.create_graphic_pso(pso_desc, rp, layout, 0);
-
-	/*	const std::vector<VkPipelineColorBlendAttachmentState> pipeline_attachments
-	{
-	VkPipelineColorBlendAttachmentState{false, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_COMPONENT_SWIZZLE_R | VK_COMPONENT_SWIZZLE_G | VK_COMPONENT_SWIZZLE_B| VK_COMPONENT_SWIZZLE_A },
-	VkPipelineColorBlendAttachmentState{false, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_COMPONENT_SWIZZLE_R | VK_COMPONENT_SWIZZLE_G | VK_COMPONENT_SWIZZLE_B | VK_COMPONENT_SWIZZLE_A },
-	VkPipelineColorBlendAttachmentState{ false, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_COMPONENT_SWIZZLE_R | VK_COMPONENT_SWIZZLE_G | VK_COMPONENT_SWIZZLE_B | VK_COMPONENT_SWIZZLE_A },
-	};
-	VkPipelineColorBlendStateCreateInfo blend{
-	VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, false, VK_LOGIC_OP_NO_OP, 3, pipeline_attachments.data()
-	};*/
 }
 
 
@@ -145,7 +135,8 @@ std::unique_ptr<pipeline_state_t> get_sunlight_pipeline_state(device_t& dev, pip
 		.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
-	});
+		})
+		.set_color_outputs(std::vector<color_output>{ {false} });
 	return dev.create_graphic_pso(pso_desc, rp, layout, 1);
 }
 
@@ -196,7 +187,8 @@ std::unique_ptr<pipeline_state_t> get_ibl_pipeline_state(device_t& dev, pipeline
 		.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
-	});
+		})
+		.set_color_outputs(std::vector<color_output>{ {true} });
 
 	return dev.create_graphic_pso(pso_desc, rp, layout, 0);
 
@@ -244,6 +236,7 @@ std::unique_ptr<pipeline_state_t> get_skybox_pipeline_state(device_t& dev, pipel
 		.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
-	});
+		})
+		.set_color_outputs(std::vector<color_output>{ {false} });
 	return dev.create_graphic_pso(pso_desc, rp, layout, 1);
 }

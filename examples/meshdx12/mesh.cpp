@@ -201,7 +201,7 @@ void MeshSample::fill_descriptor_set()
 	depth_view = dev->create_image_view(*depth_buffer, irr::video::D24U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
 
 	// scene
-//	dev->set_image_view(*scene_descriptor, 2, 9, *skybox_view);
+	dev->set_image_view(*scene_descriptor, 2, 9, *skybox_view);
 	dev->set_constant_buffer_view(*scene_descriptor, 0, 7, *scene_matrix, sizeof(SceneData));
 	dev->set_constant_buffer_view(*scene_descriptor, 1, 8, *sun_data, sizeof(7 * sizeof(float)));
 
@@ -209,7 +209,7 @@ void MeshSample::fill_descriptor_set()
 	dev->set_input_attachment(*input_attachments_descriptors, 0, 4, *diffuse_color_view);
 	dev->set_input_attachment(*input_attachments_descriptors, 1, 5, *normal_view);
 	dev->set_input_attachment(*input_attachments_descriptors, 2, 14, *roughness_metalness_view);
-//	dev->set_input_attachment(*input_attachments_descriptors, 3, 6, *depth_view);
+	dev->set_input_attachment(*input_attachments_descriptors, 3, 6, *depth_view);
 
 	dev->set_image_view(*rtt_descriptors, 0, 4, *diffuse_color_view);
 	dev->set_image_view(*rtt_descriptors, 1, 5, *normal_view);
