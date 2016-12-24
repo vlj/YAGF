@@ -123,6 +123,7 @@ public:
 		while (!glfwWindowShouldClose(window))
 		{
 			glfwPollEvents();
+			Draw();
 			// Keep running
 		}
 		glfwDestroyWindow(window);
