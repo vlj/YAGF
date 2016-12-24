@@ -194,6 +194,11 @@ struct pipeline_vertex_attributes
 	uint32_t offset;
 };
 
+struct color_output
+{
+	bool blend;
+};
+
 struct compute_pipeline_state_description
 {
 	std::vector<uint32_t> compute_binary;
@@ -212,6 +217,7 @@ struct graphic_pipeline_state_description
 
 
 	std::vector<pipeline_vertex_attributes> attributes;
+	std::vector<color_output> color_outputs;
 
 	bool rasterization_depth_clamp_enable;
 	bool rasterization_discard_enable;
@@ -386,6 +392,12 @@ struct graphic_pipeline_state_description
 	graphic_pipeline_state_description set_vertex_attributes(const gsl::span<pipeline_vertex_attributes> &attributes_)
 	{
 		attributes = std::vector<pipeline_vertex_attributes>(attributes_.begin(), attributes_.end());
+		return *this;
+	}
+
+	graphic_pipeline_state_description set_color_outputs(const gsl::span<color_output> &color_outputs_)
+	{
+		color_outputs = std::vector<color_output>(color_outputs_.begin(), color_outputs_.end());
 		return *this;
 	}
 

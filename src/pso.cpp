@@ -89,7 +89,8 @@ std::unique_ptr<pipeline_state_t> get_skinned_object_pipeline_state(device_t& de
 		pipeline_vertex_attributes{ 0, irr::video::ECF_R32G32B32F, 0, sizeof(aiVector3D), 0 },
 			pipeline_vertex_attributes{ 1, irr::video::ECF_R32G32B32F, 1, sizeof(aiVector3D), 0 },
 			pipeline_vertex_attributes{ 2, irr::video::ECF_R32G32F, 2, sizeof(aiVector3D), 0 }
-	});
+		})
+		.set_color_outputs(std::vector<color_output>{ {false}, {false}, {false} });
 
 	return dev.create_graphic_pso(pso_desc, rp, layout, 0);
 

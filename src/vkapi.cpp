@@ -987,11 +987,17 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 {
 	const blend_state blend = blend_state::get();
 
-	const auto& attachments = std::vector<vk::PipelineColorBlendAttachmentState>{
-		vk::PipelineColorBlendAttachmentState{}
-			.setBlendEnable(false)
-			.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eR)
-	};
+	const auto& attachments = [&]() {
+		auto&& result = std::vector<vk::PipelineColorBlendAttachmentState>{};
+		std::transform(pso_desc.color_outputs.begin(), pso_desc.color_outputs.end(), std::back_inserter(result),
+			[](const auto& color_output)
+			{
+				return vk::PipelineColorBlendAttachmentState{}
+					.setBlendEnable(color_output.blend)
+					.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eR);
+			});
+		return result;
+	}();
 
 	const auto color_blend = vk::PipelineColorBlendStateCreateInfo{}
 		.setPAttachments(attachments.data())
