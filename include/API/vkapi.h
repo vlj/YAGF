@@ -16,7 +16,7 @@
 
 #include "..\VKAPI\vulkan_helpers.h"
 
-struct vk_command_list_storage_t : command_list_storage_t
+struct vk_command_list_storage_t final: command_list_storage_t
 {
 	virtual std::unique_ptr<command_list_t> create_command_list() override;
 	virtual void reset_command_list_storage() override;
@@ -33,7 +33,7 @@ private:
 	vk::CommandPool object;
 };
 
-struct vk_command_list_t : command_list_t
+struct vk_command_list_t final: command_list_t
 {
 	virtual void bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig) override;
 	virtual void bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig) override;
@@ -68,7 +68,7 @@ struct vk_command_list_t : command_list_t
 		uint32_t width, uint32_t height) override;
 };
 
-struct vk_device_t : device_t
+struct vk_device_t final: device_t
 {
 	vk_device_t(vk::Device _dev) : object(_dev)
 	{}
@@ -113,7 +113,7 @@ struct vk_device_t : device_t
 	virtual std::unique_ptr<semaphore_t> create_semaphore() override;
 };
 
-struct vk_command_queue_t : command_queue_t
+struct vk_command_queue_t final: command_queue_t
 {
 	vk_command_queue_t(vk::Queue _object) : object(_object)
 	{}
@@ -124,7 +124,7 @@ struct vk_command_queue_t : command_queue_t
 	vk::Queue object;
 };
 
-struct vk_buffer_t : buffer_t
+struct vk_buffer_t final: buffer_t
 {
 	virtual void * map_buffer() override;
 	virtual void unmap_buffer() override;
@@ -138,7 +138,7 @@ struct vk_buffer_t : buffer_t
 	vk::Device dev;
 };
 
-struct vk_image_t : image_t
+struct vk_image_t final: image_t
 {
 	vk_image_t(vk::Device _dev, vk::Image _object, vk::DeviceMemory _memory, uint32_t _mip_levels)
 		: object(_object), dev(_dev), memory(_memory), mip_levels(_mip_levels)
@@ -150,10 +150,13 @@ struct vk_image_t : image_t
 	uint32_t mip_levels;
 };
 
-struct vk_semaphore_t : semaphore_t
+struct vk_semaphore_t final: semaphore_t
 {
 	vk::Semaphore object;
 	vk::Device dev;
+
+	vk_semaphore_t(vk::Device _dev, vk::Semaphore _object) : dev(_dev), object(_object)
+	{}
 
 	virtual ~vk_semaphore_t()
 	{
@@ -161,10 +164,13 @@ struct vk_semaphore_t : semaphore_t
 	}
 };
 
-struct vk_fence_t : fence_t
+struct vk_fence_t final: fence_t
 {
 	vk::Fence object;
 	vk::Device dev;
+
+	vk_fence_t(vk::Device _dev, vk::Fence _object) : dev(_dev), object(_object)
+	{}
 
 	virtual ~vk_fence_t()
 	{
@@ -172,7 +178,7 @@ struct vk_fence_t : fence_t
 	}
 };
 
-struct vk_descriptor_storage_t : descriptor_storage_t {
+struct vk_descriptor_storage_t final: descriptor_storage_t {
 	vk_descriptor_storage_t(vk::Device _dev, vk::DescriptorPool _object)
 		: object(_object), dev(_dev)
 	{}
@@ -189,7 +195,7 @@ struct vk_descriptor_storage_t : descriptor_storage_t {
 	}
 };
 
-struct vk_pipeline_state_t : pipeline_state_t {
+struct vk_pipeline_state_t final: pipeline_state_t {
 	vk::Pipeline object;
 	vk::Device dev;
 
@@ -202,7 +208,7 @@ struct vk_pipeline_state_t : pipeline_state_t {
 	}
 };
 
-struct vk_compute_pipeline_state_t : compute_pipeline_state_t {
+struct vk_compute_pipeline_state_t final: compute_pipeline_state_t {
 	vk::Pipeline object;
 	vk::Device dev;
 
@@ -215,7 +221,7 @@ struct vk_compute_pipeline_state_t : compute_pipeline_state_t {
 	}
 };
 
-struct vk_pipeline_layout_t : pipeline_layout_t
+struct vk_pipeline_layout_t final: pipeline_layout_t
 {
 	vk::PipelineLayout object;
 	vk::Device dev;
@@ -229,7 +235,7 @@ struct vk_pipeline_layout_t : pipeline_layout_t
 	}
 };
 
-struct vk_swap_chain_t : swap_chain_t
+struct vk_swap_chain_t final: swap_chain_t
 {
 	vk_swap_chain_t(vk::Device _dev, vk::SwapchainKHR _object) : dev(_dev), object(_object)
 	{}
@@ -242,7 +248,7 @@ struct vk_swap_chain_t : swap_chain_t
 	virtual void present(command_queue_t & cmdqueue, uint32_t backbuffer_index) override;
 };
 
-struct vk_render_pass_t : render_pass_t {
+struct vk_render_pass_t final: render_pass_t {
 	vk::RenderPass object;
 	vk::Device dev;
 
@@ -256,14 +262,14 @@ struct vk_render_pass_t : render_pass_t {
 	}
 };
 
-struct vk_allocated_descriptor_set : allocated_descriptor_set {
+struct vk_allocated_descriptor_set final: allocated_descriptor_set {
 	vk_allocated_descriptor_set(vk::DescriptorSet _object) : object(_object)
 	{}
 
 	vk::DescriptorSet object;
 };
 
-struct vk_descriptor_set_layout : descriptor_set_layout {
+struct vk_descriptor_set_layout final: descriptor_set_layout {
 	vk::DescriptorSetLayout object;
 	vk::Device dev;
 
@@ -276,7 +282,7 @@ struct vk_descriptor_set_layout : descriptor_set_layout {
 	}
 };
 
-struct vk_image_view_t : image_view_t {
+struct vk_image_view_t final: image_view_t {
 	virtual ~vk_image_view_t() {
 		dev.destroyImageView(object);
 	}
@@ -287,7 +293,7 @@ struct vk_image_view_t : image_view_t {
 	vk::ImageView object;
 };
 
-struct vk_sampler_t : sampler_t {
+struct vk_sampler_t final: sampler_t {
 	vk_sampler_t(vk::Device _dev, vk::Sampler _object) : dev(_dev), object(_object)
 	{}
 
@@ -295,7 +301,7 @@ struct vk_sampler_t : sampler_t {
 	vk::Device dev;
 };
 
-struct vk_buffer_view_t : buffer_view_t {
+struct vk_buffer_view_t final: buffer_view_t {
 	vk::BufferView object;
 	vk::Device dev;
 
@@ -308,7 +314,7 @@ struct vk_buffer_view_t : buffer_view_t {
 	}
 };
 
-struct vk_framebuffer : framebuffer_t
+struct vk_framebuffer final: framebuffer_t
 {
 	vk::Framebuffer object;
 	vk::Device dev;

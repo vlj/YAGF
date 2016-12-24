@@ -1365,6 +1365,6 @@ std::unique_ptr<fence_t> vk_device_t::create_fence()
 
 std::unique_ptr<semaphore_t> vk_device_t::create_semaphore()
 {
-	return std::unique_ptr<semaphore_t>();
+	auto&& semaphore = object.createSemaphore(vk::SemaphoreCreateInfo{});
+	return std::unique_ptr<semaphore_t>(new vk_semaphore_t(object, semaphore));
 }
-
