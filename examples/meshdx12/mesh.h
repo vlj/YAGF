@@ -39,6 +39,7 @@ private:
 	std::unique_ptr<command_queue_t> cmdqueue;
 	irr::video::ECOLOR_FORMAT swap_chain_format;
 	std::unique_ptr<swap_chain_t> chain;
+	std::unique_ptr<semaphore_t> present_semaphore;
 	std::vector<std::unique_ptr<image_t>> back_buffer;
 	std::vector<std::unique_ptr<image_view_t>> back_buffer_view;
 

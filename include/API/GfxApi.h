@@ -565,6 +565,14 @@ struct command_list_t {
 	virtual void start_command_list_recording(struct command_list_storage_t& storage) = 0;
 };
 
+struct semaphore_t {
+	virtual ~semaphore_t() {};
+};
+
+struct fence_t {
+	virtual ~fence_t() {};
+};
+
 
 struct command_list_storage_t {
 	virtual std::unique_ptr<command_list_t> create_command_list() = 0;
@@ -579,7 +587,7 @@ struct command_queue_t {
 
 struct swap_chain_t {
 	virtual ~swap_chain_t() {}
-	virtual uint32_t get_next_backbuffer_id() = 0;
+	virtual uint32_t get_next_backbuffer_id(semaphore_t& semaphore) = 0;
 	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() = 0;
 	virtual void present(command_queue_t& cmdqueue, uint32_t backbuffer_index) = 0;
 };
@@ -605,7 +613,8 @@ struct device_t {
 	virtual std::unique_ptr<pipeline_state_t> create_graphic_pso(const graphic_pipeline_state_description&, const render_pass_t&, const pipeline_layout_t&, const uint32_t& subpass) = 0;
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description&, const pipeline_layout_t&) = 0;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout *>) = 0;
-
+	virtual std::unique_ptr<fence_t> create_fence() = 0;
+	virtual std::unique_ptr<semaphore_t> create_semaphore() = 0;
 
 	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT&) = 0;
 	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass(const irr::video::ECOLOR_FORMAT&) = 0;

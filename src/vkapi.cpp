@@ -884,9 +884,10 @@ void vk_command_list_t::next_subpass()
 	object.nextSubpass(vk::SubpassContents::eInline);
 }
 
-uint32_t vk_swap_chain_t::get_next_backbuffer_id()
+uint32_t vk_swap_chain_t::get_next_backbuffer_id(semaphore_t& semaphore)
 {
-	return dev.acquireNextImageKHR(object, UINT64_MAX, vk::Semaphore(), vk::Fence()).value;
+	const auto& casted_semaphore = dynamic_cast<vk_semaphore_t&>(semaphore);
+	return dev.acquireNextImageKHR(object, UINT64_MAX, casted_semaphore.object, vk::Fence()).value;
 }
 
 void vk_swap_chain_t::present(command_queue_t& cmdqueue, uint32_t backbuffer_index)
@@ -1355,5 +1356,15 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 		.setDependencyCount(static_cast<uint32_t>(dependencies.size()))
 	);
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
+}
+
+std::unique_ptr<fence_t> vk_device_t::create_fence()
+{
+	return std::unique_ptr<fence_t>();
+}
+
+std::unique_ptr<semaphore_t> vk_device_t::create_semaphore()
+{
+	return std::unique_ptr<semaphore_t>();
 }
 

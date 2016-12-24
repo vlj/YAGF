@@ -106,10 +106,11 @@ struct vk_device_t : device_t
 		instance.destroy();
 	}
 
-	// Hérité via device_t
 	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT&) override;
 	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass(const irr::video::ECOLOR_FORMAT&) override;
 	virtual std::unique_ptr<render_pass_t> create_ssao_pass() override;
+	virtual std::unique_ptr<fence_t> create_fence() override;
+	virtual std::unique_ptr<semaphore_t> create_semaphore() override;
 };
 
 struct vk_command_queue_t : command_queue_t
@@ -147,6 +148,28 @@ struct vk_image_t : image_t
 	vk::DeviceMemory memory;
 	vk::Device dev;
 	uint32_t mip_levels;
+};
+
+struct vk_semaphore_t : semaphore_t
+{
+	vk::Semaphore object;
+	vk::Device dev;
+
+	virtual ~vk_semaphore_t()
+	{
+		dev.destroySemaphore(object);
+	}
+};
+
+struct vk_fence_t : fence_t
+{
+	vk::Fence object;
+	vk::Device dev;
+
+	virtual ~vk_fence_t()
+	{
+		dev.destroyFence(object);
+	}
 };
 
 struct vk_descriptor_storage_t : descriptor_storage_t {
@@ -214,7 +237,7 @@ struct vk_swap_chain_t : swap_chain_t
 	vk::SwapchainKHR object;
 	vk::Device dev;
 
-	virtual uint32_t get_next_backbuffer_id() override;
+	virtual uint32_t get_next_backbuffer_id(semaphore_t& semaphore) override;
 	virtual std::vector<std::unique_ptr<image_t>> get_image_view_from_swap_chain() override;
 	virtual void present(command_queue_t & cmdqueue, uint32_t backbuffer_index) override;
 };
