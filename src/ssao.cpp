@@ -13,7 +13,7 @@ const auto gaussian_v_code = std::vector<uint32_t>
 ;
 
 const auto sunlight_vert_code = std::vector<uint32_t>
-#include <generatedShaders\sunlight.h>
+#include <generatedShaders\screenquad.h>
 ;
 
 const auto ssao_code = std::vector<uint32_t>
@@ -65,13 +65,13 @@ namespace
 	const auto samplers_set_type = descriptor_set(
 		{ range_of_descriptors(RESOURCE_VIEW::SAMPLER, 3, 1),
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1)},
-		shader_stage::fragment_shader);
+		shader_stage::all);
 
 	auto get_linearize_pso(device_t &dev, pipeline_layout_t &layout, render_pass_t& rp)
 	{
 		auto attribs = std::vector<pipeline_vertex_attributes>{
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
-			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
+			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
 		auto pso_desc = graphic_pipeline_state_description::get()
 			.set_vertex_shader(sunlight_vert_code)
@@ -149,7 +149,7 @@ namespace
 	{
 		auto attribs = std::vector<pipeline_vertex_attributes>{
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
-			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
+			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) },
 		};
 		auto pso_desc = graphic_pipeline_state_description::get()
 			.set_vertex_shader(sunlight_vert_code)
@@ -202,8 +202,8 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 	gaussian_input_h = heap->allocate_descriptor_set_from_cbv_srv_uav_heap(4, { gaussian_input_set.get() }, 3);
 	gaussian_input_v = heap->allocate_descriptor_set_from_cbv_srv_uav_heap(7, { gaussian_input_set.get() }, 3);
 
-	linearize_constant_data = dev.create_buffer(sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	ssao_constant_data = dev.create_buffer(sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+	linearize_constant_data = dev.create_buffer(sizeof(linearize_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+	ssao_constant_data = dev.create_buffer(sizeof(ssao_input_constant_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 	clear_value_t clear_value = get_clear_value(irr::video::ECF_R32F, { 0., 0., 0., 0. });
 	linear_depth_buffer = dev.create_image(irr::video::ECF_R32F, width, height, 1, 1, usage_render_target | usage_sampled, &clear_value);
 	clear_value = get_clear_value(irr::video::ECF_R16F, { 0., 0., 0., 0. });

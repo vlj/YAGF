@@ -804,7 +804,7 @@ std::unique_ptr<allocated_descriptor_set> vk_descriptor_storage_t::allocate_desc
 void vk_command_list_t::bind_graphic_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
 {
 	object.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, dynamic_cast<vk_pipeline_layout_t&>(sig).object, bindpoint,
-		{ static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object }, { 0 });
+		{ static_cast<const vk_allocated_descriptor_set&>(descriptor_set).object }, { });
 }
  
 void vk_command_list_t::bind_compute_descriptor(uint32_t bindpoint, const allocated_descriptor_set & descriptor_set, pipeline_layout_t& sig)
