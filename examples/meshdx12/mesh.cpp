@@ -170,6 +170,7 @@ void MeshSample::Init()
 	cmdqueue->wait_for_command_queue_idle();
 
 	fill_draw_commands();
+	present_semaphore = dev->create_semaphore();
 }
 
 void MeshSample::createDescriptorSets()
@@ -248,7 +249,7 @@ MeshSample::MeshSample()
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	window = glfwCreateWindow(640, 480, "Window Title", nullptr, nullptr);
+	window = glfwCreateWindow(1280, 1024, "Window Title", nullptr, nullptr);
 
 	std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) = create_device_swapchain_and_graphic_presentable_queue(window);
 	Init();
@@ -383,7 +384,7 @@ void MeshSample::Draw()
 			memcpy(map_buffer(dev, jointbuffer), loader->AnimatedMesh.JointMatrixes.data(), loader->AnimatedMesh.JointMatrixes.size() * 16 * sizeof(float));*/
 			//unmap_buffer(dev, jointbuffer);
 
-	const auto& current_backbuffer = chain->get_next_backbuffer_id();
+	const auto& current_backbuffer = chain->get_next_backbuffer_id(*present_semaphore);
 	cmdqueue->submit_executable_command_list(*command_list_for_back_buffer[current_backbuffer]);
 	cmdqueue->wait_for_command_queue_idle();
 	chain->present(*cmdqueue, current_backbuffer);
