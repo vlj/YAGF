@@ -848,13 +848,22 @@ void vk_command_list_t::bind_vertex_buffers(uint32_t first_bind, const std::vect
 	object.bindVertexBuffers(first_bind, pbuffers, poffsets);
 }
 
-void vk_command_queue_t::submit_executable_command_list(command_list_t& command_list)
+void vk_command_queue_t::submit_executable_command_list(command_list_t& command_list, semaphore_t* wait_sem)
 {
 	std::array<vk::CommandBuffer, 1> command_buffers{ dynamic_cast<vk_command_list_t&>(command_list).object };
+	const auto& wait_semaphores = wait_sem != nullptr ?
+		std::vector<vk::Semaphore>{ dynamic_cast<vk_semaphore_t*>(wait_sem)->object } :
+		std::vector<vk::Semaphore>{};
+	const auto& wait_stages = wait_sem != nullptr ?
+		std::vector<vk::PipelineStageFlags> {vk::PipelineStageFlagBits::eTopOfPipe} :
+		std::vector<vk::PipelineStageFlags>{};
 	object.submit({
 		vk::SubmitInfo{}
 			.setCommandBufferCount(static_cast<uint32_t>(command_buffers.size()))
 			.setPCommandBuffers(command_buffers.data())
+			.setWaitSemaphoreCount(static_cast<uint32_t>(wait_semaphores.size()))
+			.setPWaitSemaphores(wait_semaphores.data())
+			.setPWaitDstStageMask(wait_stages.data())
 	}, vk::Fence());
 }
 

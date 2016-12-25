@@ -8,6 +8,7 @@
 #include <memory>
 #include <gsl/gsl>
 #include <variant>
+#include <optional>
 #include "..\Core\SColor.h"
 
 namespace irr
@@ -581,7 +582,7 @@ struct command_list_storage_t {
 };
 
 struct command_queue_t {
-	virtual void submit_executable_command_list(command_list_t& command_list) = 0;
+	virtual void submit_executable_command_list(command_list_t& command_list, semaphore_t* wait_sem) = 0;
 	virtual void wait_for_command_queue_idle() = 0;
 };
 

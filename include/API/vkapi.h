@@ -118,7 +118,7 @@ struct vk_command_queue_t final: command_queue_t
 	vk_command_queue_t(vk::Queue _object) : object(_object)
 	{}
 
-	virtual void submit_executable_command_list(command_list_t & command_list) override;
+	virtual void submit_executable_command_list(command_list_t & command_list, semaphore_t* wait_sem) override;
 	virtual void wait_for_command_queue_idle() override;
 
 	vk::Queue object;

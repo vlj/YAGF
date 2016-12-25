@@ -142,7 +142,7 @@ void MeshSample::Init()
 	big_triangle_info = { { *big_triangle, 0, 4 * static_cast<uint32_t>(sizeof(float)), 4 * 3 * static_cast<uint32_t>(sizeof(float)) } };
 
 	command_list->make_command_list_executable();
-	cmdqueue->submit_executable_command_list(*command_list);
+	cmdqueue->submit_executable_command_list(*command_list, nullptr);
 	cmdqueue->wait_for_command_queue_idle();
 	//ibl
 	ibl_utility ibl_util(*dev);
@@ -166,7 +166,7 @@ void MeshSample::Init()
 	command_list->set_pipeline_barrier(*ssao_util->gaussian_blurring_buffer, RESOURCE_USAGE::undefined, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->set_pipeline_barrier(*ssao_util->ssao_bilinear_result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 	command_list->make_command_list_executable();
-	cmdqueue->submit_executable_command_list(*command_list);
+	cmdqueue->submit_executable_command_list(*command_list, nullptr);
 	cmdqueue->wait_for_command_queue_idle();
 
 	fill_draw_commands();
@@ -385,7 +385,7 @@ void MeshSample::Draw()
 			//unmap_buffer(dev, jointbuffer);
 
 	const auto& current_backbuffer = chain->get_next_backbuffer_id(*present_semaphore);
-	cmdqueue->submit_executable_command_list(*command_list_for_back_buffer[current_backbuffer]);
+	cmdqueue->submit_executable_command_list(*command_list_for_back_buffer[current_backbuffer], present_semaphore.get());
 	cmdqueue->wait_for_command_queue_idle();
 	chain->present(*cmdqueue, current_backbuffer);
 }
