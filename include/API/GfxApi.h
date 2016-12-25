@@ -541,6 +541,8 @@ struct descriptor_set_layout {
 struct buffer_t {
 	virtual void* map_buffer() = 0;
 	virtual void unmap_buffer() = 0;
+
+	virtual ~buffer_t() {}
 };
 
 struct image_t {
@@ -550,6 +552,7 @@ struct image_t {
 struct descriptor_storage_t {
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) = 0;
+	virtual ~descriptor_storage_t() {};
 };
 
 struct command_list_t {

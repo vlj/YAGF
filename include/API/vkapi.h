@@ -100,7 +100,7 @@ struct vk_device_t final: device_t
 	virtual std::unique_ptr<compute_pipeline_state_t> create_compute_pso(const compute_pipeline_state_description &, const pipeline_layout_t&) override;
 	virtual std::unique_ptr<pipeline_layout_t> create_pipeline_layout(gsl::span<const descriptor_set_layout*>) override;
 
-	virtual ~vk_device_t()
+	virtual ~vk_device_t() override
 	{
 		object.destroy();
 		instance.destroy();
@@ -133,6 +133,12 @@ struct vk_buffer_t final: buffer_t
 		: object(_object), dev(_dev), memory(_memory)
 	{}
 
+	virtual ~vk_buffer_t() override
+	{
+		dev.destroyBuffer(object);
+		dev.freeMemory(memory);
+	}
+
 	vk::Buffer object;
 	vk::DeviceMemory memory;
 	vk::Device dev;
@@ -143,6 +149,12 @@ struct vk_image_t final: image_t
 	vk_image_t(vk::Device _dev, vk::Image _object, vk::DeviceMemory _memory, uint32_t _mip_levels)
 		: object(_object), dev(_dev), memory(_memory), mip_levels(_mip_levels)
 	{}
+
+	virtual ~vk_image_t() override  {
+		if (memory.operator VkDeviceMemory() == VK_NULL_HANDLE) return;
+		dev.destroyImage(object);
+		dev.freeMemory(memory);
+	}
 
 	vk::Image object;
 	vk::DeviceMemory memory;
@@ -158,7 +170,7 @@ struct vk_semaphore_t final: semaphore_t
 	vk_semaphore_t(vk::Device _dev, vk::Semaphore _object) : dev(_dev), object(_object)
 	{}
 
-	virtual ~vk_semaphore_t()
+	virtual ~vk_semaphore_t() override
 	{
 		dev.destroySemaphore(object);
 	}
@@ -172,7 +184,7 @@ struct vk_fence_t final: fence_t
 	vk_fence_t(vk::Device _dev, vk::Fence _object) : dev(_dev), object(_object)
 	{}
 
-	virtual ~vk_fence_t()
+	virtual ~vk_fence_t() override
 	{
 		dev.destroyFence(object);
 	}
@@ -189,7 +201,7 @@ struct vk_descriptor_storage_t final: descriptor_storage_t {
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_cbv_srv_uav_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) override;
 	virtual std::unique_ptr<allocated_descriptor_set> allocate_descriptor_set_from_sampler_heap(uint32_t starting_index, const std::vector<descriptor_set_layout*> layouts, uint32_t descriptors_count) override;
 
-	virtual ~vk_descriptor_storage_t()
+	virtual ~vk_descriptor_storage_t () override
 	{
 		dev.destroyDescriptorPool(object);
 	}
@@ -202,7 +214,7 @@ struct vk_pipeline_state_t final: pipeline_state_t {
 	vk_pipeline_state_t(vk::Device _dev, vk::Pipeline pso) : dev(_dev), object(pso)
 	{}
 
-	virtual ~vk_pipeline_state_t()
+	virtual ~vk_pipeline_state_t() override
 	{
 		dev.destroyPipeline(object);
 	}
@@ -215,7 +227,7 @@ struct vk_compute_pipeline_state_t final: compute_pipeline_state_t {
 	vk_compute_pipeline_state_t(vk::Device _dev, vk::Pipeline pso) : dev(_dev), object(pso)
 	{}
 
-	virtual ~vk_compute_pipeline_state_t()
+	virtual ~vk_compute_pipeline_state_t() override
 	{
 		dev.destroyPipeline(object);
 	}
@@ -230,7 +242,7 @@ struct vk_pipeline_layout_t final: pipeline_layout_t
 		: dev(_dev), object(_object)
 	{}
 
-	~vk_pipeline_layout_t() {
+	~vk_pipeline_layout_t() override {
 		dev.destroyPipelineLayout(object);
 	}
 };
@@ -239,6 +251,11 @@ struct vk_swap_chain_t final: swap_chain_t
 {
 	vk_swap_chain_t(vk::Device _dev, vk::SwapchainKHR _object) : dev(_dev), object(_object)
 	{}
+
+	virtual ~vk_swap_chain_t() override
+	{
+		dev.destroySwapchainKHR(object);
+	}
 
 	vk::SwapchainKHR object;
 	vk::Device dev;
@@ -256,7 +273,7 @@ struct vk_render_pass_t final: render_pass_t {
 		: dev(_dev), object(_object)
 	{}
 
-	~vk_render_pass_t()
+	~vk_render_pass_t() override
 	{
 		dev.destroyRenderPass(object);
 	}
@@ -276,14 +293,14 @@ struct vk_descriptor_set_layout final: descriptor_set_layout {
 	vk_descriptor_set_layout(vk::Device _dev, vk::DescriptorSetLayout _o) : dev(_dev), object(_o)
 	{}
 
-	virtual ~vk_descriptor_set_layout()
+	virtual ~vk_descriptor_set_layout() override
 	{
 		dev.destroyDescriptorSetLayout(object);
 	}
 };
 
 struct vk_image_view_t final: image_view_t {
-	virtual ~vk_image_view_t() {
+	virtual ~vk_image_view_t() override  {
 		dev.destroyImageView(object);
 	}
 
@@ -297,6 +314,11 @@ struct vk_sampler_t final: sampler_t {
 	vk_sampler_t(vk::Device _dev, vk::Sampler _object) : dev(_dev), object(_object)
 	{}
 
+	virtual ~vk_sampler_t() override
+	{
+		dev.destroySampler(object);
+	}
+
 	vk::Sampler object;
 	vk::Device dev;
 };
@@ -308,7 +330,7 @@ struct vk_buffer_view_t final: buffer_view_t {
 	vk_buffer_view_t(vk::Device _dev, vk::BufferView bf) : dev(_dev), object(bf)
 	{}
 
-	virtual ~vk_buffer_view_t()
+	virtual ~vk_buffer_view_t() override
 	{
 		dev.destroyBufferView(object);
 	}
@@ -321,7 +343,7 @@ struct vk_framebuffer final: framebuffer_t
 
 	vk_framebuffer(vk::Device _dev, vk::RenderPass render_pass, gsl::span<const vk::ImageView> render_targets, uint32_t width, uint32_t height, uint32_t layers);
 
-	virtual ~vk_framebuffer()
+	virtual ~vk_framebuffer() override
 	{
 		dev.destroyFramebuffer(object);
 	}
