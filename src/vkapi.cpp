@@ -1326,8 +1326,8 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 		vk::AttachmentReference{ 1, vk::ImageLayout::eColorAttachmentOptimal }
 	};
 
-	const auto& ssao_subpass_input = std::array<vk::AttachmentReference, 1> {
-		vk::AttachmentReference{ 0, vk::ImageLayout::eShaderReadOnlyOptimal }
+	const auto& ssao_subpass_input = std::array<vk::AttachmentReference, 0> {
+		//vk::AttachmentReference{ 0, vk::ImageLayout::eShaderReadOnlyOptimal }
 	};
 
 	const auto& subpasses = std::array<vk::SubpassDescription, 2> {
