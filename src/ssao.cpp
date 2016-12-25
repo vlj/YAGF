@@ -251,7 +251,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	cmd_list->OMSetRenderTargets(1, &(linear_depth_fbo->rtt_heap->GetCPUDescriptorHandleForHeapStart()), false, nullptr);
 #endif
 	cmd_list.begin_renderpass(*render_pass, *linear_depth_fbo,
-		std::vector<clear_value_t>{std::array<float, 4>{}, std::array<float, 4>{}},
+		std::vector<clear_value_t>{std::array<float, 4>{}},
 		width, height);
 	cmd_list.set_graphic_pipeline(*linearize_depth_pso);
 	cmd_list.bind_graphic_descriptor(0, *linearize_input, *linearize_depth_sig);

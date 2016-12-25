@@ -13,9 +13,6 @@
 
 namespace
 {
-
-
-
 	VKAPI_ATTR VkBool32 VKAPI_CALL
 		dbgFunc(VkDebugReportFlagsEXT msgFlags, VkDebugReportObjectTypeEXT objType,
 			uint64_t srcObject, size_t location, int32_t msgCode,
@@ -1150,7 +1147,6 @@ std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(gsl::span
 
 std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT& fmt)
 {
-
 	const auto& attachments = std::array<vk::AttachmentDescription, 2>{
 		vk::AttachmentDescription{}
 			.setFormat(get_vk_format(fmt))
@@ -1164,7 +1160,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass(const irr::video
 			.setFormat(vk::Format::eD24UnormS8Uint)
 			.setLoadOp(vk::AttachmentLoadOp::eLoad)
 			.setStoreOp(vk::AttachmentStoreOp::eStore)
-			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+			.setStencilLoadOp(vk::AttachmentLoadOp::eLoad)
 			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
 			.setInitialLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
 			.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
@@ -1305,14 +1301,16 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 		vk::AttachmentDescription{}
 			.setFormat(vk::Format::eR32Sfloat)
 			.setLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setStoreOp(vk::AttachmentStoreOp::eStore)
 			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
 			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
 			.setSamples(vk::SampleCountFlagBits::e1),
 		vk::AttachmentDescription{}
 			.setFormat(vk::Format::eR16Sfloat)
-			.setLoadOp(vk::AttachmentLoadOp::eClear)
+			.setLoadOp(vk::AttachmentLoadOp::eLoad)
 			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setStencilLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
 			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
 			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
 			.setSamples(vk::SampleCountFlagBits::e1)
