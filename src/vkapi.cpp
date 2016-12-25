@@ -1282,7 +1282,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const ir
 	};
 
 	const auto& ibl_subpass_attachments = std::array<vk::AttachmentReference, 1> {
-		vk::AttachmentReference{ 0, vk::ImageLayout::eColorAttachmentOptimal }
+		vk::AttachmentReference{ 3, vk::ImageLayout::eColorAttachmentOptimal }
 	};
 
 	const auto& ibl_subpass_input_attachements = std::array<vk::AttachmentReference, 4> {
