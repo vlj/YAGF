@@ -8,11 +8,11 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 	std::ifstream DDSFile(texture_name, std::ifstream::binary);
 	irr::video::CImageLoaderDDS DDSPic(DDSFile);
 
-	uint32_t width = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Width);
-	uint32_t height = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Height);
-	uint16_t mipmap_count = static_cast<uint16_t>(DDSPic.getLoadedImage().Layers[0].size());
+	const auto& width = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Width);
+	const auto& height = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Height);
+	const auto& mipmap_count = static_cast<uint16_t>(DDSPic.getLoadedImage().Layers[0].size());
 
-	bool is_cubemap = DDSPic.getLoadedImage().Type == TextureType::CUBEMAP;
+	const auto& is_cubemap = DDSPic.getLoadedImage().Type == TextureType::CUBEMAP;
 	uint16_t layer_count = is_cubemap ? 6 : 1;
 
 	std::unique_ptr<buffer_t> upload_buffer = dev.create_buffer(width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);

@@ -147,7 +147,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	compute_sh_cbuf = dev.create_buffer(sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 	dfg_cbuf = dev.create_buffer(sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 
-	auto M = std::array<glm::mat4, 6>{
+	const auto& M = std::array<glm::mat4, 6>{
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
 		getPermutationMatrix(2, 1., 1, -1., 0, -1.),
 		getPermutationMatrix(0, 1., 2, 1., 1, 1.),
@@ -164,7 +164,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	}
 
 	hammersley_sequence_buffer = dev.create_buffer(2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
-	float *tmp = reinterpret_cast<float*>(hammersley_sequence_buffer->map_buffer());
+	const auto& tmp = gsl::span<float, 1024>{ static_cast<float*>(hammersley_sequence_buffer->map_buffer()), 1024 };
 	for (unsigned j = 0; j < 1024; j++)
 	{
 		std::pair<float, float> sample = HammersleySequence(j, 1024);
@@ -177,8 +177,8 @@ ibl_utility::ibl_utility(device_t &dev)
 	for (unsigned i = 0; i < 8; i++)
 	{
 		per_level_cbuffer[i] = dev.create_buffer(sizeof(per_level_importance_sampling_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
-		per_level_importance_sampling_data* tmp = (per_level_importance_sampling_data*)per_level_cbuffer[i]->map_buffer();
-		float viewportSize = float(1 << (8 - i));
+		per_level_importance_sampling_data* tmp = static_cast<per_level_importance_sampling_data*>(per_level_cbuffer[i]->map_buffer());
+		const auto& viewportSize = float(1 << (8 - i));
 		tmp->size = viewportSize;
 		tmp->alpha = .05f + .95f * i / 8.f;
 		per_level_cbuffer[i]->unmap_buffer();
@@ -214,11 +214,11 @@ std::unique_ptr<allocated_descriptor_set> ibl_utility::get_dfg_input_descriptor_
 std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view, size_t edge_size)
 {
 	void* tmp = compute_sh_cbuf->map_buffer();
-	float cube_size = static_cast<float>(edge_size) / 10.f;
+	const auto& cube_size = static_cast<float>(edge_size) / 10.f;
 	memcpy(tmp, &cube_size, sizeof(int));
 	compute_sh_cbuf->unmap_buffer();
 
-	auto sh_buffer = dev.create_buffer(sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav | usage_uniform);
+	auto&& sh_buffer = dev.create_buffer(sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav | usage_uniform);
 
 	cmd_list.set_compute_pipeline_layout(*compute_sh_sig);
 	cmd_list.set_descriptor_storage_referenced(*srv_cbv_uav_heap, sampler_heap.get());
@@ -246,7 +246,7 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 
 std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view)
 {
-	size_t cubemap_size = 256;
+	const auto& cubemap_size = 256u;
 	auto permutation_matrix_descriptors = std::array<std::unique_ptr<allocated_descriptor_set>, 6>{};
 	for (unsigned i = 0; i < 6; i++)
 	{
@@ -291,11 +291,11 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	DFG Texture is used to compute diffuse and specular response from environmental lighting. */
 std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility::getDFGLUT(device_t& dev, command_list_t& cmd_list, uint32_t DFG_LUT_size)
 {
-	auto DFG_LUT_texture = dev.create_image(irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
-	auto texture_view = dev.create_image_view(*DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	auto&& DFG_LUT_texture = dev.create_image(irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
+	auto&& texture_view = dev.create_image_view(*DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
 	void* tmp = dfg_cbuf->map_buffer();
-	float sz = static_cast<float>(DFG_LUT_size);
+	const auto& sz = static_cast<float>(DFG_LUT_size);
 	memcpy(tmp, &sz, sizeof(float));
 	dfg_cbuf->unmap_buffer();
 

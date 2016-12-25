@@ -67,13 +67,13 @@ namespace irr
 			}
 
 			index_buffer = dev.create_buffer(total_index_cnt * sizeof(uint16_t), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_index);
-			uint16_t *indexmap = (uint16_t *)index_buffer->map_buffer();
+			uint16_t *indexmap = static_cast<uint16_t *>(index_buffer->map_buffer());
 			vertex_pos = dev.create_buffer(total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
-			aiVector3D *vertex_pos_map = (aiVector3D*)vertex_pos->map_buffer();
+			aiVector3D *vertex_pos_map = static_cast<aiVector3D*>(vertex_pos->map_buffer());
 			vertex_normal = dev.create_buffer(total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
-			aiVector3D *vertex_normal_map = (aiVector3D*)vertex_normal->map_buffer();
+			aiVector3D *vertex_normal_map = static_cast<aiVector3D*>(vertex_normal->map_buffer());
 			vertex_uv0 = dev.create_buffer(total_vertex_cnt * sizeof(aiVector3D), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
-			aiVector3D *vertex_uv_map = (aiVector3D*)vertex_uv0->map_buffer();
+			aiVector3D *vertex_uv_map = static_cast<aiVector3D*>(vertex_uv0->map_buffer());
 
 			uint32_t basevertex = 0;
 			uint32_t baseindex = 0;

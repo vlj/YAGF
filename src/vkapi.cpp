@@ -1353,7 +1353,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 			.setDstAccessMask(vk::AccessFlagBits::eShaderRead)
 	};
 
-	auto&& result = object.createRenderPass(
+	const auto& result = object.createRenderPass(
 		vk::RenderPassCreateInfo{}
 		.setPAttachments(attachments.data())
 		.setAttachmentCount(static_cast<uint32_t>(attachments.size()))

@@ -240,7 +240,7 @@ ssao_utility::ssao_utility(device_t & dev, image_t* _depth_input, uint32_t w, ui
 void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, image_t & depth_buffer, float zn, float zf,
 	const std::vector<std::tuple<buffer_t&, uint64_t, uint32_t, uint32_t> > &big_triangle_info)
 {
-	linearize_input_constant_data* ptr = reinterpret_cast<linearize_input_constant_data*>(linearize_constant_data->map_buffer());
+	linearize_input_constant_data* ptr = static_cast<linearize_input_constant_data*>(linearize_constant_data->map_buffer());
 	ptr->zn = zn;
 	ptr->zf = zf;
 	linearize_constant_data->unmap_buffer();
@@ -260,7 +260,7 @@ void ssao_utility::fill_command_list(device_t & dev, command_list_t & cmd_list, 
 	cmd_list.draw_non_indexed(3, 1, 0, 0);
 
 	glm::mat4 Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
-	ssao_input_constant_data* ssao_ptr = reinterpret_cast<ssao_input_constant_data*>(ssao_constant_data->map_buffer());
+	ssao_input_constant_data* ssao_ptr = static_cast<ssao_input_constant_data*>(ssao_constant_data->map_buffer());
 	float *tmp = reinterpret_cast<float*>(&Perspective);
 	ssao_ptr->ProjectionMatrix00 = tmp[0];
 	ssao_ptr->ProjectionMatrix11 = tmp[5];
