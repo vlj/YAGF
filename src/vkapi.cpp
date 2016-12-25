@@ -1075,7 +1075,20 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 	const auto multisample = vk::PipelineMultisampleStateCreateInfo{}
 		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 
-	const auto depth_stencil = vk::PipelineDepthStencilStateCreateInfo{};
+	const auto&& get_compare_op = [](const auto& op) {
+		switch (op) {
+		case irr::video::E_COMPARE_FUNCTION::ECF_LEQUAL: return vk::CompareOp::eLessOrEqual;
+		case irr::video::E_COMPARE_FUNCTION::ECF_LESS: return vk::CompareOp::eLess;
+		case irr::video::E_COMPARE_FUNCTION::ECF_NEVER: return vk::CompareOp::eNever;
+		}
+		throw;
+	};
+
+	const auto depth_stencil = vk::PipelineDepthStencilStateCreateInfo{}
+		.setDepthTestEnable(pso_desc.depth_stencil_depth_test)
+		.setStencilTestEnable(pso_desc.depth_stencil_stencil_test)
+		.setDepthWriteEnable(pso_desc.depth_stencil_depth_write)
+		.setDepthCompareOp(get_compare_op(pso_desc.depth_stencil_depth_compare_op));
 
 	/*auto vertex_buffers = std::vector<vk::VertexInputBindingDescription>{
 		vk::VertexInputBindingDescription{ 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
