@@ -4,7 +4,7 @@
 // From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch40.html
 
 layout(set = 0, binding = 1) uniform texture2D source;
-layout(set = 0, binding = 2) writeonly uniform image2D dest;
+layout(set = 0, binding = 2, r32f) writeonly uniform image2D dest;
 layout(set = 1, binding = 4) uniform sampler nearest;
 
 layout(local_size_x = 8, local_size_y = 2, local_size_z = 1) in;
