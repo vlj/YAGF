@@ -1,6 +1,7 @@
 #include "mesh.h"
 #include <Scene\IBL.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
 #include <glm/gtc/matrix_transform.hpp>
 #include <gflags/gflags.h>
 #define GLFW_INCLUDE_VULKAN
@@ -361,7 +362,7 @@ void MeshSample::Draw()
 		glm::vec3(0., 1., 0.));
 	tmp.ViewMatrix = View;
 	tmp.InverseViewMatrix = glm::inverse(View);
-	const auto& Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 100.f);
+	const auto& Perspective = glm::perspective(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
 	tmp.ProjectionMatrix = Perspective;
 	tmp.InverseProjectionMatrix = glm::inverse(Perspective);
 	scene_matrix->unmap_buffer();

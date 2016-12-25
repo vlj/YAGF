@@ -3,8 +3,7 @@
 // Contains code from the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in License.txt
 
-#ifndef MESHSCENENODE_H
-#define MESHSCENENODE_H
+#pragma once
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -67,6 +66,3 @@ namespace irr
 
 	} // end namespace scene
 } // end namespace irr
-
-
-#endif

@@ -3,6 +3,7 @@
 
 #include <Scene\ssao.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
 #include <glm/gtc/matrix_transform.hpp>
 
 const auto gaussian_h_code = std::vector<uint32_t>

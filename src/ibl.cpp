@@ -3,6 +3,7 @@
 
 #include <Scene/IBL.h>
 #include <cmath>
+#define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/mat4x4.hpp>
 #include <set>
