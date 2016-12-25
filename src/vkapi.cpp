@@ -1001,7 +1001,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 			{
 				return vk::PipelineColorBlendAttachmentState{}
 					.setBlendEnable(color_output.blend)
-					.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eR);
+					.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eR);
 			});
 		return result;
 	}();
