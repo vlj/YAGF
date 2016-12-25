@@ -4,7 +4,6 @@
 #define IBL_HPP
 
 #include <API/GfxApi.h>
-#include <Core/IImage.h>
 
 struct Color
 {
