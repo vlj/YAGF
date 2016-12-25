@@ -995,12 +995,36 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 	const blend_state blend = blend_state::get();
 
 	const auto& attachments = [&]() {
+		const auto&& get_factor = [](const auto& op)
+		{
+			switch (op)
+			{
+			case blend_factor::one: return vk::BlendFactor::eOne;
+			case blend_factor::zero: return vk::BlendFactor::eZero;
+			}
+			throw;
+		};
+
+		const auto&& get_op = [](const auto& op)
+		{
+			switch (op)
+			{
+			case blend_op::add: return vk::BlendOp::eAdd;
+			}
+			throw;
+		};
+
 		auto&& result = std::vector<vk::PipelineColorBlendAttachmentState>{};
 		std::transform(pso_desc.color_outputs.begin(), pso_desc.color_outputs.end(), std::back_inserter(result),
-			[](const auto& color_output)
+			[&](const auto& color_output)
 			{
 				return vk::PipelineColorBlendAttachmentState{}
 					.setBlendEnable(color_output.blend)
+					.setAlphaBlendOp(get_op(color_output.op))
+					.setSrcColorBlendFactor(get_factor(color_output.src_color))
+					.setSrcAlphaBlendFactor(get_factor(color_output.src_alpha))
+					.setDstColorBlendFactor(get_factor(color_output.dst_color))
+					.setDstAlphaBlendFactor(get_factor(color_output.dst_alpha))
 					.setColorWriteMask(vk::ColorComponentFlagBits::eA | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eR);
 			});
 		return result;

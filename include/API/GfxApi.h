@@ -194,10 +194,28 @@ struct pipeline_vertex_attributes
 	uint32_t stride;
 	uint32_t offset;
 };
+/*	VkPipelineColorBlendAttachmentState blend_attachment_state{ true, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE , VK_BLEND_FACTOR_ONE , VK_BLEND_OP_ADD, -1 };
+VkPipelineColorBlendStateCreateInfo blend_state{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, false, VK_LOGIC_OP_NO_OP, 1, &blend_attachment_state };*/
+
+enum class blend_factor
+{
+	zero,
+	one,
+};
+
+enum class blend_op
+{
+	add
+};
 
 struct color_output
 {
 	bool blend;
+	blend_op op;
+	blend_factor src_color;
+	blend_factor src_alpha;
+	blend_factor dst_color;
+	blend_factor dst_alpha;
 };
 
 struct compute_pipeline_state_description

@@ -188,7 +188,7 @@ std::unique_ptr<pipeline_state_t> get_ibl_pipeline_state(device_t& dev, pipeline
 			{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 			{ 1, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
 		})
-		.set_color_outputs(std::vector<color_output>{ {true} });
+		.set_color_outputs(std::vector<color_output>{ {true, blend_op::add, blend_factor::one, blend_factor::one, blend_factor::one, blend_factor::one} });
 
 	return dev.create_graphic_pso(pso_desc, rp, layout, 0);
 
