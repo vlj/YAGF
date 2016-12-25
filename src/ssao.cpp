@@ -2,6 +2,7 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <Scene\ssao.h>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
 const auto gaussian_h_code = std::vector<uint32_t>

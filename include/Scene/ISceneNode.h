@@ -3,8 +3,7 @@
 // Contains code from the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in License.txt
 
-#ifndef __I_SCENE_NODE_H_INCLUDED__
-#define __I_SCENE_NODE_H_INCLUDED__
+#pragma once
 
 //#include "IAttributeExchangingObject.h"
 //#include "ESceneNodeTypes.h"
@@ -13,6 +12,7 @@
 //#include "SMaterial.h"
 //#include "irrString.h"
 //#include <Maths/aabbox3d.h>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtx/transform.hpp>
@@ -455,6 +455,3 @@ namespace irr
 
 	} // end namespace scene
 } // end namespace irr
-
-#endif
-

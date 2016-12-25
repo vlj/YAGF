@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include <Scene\IBL.h>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 #include <gflags/gflags.h>
 #define GLFW_INCLUDE_VULKAN
