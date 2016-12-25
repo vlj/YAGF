@@ -4,7 +4,6 @@
 #include <Scene/textures.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <Loaders/DDS.h>
 #include <tuple>
 #include <array>
 #include <unordered_map>
@@ -14,8 +13,8 @@
 
 struct ObjectData
 {
-	float ModelMatrix[16];
-	float InverseModelMatrix[16];
+	glm::mat4 ModelMatrix;
+	glm::mat4 InverseModelMatrix;
 };
 
 namespace irr
@@ -151,11 +150,9 @@ namespace irr
 		{
 			ObjectData *cbufdata = static_cast<ObjectData*>(object_matrix->map_buffer());
 			updateAbsolutePosition();
-			glm::mat4 Model = getAbsoluteTransformation();
-			glm::mat4 InvModel = glm::inverse(Model);
-
-			memcpy(cbufdata->ModelMatrix, &Model, 16 * sizeof(float));
-			memcpy(cbufdata->InverseModelMatrix, &InvModel, 16 * sizeof(float));
+			const auto& Model = getAbsoluteTransformation();
+			cbufdata->ModelMatrix = Model;
+			cbufdata->InverseModelMatrix = glm::inverse(Model);
 			object_matrix->unmap_buffer();
 		}
 

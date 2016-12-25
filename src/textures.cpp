@@ -1,18 +1,17 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
+#include <gli/gli.hpp>
 #include <Scene/textures.h>
-
 
 std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(device_t& dev, std::string &&texture_name, command_list_t& upload_command_list)
 {
-	std::ifstream DDSFile(texture_name, std::ifstream::binary);
-	irr::video::CImageLoaderDDS DDSPic(DDSFile);
+	const auto& DDSPic = gli::load(texture_name);
 
-	const auto& width = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Width);
-	const auto& height = static_cast<uint32_t>(DDSPic.getLoadedImage().Layers[0][0].Height);
-	const auto& mipmap_count = static_cast<uint16_t>(DDSPic.getLoadedImage().Layers[0].size());
+	const auto& width = static_cast<uint32_t>(DDSPic.extent().x);
+	const auto& height = static_cast<uint32_t>(DDSPic.extent().y);
+	const auto& mipmap_count = static_cast<uint16_t>(DDSPic.levels());
 
-	const auto& is_cubemap = DDSPic.getLoadedImage().Type == TextureType::CUBEMAP;
+	const auto& is_cubemap = gli::is_target_cube(DDSPic.target());
 	uint16_t layer_count = is_cubemap ? 6 : 1;
 
 	std::unique_ptr<buffer_t> upload_buffer = dev.create_buffer(width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
@@ -29,13 +28,11 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 	{
 		for (unsigned i = 0; i < mipmap_count; i++)
 		{
-			const IImage &image = DDSPic.getLoadedImage();
-			struct PackedMipMapLevel miplevel = image.Layers[face][i];
 			// Offset needs to be aligned to 512 bytes
 			offset_in_texram = (offset_in_texram + 511) & ~511;
 			// Row pitch is always a multiple of 256
-			uint32_t height_in_blocks = static_cast<uint32_t>(image.Layers[face][i].Height + block_height - 1) / block_height;
-			uint32_t width_in_blocks = static_cast<uint32_t>(image.Layers[face][i].Width + block_width - 1) / block_width;
+			uint32_t height_in_blocks = static_cast<uint32_t>(DDSPic.extent(i).y + block_height - 1) / block_height;
+			uint32_t width_in_blocks = static_cast<uint32_t>(DDSPic.extent(i).x + block_width - 1) / block_width;
 			uint32_t height_in_texram = height_in_blocks * block_height;
 			uint32_t width_in_texram = width_in_blocks * block_width;
 			uint32_t rowPitch = width_in_blocks * block_size;
@@ -44,7 +41,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 			Mips.push_back(mml);
 			for (unsigned row = 0; row < height_in_blocks; row++)
 			{
-				memcpy(((char*)pointer) + offset_in_texram, ((char*)miplevel.Data) + row * width_in_blocks * block_size, width_in_blocks * block_size);
+				memcpy(((char*)pointer) + offset_in_texram, DDSPic.data(0, face, i), width_in_blocks * block_size);
 				offset_in_texram += rowPitch;
 			}
 		}

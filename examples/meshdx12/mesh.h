@@ -1,7 +1,6 @@
 #pragma once
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <Loaders/DDS.h>
 #include <tuple>
 #include <array>
 #include <unordered_map>
