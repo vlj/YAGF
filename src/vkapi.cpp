@@ -1238,7 +1238,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const ir
 			vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal },
 		// depth
 		vk::AttachmentDescription{ vk::AttachmentDescriptionFlagBits{}, vk::Format::eD24UnormS8Uint, vk::SampleCountFlagBits::e1,
-			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
+			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
 			vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal },
 	};
 
@@ -1304,7 +1304,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 	const auto& attachments = std::array<vk::AttachmentDescription, 2>{
 		vk::AttachmentDescription{}
 			.setFormat(vk::Format::eR32Sfloat)
-			.setLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setLoadOp(vk::AttachmentLoadOp::eClear)
 			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
 			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
 			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
