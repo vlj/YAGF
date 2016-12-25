@@ -164,7 +164,7 @@ ibl_utility::ibl_utility(device_t &dev)
 	}
 
 	hammersley_sequence_buffer = dev.create_buffer(2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
-	const auto& tmp = gsl::span<float, 1024>{ static_cast<float*>(hammersley_sequence_buffer->map_buffer()), 1024 };
+	const auto& tmp = gsl::span<float, 2048>{ static_cast<float*>(hammersley_sequence_buffer->map_buffer()), 2048 };
 	for (unsigned j = 0; j < 1024; j++)
 	{
 		std::pair<float, float> sample = HammersleySequence(j, 1024);
