@@ -1159,7 +1159,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ibl_sky_pass(const irr::video
 			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
 			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
 			.setInitialLayout(vk::ImageLayout::eColorAttachmentOptimal)
-			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal),
+			.setFinalLayout(vk::ImageLayout::ePresentSrcKHR),
 		vk::AttachmentDescription{}
 			.setFormat(vk::Format::eD24UnormS8Uint)
 			.setLoadOp(vk::AttachmentLoadOp::eLoad)
@@ -1234,8 +1234,8 @@ std::unique_ptr<render_pass_t> vk_device_t::create_object_sunlight_pass(const ir
 			vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal },
 		// final surface
 		vk::AttachmentDescription{ vk::AttachmentDescriptionFlagBits{}, get_vk_format(fmt), vk::SampleCountFlagBits::e1,
-			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-			vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal },
+			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+			vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal },
 		// depth
 		vk::AttachmentDescription{ vk::AttachmentDescriptionFlagBits{}, vk::Format::eD24UnormS8Uint, vk::SampleCountFlagBits::e1,
 			vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,

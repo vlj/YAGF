@@ -263,7 +263,7 @@ void MeshSample::fill_draw_commands()
 		command_list_for_back_buffer.push_back(command_allocator->create_command_list());
 		command_list_t* current_cmd_list = command_list_for_back_buffer.back().get();
 		current_cmd_list->start_command_list_recording(*command_allocator);
-		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+//		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 
 		const auto& clearColor = std::array<float, 4>{ .25f, .25f, 0.35f, 1.0f };
 		current_cmd_list->begin_renderpass(*object_sunlight_pass, *fbo_pass1[i],
@@ -344,7 +344,7 @@ void MeshSample::fill_draw_commands()
 		set_pipeline_barrier(*current_cmd_list, *normal, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 		set_pipeline_barrier(*current_cmd_list, *roughness_metalness, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
 #endif // !D3D12
-		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+//		current_cmd_list->set_pipeline_barrier(*back_buffer[i], RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 		current_cmd_list->make_command_list_executable();
 	}
 }
