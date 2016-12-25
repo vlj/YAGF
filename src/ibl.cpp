@@ -90,11 +90,6 @@ namespace
 		return resultMat;
 	}
 
-	struct PermutationMatrix
-	{
-		float Matrix[16];
-	};
-
 	// From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
 	/**
 	* Returns the n-th set from the 2 dimension Hammersley sequence.
@@ -159,7 +154,7 @@ ibl_utility::ibl_utility(device_t &dev)
 
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix[i] = dev.create_buffer(sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+		permutation_matrix[i] = dev.create_buffer(sizeof(glm::mat4), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 		memcpy(permutation_matrix[i]->map_buffer(), &M[i], 16 * sizeof(float));
 		permutation_matrix[i]->unmap_buffer();
 	}
@@ -253,7 +248,7 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	{
 		permutation_matrix_descriptors[i] = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(2 * i, { face_set.get() }, 2);
 		dev.set_image_view(*permutation_matrix_descriptors[i], 0, 0, probe_view);
-		dev.set_constant_buffer_view(*permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(PermutationMatrix));
+		dev.set_constant_buffer_view(*permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(glm::mat4));
 	}
 
 	auto result = dev.create_image(irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
