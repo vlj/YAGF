@@ -3,11 +3,8 @@ project(tressFX)
 find_package(gflags REQUIRED)
 include_directories(${gflags_INCLUDE_DIR})
 
-file(GLOB_RECURSE HEADERS "*.h")
+file(GLOB_RECURSE HEADERS "TressFX.Vulkan/*.h")
 file(GLOB SOURCES
-	"common.cpp"
-	"tfx.cpp"
-	"tfx-ocl.cpp"
 	"TressFX.Vulkan/main.cpp"
 	"TressFX.Vulkan/sample.cpp"
 	"TressFX.Vulkan/StringTokenizer.cpp"
