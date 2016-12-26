@@ -28,7 +28,7 @@ struct sample
     pipeline_state_t blit_pso;
 
     std::unique_ptr<descriptor_storage_t> descriptor_pool;
-    allocated_descriptor_set descriptor;
+	std::unique_ptr<allocated_descriptor_set> descriptor;
     std::unique_ptr<buffer_t> big_triangle;
     std::unique_ptr<sampler_t> bilinear_sampler;
 
