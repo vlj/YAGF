@@ -41,7 +41,7 @@ std::tuple<std::unique_ptr<image_t>, std::unique_ptr<buffer_t>> load_texture(dev
 			Mips.push_back(mml);
 			for (unsigned row = 0; row < height_in_blocks; row++)
 			{
-				memcpy(((char*)pointer) + offset_in_texram, DDSPic.data(0, face, i), width_in_blocks * block_size);
+				memcpy(((char*)pointer) + offset_in_texram, (char*)DDSPic.data(0, face, i) + row * width_in_blocks * block_size, width_in_blocks * block_size);
 				offset_in_texram += rowPitch;
 			}
 		}
