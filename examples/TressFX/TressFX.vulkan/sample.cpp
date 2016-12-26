@@ -1,6 +1,6 @@
 #include "sample.h"
 #include "TFXFileIO.h"
-#include <Maths\matrix4.h>
+#include <glm/mat4x4.hpp>
 #include <VKAPI\pipeline_layout_helpers.h>
 
 namespace
