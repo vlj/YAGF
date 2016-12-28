@@ -1402,6 +1402,39 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
 
+std::unique_ptr<render_pass_t> vk_device_t::create_blit_pass()
+{
+	const auto& attachments = std::array<vk::AttachmentDescription, 1>{
+		vk::AttachmentDescription{}
+			.setFormat(vk::Format::eB8G8R8A8Unorm)
+			.setLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setStoreOp(vk::AttachmentStoreOp::eStore)
+			.setSamples(vk::SampleCountFlagBits::e1)
+			.setInitialLayout(vk::ImageLayout::ePresentSrcKHR)
+			.setFinalLayout(vk::ImageLayout::ePresentSrcKHR)
+	};
+
+	const auto& att_ref = std::array<vk::AttachmentReference, 1>{
+		vk::AttachmentReference{0, vk::ImageLayout::eColorAttachmentOptimal}
+	};
+
+	const auto& subpass_desc = std::array<vk::SubpassDescription, 1>
+	{
+		vk::SubpassDescription{}
+			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+			.setPColorAttachments(att_ref.data())
+			.setColorAttachmentCount(att_ref.size())
+	};
+	auto&& result = object.createRenderPass(
+		vk::RenderPassCreateInfo{}
+			.setPAttachments(attachments.data())
+			.setAttachmentCount(attachments.size())
+			.setPSubpasses(subpass_desc.data())
+			.setSubpassCount(subpass_desc.size())
+	);
+	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
+}
+
 std::unique_ptr<fence_t> vk_device_t::create_fence()
 {
 	return std::unique_ptr<fence_t>();

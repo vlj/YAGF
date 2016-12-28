@@ -6,6 +6,14 @@
 #include <glm/gtx/transform.hpp>
 #include <VKAPI\pipeline_layout_helpers.h>
 
+const auto& blit_vert = std::vector<uint32_t>
+#include <generatedShaders\blit_vert.h>
+;
+
+const auto& blit_frag = std::vector<uint32_t>
+#include <generatedShaders\blit_frag.h>
+;
+
 namespace
 {
     DirectX::XMVECTOR         g_lightEyePt = DirectX::XMVectorSet(-421.25043f, 306.7890949f, -343.22232f, 1.0f);
@@ -20,24 +28,7 @@ namespace
 
     std::unique_ptr<render_pass_t> get_render_pass(device_t &dev)
     {
-        std::unique_ptr<render_pass_t> result;
-        result.reset(new render_pass_t(
-            dev,
-            {
-                // final surface
-                structures::attachment_description(
-                    VK_FORMAT_B8G8R8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD,
-                    VK_ATTACHMENT_STORE_OP_STORE,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
-            },
-            {// IBL pass
-             subpass_description::generate_subpass_description(
-                 VK_PIPELINE_BIND_POINT_GRAPHICS)
-                 .set_color_attachments({VkAttachmentReference{
-                     0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}})},
-            {}));
-        return result;
+        return dev.create_blit_pass();
     }
 
     auto get_blit_pso(device_t &dev, pipeline_layout_t& layout, render_pass_t& rp)
