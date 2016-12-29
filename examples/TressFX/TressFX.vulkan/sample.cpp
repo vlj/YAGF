@@ -47,9 +47,9 @@ namespace
 
 }
 
-sample::sample(HINSTANCE hinstance, HWND hwnd)
+sample::sample(GLFWwindow *window)
 {
-    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(hinstance, hwnd);
+    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(window);
     dev = std::move(std::get<0>(dev_swapchain_queue));
     queue = std::move(std::get<2>(dev_swapchain_queue));
     chain = std::move(std::get<1>(dev_swapchain_queue));
@@ -57,11 +57,9 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     blit_render_pass = get_render_pass(*dev);
 
-    blit_layout_set = get_object_descriptor_set(*dev, blit_descriptor);
-    blit_layout = std::make_shared<vulkan_wrapper::pipeline_layout>(
-        dev->object, 0, std::vector<VkDescriptorSetLayout>{blit_layout_set->object},
-        std::vector<VkPushConstantRange>());
-    blit_pso = get_blit_pso(*dev, blit_layout, blit_render_pass.get());
+    blit_layout_set = dev->get_object_descriptor_set(blit_descriptor);
+    blit_layout = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{blit_layout_set.get()});
+    blit_pso = get_blit_pso(*dev, *blit_layout, *blit_render_pass);
 
     big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
     float fullscreen_tri[]
@@ -79,8 +77,11 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
                                             {RESOURCE_VIEW::SAMPLER, 1}});
     descriptor = descriptor_pool->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { blit_layout_set.get() }, 2);
 
-    fbo[0] = dev->create_frame_buffer({ {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 900, 900, blit_render_pass.get());
-    fbo[1] = dev->create_frame_buffer({ { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 900, 900, blit_render_pass.get());
+	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
+		[&](const auto& img) {return dev->create_image_view(img, irr::video::ECF_B8G8R8A8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
+
+    fbo[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, 900, 900, blit_render_pass.get());
+    fbo[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, 900, 900, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = dynamic_cast<vk_device_t&>(*dev).object;
     tressfx_helper.memoryIndexDeviceLocal = dynamic_cast<vk_device_t&>(*dev).mem_properties;
@@ -269,13 +270,13 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     {
         blit_command_buffer[i] = command_storage->create_command_list();
 		blit_command_buffer[i]->start_command_list_recording(*command_storage);
-		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, fbo[i], {}, 900, 900);
+		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, *fbo[i], {}, 900, 900);
 
 		blit_command_buffer[i]->set_scissor(0, 900, 0, 900);
 		blit_command_buffer[i]->set_viewport(0, 900, 0., 900, 0., 1.);
 
-		blit_command_buffer[i]->set_graphic_pipeline(blit_pso);
-		blit_command_buffer[i]->bind_graphic_descriptor(0, *descriptor, blit_layout);
+		blit_command_buffer[i]->set_graphic_pipeline(*blit_pso);
+		blit_command_buffer[i]->bind_graphic_descriptor(0, *descriptor, *blit_layout);
 		blit_command_buffer[i]->bind_vertex_buffers(0, { { *big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float) } });
 		blit_command_buffer[i]->draw_non_indexed(3, 1, 0, 0);
 
