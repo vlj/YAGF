@@ -247,15 +247,8 @@ sample::sample(GLFWwindow *window)
     draw_command_buffer = command_storage->create_command_list();
 	draw_command_buffer->start_command_list_recording(*command_storage);
 
-	VkClearDepthStencilValue clear_values{};
-	clear_values.depth = 1.f;
-	vkCmdClearDepthStencilImage(
-		*draw_command_buffer, *depth_texture,
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &clear_values, 1,
-		&structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT |
-			VK_IMAGE_ASPECT_STENCIL_BIT));
-
-    vkCmdClearColorImage(*draw_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
+	draw_command_buffer->clear_depth_stencil(*depth_texture, 1.f);
+	draw_command_buffer->clear_color(*color_texture, std::array<float, 4>{});
     TressFX_Begin(tressfx_helper, 0);
     TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16, 0);
     TressFX_RenderShadowMap(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
@@ -283,6 +276,8 @@ sample::sample(GLFWwindow *window)
 		blit_command_buffer[i]->end_renderpass();
 		blit_command_buffer[i]->make_command_list_executable();
     }
+
+	present_semaphore = dev->create_semaphore();
 }
 
 sample::~sample()
@@ -294,8 +289,8 @@ void sample::draw()
 {
 	queue->submit_executable_command_list(*draw_command_buffer, nullptr);
 
-    uint32_t current_backbuffer = chain->get_next_backbuffer_id();
-	queue->submit_executable_command_list(*blit_command_buffer[current_backbuffer], nullptr);
+    uint32_t current_backbuffer = chain->get_next_backbuffer_id(*present_semaphore);
+	queue->submit_executable_command_list(*blit_command_buffer[current_backbuffer], present_semaphore.get());
 	queue->wait_for_command_queue_idle();
 	chain->present(*queue, current_backbuffer);
 }

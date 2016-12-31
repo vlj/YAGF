@@ -35,6 +35,8 @@ struct sample
     std::unique_ptr<buffer_t> big_triangle;
     std::unique_ptr<sampler_t> bilinear_sampler;
 
+	std::unique_ptr<semaphore_t> present_semaphore;
+
     sample(GLFWwindow *window);
     ~sample();
     void draw();

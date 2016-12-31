@@ -577,6 +577,11 @@ struct command_list_t {
 	virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
 	virtual void copy_buffer(buffer_t& src, uint64_t src_offset, buffer_t& dst, uint64_t dst_offset, uint64_t size) = 0;
 
+	virtual void clear_depth_stencil(image_t &img, float depth) = 0;
+	virtual void clear_depth_stencil(image_t &img, uint8_t stencil) = 0;
+	virtual void clear_depth_stencil(image_t &img, float depth, uint8_t stencil) = 0;
+	virtual void clear_color(image_t &img, gsl::span<float, 4> clear_colors) = 0;
+
 	virtual void begin_renderpass(render_pass_t& rp, framebuffer_t& fbo,
 		gsl::span<clear_value_t> clear_values,
 		uint32_t width, uint32_t height) = 0;

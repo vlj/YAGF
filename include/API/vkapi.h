@@ -66,6 +66,11 @@ struct vk_command_list_t final: command_list_t
 	virtual void begin_renderpass(render_pass_t& rp, framebuffer_t &fbo,
 		gsl::span<clear_value_t> clear_values,
 		uint32_t width, uint32_t height) override;
+
+	virtual void clear_depth_stencil(image_t & img, float depth) override;
+	virtual void clear_depth_stencil(image_t & img, uint8_t stencil) override;
+	virtual void clear_depth_stencil(image_t & img, float depth, uint8_t stencil) override;
+	virtual void clear_color(image_t &img, gsl::span<float, 4> clear_colors) override;
 };
 
 struct vk_device_t final: device_t

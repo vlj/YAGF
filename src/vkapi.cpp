@@ -646,6 +646,39 @@ void vk_command_list_t::begin_renderpass(render_pass_t& rp, framebuffer_t &fbo, 
 	);
 }
 
+void vk_command_list_t::clear_depth_stencil(image_t & img, float depth)
+{
+	vk::ClearDepthStencilValue clear_values{};
+	clear_values.depth = depth;
+	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1) });
+}
+
+void vk_command_list_t::clear_depth_stencil(image_t & img, uint8_t stencil)
+{
+	vk::ClearDepthStencilValue clear_values{};
+	clear_values.stencil = stencil;
+	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1) });
+}
+
+void vk_command_list_t::clear_depth_stencil(image_t & img, float depth, uint8_t stencil)
+{
+	vk::ClearDepthStencilValue clear_values{};
+	clear_values.depth = depth;
+	clear_values.stencil = stencil;
+	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1) });
+}
+
+void vk_command_list_t::clear_color(image_t &img, gsl::span<float, 4> clear_colors)
+{
+	vk::ClearColorValue clear_values{};
+	clear_values.setFloat32(std::array<float, 4>{clear_colors[0], clear_colors[1], clear_colors[2], clear_colors[3]});
+	object.clearColorImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eGeneral,
+		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1) });
+}
+
 void vk_command_list_storage_t::reset_command_list_storage()
 {
 	dev.resetCommandPool(object, vk::CommandPoolResetFlags());
