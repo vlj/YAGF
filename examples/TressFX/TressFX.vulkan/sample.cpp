@@ -277,7 +277,7 @@ sample::sample(GLFWwindow *window)
 
 		blit_command_buffer[i]->set_graphic_pipeline(*blit_pso);
 		blit_command_buffer[i]->bind_graphic_descriptor(0, *descriptor, *blit_layout);
-		blit_command_buffer[i]->bind_vertex_buffers(0, { { *big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float) } });
+		blit_command_buffer[i]->bind_vertex_buffers(0, { { *big_triangle, 0ull, 4u * static_cast<uint32_t>(sizeof(float)), 4u * 3u * static_cast<uint32_t>(sizeof(float)) } });
 		blit_command_buffer[i]->draw_non_indexed(3, 1, 0, 0);
 
 		blit_command_buffer[i]->end_renderpass();

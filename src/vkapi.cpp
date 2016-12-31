@@ -1456,14 +1456,14 @@ std::unique_ptr<render_pass_t> vk_device_t::create_blit_pass()
 		vk::SubpassDescription{}
 			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
 			.setPColorAttachments(att_ref.data())
-			.setColorAttachmentCount(att_ref.size())
+			.setColorAttachmentCount(static_cast<uint32_t>(att_ref.size()))
 	};
 	auto&& result = object.createRenderPass(
 		vk::RenderPassCreateInfo{}
 			.setPAttachments(attachments.data())
-			.setAttachmentCount(attachments.size())
+			.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
 			.setPSubpasses(subpass_desc.data())
-			.setSubpassCount(subpass_desc.size())
+			.setSubpassCount(static_cast<uint32_t>(subpass_desc.size()))
 	);
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
