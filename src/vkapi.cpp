@@ -1440,7 +1440,7 @@ std::unique_ptr<render_pass_t> vk_device_t::create_blit_pass()
 	const auto& attachments = std::array<vk::AttachmentDescription, 1>{
 		vk::AttachmentDescription{}
 			.setFormat(vk::Format::eB8G8R8A8Unorm)
-			.setLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setLoadOp(vk::AttachmentLoadOp::eClear)
 			.setStoreOp(vk::AttachmentStoreOp::eStore)
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setInitialLayout(vk::ImageLayout::ePresentSrcKHR)

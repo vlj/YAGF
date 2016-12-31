@@ -230,7 +230,7 @@ sample::sample(GLFWwindow *window)
 		dynamic_cast<vk_buffer_t&>(*upload_buffer).memory);
 
 	upload_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-	upload_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	upload_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
 
 	upload_command_buffer->set_pipeline_barrier(*back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -250,7 +250,7 @@ sample::sample(GLFWwindow *window)
 	draw_command_buffer->start_command_list_recording(*command_storage);
 
 	draw_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_COLOR);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_COLOR);
 	draw_command_buffer->clear_depth_stencil(*depth_texture, 1.f);
 	draw_command_buffer->clear_color(*color_texture, std::array<float, 4>{});
 
@@ -263,14 +263,14 @@ sample::sample(GLFWwindow *window)
 	draw_command_buffer->set_viewport(0, 1024., 0., 1024, 0., 1.);
     TressFX_Render(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
     TressFX_End(tressfx_helper);
-	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 	draw_command_buffer->make_command_list_executable();
 
     for (int i = 0; i < 2; i++)
     {
         blit_command_buffer[i] = command_storage->create_command_list();
 		blit_command_buffer[i]->start_command_list_recording(*command_storage);
-		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, *fbo[i], {}, 900, 900);
+		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, *fbo[i], std::vector<clear_value_t>{ clear_value_t(std::array<float, 4>{}) }, 900, 900);
 
 		blit_command_buffer[i]->set_scissor(0, 900, 0, 900);
 		blit_command_buffer[i]->set_viewport(0, 900, 0., 900, 0., 1.);
