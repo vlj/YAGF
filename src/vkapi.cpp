@@ -650,7 +650,7 @@ void vk_command_list_t::clear_depth_stencil(image_t & img, float depth)
 {
 	vk::ClearDepthStencilValue clear_values{};
 	clear_values.depth = depth;
-	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eTransferDstOptimal,
 		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1) });
 }
 
@@ -658,7 +658,7 @@ void vk_command_list_t::clear_depth_stencil(image_t & img, uint8_t stencil)
 {
 	vk::ClearDepthStencilValue clear_values{};
 	clear_values.stencil = stencil;
-	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eTransferDstOptimal,
 		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1) });
 }
 
@@ -667,7 +667,7 @@ void vk_command_list_t::clear_depth_stencil(image_t & img, float depth, uint8_t 
 	vk::ClearDepthStencilValue clear_values{};
 	clear_values.depth = depth;
 	clear_values.stencil = stencil;
-	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+	object.clearDepthStencilImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eTransferDstOptimal,
 		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1) });
 }
 
@@ -675,7 +675,7 @@ void vk_command_list_t::clear_color(image_t &img, const std::array<float, 4>& cl
 {
 	vk::ClearColorValue clear_values{};
 	clear_values.setFloat32(clear_colors);
-	object.clearColorImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eGeneral,
+	object.clearColorImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eTransferDstOptimal,
 		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1) });
 }
 
@@ -1096,10 +1096,10 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(const graphic_
 		auto&& already_defined_buffer = std::set<uint32_t>{};
 		for (const auto& attrib : pso_desc.attributes)
 		{
-			if (already_defined_buffer.find(attrib.location) != already_defined_buffer.end())
+			if (already_defined_buffer.find(attrib.binding) != already_defined_buffer.end())
 				continue;
-			result.emplace_back(attrib.location, attrib.stride, vk::VertexInputRate::eVertex);
-			already_defined_buffer.insert(attrib.location);
+			result.emplace_back(attrib.binding, attrib.stride, vk::VertexInputRate::eVertex);
+			already_defined_buffer.insert(attrib.binding);
 		}
 		return result;
 	}();

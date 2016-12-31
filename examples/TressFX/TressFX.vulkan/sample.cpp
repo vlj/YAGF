@@ -40,7 +40,7 @@ namespace
 				pipeline_vertex_attributes{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
 				pipeline_vertex_attributes{ 1, irr::video::ECF_R32G32B32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
 			})
-			.set_color_outputs(std::vector<color_output>{ {false}, { false }, { false } });
+			.set_color_outputs(std::vector<color_output>{ {false} });
 
 		return dev.create_graphic_pso(pso_desc, rp, layout, 0);
     }
@@ -78,7 +78,7 @@ sample::sample(GLFWwindow *window)
     descriptor = descriptor_pool->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { blit_layout_set.get() }, 2);
 
 	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
-		[&](const auto& img) {return dev->create_image_view(*img, irr::video::ECF_B8G8R8A8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
+		[&](const auto& img) {return dev->create_image_view(*img, std::get<5>(dev_swapchain_queue), 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
 
     fbo[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, 900, 900, blit_render_pass.get());
     fbo[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, 900, 900, blit_render_pass.get());
@@ -138,9 +138,9 @@ sample::sample(GLFWwindow *window)
     tressfx_helper.hairParams.pointLightColor = DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f);
 
 
-    depth_texture = dev->create_image(irr::video::D32U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled, nullptr);
+    depth_texture = dev->create_image(irr::video::D32U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled | usage_transfer_dst, nullptr);
     depth_texture_view = dev->create_image_view(*depth_texture, irr::video::D32U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
-    color_texture = dev->create_image( irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled, nullptr);
+    color_texture = dev->create_image( irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled | usage_transfer_dst, nullptr);
     color_texture_view = dev->create_image_view(*color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
 
     dev->set_image_view(*descriptor, 0, 0, *color_texture_view);
@@ -165,7 +165,9 @@ sample::sample(GLFWwindow *window)
 	upload_command_buffer->start_command_list_recording(*command_storage);
 
     TFXProjectFile tfxproject;
-    bool success = tfxproject.Read(L"..\\..\\deps\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
+    bool success = tfxproject.Read(L"..\\..\\..\\deps\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
+	if (!success)
+		throw;
 
     AMD::TressFX_HairBlob hairBlob;
 
@@ -247,8 +249,13 @@ sample::sample(GLFWwindow *window)
     draw_command_buffer = command_storage->create_command_list();
 	draw_command_buffer->start_command_list_recording(*command_storage);
 
+	draw_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::PRESENT, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_COLOR);
 	draw_command_buffer->clear_depth_stencil(*depth_texture, 1.f);
 	draw_command_buffer->clear_color(*color_texture, std::array<float, 4>{});
+
+	draw_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
     TressFX_Begin(tressfx_helper, 0);
     TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16f, 0);
     TressFX_RenderShadowMap(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
@@ -256,7 +263,7 @@ sample::sample(GLFWwindow *window)
 	draw_command_buffer->set_viewport(0, 1024., 0., 1024, 0., 1.);
     TressFX_Render(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
     TressFX_End(tressfx_helper);
-
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 	draw_command_buffer->make_command_list_executable();
 
     for (int i = 0; i < 2; i++)
