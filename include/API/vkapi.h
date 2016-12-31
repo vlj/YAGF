@@ -114,7 +114,7 @@ struct vk_device_t final: device_t
 	virtual std::unique_ptr<render_pass_t> create_ibl_sky_pass(const irr::video::ECOLOR_FORMAT&) override;
 	virtual std::unique_ptr<render_pass_t> create_object_sunlight_pass(const irr::video::ECOLOR_FORMAT&) override;
 	virtual std::unique_ptr<render_pass_t> create_ssao_pass() override;
-	virtual std::unique_ptr<render_pass_t> create_blit_pass() override;
+	virtual std::unique_ptr<render_pass_t> create_blit_pass(const irr::video::ECOLOR_FORMAT& color_format) override;
 	virtual std::unique_ptr<fence_t> create_fence() override;
 	virtual std::unique_ptr<semaphore_t> create_semaphore() override;
 };

@@ -1435,11 +1435,11 @@ std::unique_ptr<render_pass_t> vk_device_t::create_ssao_pass()
 	return std::unique_ptr<render_pass_t>(new vk_render_pass_t(object, result));
 }
 
-std::unique_ptr<render_pass_t> vk_device_t::create_blit_pass()
+std::unique_ptr<render_pass_t> vk_device_t::create_blit_pass(const irr::video::ECOLOR_FORMAT& color_format)
 {
 	const auto& attachments = std::array<vk::AttachmentDescription, 1>{
 		vk::AttachmentDescription{}
-			.setFormat(vk::Format::eB8G8R8A8Unorm)
+			.setFormat(get_vk_format(color_format))
 			.setLoadOp(vk::AttachmentLoadOp::eDontCare)
 			.setStoreOp(vk::AttachmentStoreOp::eStore)
 			.setSamples(vk::SampleCountFlagBits::e1)

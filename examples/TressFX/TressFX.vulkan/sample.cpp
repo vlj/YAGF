@@ -26,11 +26,6 @@ namespace
         range_of_descriptors(RESOURCE_VIEW::SAMPLER, 1, 1)},
         shader_stage::fragment_shader);
 
-    std::unique_ptr<render_pass_t> get_render_pass(device_t &dev)
-    {
-        return dev.create_blit_pass();
-    }
-
     auto get_blit_pso(device_t &dev, pipeline_layout_t& layout, render_pass_t& rp)
     {
 		graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
@@ -57,7 +52,7 @@ sample::sample(GLFWwindow *window)
 	width = std::get<3>(dev_swapchain_queue);
 	height = std::get<4>(dev_swapchain_queue);
 
-    blit_render_pass = get_render_pass(*dev);
+	blit_render_pass = dev->create_blit_pass(std::get<5>(dev_swapchain_queue));
 
     blit_layout_set = dev->get_object_descriptor_set(blit_descriptor);
     blit_layout = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{blit_layout_set.get()});

@@ -18,6 +18,7 @@ file(GLOB SOURCES
 add_executable(tressFX ${HEADERS} ${SOURCES} ${SHADERS})
 target_link_libraries(tressFX YAGF ${GLEW_LIBRARY} glfw3dll ${FREETYPE_LIBRARY} ${OPENGL_LIBRARY} gflags)
 
+add_definitions("-DAMD_TRESSFX_VULKAN=1")
 
 set(directory "${CMAKE_CURRENT_BINARY_DIR}/generatedShaders")
 file(MAKE_DIRECTORY ${directory})
