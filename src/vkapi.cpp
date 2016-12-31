@@ -671,10 +671,10 @@ void vk_command_list_t::clear_depth_stencil(image_t & img, float depth, uint8_t 
 		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1) });
 }
 
-void vk_command_list_t::clear_color(image_t &img, gsl::span<float, 4> clear_colors)
+void vk_command_list_t::clear_color(image_t &img, const std::array<float, 4>& clear_colors)
 {
 	vk::ClearColorValue clear_values{};
-	clear_values.setFloat32(std::array<float, 4>{clear_colors[0], clear_colors[1], clear_colors[2], clear_colors[3]});
+	clear_values.setFloat32(clear_colors);
 	object.clearColorImage(dynamic_cast<vk_image_t&>(img).object, vk::ImageLayout::eGeneral,
 		clear_values, { vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1) });
 }

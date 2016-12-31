@@ -580,7 +580,7 @@ struct command_list_t {
 	virtual void clear_depth_stencil(image_t &img, float depth) = 0;
 	virtual void clear_depth_stencil(image_t &img, uint8_t stencil) = 0;
 	virtual void clear_depth_stencil(image_t &img, float depth, uint8_t stencil) = 0;
-	virtual void clear_color(image_t &img, gsl::span<float, 4> clear_colors) = 0;
+	virtual void clear_color(image_t &img, const std::array<float, 4> &clear_colors) = 0;
 
 	virtual void begin_renderpass(render_pass_t& rp, framebuffer_t& fbo,
 		gsl::span<clear_value_t> clear_values,

@@ -78,13 +78,13 @@ sample::sample(GLFWwindow *window)
     descriptor = descriptor_pool->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { blit_layout_set.get() }, 2);
 
 	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
-		[&](const auto& img) {return dev->create_image_view(img, irr::video::ECF_B8G8R8A8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
+		[&](const auto& img) {return dev->create_image_view(*img, irr::video::ECF_B8G8R8A8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
 
     fbo[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, 900, 900, blit_render_pass.get());
     fbo[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, 900, 900, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = dynamic_cast<vk_device_t&>(*dev).object;
-    tressfx_helper.memoryIndexDeviceLocal = dynamic_cast<vk_device_t&>(*dev).mem_properties;
+    tressfx_helper.memoryProperties = dynamic_cast<vk_device_t&>(*dev).mem_properties;
 
     DirectX::XMFLOAT4 lightpos{ 121.386368f, 420.605896f, -426.585876f, 1.00000000f };
 
@@ -111,7 +111,7 @@ sample::sample(GLFWwindow *window)
     tressfx_helper.backBufferWidth = 1024;
     tressfx_helper.hairParams.density = .5;
     tressfx_helper.hairParams.thickness = 0.3f;
-    tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012;
+    tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012f;
     tressfx_helper.maxConstantBuffers = 1;
 
 
@@ -173,12 +173,12 @@ sample::sample(GLFWwindow *window)
     std::ifstream tfxFile;
     int numHairSectionsCounter = 0;
     tressfx_helper.simulationParams.bGuideFollowSimulation = false;
-    tressfx_helper.simulationParams.gravityMagnitude = 9.82;
+    tressfx_helper.simulationParams.gravityMagnitude = 9.82f;
     tressfx_helper.simulationParams.numLengthConstraintIterations = tfxproject.lengthConstraintIterations;
     tressfx_helper.simulationParams.numLocalShapeMatchingIterations = tfxproject.localShapeMatchingIterations;
     tressfx_helper.simulationParams.windMag = tfxproject.windMag;
     tressfx_helper.simulationParams.windDir = DirectX::XMFLOAT3(1., 0., 0.);
-    tressfx_helper.targetFrameRate = 1. / 60.;
+    tressfx_helper.targetFrameRate = 1.f / 60.f;
 
 	const auto& Model = glm::rotate(3.14f, glm::vec3(0.f, 1.f, 0.f));
 
@@ -250,7 +250,7 @@ sample::sample(GLFWwindow *window)
 	draw_command_buffer->clear_depth_stencil(*depth_texture, 1.f);
 	draw_command_buffer->clear_color(*color_texture, std::array<float, 4>{});
     TressFX_Begin(tressfx_helper, 0);
-    TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16, 0);
+    TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16f, 0);
     TressFX_RenderShadowMap(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
 	draw_command_buffer->set_scissor(0, 1024, 0, 1024);
 	draw_command_buffer->set_viewport(0, 1024., 0., 1024, 0., 1.);
