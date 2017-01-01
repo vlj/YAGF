@@ -54,6 +54,8 @@ sample::sample(GLFWwindow *window)
     queue = std::move(std::get<2>(dev_swapchain_queue));
     chain = std::move(std::get<1>(dev_swapchain_queue));
     back_buffer = chain->get_image_view_from_swap_chain();
+	width = std::get<3>(dev_swapchain_queue);
+	height = std::get<4>(dev_swapchain_queue);
 
     blit_render_pass = get_render_pass(*dev);
 
@@ -80,8 +82,8 @@ sample::sample(GLFWwindow *window)
 	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
 		[&](const auto& img) {return dev->create_image_view(*img, std::get<5>(dev_swapchain_queue), 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
 
-    fbo[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, 900, 900, blit_render_pass.get());
-    fbo[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, 900, 900, blit_render_pass.get());
+    fbo[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, width, height, blit_render_pass.get());
+    fbo[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, width, height, blit_render_pass.get());
 
     tressfx_helper.pvkDevice = dynamic_cast<vk_device_t&>(*dev).object;
     tressfx_helper.memoryProperties = dynamic_cast<vk_device_t&>(*dev).mem_properties;
@@ -91,7 +93,7 @@ sample::sample(GLFWwindow *window)
 
 	const auto& View =
 		glm::transpose(
-			glm::perspectiveFovRH(70.f / 180.f * 3.14f, 900.f, 900.f, 100.f, 600.f) *
+			glm::perspectiveFovRH(70.f / 180.f * 3.14f, static_cast<float>(width), static_cast<float>(height), 100.f, 600.f) *
 			glm::lookAtRH(glm::vec3(-190.0f, 70.0f, -250.0f), glm::vec3(0.f, 40.f, 0.f), glm::vec3(0.f, -1.f, 0.f))
 		);
 	const auto& InvView = glm::inverse(View);
@@ -107,8 +109,8 @@ sample::sample(GLFWwindow *window)
     tressfx_helper.bShortCutOn = true;
     tressfx_helper.hairParams.bAntialias = true;
     tressfx_helper.hairParams.strandCopies = 1;
-    tressfx_helper.backBufferHeight = 1024;
-    tressfx_helper.backBufferWidth = 1024;
+    tressfx_helper.backBufferHeight = height;
+    tressfx_helper.backBufferWidth = width;
     tressfx_helper.hairParams.density = .5;
     tressfx_helper.hairParams.thickness = 0.3f;
     tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012f;
@@ -140,9 +142,9 @@ sample::sample(GLFWwindow *window)
 	tressfx_helper.colorFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
 
-    depth_texture = dev->create_image(irr::video::D32U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled | usage_transfer_dst, nullptr);
+    depth_texture = dev->create_image(irr::video::D32U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_transfer_dst, nullptr);
     depth_texture_view = dev->create_image_view(*depth_texture, irr::video::D32U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
-    color_texture = dev->create_image( irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled | usage_transfer_dst, nullptr);
+    color_texture = dev->create_image( irr::video::ECF_R8G8B8A8_UNORM_SRGB, width, height, 1, 1, usage_render_target | usage_sampled | usage_transfer_dst, nullptr);
     color_texture_view = dev->create_image_view(*color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
 
     dev->set_image_view(*descriptor, 0, 0, *color_texture_view);
@@ -152,7 +154,7 @@ sample::sample(GLFWwindow *window)
     command_storage = dev->create_command_storage();
     std::unique_ptr<command_list_t> upload_command_buffer = command_storage->create_command_list();
 	upload_command_buffer->start_command_list_recording(*command_storage);
-    std::unique_ptr<buffer_t> upload_buffer = dev->create_buffer(1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+    std::unique_ptr<buffer_t> upload_buffer = dev->create_buffer(width * height * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
 
     size_t offset = 0;
     TressFX_Initialize(tressfx_helper,
@@ -255,8 +257,8 @@ sample::sample(GLFWwindow *window)
     TressFX_Begin(tressfx_helper, 0);
     TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16f, 0);
     TressFX_RenderShadowMap(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
-	draw_command_buffer->set_scissor(0, 1024, 0, 1024);
-	draw_command_buffer->set_viewport(0, 1024., 0., 1024, 0., 1.);
+	draw_command_buffer->set_scissor(0, width, 0, height);
+	draw_command_buffer->set_viewport(0, width, 0., height, 0., 1.);
     TressFX_Render(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
     TressFX_End(tressfx_helper);
 	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
@@ -266,10 +268,10 @@ sample::sample(GLFWwindow *window)
     {
         blit_command_buffer[i] = command_storage->create_command_list();
 		blit_command_buffer[i]->start_command_list_recording(*command_storage);
-		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, *fbo[i], {}, 900, 900);
+		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, *fbo[i], {}, width, height);
 
-		blit_command_buffer[i]->set_scissor(0, 900, 0, 900);
-		blit_command_buffer[i]->set_viewport(0, 900, 0., 900, 0., 1.);
+		blit_command_buffer[i]->set_scissor(0, width, 0, height);
+		blit_command_buffer[i]->set_viewport(0, width, 0., height, 0., 1.);
 
 		blit_command_buffer[i]->set_graphic_pipeline(*blit_pso);
 		blit_command_buffer[i]->bind_graphic_descriptor(0, *descriptor, *blit_layout);

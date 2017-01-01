@@ -11,6 +11,8 @@ struct sample
     std::unique_ptr<device_t> dev;
     std::unique_ptr<command_queue_t> queue;
     std::unique_ptr<swap_chain_t> chain;
+	uint32_t width;
+	uint32_t height;
 
     std::vector<std::unique_ptr<image_t>> back_buffer;
 	std::vector<std::unique_ptr<image_view_t>> back_buffer_view;
