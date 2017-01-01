@@ -3,8 +3,7 @@
 // Contains code from the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in License.txt
 
-#ifndef MESHSCENENODE_H
-#define MESHSCENENODE_H
+#pragma once
 
 #ifdef D3D12
 #include <API/d3dapi.h>
@@ -18,7 +17,6 @@
 #include <array>
 #include <unordered_map>
 #include <Core/SColor.h>
-#include <Maths/matrix4.h>
 //#include <Core/ISkinnedMesh.h>
 #include <Scene/ISceneNode.h>
 
@@ -45,8 +43,8 @@ namespace irr
 
 			std::unique_ptr<buffer_t> object_matrix;
 
-			allocated_descriptor_set object_descriptor_set;
-			std::vector<allocated_descriptor_set> mesh_descriptor_set;
+			std::unique_ptr<allocated_descriptor_set> object_descriptor_set;
+			std::vector<std::unique_ptr<allocated_descriptor_set>> mesh_descriptor_set;
 		public:
 
 			//! Constructor
@@ -55,19 +53,16 @@ namespace irr
 			IMeshSceneNode(device_t& dev, const aiScene*, command_list_t& upload_cmd_list, descriptor_storage_t& heap,
 				descriptor_set_layout* object_set, descriptor_set_layout* model_set,
 				ISceneNode* parent,
-				const core::vector3df& position = core::vector3df(0, 0, 0),
-				const core::vector3df& rotation = core::vector3df(0, 0, 0),
-				const core::vector3df& scale = core::vector3df(1.f, 1.f, 1.f));
+				const glm::vec3& position = glm::vec3(0, 0, 0),
+				const glm::vec3& rotation = glm::vec3(0, 0, 0),
+				const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f));
 
 			~IMeshSceneNode();
 			void render() {}
 
-			void fill_draw_command(command_list_t& cmd_list, pipeline_layout_t object_sig);
+			void fill_draw_command(command_list_t& cmd_list, pipeline_layout_t& object_sig);
 			void update_constant_buffers(device_t& dev);
 		};
 
 	} // end namespace scene
 } // end namespace irr
-
-
-#endif

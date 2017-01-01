@@ -28,7 +28,7 @@ constexpr VkFrontFace get_front_face(const irr::video::E_FRONT_FACE eff)
 		(eff == irr::video::E_FRONT_FACE::EFF_CW) ? VK_FRONT_FACE_CLOCKWISE : throw;
 }
 
-constexpr VkPipelineRasterizationStateCreateInfo get_pipeline_rasterization_state_create_info(const pipeline_state_description desc)
+inline VkPipelineRasterizationStateCreateInfo get_pipeline_rasterization_state_create_info(const graphic_pipeline_state_description desc)
 {
 	return { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, nullptr,
 		0,
@@ -52,7 +52,7 @@ constexpr VkSampleCountFlagBits get_sample_count(const irr::video::E_SAMPLE_COUN
 		(esc == irr::video::E_SAMPLE_COUNT::ESC_8) ? VK_SAMPLE_COUNT_8_BIT : throw;
 }
 
-constexpr VkPipelineMultisampleStateCreateInfo get_pipeline_multisample_state_create_info(const pipeline_state_description desc)
+inline VkPipelineMultisampleStateCreateInfo get_pipeline_multisample_state_create_info(const graphic_pipeline_state_description desc)
 {
 	return{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, nullptr, 0,
 		get_sample_count(desc.multisample_sample_count),
@@ -76,7 +76,7 @@ constexpr VkStencilOp get_stencil_op(const irr::video::E_STENCIL_OP eso)
 	return (eso == irr::video::E_STENCIL_OP::ESO_KEEP) ? VK_STENCIL_OP_KEEP : throw;
 }
 
-constexpr VkPipelineDepthStencilStateCreateInfo get_pipeline_depth_stencil_state_create_info(const pipeline_state_description desc)
+inline VkPipelineDepthStencilStateCreateInfo get_pipeline_depth_stencil_state_create_info(const graphic_pipeline_state_description desc)
 {
 	return{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, nullptr, 0,
 		desc.depth_stencil_depth_test,
@@ -99,7 +99,7 @@ constexpr VkPrimitiveTopology get_primitive_topology(const irr::video::E_PRIMITI
 		(ept == irr::video::E_PRIMITIVE_TYPE::EPT_TRIANGLES) ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST : throw;
 }
 
-constexpr VkPipelineInputAssemblyStateCreateInfo get_pipeline_input_assembly_state_info(const pipeline_state_description desc)
+inline VkPipelineInputAssemblyStateCreateInfo get_pipeline_input_assembly_state_info(const graphic_pipeline_state_description desc)
 {
 	return{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
 		get_primitive_topology(desc.input_assembly_topology), desc.input_assembly_primitive_restart };

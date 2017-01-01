@@ -3,14 +3,7 @@
 #ifndef IBL_HPP
 #define IBL_HPP
 
-#ifdef D3D12
-#include <API/d3dapi.h>
-#include <d3dx12.h>
-#else
-#include <API/vkapi.h>
-#endif
-
-#include <Core/IImage.h>
+#include <API/GfxApi.h>
 
 struct Color
 {
@@ -54,18 +47,18 @@ struct SH
 
 struct ibl_utility
 {
-	std::shared_ptr<descriptor_set_layout> object_set;
-	std::shared_ptr<descriptor_set_layout> sampler_set;
+	std::unique_ptr<descriptor_set_layout> object_set;
+	std::unique_ptr<descriptor_set_layout> sampler_set;
 
-	std::shared_ptr<descriptor_set_layout> face_set;
-	std::shared_ptr<descriptor_set_layout> mipmap_set;
-	std::shared_ptr<descriptor_set_layout> uav_set;
+	std::unique_ptr<descriptor_set_layout> face_set;
+	std::unique_ptr<descriptor_set_layout> mipmap_set;
+	std::unique_ptr<descriptor_set_layout> uav_set;
 
-	std::shared_ptr<descriptor_set_layout> dfg_set;
+	std::unique_ptr<descriptor_set_layout> dfg_set;
 
-	pipeline_layout_t compute_sh_sig;
-	pipeline_layout_t importance_sampling_sig;
-	pipeline_layout_t dfg_building_sig;
+	std::unique_ptr<pipeline_layout_t> compute_sh_sig;
+	std::unique_ptr<pipeline_layout_t> importance_sampling_sig;
+	std::unique_ptr<pipeline_layout_t> dfg_building_sig;
 
 	std::unique_ptr<compute_pipeline_state_t> compute_sh_pso;
 	std::unique_ptr<compute_pipeline_state_t> importance_sampling;
@@ -74,7 +67,7 @@ struct ibl_utility
 	std::unique_ptr<descriptor_storage_t> srv_cbv_uav_heap;
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
-	allocated_descriptor_set sampler_descriptors;
+	std::unique_ptr<allocated_descriptor_set> sampler_descriptors;
 
 	std::unique_ptr<sampler_t> anisotropic_sampler;
 
@@ -102,7 +95,7 @@ struct ibl_utility
 	std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> getDFGLUT(device_t& dev, command_list_t& cmd_list, uint32_t DFG_LUT_size = 128);
 
 private:
-	allocated_descriptor_set get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer);
-	allocated_descriptor_set get_dfg_input_descriptor_set(device_t &dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view);
+	std::unique_ptr<allocated_descriptor_set> get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer);
+	std::unique_ptr<allocated_descriptor_set> get_dfg_input_descriptor_set(device_t &dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view);
 };
 #endif

@@ -2,112 +2,84 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 
 #include <Scene/IBL.h>
-#include <Maths/matrix4.h>
 #include <cmath>
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/mat4x4.hpp>
 #include <set>
 #include <d3dcompiler.h>
-#include "..\include\Scene\IBL.h"
+
+const auto dfg_code = std::vector<uint32_t>
+#include <generatedShaders\dfg.h>
+;
+
+const auto importance_sampling_specular_code = std::vector<uint32_t>
+#include <generatedShaders\importance_sampling_specular.h>
+;
+
+const auto computesh_code = std::vector<uint32_t>
+#include <generatedShaders\computesh.h>
+;
 
 namespace
 {
-	constexpr auto object_descriptor_set_type = descriptor_set({
+	const auto object_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 1, 1),
 		range_of_descriptors(RESOURCE_VIEW::UAV_BUFFER, 2, 1) },
 		shader_stage::all);
 
 
-	constexpr auto face_set_type = descriptor_set({
+	const auto face_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 1, 1) },
 		shader_stage::all);
 
-	constexpr auto mipmap_set_type = descriptor_set({
+	const auto mipmap_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::TEXEL_BUFFER, 2, 1),
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 5, 1) },
 		shader_stage::all);
 
-	constexpr auto uav_set_type = descriptor_set({
+	const auto uav_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 3, 1) },
 		shader_stage::all);
 
-	constexpr auto dfg_input = descriptor_set({
+	const auto dfg_input = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::CONSTANTS_BUFFER, 0, 1),
 		range_of_descriptors(RESOURCE_VIEW::TEXEL_BUFFER, 1, 1),
 		range_of_descriptors(RESOURCE_VIEW::UAV_IMAGE, 2, 1) },
 		shader_stage::all);
 
-	constexpr auto sampler_descriptor_set_type = descriptor_set({
+	const auto sampler_descriptor_set_type = descriptor_set({
 		range_of_descriptors(RESOURCE_VIEW::SAMPLER, 4, 1) },
-		shader_stage::fragment_shader);
+		shader_stage::all);
 
-	std::unique_ptr<compute_pipeline_state_t> get_compute_sh_pipeline_state(device_t& dev, pipeline_layout_t pipeline_layout)
+	auto get_compute_sh_pipeline_state(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
-#ifdef D3D12
-		ID3D12PipelineState* result;
-		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		CHECK_HRESULT(D3DReadFileToBlob(L"computesh.cso", blob.GetAddressOf()));
-
-		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
-		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
-		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
-		pipeline_desc.pRootSignature = pipeline_layout.Get();
-
-		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
-		return std::make_unique<compute_pipeline_state_t>(result);
-#else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\computesh.spv");
-		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
-		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
-#endif // D3D12
+		auto pso_desc = compute_pipeline_state_description{}
+			.set_compute_shader(computesh_code);
+		return dev.create_compute_pso(pso_desc, pipeline_layout);
 	}
 
-	std::unique_ptr<compute_pipeline_state_t> ImportanceSamplingForSpecularCubemap(device_t& dev, pipeline_layout_t pipeline_layout)
+	auto ImportanceSamplingForSpecularCubemap(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
-#ifdef D3D12
-		ID3D12PipelineState* result;
-		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		CHECK_HRESULT(D3DReadFileToBlob(L"importance_sampling_specular.cso", blob.GetAddressOf()));
-
-		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
-		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
-		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
-		pipeline_desc.pRootSignature = pipeline_layout.Get();
-
-		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
-		return std::make_unique<compute_pipeline_state_t>(result);
-#else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\importance_sampling_specular.spv");
-		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
-		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
-#endif // D3D12
+		auto pso_desc = compute_pipeline_state_description{}
+			.set_compute_shader(importance_sampling_specular_code);
+		return dev.create_compute_pso(pso_desc, pipeline_layout);
 	}
 
-	std::unique_ptr<compute_pipeline_state_t> dfg_building_pso(device_t& dev, pipeline_layout_t pipeline_layout)
+	auto dfg_building_pso(device_t& dev, pipeline_layout_t& pipeline_layout)
 	{
-#ifdef D3D12
-		ID3D12PipelineState* result;
-		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		CHECK_HRESULT(D3DReadFileToBlob(L"dfg.cso", blob.GetAddressOf()));
-
-		D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline_desc{};
-		pipeline_desc.CS.BytecodeLength = blob->GetBufferSize();
-		pipeline_desc.CS.pShaderBytecode = blob->GetBufferPointer();
-		pipeline_desc.pRootSignature = pipeline_layout.Get();
-
-		CHECK_HRESULT(dev->CreateComputePipelineState(&pipeline_desc, IID_PPV_ARGS(&result)));
-		return std::make_unique<compute_pipeline_state_t>(result);
-#else
-		vulkan_wrapper::shader_module module(dev, "..\\..\\..\\dfg.spv");
-		VkPipelineShaderStageCreateInfo shader_stages{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_COMPUTE_BIT, module.object, "main", nullptr };
-		return std::make_unique<compute_pipeline_state_t>(dev, shader_stages, pipeline_layout->object, VkPipeline(VK_NULL_HANDLE), -1);
-#endif // D3D12
+		auto pso_desc = compute_pipeline_state_description{}
+			.set_compute_shader(dfg_code);
+		return dev.create_compute_pso(pso_desc, pipeline_layout);
 	}
 
-	irr::core::matrix4 getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
+	auto getPermutationMatrix(size_t indexX, float valX, size_t indexY, float valY, size_t indexZ, float valZ)
 	{
-		irr::core::matrix4 resultMat;
-		float *M = resultMat.pointer();
+		glm::mat4 resultMat;
+		// TODO: Don't use this reinterpret cast
+		float *M = reinterpret_cast<float*>(&resultMat);
 		memset(M, 0, 16 * sizeof(float));
 		assert(indexX < 4);
 		assert(indexY < 4);
@@ -117,11 +89,6 @@ namespace
 		M[8 + indexZ] = valZ;
 		return resultMat;
 	}
-
-	struct PermutationMatrix
-	{
-		float Matrix[16];
-	};
 
 	// From http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
 	/**
@@ -150,47 +117,33 @@ namespace
 
 ibl_utility::ibl_utility(device_t &dev)
 {
-#ifdef D3D12
-	compute_sh_sig = get_pipeline_layout_from_desc(dev, { object_descriptor_set_type, sampler_descriptor_set_type });
-#else
-	object_set = get_object_descriptor_set(dev, object_descriptor_set_type);
-	sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
-	compute_sh_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ object_set->object, sampler_set->object}, std::vector<VkPushConstantRange>());
-#endif
-	compute_sh_pso = get_compute_sh_pipeline_state(dev, compute_sh_sig);
+	object_set = dev.get_object_descriptor_set(object_descriptor_set_type);
+	sampler_set = dev.get_object_descriptor_set(sampler_descriptor_set_type);
+	compute_sh_sig = dev.create_pipeline_layout(std::vector<const descriptor_set_layout*>{ object_set.get(), sampler_set.get()});
+	compute_sh_pso = get_compute_sh_pipeline_state(dev, *compute_sh_sig);
+	face_set = dev.get_object_descriptor_set(face_set_type);
+	mipmap_set = dev.get_object_descriptor_set(mipmap_set_type);
+	uav_set = dev.get_object_descriptor_set(uav_set_type);
+	sampler_set = dev.get_object_descriptor_set(sampler_descriptor_set_type);
+	importance_sampling_sig = dev.create_pipeline_layout(std::vector<const descriptor_set_layout*>{ face_set.get(), mipmap_set.get(), uav_set.get(), sampler_set.get() });
+	importance_sampling = ImportanceSamplingForSpecularCubemap(dev, *importance_sampling_sig);
 
-#ifdef D3D12
-	importance_sampling_sig = get_pipeline_layout_from_desc(dev, { face_set_type, mipmap_set_type, uav_set_type, sampler_descriptor_set_type });
-#else
-	face_set = get_object_descriptor_set(dev, face_set_type);
-	mipmap_set = get_object_descriptor_set(dev, mipmap_set_type);
-	uav_set = get_object_descriptor_set(dev, uav_set_type);
-	sampler_set = get_object_descriptor_set(dev, sampler_descriptor_set_type);
-	importance_sampling_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0,
-		std::vector<VkDescriptorSetLayout>{ face_set->object, mipmap_set->object, uav_set->object, sampler_set->object }, std::vector<VkPushConstantRange>());
-#endif
-	importance_sampling = ImportanceSamplingForSpecularCubemap(dev, importance_sampling_sig);
+	dfg_set = dev.get_object_descriptor_set(dfg_input);
+	dfg_building_sig = dev.create_pipeline_layout(std::vector<const descriptor_set_layout*>{ dfg_set.get() });
+	pso = dfg_building_pso(dev, *dfg_building_sig);
 
-#ifdef D3D12
-	dfg_building_sig = get_pipeline_layout_from_desc(dev, { dfg_input });
-#else
-	dfg_set = get_object_descriptor_set(dev, dfg_input);
-	dfg_building_sig = std::make_shared<vulkan_wrapper::pipeline_layout>(dev, 0, std::vector<VkDescriptorSetLayout>{ dfg_set->object }, std::vector<VkPushConstantRange>());
-#endif
-	pso = dfg_building_pso(dev, dfg_building_sig);
+	srv_cbv_uav_heap = dev.create_descriptor_storage(100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 20 },{ RESOURCE_VIEW::SHADER_RESOURCE, 20 },{ RESOURCE_VIEW::UAV_BUFFER, 1 },{ RESOURCE_VIEW::TEXEL_BUFFER, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 50 } });
+	sampler_heap = dev.create_descriptor_storage(10, { { RESOURCE_VIEW::SAMPLER, 1 } });
 
-	srv_cbv_uav_heap = create_descriptor_storage(dev, 100, { { RESOURCE_VIEW::CONSTANTS_BUFFER, 20 },{ RESOURCE_VIEW::SHADER_RESOURCE, 20 },{ RESOURCE_VIEW::UAV_BUFFER, 1 },{ RESOURCE_VIEW::TEXEL_BUFFER, 10 }, { RESOURCE_VIEW::UAV_IMAGE, 50 } });
-	sampler_heap = create_descriptor_storage(dev, 10, { { RESOURCE_VIEW::SAMPLER, 1 } });
+	sampler_descriptors = sampler_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { sampler_set.get() }, 1);
 
-	sampler_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *sampler_heap, 0, { sampler_set.get() }, 1);
+	anisotropic_sampler = dev.create_sampler(SAMPLER_TYPE::ANISOTROPIC);
+	dev.set_sampler(*sampler_descriptors, 0, 4, *anisotropic_sampler);
 
-	anisotropic_sampler = create_sampler(dev, SAMPLER_TYPE::ANISOTROPIC);
-	set_sampler(dev, sampler_descriptors, 0, 4, *anisotropic_sampler);
+	compute_sh_cbuf = dev.create_buffer(sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+	dfg_cbuf = dev.create_buffer(sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
 
-	compute_sh_cbuf = create_buffer(dev, sizeof(int), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-	dfg_cbuf = create_buffer(dev, sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-
-	irr::core::matrix4 M[6] = {
+	const auto& M = std::array<glm::mat4, 6>{
 		getPermutationMatrix(2, -1., 1, -1., 0, 1.),
 		getPermutationMatrix(2, 1., 1, -1., 0, -1.),
 		getPermutationMatrix(0, 1., 2, 1., 1, 1.),
@@ -201,30 +154,30 @@ ibl_utility::ibl_utility(device_t &dev)
 
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix[i] = create_buffer(dev, sizeof(PermutationMatrix), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-		memcpy(map_buffer(dev, *permutation_matrix[i]), M[i].pointer(), 16 * sizeof(float));
-		unmap_buffer(dev, *permutation_matrix[i]);
+		permutation_matrix[i] = dev.create_buffer(sizeof(glm::mat4), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+		memcpy(permutation_matrix[i]->map_buffer(), &M[i], 16 * sizeof(float));
+		permutation_matrix[i]->unmap_buffer();
 	}
 
-	hammersley_sequence_buffer = create_buffer(dev, 2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
-	float *tmp = reinterpret_cast<float*>(map_buffer(dev, *hammersley_sequence_buffer));
+	hammersley_sequence_buffer = dev.create_buffer(2048 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_texel_buffer);
+	const auto& tmp = gsl::span<float, 2048>{ static_cast<float*>(hammersley_sequence_buffer->map_buffer()), 2048 };
 	for (unsigned j = 0; j < 1024; j++)
 	{
 		std::pair<float, float> sample = HammersleySequence(j, 1024);
 		tmp[2 * j] = sample.first;
 		tmp[2 * j + 1] = sample.second;
 	}
-	unmap_buffer(dev, *hammersley_sequence_buffer);
-	hammersley_sequence_buffer_view = create_buffer_view(dev, *hammersley_sequence_buffer, irr::video::ECF_R32G32F, 0, 2048 * sizeof(float));
+	hammersley_sequence_buffer->unmap_buffer();
+	hammersley_sequence_buffer_view = dev.create_buffer_view(*hammersley_sequence_buffer, irr::video::ECF_R32G32F, 0, 2048 * sizeof(float));
 
 	for (unsigned i = 0; i < 8; i++)
 	{
-		per_level_cbuffer[i] = create_buffer(dev, sizeof(per_level_importance_sampling_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
-		per_level_importance_sampling_data* tmp = (per_level_importance_sampling_data*)map_buffer(dev, *per_level_cbuffer[i]);
-		float viewportSize = float(1 << (8 - i));
+		per_level_cbuffer[i] = dev.create_buffer(sizeof(per_level_importance_sampling_data), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_uniform);
+		per_level_importance_sampling_data* tmp = static_cast<per_level_importance_sampling_data*>(per_level_cbuffer[i]->map_buffer());
+		const auto& viewportSize = float(1 << (8 - i));
 		tmp->size = viewportSize;
 		tmp->alpha = .05f + .95f * i / 8.f;
-		unmap_buffer(dev, *per_level_cbuffer[i].get());
+		per_level_cbuffer[i]->unmap_buffer();
 	}
 }
 
@@ -235,44 +188,44 @@ struct SHCoefficients
 	float Blue[9];
 };
 
-allocated_descriptor_set ibl_utility::get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer)
+std::unique_ptr<allocated_descriptor_set> ibl_utility::get_compute_sh_descriptor(device_t &dev, buffer_t &constant_buffer, image_view_t& probe_view, buffer_t& sh_buffer)
 {
-	allocated_descriptor_set input_descriptors = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { object_set.get() }, 3);
-	set_constant_buffer_view(dev, input_descriptors, 0, 0, constant_buffer, sizeof(int));
-	set_image_view(dev, input_descriptors, 1, 1, probe_view);
-	set_uav_buffer_view(dev, input_descriptors, 2, 2, sh_buffer, 0, sizeof(SH));
+	auto input_descriptors = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { object_set.get() }, 3);
+	dev.set_constant_buffer_view(*input_descriptors, 0, 0, constant_buffer, sizeof(int));
+	dev.set_image_view(*input_descriptors, 1, 1, probe_view);
+	dev.set_uav_buffer_view(*input_descriptors, 2, 2, sh_buffer, 0, sizeof(SH));
 	return input_descriptors;
 }
 
-allocated_descriptor_set ibl_utility::get_dfg_input_descriptor_set(device_t & dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view)
+std::unique_ptr<allocated_descriptor_set> ibl_utility::get_dfg_input_descriptor_set(device_t & dev, buffer_t& constant_buffer, image_view_t &DFG_LUT_view)
 {
-	allocated_descriptor_set dfg_input_descriptor_set = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 0, { dfg_set.get() }, 3);
-	set_constant_buffer_view(dev, dfg_input_descriptor_set, 0, 0, constant_buffer, sizeof(float));
-	set_uniform_texel_buffer_view(dev, dfg_input_descriptor_set, 1, 1, *hammersley_sequence_buffer_view);
-	set_uav_image_view(dev, dfg_input_descriptor_set, 2, 2, DFG_LUT_view);
+	auto dfg_input_descriptor_set = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { dfg_set.get() }, 3);
+	dev.set_constant_buffer_view(*dfg_input_descriptor_set, 0, 0, constant_buffer, sizeof(float));
+	dev.set_uniform_texel_buffer_view(*dfg_input_descriptor_set, 1, 1, *hammersley_sequence_buffer_view);
+	dev.set_uav_image_view(*dfg_input_descriptor_set, 2, 2, DFG_LUT_view);
 
 	return dfg_input_descriptor_set;
 }
 
 std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view, size_t edge_size)
 {
-	void* tmp = map_buffer(dev, *compute_sh_cbuf);
-	float cube_size = static_cast<float>(edge_size) / 10.f;
+	void* tmp = compute_sh_cbuf->map_buffer();
+	const auto& cube_size = static_cast<float>(edge_size) / 10.f;
 	memcpy(tmp, &cube_size, sizeof(int));
-	unmap_buffer(dev, *compute_sh_cbuf);
+	compute_sh_cbuf->unmap_buffer();
 
-	std::unique_ptr<buffer_t> sh_buffer = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav);
+	auto&& sh_buffer = dev.create_buffer(sizeof(SH), irr::video::E_MEMORY_POOL::EMP_GPU_LOCAL, usage_uav | usage_uniform);
 
-	set_compute_pipeline_layout(cmd_list, compute_sh_sig);
-	set_descriptor_storage_referenced(cmd_list, *srv_cbv_uav_heap, sampler_heap.get());
+	cmd_list.set_compute_pipeline_layout(*compute_sh_sig);
+	cmd_list.set_descriptor_storage_referenced(*srv_cbv_uav_heap, sampler_heap.get());
 #ifdef D3D12
 	cmd_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sh_buffer->object, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 #endif
-	set_compute_pipeline(cmd_list, *compute_sh_pso);
-	bind_compute_descriptor(cmd_list, 0, get_compute_sh_descriptor(dev, *compute_sh_cbuf, probe_view, *sh_buffer), compute_sh_sig);
-	bind_compute_descriptor(cmd_list, 1, sampler_descriptors, compute_sh_sig);
+	cmd_list.set_compute_pipeline(*compute_sh_pso);
+	cmd_list.bind_compute_descriptor(0, *get_compute_sh_descriptor(dev, *compute_sh_cbuf, probe_view, *sh_buffer), *compute_sh_sig);
+	cmd_list.bind_compute_descriptor(1, *sampler_descriptors, *compute_sh_sig);
 
-	dispatch(cmd_list, 1, 1, 1);
+	cmd_list.dispatch(1, 1, 1);
 	// for debug
 	//	std::unique_ptr<buffer_t> sh_buffer_readback = create_buffer(dev, sizeof(SH), irr::video::E_MEMORY_POOL::EMP_CPU_READABLE, usage_transfer_dst);
 	//	copy_buffer(command_list.get(), sh_buffer.get(), 0, sh_buffer_readback.get(), 0, sizeof(SH));
@@ -289,42 +242,42 @@ std::unique_ptr<buffer_t> ibl_utility::computeSphericalHarmonics(device_t& dev, 
 
 std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, command_list_t& cmd_list, image_view_t& probe_view)
 {
-	size_t cubemap_size = 256;
-	std::array<allocated_descriptor_set, 6> permutation_matrix_descriptors;
+	const auto& cubemap_size = 256u;
+	auto permutation_matrix_descriptors = std::array<std::unique_ptr<allocated_descriptor_set>, 6>{};
 	for (unsigned i = 0; i < 6; i++)
 	{
-		permutation_matrix_descriptors[i] = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * i, { face_set.get() }, 2);
-		set_image_view(dev, permutation_matrix_descriptors[i], 0, 0, probe_view);
-		set_constant_buffer_view(dev, permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(PermutationMatrix));
+		permutation_matrix_descriptors[i] = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(2 * i, { face_set.get() }, 2);
+		dev.set_image_view(*permutation_matrix_descriptors[i], 0, 0, probe_view);
+		dev.set_constant_buffer_view(*permutation_matrix_descriptors[i], 1, 1, *permutation_matrix[i], sizeof(glm::mat4));
 	}
 
-	std::unique_ptr<image_t> result = create_image(dev, irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
-	set_compute_pipeline(cmd_list, *importance_sampling);
-	set_compute_pipeline_layout(cmd_list, importance_sampling_sig);
-	set_descriptor_storage_referenced(cmd_list, *srv_cbv_uav_heap, sampler_heap.get());
+	auto result = dev.create_image(irr::video::ECF_R16G16B16A16F, 256, 256, 8, 6, usage_cube | usage_sampled | usage_uav, nullptr);
+	cmd_list.set_compute_pipeline(*importance_sampling);
+	cmd_list.set_compute_pipeline_layout(*importance_sampling_sig);
+	cmd_list.set_descriptor_storage_referenced(*srv_cbv_uav_heap, sampler_heap.get());
 
 //	bind_compute_descriptor(command_list.get(), 0, image_descriptors, importance_sampling_sig);
-	bind_compute_descriptor(cmd_list, 3, sampler_descriptors, importance_sampling_sig);
+	cmd_list.bind_compute_descriptor(3, *sampler_descriptors, *importance_sampling_sig);
 
 	for (unsigned level = 0; level < 8; level++)
 	{
-		allocated_descriptor_set per_level_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, 2 * level + 12, { mipmap_set.get() }, 2);
-		set_constant_buffer_view(dev, per_level_descriptor, 1, 5, *per_level_cbuffer[level], sizeof(float));
-		set_uniform_texel_buffer_view(dev, per_level_descriptor, 0, 2, *hammersley_sequence_buffer_view);
-		bind_compute_descriptor(cmd_list, 1, per_level_descriptor, importance_sampling_sig);
+		auto per_level_descriptor = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(2 * level + 12, { mipmap_set.get() }, 2);
+		dev.set_constant_buffer_view(*per_level_descriptor, 1, 5, *per_level_cbuffer[level], sizeof(float));
+		dev.set_uniform_texel_buffer_view(*per_level_descriptor, 0, 2, *hammersley_sequence_buffer_view);
+		cmd_list.bind_compute_descriptor(1, *per_level_descriptor, *importance_sampling_sig);
 		for (unsigned face = 0; face < 6; face++)
 		{
-			set_pipeline_barrier(cmd_list, *result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
+			cmd_list.set_pipeline_barrier(*result, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
 
-			allocated_descriptor_set level_face_descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(dev, *srv_cbv_uav_heap, face + level * 6 + 28, { uav_set.get() }, 1);
-			uav_views[face + level * 6] = create_image_view(dev, *result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_CUBE);
-			set_uav_image_view(dev, level_face_descriptor, 0, 3, *uav_views[face + level * 6]);
+			auto level_face_descriptor = srv_cbv_uav_heap->allocate_descriptor_set_from_cbv_srv_uav_heap(face + level * 6 + 28, { uav_set.get() }, 1);
+			uav_views[face + level * 6] = dev.create_image_view(*result, irr::video::ECF_R16G16B16A16F, level, 1, face, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+			dev.set_uav_image_view(*level_face_descriptor, 0, 3, *uav_views[face + level * 6]);
 
-			bind_compute_descriptor(cmd_list, 0, permutation_matrix_descriptors[face], importance_sampling_sig);
-			bind_compute_descriptor(cmd_list, 2, level_face_descriptor, importance_sampling_sig);
-			dispatch(cmd_list, 256 >> level, 256 >> level, 1);
+			cmd_list.bind_compute_descriptor(0, *permutation_matrix_descriptors[face], *importance_sampling_sig);
+			cmd_list.bind_compute_descriptor(2, *level_face_descriptor, *importance_sampling_sig);
+			cmd_list.dispatch(256 >> level, 256 >> level, 1);
 
-			set_pipeline_barrier(cmd_list, *result, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
+			cmd_list.set_pipeline_barrier(*result, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, face + level * 6, irr::video::E_ASPECT::EA_COLOR);
 		}
 	}
 	return result;
@@ -334,24 +287,24 @@ std::unique_ptr<image_t> ibl_utility::generateSpecularCubemap(device_t& dev, com
 	DFG Texture is used to compute diffuse and specular response from environmental lighting. */
 std::tuple<std::unique_ptr<image_t>, std::unique_ptr<image_view_t>> ibl_utility::getDFGLUT(device_t& dev, command_list_t& cmd_list, uint32_t DFG_LUT_size)
 {
-	std::unique_ptr<image_t> DFG_LUT_texture = create_image(dev, irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
-	std::unique_ptr<image_view_t> texture_view = create_image_view(dev, *DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
+	auto&& DFG_LUT_texture = dev.create_image(irr::video::ECF_R32G32B32A32F, DFG_LUT_size, DFG_LUT_size, 1, 1, usage_sampled | usage_uav, nullptr);
+	auto&& texture_view = dev.create_image_view(*DFG_LUT_texture, irr::video::ECF_R32G32B32A32F, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D);
 
-	void* tmp = map_buffer(dev, *dfg_cbuf);
-	float sz = static_cast<float>(DFG_LUT_size);
+	void* tmp = dfg_cbuf->map_buffer();
+	const auto& sz = static_cast<float>(DFG_LUT_size);
 	memcpy(tmp, &sz, sizeof(float));
-	unmap_buffer(dev, *dfg_cbuf);
+	dfg_cbuf->unmap_buffer();
 
-	set_pipeline_barrier(cmd_list, *DFG_LUT_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
+	cmd_list.set_pipeline_barrier(*DFG_LUT_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::uav, 0, irr::video::E_ASPECT::EA_COLOR);
 
-	allocated_descriptor_set dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *dfg_cbuf, *texture_view);
-	set_compute_pipeline(cmd_list, *pso);
-	set_compute_pipeline_layout(cmd_list, dfg_building_sig);
-	set_descriptor_storage_referenced(cmd_list, *srv_cbv_uav_heap);
-	bind_compute_descriptor(cmd_list, 0, dfg_input_descriptor_set, dfg_building_sig);
+	auto dfg_input_descriptor_set = get_dfg_input_descriptor_set(dev, *dfg_cbuf, *texture_view);
+	cmd_list.set_compute_pipeline(*pso);
+	cmd_list.set_compute_pipeline_layout(*dfg_building_sig);
+	cmd_list.set_descriptor_storage_referenced(*srv_cbv_uav_heap);
+	cmd_list.bind_compute_descriptor(0, *dfg_input_descriptor_set, *dfg_building_sig);
 
-	dispatch(cmd_list, DFG_LUT_size, DFG_LUT_size, 1);
-	set_pipeline_barrier(cmd_list, *DFG_LUT_texture, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+	cmd_list.dispatch(DFG_LUT_size, DFG_LUT_size, 1);
+	cmd_list.set_pipeline_barrier(*DFG_LUT_texture, RESOURCE_USAGE::uav, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
 	return std::make_tuple(std::move(DFG_LUT_texture), std::move(texture_view));
 }

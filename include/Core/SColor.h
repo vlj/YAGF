@@ -58,6 +58,8 @@ namespace irr
 			//! 32 bit floating point format using 32 bits for the red channel.
 			ECF_R32F,
 
+			ECF_R32G32B32F,
+
 			//! 64 bit floating point format using 32 bits for the red channel and 32 bits for the green channel.
 			ECF_R32G32F,
 

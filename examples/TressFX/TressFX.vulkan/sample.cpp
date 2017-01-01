@@ -1,108 +1,64 @@
 #include "sample.h"
 #include "TFXFileIO.h"
-#include <Maths\matrix4.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/transform.hpp>
 #include <VKAPI\pipeline_layout_helpers.h>
+
+const auto& blit_vert = std::vector<uint32_t>
+#include <generatedShaders\blit_vert.h>
+;
+
+const auto& blit_frag = std::vector<uint32_t>
+#include <generatedShaders\blit_frag.h>
+;
 
 namespace
 {
-
     DirectX::XMVECTOR         g_lightEyePt = DirectX::XMVectorSet(-421.25043f, 306.7890949f, -343.22232f, 1.0f);
     DirectX::XMVECTOR         g_defaultEyePt = DirectX::XMVectorSet(-190.0f, 70.0f, -250.0f, 1.0f);
     DirectX::XMVECTOR         g_defaultLookAt = DirectX::XMVectorSet(0, 40, 0, 1.0f);
 
     // (inv)modelmatrix, jointmatrix
-    constexpr auto blit_descriptor = descriptor_set({
+    const auto blit_descriptor = descriptor_set({
         range_of_descriptors(RESOURCE_VIEW::SHADER_RESOURCE, 0, 1),
         range_of_descriptors(RESOURCE_VIEW::SAMPLER, 1, 1)},
         shader_stage::fragment_shader);
 
-    std::unique_ptr<render_pass_t> get_render_pass(device_t &dev)
+    auto get_blit_pso(device_t &dev, pipeline_layout_t& layout, render_pass_t& rp)
     {
-        std::unique_ptr<render_pass_t> result;
-        result.reset(new render_pass_t(
-            dev,
-            {
-                // final surface
-                structures::attachment_description(
-                    VK_FORMAT_B8G8R8A8_UNORM, VK_ATTACHMENT_LOAD_OP_LOAD,
-                    VK_ATTACHMENT_STORE_OP_STORE,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
-            },
-            {// IBL pass
-             subpass_description::generate_subpass_description(
-                 VK_PIPELINE_BIND_POINT_GRAPHICS)
-                 .set_color_attachments({VkAttachmentReference{
-                     0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}})},
-            {}));
-        return result;
-    }
+		graphic_pipeline_state_description pso_desc = graphic_pipeline_state_description::get()
+			.set_vertex_shader(blit_vert)
+			.set_fragment_shader(blit_frag)
+			.set_vertex_attributes(std::vector<pipeline_vertex_attributes>{
+				pipeline_vertex_attributes{ 0, irr::video::ECF_R32G32F, 0, 4 * sizeof(float), 0 },
+				pipeline_vertex_attributes{ 1, irr::video::ECF_R32G32B32F, 0, 4 * sizeof(float), 2 * sizeof(float) }
+			})
+			.set_color_outputs(std::vector<color_output>{ {false} });
 
-    pipeline_state_t get_blit_pso(device_t &dev, pipeline_layout_t layout, render_pass_t* rp)
-    {
-        constexpr pipeline_state_description pso_desc = pipeline_state_description::get();
-        const blend_state blend = blend_state::get();
-
-        VkPipelineTessellationStateCreateInfo tesselation_info{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
-        VkPipelineViewportStateCreateInfo viewport_info{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-        viewport_info.viewportCount = 1;
-        viewport_info.scissorCount = 1;
-        std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
-        VkPipelineDynamicStateCreateInfo dynamic_state_info{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, static_cast<uint32_t>(dynamic_states.size()), dynamic_states.data() };
-
-        vulkan_wrapper::shader_module module_vert(dev, "..\\..\\blit_vert.spv");
-        vulkan_wrapper::shader_module module_frag(dev, "..\\..\\blit_frag.spv");
-
-        const std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
-            { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, module_vert.object, "main", nullptr },
-            { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, module_frag.object, "main", nullptr }
-        };
-
-        VkPipelineVertexInputStateCreateInfo vertex_input{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
-        const std::vector<VkVertexInputBindingDescription> vertex_buffers{
-            { 0, static_cast<uint32_t>(4 * sizeof(float)), VK_VERTEX_INPUT_RATE_VERTEX },
-        };
-        vertex_input.pVertexBindingDescriptions = vertex_buffers.data();
-        vertex_input.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_buffers.size());
-
-        const std::vector<VkVertexInputAttributeDescription> attribute{
-            { 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
-            { 1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float) },
-        };
-        vertex_input.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute.size());
-        vertex_input.pVertexAttributeDescriptions = attribute.data();
-
-        return std::make_shared<vulkan_wrapper::pipeline>(
-            dev, 0, shader_stages, vertex_input,
-            get_pipeline_input_assembly_state_info(pso_desc), tesselation_info,
-            viewport_info,
-            get_pipeline_rasterization_state_create_info(pso_desc),
-            get_pipeline_multisample_state_create_info(pso_desc),
-            get_pipeline_depth_stencil_state_create_info(pso_desc), blend,
-            dynamic_state_info, layout->object, rp->object, 0,
-            VkPipeline(VK_NULL_HANDLE), 0);
+		return dev.create_graphic_pso(pso_desc, rp, layout, 0);
     }
 
 }
 
-sample::sample(HINSTANCE hinstance, HWND hwnd)
+sample::sample(GLFWwindow *window)
 {
-    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(hinstance, hwnd);
+    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(window);
     dev = std::move(std::get<0>(dev_swapchain_queue));
     queue = std::move(std::get<2>(dev_swapchain_queue));
     chain = std::move(std::get<1>(dev_swapchain_queue));
-    back_buffer = get_image_view_from_swap_chain(*dev, *chain);
+    back_buffer = chain->get_image_view_from_swap_chain();
+	width = std::get<3>(dev_swapchain_queue);
+	height = std::get<4>(dev_swapchain_queue);
 
-    blit_render_pass = get_render_pass(*dev);
+	blit_render_pass = dev->create_blit_pass(std::get<5>(dev_swapchain_queue));
 
-    blit_layout_set = get_object_descriptor_set(*dev, blit_descriptor);
-    blit_layout = std::make_shared<vulkan_wrapper::pipeline_layout>(
-        dev->object, 0, std::vector<VkDescriptorSetLayout>{blit_layout_set->object},
-        std::vector<VkPushConstantRange>());
-    blit_pso = get_blit_pso(*dev, blit_layout, blit_render_pass.get());
+    blit_layout_set = dev->get_object_descriptor_set(blit_descriptor);
+    blit_layout = dev->create_pipeline_layout(std::vector<const descriptor_set_layout*>{blit_layout_set.get()});
+    blit_pso = get_blit_pso(*dev, *blit_layout, *blit_render_pass);
 
-    big_triangle = create_buffer(*dev, 4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, none);
+    big_triangle = dev->create_buffer(4 * 3 * sizeof(float), irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_vertex);
     float fullscreen_tri[]
     {
         -1., -3., 0., 2.,
@@ -110,30 +66,32 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
         -1., 1., 0., 0.
     };
 
-    memcpy(map_buffer(*dev, *big_triangle), fullscreen_tri, 4 * 3 * sizeof(float));
-    unmap_buffer(*dev, *big_triangle);
+    memcpy(big_triangle->map_buffer(), fullscreen_tri, 4 * 3 * sizeof(float));
+	big_triangle->unmap_buffer();
 
     descriptor_pool =
-        create_descriptor_storage(*dev, 1, {{RESOURCE_VIEW::SHADER_RESOURCE, 1},
+        dev->create_descriptor_storage(1, {{RESOURCE_VIEW::SHADER_RESOURCE, 1},
                                             {RESOURCE_VIEW::SAMPLER, 1}});
-    descriptor = allocate_descriptor_set_from_cbv_srv_uav_heap(*dev, *descriptor_pool, 0, { blit_layout_set.get() }, 2);
+    descriptor = descriptor_pool->allocate_descriptor_set_from_cbv_srv_uav_heap(0, { blit_layout_set.get() }, 2);
 
-    fbo[0] = create_frame_buffer(*dev, { {*back_buffer[0], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 900, 900, blit_render_pass.get());
-    fbo[1] = create_frame_buffer(*dev, { { *back_buffer[1], irr::video::ECF_B8G8R8A8_UNORM_SRGB } }, 900, 900, blit_render_pass.get());
+	std::transform(back_buffer.begin(), back_buffer.end(), std::back_inserter(back_buffer_view),
+		[&](const auto& img) {return dev->create_image_view(*img, std::get<5>(dev_swapchain_queue), 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D); });
 
-    tressfx_helper.pvkDevice = *dev;
-    tressfx_helper.memoryIndexDeviceLocal = dev->default_memory_index;
-    tressfx_helper.memoryIndexHostVisible = dev->upload_memory_index;
+    fbo[0] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[0].get() }, width, height, blit_render_pass.get());
+    fbo[1] = dev->create_frame_buffer(std::vector<const image_view_t*>{ back_buffer_view[1].get() }, width, height, blit_render_pass.get());
+
+    tressfx_helper.pvkDevice = dynamic_cast<vk_device_t&>(*dev).object;
+    tressfx_helper.memoryProperties = dynamic_cast<vk_device_t&>(*dev).mem_properties;
 
     DirectX::XMFLOAT4 lightpos{ 121.386368f, 420.605896f, -426.585876f, 1.00000000f };
 
 
-    irr::core::matrix4 View, InvView, tmp;
-    tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(-190.0f, 70.0f, -250.0f), irr::core::vector3df(0.f, 40.f, 0.f), irr::core::vector3df(0.f, -1.f, 0.f));
-    View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 100.f, 600.f);
-    View *= tmp;
-    View = View.getTransposed();
-    View.getInverse(InvView);
+	const auto& View =
+		glm::transpose(
+			glm::perspectiveFovRH(70.f / 180.f * 3.14f, static_cast<float>(width), static_cast<float>(height), 100.f, 600.f) *
+			glm::lookAtRH(glm::vec3(-190.0f, 70.0f, -250.0f), glm::vec3(0.f, 40.f, 0.f), glm::vec3(0.f, -1.f, 0.f))
+		);
+	const auto& InvView = glm::inverse(View);
 
 /*    tressfx_helper.g_vEye[0] = 0.f;
     tressfx_helper.g_vEye[1] = 0.f;
@@ -141,16 +99,16 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     tressfx_helper.lightPosition = g_lightEyePt;
     tressfx_helper.eyePoint = g_defaultEyePt;
-    tressfx_helper.mViewProj = DirectX::XMMATRIX(View.pointer());
-    tressfx_helper.mInvViewProj = DirectX::XMMATRIX(InvView.pointer());
-    tressfx_helper.bShortCutOn = true;
+    tressfx_helper.mViewProj = DirectX::XMMATRIX(glm::value_ptr(View));
+    tressfx_helper.mInvViewProj = DirectX::XMMATRIX(glm::value_ptr(InvView));
+    tressfx_helper.bShortCutOn = false;
     tressfx_helper.hairParams.bAntialias = true;
     tressfx_helper.hairParams.strandCopies = 1;
-    tressfx_helper.backBufferHeight = 1024;
-    tressfx_helper.backBufferWidth = 1024;
+    tressfx_helper.backBufferHeight = height;
+    tressfx_helper.backBufferWidth = width;
     tressfx_helper.hairParams.density = .5;
     tressfx_helper.hairParams.thickness = 0.3f;
-    tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012;
+    tressfx_helper.hairParams.duplicateStrandSpacing = 0.300000012f;
     tressfx_helper.maxConstantBuffers = 1;
 
 
@@ -175,31 +133,40 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     cbuf.g_PointLightPos[3] = 0.f;*/
 
     tressfx_helper.hairParams.pointLightColor = DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f);
+	tressfx_helper.depthStencilFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+	tressfx_helper.colorFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
 
-    depth_texture = create_image(*dev, irr::video::D32U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled, nullptr);
-    depth_texture_view = create_image_view(*dev, *depth_texture, irr::video::D32U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
-    color_texture = create_image(*dev, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 1024, 1024, 1, 1, usage_render_target | usage_sampled, nullptr);
-    color_texture_view = create_image_view(*dev, *color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
+    depth_texture = dev->create_image(irr::video::D32U8, width, height, 1, 1, usage_depth_stencil | usage_sampled | usage_transfer_dst, nullptr);
+    depth_texture_view = dev->create_image_view(*depth_texture, irr::video::D32U8, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_DEPTH);
+    color_texture = dev->create_image( irr::video::ECF_R8G8B8A8_UNORM_SRGB, width, height, 1, 1, usage_render_target | usage_sampled | usage_transfer_dst, nullptr);
+    color_texture_view = dev->create_image_view(*color_texture, irr::video::ECF_R8G8B8A8_UNORM_SRGB, 0, 1, 0, 1, irr::video::E_TEXTURE_TYPE::ETT_2D, irr::video::E_ASPECT::EA_COLOR);
 
-    set_image_view(*dev, descriptor, 0, 0, *color_texture_view);
-    bilinear_sampler = create_sampler(*dev, SAMPLER_TYPE::BILINEAR_CLAMPED);
-    set_sampler(*dev, descriptor, 1, 1, *bilinear_sampler);
+    dev->set_image_view(*descriptor, 0, 0, *color_texture_view);
+    bilinear_sampler = dev->create_sampler(SAMPLER_TYPE::BILINEAR_CLAMPED);
+    dev->set_sampler(*descriptor, 1, 1, *bilinear_sampler);
 
-    command_storage = create_command_storage(*dev);
-    std::unique_ptr<command_list_t> upload_command_buffer = create_command_list(*dev, *command_storage);
-    start_command_list_recording(*upload_command_buffer, *command_storage);
-    std::unique_ptr<buffer_t> upload_buffer = create_buffer(*dev, 1024 * 1024 * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
+    command_storage = dev->create_command_storage();
+    std::unique_ptr<command_list_t> upload_command_buffer = command_storage->create_command_list();
+	upload_command_buffer->start_command_list_recording(*command_storage);
+    std::unique_ptr<buffer_t> upload_buffer = dev->create_buffer(width * height * 128, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE, usage_buffer_transfer_src);
 
     size_t offset = 0;
-    TressFX_Initialize(tressfx_helper, *depth_texture_view, *color_texture_view, *upload_command_buffer, *upload_buffer->baking_memory, *upload_buffer, offset);
-    make_command_list_executable(*upload_command_buffer);
-    submit_executable_command_list(*queue, *upload_command_buffer);
-    wait_for_command_queue_idle(*dev, *queue);
-    start_command_list_recording(*upload_command_buffer, *command_storage);
+    TressFX_Initialize(tressfx_helper,
+		dynamic_cast<vk_image_view_t&>(*depth_texture_view).object,
+		dynamic_cast<vk_image_view_t&>(*color_texture_view).object,
+		dynamic_cast<vk_command_list_t&>(*upload_command_buffer).object,
+		dynamic_cast<vk_buffer_t&>(*upload_buffer).memory,
+		dynamic_cast<vk_buffer_t&>(*upload_buffer).object, offset);
+	upload_command_buffer->make_command_list_executable();
+	queue->submit_executable_command_list(*upload_command_buffer, nullptr);
+	queue->wait_for_command_queue_idle();
+	upload_command_buffer->start_command_list_recording(*command_storage);
 
     TFXProjectFile tfxproject;
-    bool success = tfxproject.Read(L"..\\..\\deps\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
+    bool success = tfxproject.Read(L"..\\..\\..\\deps\\TressFX\\amd_tressfx_viewer\\media\\ponytail\\ponytail.tfxproj");
+	if (!success)
+		throw;
 
     AMD::TressFX_HairBlob hairBlob;
 
@@ -207,17 +174,16 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
     std::ifstream tfxFile;
     int numHairSectionsCounter = 0;
     tressfx_helper.simulationParams.bGuideFollowSimulation = false;
-    tressfx_helper.simulationParams.gravityMagnitude = 9.82;
+    tressfx_helper.simulationParams.gravityMagnitude = 9.82f;
     tressfx_helper.simulationParams.numLengthConstraintIterations = tfxproject.lengthConstraintIterations;
     tressfx_helper.simulationParams.numLocalShapeMatchingIterations = tfxproject.localShapeMatchingIterations;
     tressfx_helper.simulationParams.windMag = tfxproject.windMag;
     tressfx_helper.simulationParams.windDir = DirectX::XMFLOAT3(1., 0., 0.);
-    tressfx_helper.targetFrameRate = 1. / 60.;
+    tressfx_helper.targetFrameRate = 1.f / 60.f;
 
-    irr::core::matrix4 Model;
-    Model.setRotationDegrees(irr::core::vector3df(0., 180., 0.));
+	const auto& Model = glm::rotate(3.14f, glm::vec3(0.f, 1.f, 0.f));
 
-    tressfx_helper.modelTransformForHead = DirectX::XMMATRIX(Model.pointer());
+    tressfx_helper.modelTransformForHead = DirectX::XMMATRIX(glm::value_ptr(Model));
 
     for (int i = 0; i < numHairSectionsTotal; ++i)
     {
@@ -257,69 +223,61 @@ sample::sample(HINSTANCE hinstance, HWND hwnd)
 
     tressfx_helper.simulationParams.numHairSections = numHairSectionsCounter;
 
-    TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr, *upload_command_buffer, *upload_buffer, *upload_buffer->baking_memory);
+    TressFX_CreateProcessedAsset(tressfx_helper, nullptr, nullptr, nullptr,
+		dynamic_cast<vk_command_list_t&>(*upload_command_buffer).object,
+		dynamic_cast<vk_buffer_t&>(*upload_buffer).object,
+		dynamic_cast<vk_buffer_t&>(*upload_buffer).memory);
 
-    set_pipeline_barrier(*upload_command_buffer, *depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
-    set_pipeline_barrier(*upload_command_buffer, *color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
+	upload_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	upload_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
 
 
-    set_pipeline_barrier(*upload_command_buffer, *back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
-    set_pipeline_barrier(*upload_command_buffer, *back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	upload_command_buffer->set_pipeline_barrier(*back_buffer[0], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
+	upload_command_buffer->set_pipeline_barrier(*back_buffer[1], RESOURCE_USAGE::undefined, RESOURCE_USAGE::PRESENT, 0, irr::video::E_ASPECT::EA_COLOR);
 
-    VkClearColorValue color_clear{};
-    float ctmp[4] = { .5, .5, .5, 1. };
-    memcpy(color_clear.float32, ctmp, 4 * sizeof(float));
-    vkCmdClearColorImage(*upload_command_buffer, *back_buffer[0], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
-    vkCmdClearColorImage(*upload_command_buffer, *back_buffer[1], VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
+	upload_command_buffer->make_command_list_executable();
+	queue->submit_executable_command_list(*upload_command_buffer, nullptr);
+	queue->wait_for_command_queue_idle();
 
-    make_command_list_executable(*upload_command_buffer);
-    submit_executable_command_list(*queue, *upload_command_buffer);
-    wait_for_command_queue_idle(*dev, *queue);
+    draw_command_buffer = command_storage->create_command_list();
+	draw_command_buffer->start_command_list_recording(*command_storage);
 
-    draw_command_buffer = create_command_list(*dev, *command_storage);
-    start_command_list_recording(*draw_command_buffer, *command_storage);
+	draw_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::DEPTH_WRITE, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::READ_GENERIC, RESOURCE_USAGE::COPY_DEST, 0, irr::video::E_ASPECT::EA_COLOR);
+	draw_command_buffer->clear_depth_stencil(*depth_texture, 1.f);
+	draw_command_buffer->clear_color(*color_texture, std::array<float, 4>{ .5f, .5f, .5f, 1.f });
 
-	VkClearDepthStencilValue clear_values{};
-	clear_values.depth = 1.f;
-	vkCmdClearDepthStencilImage(
-		*draw_command_buffer, *depth_texture,
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &clear_values, 1,
-		&structures::image_subresource_range(VK_IMAGE_ASPECT_DEPTH_BIT |
-			VK_IMAGE_ASPECT_STENCIL_BIT));
-
-    vkCmdClearColorImage(*draw_command_buffer, *color_texture, VK_IMAGE_LAYOUT_GENERAL, &color_clear, 1, &structures::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT));
+	draw_command_buffer->set_pipeline_barrier(*depth_texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::DEPTH_WRITE, 0, irr::video::E_ASPECT::EA_DEPTH_STENCIL);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::COPY_DEST, RESOURCE_USAGE::RENDER_TARGET, 0, irr::video::E_ASPECT::EA_COLOR);
     TressFX_Begin(tressfx_helper, 0);
-    TressFX_Simulate(tressfx_helper, *draw_command_buffer, 0.16, 0);
-    TressFX_RenderShadowMap(tressfx_helper, *draw_command_buffer, 0);
-    set_scissor(*draw_command_buffer, 0, 1024, 0, 1024);
-    set_viewport(*draw_command_buffer, 0, 1024., 0., 1024, 0., 1.);
-    TressFX_Render(tressfx_helper, *draw_command_buffer, 0);
+    TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16f, 0);
+    TressFX_RenderShadowMap(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
+	draw_command_buffer->set_scissor(0, static_cast<float>(width), 0, static_cast<float>(height));
+	draw_command_buffer->set_viewport(0, static_cast<float>(width), 0., static_cast<float>(height), 0., 1.);
+    TressFX_Render(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
     TressFX_End(tressfx_helper);
-
-    make_command_list_executable(*draw_command_buffer);
+	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
+	draw_command_buffer->make_command_list_executable();
 
     for (int i = 0; i < 2; i++)
     {
-        blit_command_buffer[i] = create_command_list(*dev, *command_storage);
-        start_command_list_recording(*blit_command_buffer[i], *command_storage);
-        VkRenderPassBeginInfo begin_info{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-        begin_info.renderPass = *blit_render_pass;
-        begin_info.framebuffer = fbo[i]->fbo;
-        begin_info.renderArea.extent.width = 900;
-        begin_info.renderArea.extent.height = 900;
-        vkCmdBeginRenderPass(*blit_command_buffer[i], &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        blit_command_buffer[i] = command_storage->create_command_list();
+		blit_command_buffer[i]->start_command_list_recording(*command_storage);
+		blit_command_buffer[i]->begin_renderpass(*blit_render_pass, *fbo[i], {}, width, height);
 
-        set_scissor(*blit_command_buffer[i], 0, 900, 0, 900);
-        set_viewport(*blit_command_buffer[i], 0, 900, 0., 900, 0., 1.);
+		blit_command_buffer[i]->set_scissor(0, width, 0, height);
+		blit_command_buffer[i]->set_viewport(0, width, 0., height, 0., 1.);
 
-        set_graphic_pipeline(*blit_command_buffer[i], blit_pso);
-        bind_graphic_descriptor(*blit_command_buffer[i], 0, descriptor, blit_layout);
-        bind_vertex_buffers(*blit_command_buffer[i], 0, { { *big_triangle, 0, 4 * sizeof(float), 4 * 3 * sizeof(float) } });
-        draw_non_indexed(*blit_command_buffer[i], 3, 1, 0, 0);
+		blit_command_buffer[i]->set_graphic_pipeline(*blit_pso);
+		blit_command_buffer[i]->bind_graphic_descriptor(0, *descriptor, *blit_layout);
+		blit_command_buffer[i]->bind_vertex_buffers(0, { { *big_triangle, 0ull, 4u * static_cast<uint32_t>(sizeof(float)), 4u * 3u * static_cast<uint32_t>(sizeof(float)) } });
+		blit_command_buffer[i]->draw_non_indexed(3, 1, 0, 0);
 
-        vkCmdEndRenderPass(*blit_command_buffer[i]);
-        make_command_list_executable(*blit_command_buffer[i]);
+		blit_command_buffer[i]->end_renderpass();
+		blit_command_buffer[i]->make_command_list_executable();
     }
+
+	present_semaphore = dev->create_semaphore();
 }
 
 sample::~sample()
@@ -329,10 +287,10 @@ sample::~sample()
 
 void sample::draw()
 {
-    submit_executable_command_list(*queue, *draw_command_buffer);
+	queue->submit_executable_command_list(*draw_command_buffer, nullptr);
 
-    uint32_t current_backbuffer = get_next_backbuffer_id(*dev, *chain);
-    submit_executable_command_list(*queue, *blit_command_buffer[current_backbuffer]);
-    wait_for_command_queue_idle(*dev, *queue);
-    present(*dev, *queue, *chain, current_backbuffer);
+    uint32_t current_backbuffer = chain->get_next_backbuffer_id(*present_semaphore);
+	queue->submit_executable_command_list(*blit_command_buffer[current_backbuffer], present_semaphore.get());
+	queue->wait_for_command_queue_idle();
+	chain->present(*queue, current_backbuffer);
 }

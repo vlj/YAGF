@@ -1,55 +1,46 @@
 #pragma once
 #include <assimp/Importer.hpp>
-#include <Maths/matrix4.h>
 #include <assimp/scene.h>
-#include <Loaders/DDS.h>
 #include <tuple>
 #include <array>
 #include <unordered_map>
 
-#include "shaders.h"
+#include <Scene/pso.h>
 #include <Scene/textures.h>
 #include <Scene/Scene.h>
 #include <Scene/ssao.h>
 
-#ifdef D3D12
-#include <API/d3dapi.h>
-#include <d3dx12.h>
-#include <d3dcompiler.h>
+#include <API/GfxApi.h>
+#include <glfw/glfw3.h>
 
-#pragma comment (lib, "d3d12.lib")
-#pragma comment (lib, "dxgi.lib")
-#pragma comment (lib, "d3dcompiler.lib")
-#else
-#include <API/vkapi.h>
-#endif
 
 struct MeshSample
 {
-	MeshSample(std::unique_ptr<device_t> &&_dev, std::unique_ptr<swap_chain_t> &&_chain, std::unique_ptr<command_queue_t> &&_cmdqueue, uint32_t _w, uint32_t _h, irr::video::ECOLOR_FORMAT format)
-		: dev(std::move(_dev)), chain(std::move(_chain)), cmdqueue(std::move(_cmdqueue)), width(_w), height(_h), swap_chain_format(format)
-	{
-		Init();
-	}
+	MeshSample();
 
 	~MeshSample()
 	{
-		wait_for_command_queue_idle(*dev, *cmdqueue);
+		cmdqueue->wait_for_command_queue_idle();
+
+		glfwTerminate();
 	}
 
 
 	float horizon_angle = 0;
 	irr::scene::IMeshSceneNode* xue;
+	GLFWwindow *window;
 
 private:
-	size_t width;
-	size_t height;
+	uint32_t width;
+	uint32_t height;
 
 	std::unique_ptr<device_t> dev;
 	std::unique_ptr<command_queue_t> cmdqueue;
 	irr::video::ECOLOR_FORMAT swap_chain_format;
 	std::unique_ptr<swap_chain_t> chain;
+	std::unique_ptr<semaphore_t> present_semaphore;
 	std::vector<std::unique_ptr<image_t>> back_buffer;
+	std::vector<std::unique_ptr<image_view_t>> back_buffer_view;
 
 
 	std::unique_ptr<command_list_storage_t> command_allocator;
@@ -78,22 +69,22 @@ private:
 	std::unique_ptr<sampler_t> anisotropic_sampler;
 	std::unique_ptr<sampler_t> bilinear_clamped_sampler;
 
-	std::shared_ptr<image_view_t> skybox_view;
-	std::shared_ptr<image_view_t> diffuse_color_view;
-	std::shared_ptr<image_view_t> normal_view;
-	std::shared_ptr<image_view_t> roughness_metalness_view;
-	std::shared_ptr<image_view_t> depth_view;
-	std::shared_ptr<image_view_t> specular_cube_view;
-	std::shared_ptr<image_view_t> dfg_lut_view;
-	std::shared_ptr<image_view_t> ssao_view;
+	std::unique_ptr<image_view_t> skybox_view;
+	std::unique_ptr<image_view_t> diffuse_color_view;
+	std::unique_ptr<image_view_t> normal_view;
+	std::unique_ptr<image_view_t> roughness_metalness_view;
+	std::unique_ptr<image_view_t> depth_view;
+	std::unique_ptr<image_view_t> specular_cube_view;
+	std::unique_ptr<image_view_t> dfg_lut_view;
+	std::unique_ptr<image_view_t> ssao_view;
 
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
 
-	allocated_descriptor_set ibl_descriptor;
-	allocated_descriptor_set sampler_descriptors;
-	allocated_descriptor_set input_attachments_descriptors;
-	allocated_descriptor_set rtt_descriptors;
-	allocated_descriptor_set scene_descriptor;
+	std::unique_ptr<allocated_descriptor_set> ibl_descriptor;
+	std::unique_ptr<allocated_descriptor_set> sampler_descriptors;
+	std::unique_ptr<allocated_descriptor_set> input_attachments_descriptors;
+	std::unique_ptr<allocated_descriptor_set> rtt_descriptors;
+	std::unique_ptr<allocated_descriptor_set> scene_descriptor;
 
 	std::unique_ptr<image_t> depth_buffer;
 	std::unique_ptr<image_t> diffuse_color;
@@ -107,22 +98,36 @@ private:
 
 	std::unique_ptr<render_pass_t> object_sunlight_pass;
 	std::unique_ptr<render_pass_t> ibl_skyboss_pass;
-	framebuffer_t fbo_pass1[2];
-	framebuffer_t fbo_pass2[2];
-	pipeline_layout_t object_sig;
-	pipeline_state_t objectpso;
-	pipeline_layout_t sunlight_sig;
-	pipeline_state_t sunlightpso;
-	pipeline_layout_t skybox_sig;
-	pipeline_state_t skybox_pso;
-	pipeline_layout_t ibl_sig;
-	pipeline_state_t ibl_pso;
+	std::array<std::unique_ptr<framebuffer_t>, 2> fbo_pass1;
+	std::array<std::unique_ptr<framebuffer_t>, 2> fbo_pass2;
+	std::unique_ptr<pipeline_layout_t> object_sig;
+	std::unique_ptr<pipeline_state_t> objectpso;
+	std::unique_ptr<pipeline_layout_t> sunlight_sig;
+	std::unique_ptr<pipeline_state_t> sunlightpso;
+	std::unique_ptr<pipeline_layout_t> skybox_sig;
+	std::unique_ptr<pipeline_state_t> skybox_pso;
+	std::unique_ptr<pipeline_layout_t> ibl_sig;
+	std::unique_ptr<pipeline_state_t> ibl_pso;
 	void fill_draw_commands();
 	void Init();
+
+	void createDescriptorSets();
+
+	void createTextures();
 
 	void fill_descriptor_set();
 	void load_program_and_pipeline_layout();
 public:
 	void Draw();
+	void Loop() {
+		while (!glfwWindowShouldClose(window))
+		{
+			glfwPollEvents();
+			Draw();
+			// Keep running
+		}
+		glfwDestroyWindow(window);
+		return;
+	}
 };
 

@@ -2,37 +2,31 @@
 // For conditions of distribution and use, see copyright notice in License.txt
 #pragma once
 
-#ifdef D3D12
-#include <API/d3dapi.h>
-#include <d3dx12.h>
-#include <d3dcompiler.h>
-#else
-#include <API/vkapi.h>
-#endif
+#include <API/GfxApi.h>
 
 struct ssao_utility
 {
 	uint32_t width;
 	uint32_t height;
-	std::shared_ptr<descriptor_set_layout> linearize_input_set;
-	pipeline_state_t linearize_depth_pso;
-	pipeline_layout_t linearize_depth_sig;
-	std::shared_ptr<descriptor_set_layout> ssao_input_set;
-	pipeline_state_t ssao_pso;
-	pipeline_layout_t ssao_sig;
-	std::shared_ptr<descriptor_set_layout> samplers_set;
-	std::shared_ptr<descriptor_set_layout> gaussian_input_set;
+	std::unique_ptr<descriptor_set_layout> linearize_input_set;
+	std::unique_ptr<pipeline_state_t> linearize_depth_pso;
+	std::unique_ptr<pipeline_layout_t> linearize_depth_sig;
+	std::unique_ptr<descriptor_set_layout> ssao_input_set;
+	std::unique_ptr<pipeline_state_t> ssao_pso;
+	std::unique_ptr<pipeline_layout_t> ssao_sig;
+	std::unique_ptr<descriptor_set_layout> samplers_set;
+	std::unique_ptr<descriptor_set_layout> gaussian_input_set;
 	std::unique_ptr<compute_pipeline_state_t> gaussian_h_pso;
 	std::unique_ptr<compute_pipeline_state_t> gaussian_v_pso;
-	pipeline_layout_t gaussian_input_sig;
+	std::unique_ptr<pipeline_layout_t> gaussian_input_sig;
 
 	std::unique_ptr<descriptor_storage_t> heap;
 	std::unique_ptr<descriptor_storage_t> sampler_heap;
-	allocated_descriptor_set linearize_input;
-	allocated_descriptor_set ssao_input;
-	allocated_descriptor_set sampler_input;
-	allocated_descriptor_set gaussian_input_h;
-	allocated_descriptor_set gaussian_input_v;
+	std::unique_ptr<allocated_descriptor_set> linearize_input;
+	std::unique_ptr<allocated_descriptor_set> ssao_input;
+	std::unique_ptr<allocated_descriptor_set> sampler_input;
+	std::unique_ptr<allocated_descriptor_set> gaussian_input_h;
+	std::unique_ptr<allocated_descriptor_set> gaussian_input_v;
 
 	std::unique_ptr<buffer_t> linearize_constant_data;
 	std::unique_ptr<buffer_t> ssao_constant_data;
@@ -47,7 +41,7 @@ struct ssao_utility
 	std::unique_ptr<image_view_t> gaussian_blurring_buffer_view;
 	std::unique_ptr<image_t> ssao_bilinear_result;
 	std::unique_ptr<image_view_t> ssao_bilinear_result_view;
-	framebuffer_t linear_depth_fbo;
+	std::unique_ptr<framebuffer_t> linear_depth_fbo;
 	std::unique_ptr<render_pass_t> render_pass;
 
 	std::unique_ptr<sampler_t> bilinear_clamped_sampler;
