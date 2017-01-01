@@ -106,7 +106,7 @@ sample::sample(GLFWwindow *window)
     tressfx_helper.eyePoint = g_defaultEyePt;
     tressfx_helper.mViewProj = DirectX::XMMATRIX(glm::value_ptr(View));
     tressfx_helper.mInvViewProj = DirectX::XMMATRIX(glm::value_ptr(InvView));
-    tressfx_helper.bShortCutOn = true;
+    tressfx_helper.bShortCutOn = false;
     tressfx_helper.hairParams.bAntialias = true;
     tressfx_helper.hairParams.strandCopies = 1;
     tressfx_helper.backBufferHeight = height;
@@ -257,8 +257,8 @@ sample::sample(GLFWwindow *window)
     TressFX_Begin(tressfx_helper, 0);
     TressFX_Simulate(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0.16f, 0);
     TressFX_RenderShadowMap(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
-	draw_command_buffer->set_scissor(0, width, 0, height);
-	draw_command_buffer->set_viewport(0, width, 0., height, 0., 1.);
+	draw_command_buffer->set_scissor(0, static_cast<float>(width), 0, static_cast<float>(height));
+	draw_command_buffer->set_viewport(0, static_cast<float>(width), 0., static_cast<float>(height), 0., 1.);
     TressFX_Render(tressfx_helper, dynamic_cast<vk_command_list_t&>(*draw_command_buffer).object, 0);
     TressFX_End(tressfx_helper);
 	draw_command_buffer->set_pipeline_barrier(*color_texture, RESOURCE_USAGE::RENDER_TARGET, RESOURCE_USAGE::READ_GENERIC, 0, irr::video::E_ASPECT::EA_COLOR);
