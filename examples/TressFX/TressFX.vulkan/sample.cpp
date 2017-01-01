@@ -136,6 +136,8 @@ sample::sample(GLFWwindow *window)
     cbuf.g_PointLightPos[3] = 0.f;*/
 
     tressfx_helper.hairParams.pointLightColor = DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f);
+	tressfx_helper.depthStencilFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+	tressfx_helper.colorFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
 
     depth_texture = dev->create_image(irr::video::D32U8, 1024, 1024, 1, 1, usage_depth_stencil | usage_sampled | usage_transfer_dst, nullptr);

@@ -5,6 +5,8 @@ include_directories(${gflags_INCLUDE_DIR})
 include_directories("../../deps/tressfx/amd_tressfx/inc")
 include_directories("../../deps/tressfx/amd_lib/shared/common/inc")
 
+add_definitions("-DAMD_TRESSFX_VULKAN=1")
+
 file(GLOB SHADERS "shaders/*.comp" "shaders/*.vert" "shaders/*.frag")
 file(GLOB_RECURSE HEADERS "TressFX.Vulkan/*.h")
 file(GLOB SOURCES
