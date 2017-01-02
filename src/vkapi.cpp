@@ -172,15 +172,23 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 			.setPQueuePriorities(&queue_priorities)
 	};
 
-	const auto device_extension = std::vector<const char*>{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const auto& extensions_list = devices[0].enumerateDeviceExtensionProperties(nullptr);
+
+	const auto& has_extension = [&]() {
+		const auto& It = std::find_if(extensions_list.begin(), extensions_list.end(), [](const vk::ExtensionProperties& ext) { return strcmp(ext.extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME); });
+		return It != extensions_list.end();
+	}();
+
+	auto&& device_extension = std::vector<const char*>{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	if (has_extension) device_extension.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 	auto dev = devices[0].createDevice(
 		vk::DeviceCreateInfo{}
-			.setEnabledExtensionCount(static_cast<uint32_t>(device_extension.size()))
-			.setPpEnabledExtensionNames(device_extension.data())
-			.setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
-			.setPpEnabledLayerNames(layers.data())
-			.setPQueueCreateInfos(queue_infos.data())
-			.setQueueCreateInfoCount(static_cast<uint32_t>(queue_infos.size()))
+		.setEnabledExtensionCount(static_cast<uint32_t>(device_extension.size()))
+		.setPpEnabledExtensionNames(device_extension.data())
+		.setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
+		.setPpEnabledLayerNames(layers.data())
+		.setPQueueCreateInfos(queue_infos.data())
+		.setQueueCreateInfoCount(static_cast<uint32_t>(queue_infos.size()))
 	);
 
 	auto mem_properties = devices[0].getMemoryProperties();
