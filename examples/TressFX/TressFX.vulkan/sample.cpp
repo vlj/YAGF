@@ -5,6 +5,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/transform.hpp>
 #include <VKAPI\pipeline_layout_helpers.h>
+#include <gflags\gflags.h>
 
 const auto& blit_vert = std::vector<uint32_t>
 #include <generatedShaders\blit_vert.h>
@@ -42,9 +43,11 @@ namespace
 
 }
 
+DEFINE_bool(uses_debug_marker, false, "Uses debug marker (renderdoc only).");
+
 sample::sample(GLFWwindow *window)
 {
-    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(window);
+    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(window, FLAGS_uses_debug_marker);
     dev = std::move(std::get<0>(dev_swapchain_queue));
     queue = std::move(std::get<2>(dev_swapchain_queue));
     chain = std::move(std::get<1>(dev_swapchain_queue));

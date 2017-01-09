@@ -96,7 +96,7 @@ namespace
 	}
 }
 
-std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window)
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window, bool debug_marker)
 {
 	std::vector<const char*> layers = { 
 #ifndef NDEBUG
@@ -180,7 +180,7 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 	}();
 
 	auto&& device_extension = std::vector<const char*>{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	if (has_extension) device_extension.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+	if (has_extension && debug_marker) device_extension.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 	auto dev = devices[0].createDevice(
 		vk::DeviceCreateInfo{}
 		.setEnabledExtensionCount(static_cast<uint32_t>(device_extension.size()))
