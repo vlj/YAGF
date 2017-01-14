@@ -5,11 +5,16 @@ MIT License except if file header states otherwise.
 
 Dependencies:
 * GLFW3
-* GLEW
 * Freetype 2
+* Assimp
+* Vulkan
+* Shaderc
+* GLM
+* GLI
+* gflags
 
-These dependencies are bundled with source file for VS build, you only need cmake.
-Tested with VS 2013 on windows.
+All these dependencies are provided by vcpkg on Windows.
+Visual Studio 2017 RC is required (YAGF requires variant and optional templates)
 
 YOU NEED TO BUILD INSIDE A SUBFOLDER OF YAFG/ otherwise projects can't find
 binaries/shader files at runtime.
