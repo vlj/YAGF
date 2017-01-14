@@ -194,7 +194,7 @@ create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window,
     }
     throw;
   }();
-  float queue_priorities = 0.f;
+  const auto& queue_priorities = 0.f;
   const auto queue_infos = std::array<vk::DeviceQueueCreateInfo, 1>{
       vk::DeviceQueueCreateInfo{}
           .setQueueFamilyIndex(queue_family_index)
@@ -816,7 +816,7 @@ void vk_command_list_t::set_pipeline_barrier(image_t &resource,
     throw;
   };
 
-  auto &&srcAccess = [=]() -> vk::AccessFlags {
+  const auto &srcAccess = [=]() -> vk::AccessFlags {
     switch (get_image_layout(before)) {
     case vk::ImageLayout::eTransferDstOptimal:
       return vk::AccessFlagBits::eTransferWrite;
@@ -835,7 +835,7 @@ void vk_command_list_t::set_pipeline_barrier(image_t &resource,
     return vk::AccessFlags();
   };
 
-  auto &&dstAccess = [=]() -> vk::AccessFlags {
+  const auto &dstAccess = [=]() -> vk::AccessFlags {
     switch (get_image_layout(after)) {
     case vk::ImageLayout::eTransferDstOptimal:
       return vk::AccessFlagBits::eTransferWrite;
@@ -854,8 +854,8 @@ void vk_command_list_t::set_pipeline_barrier(image_t &resource,
     return vk::AccessFlags();
   };
 
-  auto dst = dstAccess();
-  auto src = srcAccess();
+  const auto& dst = dstAccess();
+  const auto& src = srcAccess();
 
   object.pipelineBarrier(
       vk::PipelineStageFlagBits::eBottomOfPipe,
@@ -1089,11 +1089,11 @@ vk_device_t::create_frame_buffer(gsl::span<const image_view_t *> render_targets,
                                  render_pass_t *render_pass) {
   std::vector<vk::ImageView> attachments;
   std::transform(render_targets.begin(), render_targets.end(),
-                 std::back_inserter(attachments), [&](auto &&input) {
+                 std::back_inserter(attachments), [&](const auto &input) {
                    return dynamic_cast<const vk_image_view_t *>(input)->object;
                  });
   return std::unique_ptr<framebuffer_t>(new vk_framebuffer(
-      object, static_cast<vk_render_pass_t *>(render_pass)->object, attachments,
+      object, dynamic_cast<vk_render_pass_t *>(render_pass)->object, attachments,
       width, height, 1));
 }
 
@@ -1110,7 +1110,7 @@ vk_device_t::create_frame_buffer(gsl::span<const image_view_t *> render_targets,
   attachments.push_back(
       dynamic_cast<const vk_image_view_t &>(depth_stencil_texture).object);
   return std::unique_ptr<framebuffer_t>(new vk_framebuffer(
-      object, static_cast<vk_render_pass_t *>(render_pass)->object, attachments,
+      object, dynamic_cast<vk_render_pass_t *>(render_pass)->object, attachments,
       width, height, 1));
 }
 

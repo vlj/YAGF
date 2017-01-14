@@ -15,7 +15,7 @@ load_texture(device_t &dev, std::string &&texture_name,
   const auto &is_cubemap = gli::is_target_cube(DDSPic.target());
   uint16_t layer_count = is_cubemap ? 6 : 1;
 
-  std::unique_ptr<buffer_t> upload_buffer = dev.create_buffer(
+  auto&& upload_buffer = dev.create_buffer(
       width * height * 3 * 6, irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE,
       usage_buffer_transfer_src);
 
@@ -42,7 +42,7 @@ load_texture(device_t &dev, std::string &&texture_name,
       uint32_t width_in_texram = width_in_blocks * block_width;
       uint32_t rowPitch = width_in_blocks * block_size;
       rowPitch = (rowPitch + 255) & ~255;
-      MipLevelData mml = {offset_in_texram, width_in_texram, height_in_texram,
+      const auto& mml = MipLevelData{offset_in_texram, width_in_texram, height_in_texram,
                           rowPitch};
       Mips.push_back(mml);
       for (unsigned row = 0; row < height_in_blocks; row++) {
@@ -62,7 +62,7 @@ load_texture(device_t &dev, std::string &&texture_name,
       nullptr);
 
   uint32_t miplevel = 0;
-  for (const MipLevelData mipmapData : Mips) {
+  for (const MipLevelData& mipmapData : Mips) {
     upload_command_list.set_pipeline_barrier(
         *texture, RESOURCE_USAGE::undefined, RESOURCE_USAGE::COPY_DEST,
         miplevel, irr::video::E_ASPECT::EA_COLOR);
