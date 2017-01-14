@@ -341,13 +341,16 @@ void MeshSample::load_program_and_pipeline_layout() {
   ibl_pso = get_ibl_pipeline_state(*dev, *ibl_sig, *ibl_skyboss_pass);
 }
 
+DEFINE_bool(uses_debug_marker, false, "Uses debug marker (renderdoc only).");
+DEFINE_bool(uses_debug_layer, false, "Uses debug layer.");
+
 MeshSample::MeshSample() {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   window = glfwCreateWindow(1280, 1024, "Window Title", nullptr, nullptr);
 
   std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) =
-      create_device_swapchain_and_graphic_presentable_queue(window, );
+      create_device_swapchain_and_graphic_presentable_queue(window, FLAGS_uses_debug_marker, FLAGS_uses_debug_layer);
   Init();
 }
 
