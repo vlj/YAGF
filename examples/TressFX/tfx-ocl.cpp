@@ -1,15 +1,15 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <Windows.h>
 #include <Maths/matrix4.h>
+#include <Windows.h>
 
 #include <CL/cl.h>
 #include <CL/cl_gl.h>
 #include <CL/cl_gl_ext.h>
 
+#include "common.hpp"
 #include <fstream>
 #include <iostream>
-#include "common.hpp"
 
 #include <Util/Debug.h>
 
@@ -34,11 +34,12 @@ cl_mem HairRefVecs;
 cl_mem HairRestLength;
 cl_mem ConstantSimBuffer;
 
-typedef cl_event(CALLBACK *PFNCreateEventFromGLsyncKHRCustom)(cl_context, cl_GLsync, cl_int *);
+typedef cl_event(CALLBACK *PFNCreateEventFromGLsyncKHRCustom)(cl_context,
+                                                              cl_GLsync,
+                                                              cl_int *);
 PFNCreateEventFromGLsyncKHRCustom clCreateEventFromGLsyncKHRCustom;
 
-void init()
-{
+void init() {
   tfxassets = loadTress("..\\examples\\TressFX\\ruby.tfxb");
 
   initCommon(tfxassets);
@@ -50,7 +51,9 @@ void init()
   cl_platform_id platform = platforms[0];
   clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, 0);
 
-  clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom) clGetExtensionFunctionAddressForPlatform(platform, "clCreateEventFromGLsyncKHR");
+  clCreateEventFromGLsyncKHRCustom = (PFNCreateEventFromGLsyncKHRCustom)
+      clGetExtensionFunctionAddressForPlatform(platform,
+                                               "clCreateEventFromGLsyncKHR");
 
   size_t sz;
   clGetDeviceInfo(device, CL_DEVICE_NAME, 0, 0, &sz);
@@ -59,17 +62,21 @@ void init()
   printf("%s\n", name);
   delete[] name;
 
-  cl_context_properties prop[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platform,
-    CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-    CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-    0
-  };
+  cl_context_properties prop[] = {CL_CONTEXT_PLATFORM,
+                                  (cl_context_properties)platform,
+                                  CL_GL_CONTEXT_KHR,
+                                  (cl_context_properties)wglGetCurrentContext(),
+                                  CL_WGL_HDC_KHR,
+                                  (cl_context_properties)wglGetCurrentDC(),
+                                  0};
 
   context = clCreateContext(prop, 1, &device, NULL, NULL, NULL);
 
-  std::ifstream file("..\\examples\\TressFX\\shaders\\Simulation.cl", std::ios::in);
+  std::ifstream file("..\\examples\\TressFX\\shaders\\Simulation.cl",
+                     std::ios::in);
 
-  const std::string &progstr = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  const std::string &progstr = std::string(
+      (std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   size_t src_sz = progstr.size();
   const char *src = progstr.c_str();
 
@@ -83,29 +90,50 @@ void init()
   printf("%s\n", log);
   delete log;
 
-  cl_queue_properties qprop[] = {
-    CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-    0
-  };
+  cl_queue_properties qprop[] = {CL_QUEUE_PROPERTIES,
+                                 CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, 0};
   queue = clCreateCommandQueueWithProperties(context, device, qprop, &err);
-  kernel_Global = clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
-  kernel_Local = clCreateKernel(prog, "LocalShapeConstraintsWithIteration", &err);
-  kernel_Length = clCreateKernel(prog, "LengthConstriantsWindAndCollision", &err);
-  ConstantSimBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
+  kernel_Global =
+      clCreateKernel(prog, "IntegrationAndGlobalShapeConstraints", &err);
+  kernel_Local =
+      clCreateKernel(prog, "LocalShapeConstraintsWithIteration", &err);
+  kernel_Length =
+      clCreateKernel(prog, "LengthConstriantsWindAndCollision", &err);
+  ConstantSimBuffer = clCreateBuffer(
+      context, CL_MEM_READ_ONLY, sizeof(struct SimulationConstants), 0, &err);
 
-  InitialPos = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
+  InitialPos =
+      clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                     tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+                     tfxassets.m_pVertices, &err);
   PosBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, PosSSBO, &err);
-  TangentBuffer = clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, TangentSSBO, &err);
-//  PosBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
-  HairRestLength = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pRestLengths, &err);
-  PreviousPos = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, &err);
-  StrandType = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, &err);
-  GlobalRotations = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pGlobalRotations, &err);
-  HairRefVecs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pRefVectors, &err);
+  TangentBuffer =
+      clCreateFromGLBuffer(context, CL_MEM_READ_WRITE, TangentSSBO, &err);
+  //  PosBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE |
+  //  CL_MEM_COPY_HOST_PTR, tfxassets.m_NumTotalHairVertices * 4 *
+  //  sizeof(float), tfxassets.m_pVertices, &err);
+  HairRestLength =
+      clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                     tfxassets.m_NumTotalHairVertices * sizeof(float),
+                     tfxassets.m_pRestLengths, &err);
+  PreviousPos =
+      clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                     tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+                     tfxassets.m_pVertices, &err);
+  StrandType = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                              tfxassets.m_NumTotalHairStrands * sizeof(int),
+                              tfxassets.m_pHairStrandType, &err);
+  GlobalRotations =
+      clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                     tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+                     tfxassets.m_pGlobalRotations, &err);
+  HairRefVecs =
+      clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                     tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+                     tfxassets.m_pRefVectors, &err);
 }
 
-void clean()
-{
+void clean() {
   clReleaseMemObject(InitialPos);
   clReleaseMemObject(PosBuffer);
   clReleaseMemObject(PreviousPos);
@@ -122,8 +150,7 @@ void clean()
   cleanCommon();
 }
 
-void simulate(float time)
-{
+void simulate(float time) {
   struct SimulationConstants cbuf = {};
 
   irr::core::matrix4 Model;
@@ -181,29 +208,33 @@ void simulate(float time)
   if (syncobj)
     ev = clCreateEventFromGLsyncKHRCustom(context, syncobj, &err);
 
-  cl_event ev_constant_upload, ev_gl_buffer_acquired, ev_global_constraints, ev_local_constraints, ev_length;
+  cl_event ev_constant_upload, ev_gl_buffer_acquired, ev_global_constraints,
+      ev_local_constraints, ev_length;
 
   // First pass is done so sim is done too, can safely upload
-  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0, sizeof(struct SimulationConstants), &cbuf, 0, 0, &ev_constant_upload);
+  err = clEnqueueWriteBuffer(queue, ConstantSimBuffer, CL_FALSE, 0,
+                             sizeof(struct SimulationConstants), &cbuf, 0, 0,
+                             &ev_constant_upload);
   unsigned int maxId = tfxassets.m_NumTotalHairVertices;
-  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0, &ev_gl_buffer_acquired);
+  err = clEnqueueAcquireGLObjects(queue, 1, &PosBuffer, 0, 0,
+                                  &ev_gl_buffer_acquired);
   size_t local_wg = 64;
-  size_t global_wg_kern_g = (size_t)(density * tfxassets.m_NumTotalHairVertices);
+  size_t global_wg_kern_g =
+      (size_t)(density * tfxassets.m_NumTotalHairVertices);
   err = clSetKernelArg(kernel_Global, 0, sizeof(cl_mem), &PosBuffer);
   err = clSetKernelArg(kernel_Global, 1, sizeof(cl_mem), &PreviousPos);
   err = clSetKernelArg(kernel_Global, 2, sizeof(cl_mem), &StrandType);
   err = clSetKernelArg(kernel_Global, 3, sizeof(cl_mem), &InitialPos);
   err = clSetKernelArg(kernel_Global, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Global, 5, sizeof(unsigned int), &maxId);
-  if (syncobj)
-  {
-    cl_event lst[] = { ev, ev_constant_upload, ev_gl_buffer_acquired };
-    err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g, &local_wg, 3, lst, &ev_global_constraints);
-  }
-  else
-  {
-    cl_event lst[] = { ev_constant_upload, ev_gl_buffer_acquired };
-    err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g, &local_wg, 2, lst, &ev_global_constraints);
+  if (syncobj) {
+    cl_event lst[] = {ev, ev_constant_upload, ev_gl_buffer_acquired};
+    err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g,
+                                 &local_wg, 3, lst, &ev_global_constraints);
+  } else {
+    cl_event lst[] = {ev_constant_upload, ev_gl_buffer_acquired};
+    err = clEnqueueNDRangeKernel(queue, kernel_Global, 1, 0, &global_wg_kern_g,
+                                 &local_wg, 2, lst, &ev_global_constraints);
   }
 
   size_t global_wg_kern_l = (size_t)(density * tfxassets.m_NumTotalHairStrands);
@@ -213,7 +244,9 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Local, 3, sizeof(cl_mem), &HairRefVecs);
   err = clSetKernelArg(kernel_Local, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Local, 5, sizeof(unsigned int), &maxId);
-  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg_kern_l, &local_wg, 1, &ev_global_constraints, &ev_local_constraints);
+  err = clEnqueueNDRangeKernel(queue, kernel_Local, 1, 0, &global_wg_kern_l,
+                               &local_wg, 1, &ev_global_constraints,
+                               &ev_local_constraints);
 
   err = clSetKernelArg(kernel_Length, 0, sizeof(cl_mem), &PosBuffer);
   err = clSetKernelArg(kernel_Length, 1, sizeof(cl_mem), &TangentBuffer);
@@ -221,13 +254,17 @@ void simulate(float time)
   err = clSetKernelArg(kernel_Length, 3, sizeof(cl_mem), &HairRestLength);
   err = clSetKernelArg(kernel_Length, 4, sizeof(cl_mem), &ConstantSimBuffer);
   err = clSetKernelArg(kernel_Length, 5, sizeof(unsigned int), &maxId);
-  err = clEnqueueNDRangeKernel(queue, kernel_Length, 1, 0, &global_wg_kern_g, &local_wg, 1, &ev_local_constraints, &ev_length);
+  err = clEnqueueNDRangeKernel(queue, kernel_Length, 1, 0, &global_wg_kern_g,
+                               &local_wg, 1, &ev_local_constraints, &ev_length);
 
-//  float *tmp = new float[tfxassets.m_NumTotalHairVertices * 4];
-//  err = clEnqueueReadBuffer(queue, PosBuffer, CL_FALSE, 0, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 1, &ev_local_constraints, 0);
+  //  float *tmp = new float[tfxassets.m_NumTotalHairVertices * 4];
+  //  err = clEnqueueReadBuffer(queue, PosBuffer, CL_FALSE, 0,
+  //  tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, 1,
+  //  &ev_local_constraints, 0);
 
-//  glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
-//  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tmp, GL_STATIC_DRAW);
+  //  glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
+  //  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices *
+  //  4 * sizeof(float), tmp, GL_STATIC_DRAW);
 
   err = clEnqueueReleaseGLObjects(queue, 1, &PosBuffer, 1, &ev_length, 0);
   clFinish(queue);
@@ -237,30 +274,27 @@ void simulate(float time)
   clReleaseEvent(ev_gl_buffer_acquired);
   clReleaseEvent(ev_length);
 
-  if (syncobj)
-  {
+  if (syncobj) {
     glDeleteSync(syncobj);
     clReleaseEvent(ev);
   }
   return;
 }
 
-int main()
-{
+int main() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
 
   glewExperimental = GL_TRUE;
   glewInit();
   init();
   float tmp = 0.;
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
     simulate(tmp);
     draw(density);
     glfwSwapBuffers(window);

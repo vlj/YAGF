@@ -2,25 +2,22 @@
 
 #include "common.hpp"
 
-#include <GLAPI/Shaders.h>
-#include <GLAPI/Misc.h>
 #include <GLAPI/GLRTTSet.h>
+#include <GLAPI/Misc.h>
 #include <GLAPI/Samplers.h>
+#include <GLAPI/Shaders.h>
 #include <GLAPI/Text.h>
 
 #include <fstream>
 #include <sstream>
 
-
-struct PerPixelListBucket
-{
+struct PerPixelListBucket {
   float depth;
   unsigned int TangentAndCoverage;
   unsigned int next;
 };
 
-struct Constants
-{
+struct Constants {
   float g_mWorld[16];
   float g_mViewProj[16];
   float g_mInvViewProj[16];
@@ -49,7 +46,8 @@ struct Constants
 
   int g_iTechSM;
   int g_bUseCoverage;
-  int g_iStrandCopies; // strand copies that the transparency shader will produce
+  int g_iStrandCopies; // strand copies that the transparency shader will
+                       // produce
   int g_iMaxFragments;
 
   float g_alphaThreshold;
@@ -59,91 +57,97 @@ struct Constants
   float g_mInvViewProjViewport[16];
 };
 
-class HairShadow : public ShaderHelperSingleton<HairShadow>, public TextureRead<UniformBufferResource<0>>
-{
+class HairShadow : public ShaderHelperSingleton<HairShadow>,
+                   public TextureRead<UniformBufferResource<0>> {
 public:
-  HairShadow()
-  {
-    std::ifstream invtx("../examples/TressFX/shaders/HairSM.vert", std::ios::in);
+  HairShadow() {
+    std::ifstream invtx("../examples/TressFX/shaders/HairSM.vert",
+                        std::ios::in);
 
-    const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
+    const std::string &vtxshader =
+        std::string((std::istreambuf_iterator<char>(invtx)),
+                    std::istreambuf_iterator<char>());
 
-    std::ifstream infrag("../examples/TressFX/shaders/HairSM.frag", std::ios::in);
+    std::ifstream infrag("../examples/TressFX/shaders/HairSM.frag",
+                         std::ios::in);
 
-    const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
+    const std::string &fragshader =
+        std::string((std::istreambuf_iterator<char>(infrag)),
+                    std::istreambuf_iterator<char>());
 
     Program = ProgramShaderLoading::LoadProgram(
-      GL_VERTEX_SHADER, vtxshader.c_str(),
-      GL_FRAGMENT_SHADER, fragshader.c_str());
+        GL_VERTEX_SHADER, vtxshader.c_str(), GL_FRAGMENT_SHADER,
+        fragshader.c_str());
     AssignSamplerNames(Program, "Constants");
   }
 };
 
-class Transparent : public ShaderHelperSingleton<Transparent>, public TextureRead<UniformBufferResource<0>, ImageResource<1> >
-{
+class Transparent
+    : public ShaderHelperSingleton<Transparent>,
+      public TextureRead<UniformBufferResource<0>, ImageResource<1>> {
 public:
-  Transparent()
-  {
+  Transparent() {
     std::ifstream invtx("../examples/TressFX/shaders/Hair.vert", std::ios::in);
 
-    const std::string &vtxshader = std::string((std::istreambuf_iterator<char>(invtx)), std::istreambuf_iterator<char>());
+    const std::string &vtxshader =
+        std::string((std::istreambuf_iterator<char>(invtx)),
+                    std::istreambuf_iterator<char>());
 
     std::ifstream infrag("../examples/TressFX/shaders/Hair.frag", std::ios::in);
 
-    const std::string &fragshader = std::string((std::istreambuf_iterator<char>(infrag)), std::istreambuf_iterator<char>());
+    const std::string &fragshader =
+        std::string((std::istreambuf_iterator<char>(infrag)),
+                    std::istreambuf_iterator<char>());
 
     Program = ProgramShaderLoading::LoadProgram(
-      GL_VERTEX_SHADER, vtxshader.c_str(),
-      GL_FRAGMENT_SHADER, fragshader.c_str());
+        GL_VERTEX_SHADER, vtxshader.c_str(), GL_FRAGMENT_SHADER,
+        fragshader.c_str());
     AssignSamplerNames(Program, "Constants", "PerPixelLinkedListHead");
   }
 };
 
-class FragmentMerge : public ShaderHelperSingleton<FragmentMerge>, public TextureRead<UniformBufferResource<0>, TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1> >
-{
+class FragmentMerge
+    : public ShaderHelperSingleton<FragmentMerge>,
+      public TextureRead<UniformBufferResource<0>,
+                         TextureResource<GL_TEXTURE_2D, 0>, ImageResource<1>> {
 public:
-  FragmentMerge()
-  {
-    std::ifstream in("../examples/TressFX/shaders/FSShading.frag", std::ios::in);
+  FragmentMerge() {
+    std::ifstream in("../examples/TressFX/shaders/FSShading.frag",
+                     std::ios::in);
 
-    const std::string &fragmerge = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    const std::string &fragmerge = std::string(
+        (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
     Program = ProgramShaderLoading::LoadProgram(
-      GL_VERTEX_SHADER, screenquadshader,
-      GL_FRAGMENT_SHADER, fragmerge.c_str());
-    AssignSamplerNames(Program, "Constants", "HairShadowMap", "PerPixelLinkedListHead");
+        GL_VERTEX_SHADER, screenquadshader, GL_FRAGMENT_SHADER,
+        fragmerge.c_str());
+    AssignSamplerNames(Program, "Constants", "HairShadowMap",
+                       "PerPixelLinkedListHead");
   }
 };
 
-class Passthrough : public ShaderHelperSingleton<Passthrough>, public TextureRead<TextureResource<GL_TEXTURE_2D, 0> >
-{
+class Passthrough : public ShaderHelperSingleton<Passthrough>,
+                    public TextureRead<TextureResource<GL_TEXTURE_2D, 0>> {
 public:
-  Passthrough()
-  {
+  Passthrough() {
     const char *shader = TO_STRING(
       \#version 430\n
 
-      uniform sampler2D tex;
-    out vec4 FragColor;
-    void main() {
-      FragColor = texture(tex, gl_FragCoord.xy / 1024.);
-    }
-    );
+            uniform sampler2D tex;
+        out vec4 FragColor;
+        void main() { FragColor = texture(tex, gl_FragCoord.xy / 1024.); });
     Program = ProgramShaderLoading::LoadProgram(
-      GL_VERTEX_SHADER, screenquadshader,
-      GL_FRAGMENT_SHADER, shader);
+        GL_VERTEX_SHADER, screenquadshader, GL_FRAGMENT_SHADER, shader);
     AssignSamplerNames(Program, "tex");
   }
 };
 
-TressFXAsset loadTress(const char* filename)
-{
+TressFXAsset loadTress(const char *filename) {
   std::ifstream inFile(filename, std::ios::binary);
 
   TressFXAsset m_HairAsset;
 
-  if (!inFile.is_open())
-  {
+  if (!inFile.is_open()) {
     printf("Coulndt load %s\n", filename);
     return m_HairAsset;
   }
@@ -153,37 +157,53 @@ TressFXAsset loadTress(const char* filename)
   inFile.read((char *)&m_HairAsset.m_MaxNumOfVerticesInStrand, sizeof(int));
   inFile.read((char *)&m_HairAsset.m_NumGuideHairVertices, sizeof(int));
   inFile.read((char *)&m_HairAsset.m_NumGuideHairStrands, sizeof(int));
-  inFile.read((char *)&m_HairAsset.m_NumFollowHairsPerOneGuideHair, sizeof(int));
+  inFile.read((char *)&m_HairAsset.m_NumFollowHairsPerOneGuideHair,
+              sizeof(int));
 
   m_HairAsset.m_pHairStrandType = new int[m_HairAsset.m_NumTotalHairStrands];
-  inFile.read((char *)m_HairAsset.m_pHairStrandType, m_HairAsset.m_NumTotalHairStrands * sizeof(int));
+  inFile.read((char *)m_HairAsset.m_pHairStrandType,
+              m_HairAsset.m_NumTotalHairStrands * sizeof(int));
 
   m_HairAsset.m_pRefVectors = new Float4[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pRefVectors, m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
+  inFile.read((char *)m_HairAsset.m_pRefVectors,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
 
-  m_HairAsset.m_pGlobalRotations = new Float4[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pGlobalRotations, m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
+  m_HairAsset.m_pGlobalRotations =
+      new Float4[m_HairAsset.m_NumTotalHairVertices];
+  inFile.read((char *)m_HairAsset.m_pGlobalRotations,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
 
-  m_HairAsset.m_pLocalRotations = new Float4[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pLocalRotations, m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
+  m_HairAsset.m_pLocalRotations =
+      new Float4[m_HairAsset.m_NumTotalHairVertices];
+  inFile.read((char *)m_HairAsset.m_pLocalRotations,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
 
   m_HairAsset.m_pVertices = new Float4[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pVertices, m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
+  inFile.read((char *)m_HairAsset.m_pVertices,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
 
   m_HairAsset.m_pTangents = new Float4[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pTangents, m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
+  inFile.read((char *)m_HairAsset.m_pTangents,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(Float4));
 
-  m_HairAsset.m_pTriangleVertices = new StrandVertex[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pTriangleVertices, m_HairAsset.m_NumTotalHairVertices * sizeof(StrandVertex));
+  m_HairAsset.m_pTriangleVertices =
+      new StrandVertex[m_HairAsset.m_NumTotalHairVertices];
+  inFile.read((char *)m_HairAsset.m_pTriangleVertices,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(StrandVertex));
 
-  m_HairAsset.m_pThicknessCoeffs = new float[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pThicknessCoeffs, m_HairAsset.m_NumTotalHairVertices * sizeof(float));
+  m_HairAsset.m_pThicknessCoeffs =
+      new float[m_HairAsset.m_NumTotalHairVertices];
+  inFile.read((char *)m_HairAsset.m_pThicknessCoeffs,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(float));
 
-  m_HairAsset.m_pFollowRootOffset = new Float4[m_HairAsset.m_NumTotalHairStrands];
-  inFile.read((char *)m_HairAsset.m_pFollowRootOffset, m_HairAsset.m_NumTotalHairStrands * sizeof(Float4));
+  m_HairAsset.m_pFollowRootOffset =
+      new Float4[m_HairAsset.m_NumTotalHairStrands];
+  inFile.read((char *)m_HairAsset.m_pFollowRootOffset,
+              m_HairAsset.m_NumTotalHairStrands * sizeof(Float4));
 
   m_HairAsset.m_pRestLengths = new float[m_HairAsset.m_NumTotalHairVertices];
-  inFile.read((char *)m_HairAsset.m_pRestLengths, m_HairAsset.m_NumTotalHairVertices * sizeof(float));
+  inFile.read((char *)m_HairAsset.m_pRestLengths,
+              m_HairAsset.m_NumTotalHairVertices * sizeof(float));
 
   inFile.read((char *)&m_HairAsset.m_bSphere, sizeof(BSphere));
 
@@ -208,8 +228,7 @@ TressFXAsset loadTress(const char* filename)
   return m_HairAsset;
 }
 
-void cleanTFXAssetContent(const TressFXAsset &tfxassets)
-{
+void cleanTFXAssetContent(const TressFXAsset &tfxassets) {
   delete[] tfxassets.m_pHairStrandType;
   delete[] tfxassets.m_pRefVectors;
   delete[] tfxassets.m_pGlobalRotations;
@@ -221,7 +240,6 @@ void cleanTFXAssetContent(const TressFXAsset &tfxassets)
   delete[] tfxassets.m_pFollowRootOffset;
   delete[] tfxassets.m_pRestLengths;
 }
-
 
 static GLRTTSet *MainFBO;
 static GLRTTSet *PerPixelLinkedListHeadFBO; // For clearing
@@ -252,27 +270,28 @@ GLuint ThicknessSSBO;
 
 static GLsizei lineIndicesCount, triangleIndicesCount;
 
-static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat, GLint format, GLint type, unsigned mipmaplevel = 1)
-{
+static GLuint generateRTT(GLsizei width, GLsizei height, GLint internalFormat,
+                          GLint format, GLint type, unsigned mipmaplevel = 1) {
   GLuint result;
   glGenTextures(1, &result);
   glBindTexture(GL_TEXTURE_2D, result);
   /*    if (CVS->isARBTextureStorageUsable())
   glTexStorage2D(GL_TEXTURE_2D, mipmaplevel, internalFormat, Width, Height);
   else*/
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type,
+               0);
   return result;
 }
 
-void initCommon(const TressFXAsset& tfxassets)
-{
+void initCommon(const TressFXAsset &tfxassets) {
   glGenVertexArrays(1, &TFXVao);
   glBindVertexArray(TFXVao);
 
   glGenBuffers(1, &TFXTriangleIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXTriangleIdx);
   triangleIndicesCount = (GLsizei)tfxassets.m_Triangleindices.size();
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangleIndicesCount * sizeof(unsigned), tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangleIndicesCount * sizeof(unsigned),
+               tfxassets.m_Triangleindices.data(), GL_STATIC_DRAW);
 
   glGenVertexArrays(1, &TFXVaoLine);
   glBindVertexArray(TFXVaoLine);
@@ -280,10 +299,12 @@ void initCommon(const TressFXAsset& tfxassets)
   glGenBuffers(1, &TFXLineIdx);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, TFXLineIdx);
   lineIndicesCount = (GLsizei)tfxassets.m_LineIndices.size();
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, lineIndicesCount * sizeof(unsigned), tfxassets.m_LineIndices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, lineIndicesCount * sizeof(unsigned),
+               tfxassets.m_LineIndices.data(), GL_STATIC_DRAW);
   glBindVertexArray(0);
 
-  DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+  DepthStencilTexture = generateRTT(1024, 1024, GL_DEPTH24_STENCIL8,
+                                    GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
   glGenTextures(1, &MainTexture);
   glBindTexture(GL_TEXTURE_2D, MainTexture);
   glTexStorage2D(GL_TEXTURE_2D, 1, GL_SRGB8_ALPHA8, 1024, 1024);
@@ -294,36 +315,47 @@ void initCommon(const TressFXAsset& tfxassets)
   glGenTextures(1, &HairShadowMapTexture);
   glBindTexture(GL_TEXTURE_2D, HairShadowMapTexture);
   glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, 640, 640);
-  HairShadowMapDepth = generateRTT(640, 640, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+  HairShadowMapDepth = generateRTT(640, 640, GL_DEPTH24_STENCIL8,
+                                   GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
 
-  HairSMFBO = new GLRTTSet({ HairShadowMapTexture }, HairShadowMapDepth, 640, 640);
+  HairSMFBO =
+      new GLRTTSet({HairShadowMapTexture}, HairShadowMapDepth, 640, 640);
 
-  MainFBO = new GLRTTSet({ MainTexture }, DepthStencilTexture, 1024, 1024);
-  PerPixelLinkedListHeadFBO = new GLRTTSet({ PerPixelLinkedListHeadTexture }, 1024, 1024);
+  MainFBO = new GLRTTSet({MainTexture}, DepthStencilTexture, 1024, 1024);
+  PerPixelLinkedListHeadFBO =
+      new GLRTTSet({PerPixelLinkedListHeadTexture}, 1024, 1024);
 
   glGenBuffers(1, &PerPixelLinkedListSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerPixelLinkedListSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, 100000000 * sizeof(PerPixelListBucket), 0, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, 100000000 * sizeof(PerPixelListBucket),
+               0, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, PerPixelLinkedListSSBO);
 
   glGenBuffers(1, &PosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+               tfxassets.m_pVertices, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, PosSSBO);
 
   glGenBuffers(1, &TangentSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, TangentSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pTangents, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+               tfxassets.m_pTangents, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, TangentSSBO);
 
   glGenBuffers(1, &ThicknessSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, ThicknessSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pThicknessCoeffs, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * sizeof(float),
+               tfxassets.m_pThicknessCoeffs, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, ThicknessSSBO);
 
   glGenBuffers(1, &PixelCountAtomic);
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
-  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), 0,
+               GL_DYNAMIC_DRAW);
   glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, PixelCountAtomic);
 
   glGenBuffers(1, &ConstantBuffer);
@@ -333,8 +365,7 @@ void initCommon(const TressFXAsset& tfxassets)
   glDepthFunc(GL_LEQUAL);
 }
 
-void cleanCommon()
-{
+void cleanCommon() {
   glDeleteTextures(1, &MainTexture);
   glDeleteTextures(1, &DepthStencilTexture);
   glDeleteBuffers(1, &ConstantBuffer);
@@ -361,8 +392,7 @@ void cleanCommon()
   delete HairSMFBO;
 }
 
-static void fillConstantBuffer()
-{
+static void fillConstantBuffer() {
   /*
   // From Ruby tfx demo
   static COLORREF g_vCustHairColors[16] =
@@ -391,12 +421,12 @@ static void fillConstantBuffer()
   cbuf.g_MatBaseColor[1] = 14.f / 255.f;
   cbuf.g_MatBaseColor[2] = 4.f / 255.f;
 
-  cbuf.g_MatKValue[0] = 0.f; // Ka
-  cbuf.g_MatKValue[1] = 0.4f; // Kd
+  cbuf.g_MatKValue[0] = 0.f;   // Ka
+  cbuf.g_MatKValue[1] = 0.4f;  // Kd
   cbuf.g_MatKValue[2] = 0.04f; // Ks1
-  cbuf.g_MatKValue[3] = 80.f; // Ex1
-  cbuf.g_fHairKs2 = .5f; // Ks2
-  cbuf.g_fHairEx2 = 8.0f; // Ex2
+  cbuf.g_MatKValue[3] = 80.f;  // Ex1
+  cbuf.g_fHairKs2 = .5f;       // Ks2
+  cbuf.g_fHairEx2 = 8.0f;      // Ex2
 
   cbuf.g_FiberRadius = 0.3f;
   cbuf.g_FiberAlpha = .5f;
@@ -420,8 +450,11 @@ static void fillConstantBuffer()
   cbuf.g_PointLightColor[3] = 1.f;
 
   irr::core::matrix4 View, InvView, tmp, LightMatrix;
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0.f, 0.f, 200.f), irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
-  View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f, 1000.f);
+  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(0.f, 0.f, 200.f),
+                                irr::core::vector3df(0.f, 0.f, 0.f),
+                                irr::core::vector3df(0.f, 1.f, 0.f));
+  View.buildProjectionMatrixPerspectiveFovRH(70.f / 180.f * 3.14f, 1.f, 1.f,
+                                             1000.f);
   View *= tmp;
   View.getInverse(InvView);
 
@@ -433,8 +466,10 @@ static void fillConstantBuffer()
 
   LightMatrix.buildProjectionMatrixPerspectiveFovRH(0.6f, 1.f, 532.f, 769.f);
 
-  tmp.buildCameraLookAtMatrixRH(irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1], cbuf.g_PointLightPos[2]),
-    irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
+  tmp.buildCameraLookAtMatrixRH(
+      irr::core::vector3df(cbuf.g_PointLightPos[0], cbuf.g_PointLightPos[1],
+                           cbuf.g_PointLightPos[2]),
+      irr::core::vector3df(0.f, 0.f, 0.f), irr::core::vector3df(0.f, 1.f, 0.f));
   LightMatrix *= tmp;
   memcpy(cbuf.g_mWorld, Model.pointer(), 16 * sizeof(float));
   memcpy(cbuf.g_mViewProj, View.pointer(), 16 * sizeof(float));
@@ -450,18 +485,19 @@ static void fillConstantBuffer()
   cbuf.g_fFarLight = 768.133728f;
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf, GL_STATIC_DRAW);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct Constants), &cbuf,
+               GL_STATIC_DRAW);
 }
 
 GLsync syncobj;
 
-void draw(float density)
-{
+void draw(float density) {
   fillConstantBuffer();
   // Reset PixelCount
   int pxcnt = 1;
   glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, PixelCountAtomic);
-  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), &pxcnt, GL_STATIC_DRAW);
+  glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(unsigned int), &pxcnt,
+               GL_STATIC_DRAW);
 
   glDisable(GL_CULL_FACE);
   glDisable(GL_BLEND);
@@ -477,7 +513,8 @@ void draw(float density)
   glBindVertexArray(TFXVaoLine);
   glUseProgram(HairShadow::getInstance()->Program);
   HairShadow::getInstance()->SetTextureUnits(ConstantBuffer);
-  glDrawElementsBaseVertex(GL_LINES, (GLsizei)(density * triangleIndicesCount), GL_UNSIGNED_INT, 0, 0);
+  glDrawElementsBaseVertex(GL_LINES, (GLsizei)(density * triangleIndicesCount),
+                           GL_UNSIGNED_INT, 0, 0);
 
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
@@ -497,14 +534,21 @@ void draw(float density)
     GLuint timer;
     glGenQueries(1, &timer);
     glBeginQuery(GL_TIME_ELAPSED, timer);
-    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT |
+                    GL_SHADER_STORAGE_BARRIER_BIT |
+                    GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     glBindVertexArray(TFXVao);
     glUseProgram(Transparent::getInstance()->Program);
-    Transparent::getInstance()->SetTextureUnits(ConstantBuffer, PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
-    glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei) (density * lineIndicesCount), GL_UNSIGNED_INT, 0, 0);
+    Transparent::getInstance()->SetTextureUnits(
+        ConstantBuffer, PerPixelLinkedListHeadTexture, GL_READ_WRITE, GL_R32UI);
+    glDrawElementsBaseVertex(GL_TRIANGLES,
+                             (GLsizei)(density * lineIndicesCount),
+                             GL_UNSIGNED_INT, 0, 0);
 
-    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT |
+                    GL_SHADER_STORAGE_BARRIER_BIT |
+                    GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     glEndQuery(GL_TIME_ELAPSED);
     GLuint result;
@@ -530,13 +574,13 @@ void draw(float density)
   glBlendFunc(GL_ONE, GL_SRC_ALPHA);
   glBlendEquation(GL_FUNC_ADD);
 
-
-  FragmentMerge::getInstance()->SetTextureUnits(ConstantBuffer, HairShadowMapDepth, Sampler, PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
+  FragmentMerge::getInstance()->SetTextureUnits(
+      ConstantBuffer, HairShadowMapDepth, Sampler,
+      PerPixelLinkedListHeadTexture, GL_READ_ONLY, GL_R32UI);
   DrawFullScreenEffect<FragmentMerge>();
 
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);
-
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0, 0, 1024, 1024);

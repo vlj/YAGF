@@ -1,15 +1,13 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <GLAPI/Shaders.h>
 #include <GLAPI/Debug.h>
+#include <GLAPI/Shaders.h>
 
-#include <fstream>
 #include "common.hpp"
-
+#include <fstream>
 
 float density = .4f;
-
 
 GLuint InitialPosSSBO;
 GLuint PrevPosSSBO;
@@ -19,90 +17,92 @@ GLuint RotationSSBO;
 GLuint LocalRefSSBO;
 GLuint FollowRootSSBO;
 
-
 GLuint ConstantSimBuffer;
 
-
-class GlobalConstraintSimulation : public ShaderHelperSingleton<GlobalConstraintSimulation>, public TextureRead<UniformBufferResource<0> >
-{
+class GlobalConstraintSimulation
+    : public ShaderHelperSingleton<GlobalConstraintSimulation>,
+      public TextureRead<UniformBufferResource<0>> {
 public:
-  GlobalConstraintSimulation()
-  {
-    std::ifstream in("../examples/TressFX/shaders/GlobalConstraints.comp", std::ios::in);
+  GlobalConstraintSimulation() {
+    std::ifstream in("../examples/TressFX/shaders/GlobalConstraints.comp",
+                     std::ios::in);
 
-    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    const std::string &shader = std::string(
+        (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-    Program = ProgramShaderLoading::LoadProgram(
-      GL_COMPUTE_SHADER, shader.c_str());
+    Program =
+        ProgramShaderLoading::LoadProgram(GL_COMPUTE_SHADER, shader.c_str());
   }
 };
 
-class LocalConstraintSimulation : public ShaderHelperSingleton<LocalConstraintSimulation>, public TextureRead<UniformBufferResource<0> >
-{
+class LocalConstraintSimulation
+    : public ShaderHelperSingleton<LocalConstraintSimulation>,
+      public TextureRead<UniformBufferResource<0>> {
 public:
-  LocalConstraintSimulation()
-  {
-    std::ifstream in("../examples/TressFX/shaders/LocalConstraints.comp", std::ios::in);
+  LocalConstraintSimulation() {
+    std::ifstream in("../examples/TressFX/shaders/LocalConstraints.comp",
+                     std::ios::in);
 
-    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    const std::string &shader = std::string(
+        (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-    Program = ProgramShaderLoading::LoadProgram(
-      GL_COMPUTE_SHADER, shader.c_str());
+    Program =
+        ProgramShaderLoading::LoadProgram(GL_COMPUTE_SHADER, shader.c_str());
   }
 };
 
-class WindLengthTangentConstraint : public ShaderHelperSingleton<WindLengthTangentConstraint>, public TextureRead<UniformBufferResource<0> >
-{
+class WindLengthTangentConstraint
+    : public ShaderHelperSingleton<WindLengthTangentConstraint>,
+      public TextureRead<UniformBufferResource<0>> {
 public:
+  WindLengthTangentConstraint() {
+    std::ifstream in(
+        "../examples/TressFX/shaders/LengthWindTangentComputation.comp",
+        std::ios::in);
 
-  WindLengthTangentConstraint()
-  {
-    std::ifstream in("../examples/TressFX/shaders/LengthWindTangentComputation.comp", std::ios::in);
+    const std::string &shader = std::string(
+        (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-
-    Program = ProgramShaderLoading::LoadProgram(
-      GL_COMPUTE_SHADER, shader.c_str());
+    Program =
+        ProgramShaderLoading::LoadProgram(GL_COMPUTE_SHADER, shader.c_str());
   }
 };
 
-class PrepareFollowHairGuide : public ShaderHelperSingleton<PrepareFollowHairGuide>, public TextureRead<UniformBufferResource<0> >
-{
+class PrepareFollowHairGuide
+    : public ShaderHelperSingleton<PrepareFollowHairGuide>,
+      public TextureRead<UniformBufferResource<0>> {
 public:
+  PrepareFollowHairGuide() {
+    std::ifstream in("../examples/TressFX/shaders/PrepareFollowHair.comp",
+                     std::ios::in);
 
-  PrepareFollowHairGuide()
-  {
-    std::ifstream in("../examples/TressFX/shaders/PrepareFollowHair.comp", std::ios::in);
+    const std::string &shader = std::string(
+        (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-
-    Program = ProgramShaderLoading::LoadProgram(
-      GL_COMPUTE_SHADER, shader.c_str());
+    Program =
+        ProgramShaderLoading::LoadProgram(GL_COMPUTE_SHADER, shader.c_str());
   }
 };
 
-class UpdateFollowHairGuide : public ShaderHelperSingleton<UpdateFollowHairGuide>, public TextureRead<UniformBufferResource<0> >
-{
+class UpdateFollowHairGuide
+    : public ShaderHelperSingleton<UpdateFollowHairGuide>,
+      public TextureRead<UniformBufferResource<0>> {
 public:
+  UpdateFollowHairGuide() {
+    std::ifstream in("../examples/TressFX/shaders/UpdateFollowHair.comp",
+                     std::ios::in);
 
-  UpdateFollowHairGuide()
-  {
-    std::ifstream in("../examples/TressFX/shaders/UpdateFollowHair.comp", std::ios::in);
+    const std::string &shader = std::string(
+        (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-    const std::string &shader = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-
-    Program = ProgramShaderLoading::LoadProgram(
-      GL_COMPUTE_SHADER, shader.c_str());
+    Program =
+        ProgramShaderLoading::LoadProgram(GL_COMPUTE_SHADER, shader.c_str());
   }
 };
-
-
-
 
 TressFXAsset tfxassets;
 
-void init()
-{
+void init() {
   DebugUtil::enableDebugOutput();
 
   tfxassets = loadTress("../examples/TressFX/ruby.tfxb");
@@ -110,44 +110,57 @@ void init()
 
   glGenBuffers(1, &InitialPosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, InitialPosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+               tfxassets.m_pVertices, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, InitialPosSSBO);
 
   glGenBuffers(1, &PrevPosSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, PrevPosSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pVertices, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+               tfxassets.m_pVertices, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, PrevPosSSBO);
 
   glGenBuffers(1, &StrandTypeSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, StrandTypeSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairStrands * sizeof(int), tfxassets.m_pHairStrandType, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairStrands * sizeof(int),
+               tfxassets.m_pHairStrandType, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, StrandTypeSSBO);
 
   glGenBuffers(1, &LengthSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, LengthSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * sizeof(float), tfxassets.m_pRestLengths, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * sizeof(float),
+               tfxassets.m_pRestLengths, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, LengthSSBO);
 
   glGenBuffers(1, &RotationSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, RotationSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pGlobalRotations, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+               tfxassets.m_pGlobalRotations, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, RotationSSBO);
 
   glGenBuffers(1, &LocalRefSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, LocalRefSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairVertices * 4 * sizeof(float), tfxassets.m_pRefVectors, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairVertices * 4 * sizeof(float),
+               tfxassets.m_pRefVectors, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, LocalRefSSBO);
 
   glGenBuffers(1, &FollowRootSSBO);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, FollowRootSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, tfxassets.m_NumTotalHairStrands * sizeof(float), tfxassets.m_pFollowRootOffset, GL_STATIC_DRAW);
+  glBufferData(GL_SHADER_STORAGE_BUFFER,
+               tfxassets.m_NumTotalHairStrands * sizeof(float),
+               tfxassets.m_pFollowRootOffset, GL_STATIC_DRAW);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, FollowRootSSBO);
 
   glGenBuffers(1, &ConstantSimBuffer);
 }
 
-void clean()
-{
+void clean() {
   cleanCommon();
   glDeleteBuffers(1, &ConstantSimBuffer);
   glDeleteBuffers(1, &StrandTypeSSBO);
@@ -161,8 +174,7 @@ void clean()
   cleanTFXAssetContent(tfxassets);
 }
 
-void simulate(float time)
-{
+void simulate(float time) {
   struct SimulationConstants cbuf = {};
 
   irr::core::matrix4 Model;
@@ -170,7 +182,6 @@ void simulate(float time)
     cbuf.bWarp = 1;
   else
     cbuf.bWarp = 0;
-
 
   double p;
 
@@ -206,7 +217,8 @@ void simulate(float time)
   cbuf.StiffnessForLocalShapeMatching3 = 1.f;
 
   cbuf.NumOfStrandsPerThreadGroup = 4;
-  cbuf.NumFollowHairsPerOneGuideHair = tfxassets.m_NumFollowHairsPerOneGuideHair;
+  cbuf.NumFollowHairsPerOneGuideHair =
+      tfxassets.m_NumFollowHairsPerOneGuideHair;
 
   cbuf.GravityMagnitude = 10.f;
   cbuf.NumLengthConstraintIterations = 2;
@@ -221,9 +233,11 @@ void simulate(float time)
     glDeleteSync(syncobj);
 
   glBindBuffer(GL_UNIFORM_BUFFER, ConstantSimBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf, GL_STATIC_DRAW);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(struct SimulationConstants), &cbuf,
+               GL_STATIC_DRAW);
 
-  int numOfGroupsForCS_VertexLevel = (int)((density + .05f) * (tfxassets.m_NumGuideHairVertices / 64));
+  int numOfGroupsForCS_VertexLevel =
+      (int)((density + .05f) * (tfxassets.m_NumGuideHairVertices / 64));
 
   // Prepare follow hair guide
   glUseProgram(PrepareFollowHairGuide::getInstance()->Program);
@@ -247,7 +261,8 @@ void simulate(float time)
 
   // Wind Lenght Tangent
   glUseProgram(WindLengthTangentConstraint::getInstance()->Program);
-  WindLengthTangentConstraint::getInstance()->SetTextureUnits(ConstantSimBuffer);
+  WindLengthTangentConstraint::getInstance()->SetTextureUnits(
+      ConstantSimBuffer);
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -257,22 +272,20 @@ void simulate(float time)
   glDispatchCompute(numOfGroupsForCS_VertexLevel, 1, 1);
 }
 
-int main()
-{
+int main() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-//      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+  //      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(1024, 1024, "GLtest", NULL, NULL);
   glfwMakeContextCurrent(window);
 
   glewExperimental = GL_TRUE;
   glewInit();
   init();
   float tmp = 0.;
-  while (!glfwWindowShouldClose(window))
-  {
+  while (!glfwWindowShouldClose(window)) {
     simulate(tmp);
     draw(density);
     glfwSwapBuffers(window);

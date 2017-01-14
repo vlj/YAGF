@@ -1,42 +1,40 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
+#include "..\include\Scene\Scene.h"
 #include <Scene\Scene.h>
 #include <algorithm>
-#include "..\include\Scene\Scene.h"
 
-struct ViewBuffer
-{
-	float ViewProj[16];
+struct ViewBuffer {
+  float ViewProj[16];
 };
 
 using namespace irr::scene;
 
-Scene::Scene()
-{
+Scene::Scene() {}
 
+Scene::~Scene() {}
+
+void Scene::update(device_t &dev) {
+  std::for_each(Nodes.begin(), Nodes.end(),
+                [&dev](std::unique_ptr<IMeshSceneNode> &node) {
+                  node->update_constant_buffers(dev);
+                });
 }
 
-Scene::~Scene()
-{
+void irr::scene::Scene::fill_gbuffer_filling_command(
+    command_list_t &cmd_list, pipeline_layout_t &object_sig) {
+  std::for_each(
+      Nodes.begin(), Nodes.end(),
+      [&cmd_list, &object_sig](std::unique_ptr<IMeshSceneNode> &node) {
+        node->fill_draw_command(cmd_list, object_sig);
+      });
 }
 
-void Scene::update(device_t &dev)
-{
-	std::for_each(Nodes.begin(), Nodes.end(), [&dev](std::unique_ptr<IMeshSceneNode> &node) { node->update_constant_buffers(dev); });
-}
-
-void irr::scene::Scene::fill_gbuffer_filling_command(command_list_t& cmd_list, pipeline_layout_t& object_sig)
-{
-	std::for_each(Nodes.begin(), Nodes.end(), [&cmd_list, &object_sig](std::unique_ptr<IMeshSceneNode> &node) { node->fill_draw_command(cmd_list, object_sig); });
-}
-
-irr::scene::IMeshSceneNode *Scene::addMeshSceneNode(
-	std::unique_ptr<irr::scene::IMeshSceneNode> &&mesh,
-	irr::scene::ISceneNode* parent,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale)
-{
-	Nodes.push_back(std::move(mesh));
-	return Nodes.back().get();
+irr::scene::IMeshSceneNode *
+Scene::addMeshSceneNode(std::unique_ptr<irr::scene::IMeshSceneNode> &&mesh,
+                        irr::scene::ISceneNode *parent,
+                        const glm::vec3 &position, const glm::vec3 &rotation,
+                        const glm::vec3 &scale) {
+  Nodes.push_back(std::move(mesh));
+  return Nodes.back().get();
 }
