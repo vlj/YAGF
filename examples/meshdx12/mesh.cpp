@@ -253,7 +253,7 @@ MeshSample::MeshSample()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	window = glfwCreateWindow(1280, 1024, "Window Title", nullptr, nullptr);
 
-	std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) = create_device_swapchain_and_graphic_presentable_queue(window);
+	std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) = create_device_swapchain_and_graphic_presentable_queue(window, );
 	Init();
 }
 

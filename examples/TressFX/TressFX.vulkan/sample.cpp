@@ -44,10 +44,11 @@ namespace
 }
 
 DEFINE_bool(uses_debug_marker, false, "Uses debug marker (renderdoc only).");
+DEFINE_bool(uses_debug_layer, false, "Uses debug layer.");
 
 sample::sample(GLFWwindow *window)
 {
-    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(window, FLAGS_uses_debug_marker);
+    auto dev_swapchain_queue = create_device_swapchain_and_graphic_presentable_queue(window, FLAGS_uses_debug_marker, FLAGS_uses_debug_layer);
     dev = std::move(std::get<0>(dev_swapchain_queue));
     queue = std::move(std::get<2>(dev_swapchain_queue));
     chain = std::move(std::get<1>(dev_swapchain_queue));

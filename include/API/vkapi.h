@@ -360,4 +360,4 @@ struct vk_framebuffer final: framebuffer_t
 #include "../VKAPI/pipeline_layout_helpers.h"
 #include "../VKAPI/renderpass_helpers.h"
 
-std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window, bool debug_marker);
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window, bool debug_marker, bool debug_layer);

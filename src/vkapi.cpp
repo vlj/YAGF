@@ -96,18 +96,13 @@ namespace
 	}
 }
 
-std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window, bool debug_marker)
+std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique_ptr<command_queue_t>, uint32_t, uint32_t, irr::video::ECOLOR_FORMAT> create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window, bool debug_marker, bool debug_layer)
 {
-	std::vector<const char*> layers = { 
-#ifndef NDEBUG
-		"VK_LAYER_LUNARG_standard_validation"
-#endif
-	};
-	std::vector<const char*> instance_extension = {
-#ifndef NDEBUG
-		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-#endif
-		VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+	const auto& layers = debug_layer ? std::vector<const char*>{ "VK_LAYER_LUNARG_standard_validation" } : std::vector<const char*>{};
+
+	const auto& instance_extension = debug_layer ?
+		std::vector<const char*>{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME } :
+		std::vector<const char*>{ VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
 	const auto app_info = vk::ApplicationInfo{}
 		.setApiVersion(VK_MAKE_VERSION(1, 0, 0))
@@ -125,28 +120,29 @@ std::tuple<std::unique_ptr<device_t>, std::unique_ptr<swap_chain_t>, std::unique
 			.setPApplicationInfo(&app_info)
 	);
 
-#ifndef NDEBUG
-	PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
-	PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback{};
-	VkDebugReportCallbackEXT debug_report_callback{};
+	if (debug_layer)
+	{
+		PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback{};
+		PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback{};
+		VkDebugReportCallbackEXT debug_report_callback{};
 
-	dbgCreateDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
-	assert(dbgCreateDebugReportCallback);
-	dbgDestroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-	assert(dbgDestroyDebugReportCallback);
+		dbgCreateDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+		assert(dbgCreateDebugReportCallback);
+		dbgDestroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+		assert(dbgDestroyDebugReportCallback);
 
-	VkDebugReportCallbackCreateInfoEXT create_info = {};
-	create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-	create_info.pNext = nullptr;
-	create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-	create_info.pfnCallback = &dbgFunc;
-	create_info.pUserData = nullptr;
+		VkDebugReportCallbackCreateInfoEXT create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+		create_info.pNext = nullptr;
+		create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+		create_info.pfnCallback = &dbgFunc;
+		create_info.pUserData = nullptr;
 
-	CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));
+		CHECK_VKRESULT(dbgCreateDebugReportCallback(instance, &create_info, NULL, &debug_report_callback));
 
-	/* Clean up callback */
-//	dbgDestroyDebugReportCallback(instance, debug_report_callback, NULL);
-#endif
+		/* Clean up callback */
+	//	dbgDestroyDebugReportCallback(instance, debug_report_callback, NULL);
+	}
 
 	const auto& devices = instance.enumeratePhysicalDevices();
 	const auto& queue_family_properties = devices[0].getQueueFamilyProperties();
