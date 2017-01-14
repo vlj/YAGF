@@ -1,6 +1,8 @@
 // Copyright (C) 2015 Vincent Lejeune
 // For conditions of distribution and use, see copyright notice in License.txt
+
 #include "../include/API/vkapi.h"
+#include <range\v3\all.hpp>
 #include <set>
 #include <sstream>
 
@@ -194,7 +196,7 @@ create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window,
     }
     throw;
   }();
-  const auto& queue_priorities = 0.f;
+  const auto &queue_priorities = 0.f;
   const auto queue_infos = std::array<vk::DeviceQueueCreateInfo, 1>{
       vk::DeviceQueueCreateInfo{}
           .setQueueFamilyIndex(queue_family_index)
@@ -278,14 +280,11 @@ create_device_swapchain_and_graphic_presentable_queue(GLFWwindow *window,
 
 std::vector<std::unique_ptr<image_t>>
 vk_swap_chain_t::get_image_view_from_swap_chain() {
-  auto swapchain_image = dev.getSwapchainImagesKHR(object);
-  auto result = std::vector<std::unique_ptr<image_t>>{};
-  std::transform(swapchain_image.begin(), swapchain_image.end(),
-                 std::back_inserter(result), [this](auto &&img) {
-                   return std::unique_ptr<image_t>(
-                       new vk_image_t(dev, img, vk::DeviceMemory(), 1));
-                 });
-  return result;
+  const auto &swapchain_images = dev.getSwapchainImagesKHR(object);
+  return swapchain_images | ranges::view::transform([this](const auto &img) {
+           return std::unique_ptr<image_t>(
+               new vk_image_t(dev, img, vk::DeviceMemory{}, 1));
+         });
 }
 
 std::unique_ptr<command_list_t>
@@ -364,13 +363,11 @@ vk_device_t::create_buffer(size_t size, irr::video::E_MEMORY_POOL memory_pool,
 std::unique_ptr<descriptor_storage_t> vk_device_t::create_descriptor_storage(
     uint32_t num_sets,
     const std::vector<std::tuple<RESOURCE_VIEW, uint32_t>> &num_descriptors) {
-  std::vector<vk::DescriptorPoolSize> poolSizes;
-
-  std::transform(num_descriptors.begin(), num_descriptors.end(),
-                 std::back_inserter(poolSizes), [](auto &&set) {
-                   return vk::DescriptorPoolSize(
-                       get_descriptor_type(std::get<0>(set)), std::get<1>(set));
-                 });
+  const auto &poolSizes = std::vector<vk::DescriptorPoolSize>{
+      num_descriptors | ranges::view::transform([](const auto &set) {
+        return vk::DescriptorPoolSize(get_descriptor_type(std::get<0>(set)),
+                                      std::get<1>(set));
+      })};
   return std::unique_ptr<descriptor_storage_t>(new vk_descriptor_storage_t(
       object,
       object.createDescriptorPool(
@@ -721,10 +718,11 @@ struct clear_value_visitor {
 void vk_command_list_t::begin_renderpass(render_pass_t &rp, framebuffer_t &fbo,
                                          gsl::span<clear_value_t> clear_values,
                                          uint32_t width, uint32_t height) {
-  std::vector<vk::ClearValue> clearValues;
-  std::transform(
-      clear_values.begin(), clear_values.end(), std::back_inserter(clearValues),
-      [&](auto &&v) { return std::visit(clear_value_visitor(), v); });
+  const auto &clearValues = std::vector<vk::ClearValue>{
+      clear_values | ranges::view::transform([&](const auto &v) {
+        return std::visit(clear_value_visitor(), v);
+      })};
+
   object.beginRenderPass(
       vk::RenderPassBeginInfo{}
           .setFramebuffer(dynamic_cast<vk_framebuffer &>(fbo).object)
@@ -854,8 +852,8 @@ void vk_command_list_t::set_pipeline_barrier(image_t &resource,
     return vk::AccessFlags();
   };
 
-  const auto& dst = dstAccess();
-  const auto& src = srcAccess();
+  const auto &dst = dstAccess();
+  const auto &src = srcAccess();
 
   object.pipelineBarrier(
       vk::PipelineStageFlagBits::eBottomOfPipe,
@@ -921,11 +919,10 @@ void vk_command_list_t::set_scissor(uint32_t left, uint32_t right, uint32_t top,
 std::unique_ptr<allocated_descriptor_set>
 vk_descriptor_storage_t::allocate_descriptor_set_from_cbv_srv_uav_heap(
     uint32_t, const std::vector<descriptor_set_layout *> layout, uint32_t) {
-  std::vector<vk::DescriptorSetLayout> set_layouts;
-  std::transform(layout.begin(), layout.end(), std::back_inserter(set_layouts),
-                 [](auto &&tmp) {
-                   return dynamic_cast<vk_descriptor_set_layout *>(tmp)->object;
-                 });
+  const auto &set_layouts = std::vector<vk::DescriptorSetLayout>{
+      layout | ranges::view::transform([](auto &&tmp) {
+        return dynamic_cast<vk_descriptor_set_layout *>(tmp)->object;
+      })};
   return std::unique_ptr<allocated_descriptor_set>(
       new vk_allocated_descriptor_set(dev.allocateDescriptorSets(
           vk::DescriptorSetAllocateInfo{}
@@ -1087,14 +1084,13 @@ std::unique_ptr<framebuffer_t>
 vk_device_t::create_frame_buffer(gsl::span<const image_view_t *> render_targets,
                                  uint32_t width, uint32_t height,
                                  render_pass_t *render_pass) {
-  std::vector<vk::ImageView> attachments;
-  std::transform(render_targets.begin(), render_targets.end(),
-                 std::back_inserter(attachments), [&](const auto &input) {
-                   return dynamic_cast<const vk_image_view_t *>(input)->object;
-                 });
+  const auto &attachments = std::vector<vk::ImageView>{
+      render_targets | ranges::view::transform([&](const auto &input) {
+        return dynamic_cast<const vk_image_view_t *>(input)->object;
+      })};
   return std::unique_ptr<framebuffer_t>(new vk_framebuffer(
-      object, dynamic_cast<vk_render_pass_t *>(render_pass)->object, attachments,
-      width, height, 1));
+      object, dynamic_cast<vk_render_pass_t *>(render_pass)->object,
+      attachments, width, height, 1));
 }
 
 std::unique_ptr<framebuffer_t>
@@ -1102,32 +1098,31 @@ vk_device_t::create_frame_buffer(gsl::span<const image_view_t *> render_targets,
                                  const image_view_t &depth_stencil_texture,
                                  uint32_t width, uint32_t height,
                                  render_pass_t *render_pass) {
-  std::vector<vk::ImageView> attachments;
-  std::transform(render_targets.begin(), render_targets.end(),
-                 std::back_inserter(attachments), [&](const auto input) {
-                   return dynamic_cast<const vk_image_view_t *>(input)->object;
-                 });
-  attachments.push_back(
-      dynamic_cast<const vk_image_view_t &>(depth_stencil_texture).object);
+  const auto &attachments = std::vector<vk::ImageView>{ranges::view::concat(
+      render_targets | ranges::view::transform([&](const auto input) {
+        return dynamic_cast<const vk_image_view_t *>(input)->object;
+      }),
+      ranges::view::single(
+          dynamic_cast<const vk_image_view_t &>(depth_stencil_texture)
+              .object))};
   return std::unique_ptr<framebuffer_t>(new vk_framebuffer(
-      object, dynamic_cast<vk_render_pass_t *>(render_pass)->object, attachments,
-      width, height, 1));
+      object, dynamic_cast<vk_render_pass_t *>(render_pass)->object,
+      attachments, width, height, 1));
 }
 
 void vk_command_list_t::end_renderpass() { object.endRenderPass(); }
 
 std::unique_ptr<descriptor_set_layout>
 vk_device_t::get_object_descriptor_set(const descriptor_set &ds) {
-  std::vector<vk::DescriptorSetLayoutBinding> descriptor_range_storage;
-  descriptor_range_storage.reserve(ds.descriptors_ranges.size());
-  std::transform(ds.descriptors_ranges.begin(), ds.descriptors_ranges.end(),
-                 std::back_inserter(descriptor_range_storage), [&](auto &&rod) {
-                   return vk::DescriptorSetLayoutBinding{}
-                       .setBinding(rod.bind_point)
-                       .setDescriptorCount(rod.count)
-                       .setDescriptorType(get_descriptor_type(rod.range_type))
-                       .setStageFlags(get_shader_stage(ds.stage));
-                 });
+  const auto &descriptor_range_storage =
+      std::vector<vk::DescriptorSetLayoutBinding>{
+          ds.descriptors_ranges | ranges::view::transform([&](const auto &rod) {
+            return vk::DescriptorSetLayoutBinding{}
+                .setBinding(rod.bind_point)
+                .setDescriptorCount(rod.count)
+                .setDescriptorType(get_descriptor_type(rod.range_type))
+                .setStageFlags(get_shader_stage(ds.stage));
+          })};
   return std::unique_ptr<descriptor_set_layout>(new vk_descriptor_set_layout(
       object,
       object.createDescriptorSetLayout(
@@ -1179,11 +1174,9 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(
       }
       throw;
     };
-
-    auto &&result = std::vector<vk::PipelineColorBlendAttachmentState>{};
-    std::transform(
-        pso_desc.color_outputs.begin(), pso_desc.color_outputs.end(),
-        std::back_inserter(result), [&](const auto &color_output) {
+    return std::vector<vk::PipelineColorBlendAttachmentState>{
+        pso_desc.color_outputs |
+        ranges::view::transform([&](const auto &color_output) {
           return vk::PipelineColorBlendAttachmentState{}
               .setBlendEnable(color_output.blend)
               .setAlphaBlendOp(get_op(color_output.op))
@@ -1195,8 +1188,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(
                                  vk::ColorComponentFlagBits::eB |
                                  vk::ColorComponentFlagBits::eG |
                                  vk::ColorComponentFlagBits::eR);
-        });
-    return result;
+        })};
   }();
 
   const auto color_blend =
@@ -1243,15 +1235,12 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(
   }();
 
   const auto &vertex_input_attributes = [&]() {
-    auto &&result = std::vector<vk::VertexInputAttributeDescription>{};
-    std::transform(
-        pso_desc.attributes.begin(), pso_desc.attributes.end(),
-        std::back_inserter(result),
-        [&](const auto &attrib) -> vk::VertexInputAttributeDescription {
-          return {attrib.location, attrib.binding, get_vk_format(attrib.format),
-                  attrib.offset};
-        });
-    return result;
+    return std::vector<vk::VertexInputAttributeDescription>{
+        pso_desc.attributes | ranges::view::transform([&](const auto &attrib) {
+          return vk::VertexInputAttributeDescription{
+              attrib.location, attrib.binding, get_vk_format(attrib.format),
+              attrib.offset};
+        })};
   }();
 
   const auto vertex_input =
@@ -1364,15 +1353,10 @@ std::unique_ptr<compute_pipeline_state_t> vk_device_t::create_compute_pso(
 
 std::unique_ptr<pipeline_layout_t> vk_device_t::create_pipeline_layout(
     gsl::span<const descriptor_set_layout *> sets) {
-  const auto &descriptor_layout = [&]() {
-    std::vector<vk::DescriptorSetLayout> result;
-    std::transform(
-        sets.begin(), sets.end(), std::back_inserter(result),
-        [](const auto input) {
-          return dynamic_cast<const vk_descriptor_set_layout *>(input)->object;
-        });
-    return result;
-  }();
+  const auto &descriptor_layout = std::vector<vk::DescriptorSetLayout>{
+      sets | ranges::view::transform([](const auto &input) {
+        return dynamic_cast<const vk_descriptor_set_layout *>(input)->object;
+      })};
   const auto &result = object.createPipelineLayout(
       vk::PipelineLayoutCreateInfo{}
           .setPSetLayouts(descriptor_layout.data())

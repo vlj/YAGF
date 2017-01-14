@@ -350,7 +350,8 @@ MeshSample::MeshSample() {
   window = glfwCreateWindow(1280, 1024, "Window Title", nullptr, nullptr);
 
   std::tie(dev, chain, cmdqueue, width, height, swap_chain_format) =
-      create_device_swapchain_and_graphic_presentable_queue(window, FLAGS_uses_debug_marker, FLAGS_uses_debug_layer);
+      create_device_swapchain_and_graphic_presentable_queue(
+          window, FLAGS_uses_debug_marker, FLAGS_uses_debug_layer);
   Init();
 }
 
