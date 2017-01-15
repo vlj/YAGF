@@ -5,6 +5,7 @@
 #include <array>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
+#include <range\v3\all.hpp>
 #include <tuple>
 #include <unordered_map>
 
@@ -59,13 +60,18 @@ IMeshSceneNode::IMeshSceneNode(device_t &dev, const aiScene *model,
   weightsList.push_back(weights);
   }*/
 
-  size_t total_vertex_cnt = 0;
-  total_index_cnt = 0;
-  for (unsigned int i = 0; i < model->mNumMeshes; ++i) {
-    const aiMesh *mesh = model->mMeshes[i];
-    total_vertex_cnt += mesh->mNumVertices;
-    total_index_cnt += mesh->mNumFaces * 3;
-  }
+  const auto &meshes =
+      ranges::make_range(model->mMeshes, model->mMeshes + model->mNumMeshes);
+  const auto &total_vertex_cnt =
+      ranges::accumulate(meshes | ranges::view::transform([](const auto &mesh) {
+                           return mesh->mNumVertices;
+                         }),
+                         0);
+  total_index_cnt =
+      ranges::accumulate(meshes | ranges::view::transform([](const auto &mesh) {
+                           return mesh->mNumFaces * 3;
+                         }),
+                         0);
 
   index_buffer = dev.create_buffer(total_index_cnt * sizeof(uint16_t),
                                    irr::video::E_MEMORY_POOL::EMP_CPU_WRITEABLE,
