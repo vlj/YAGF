@@ -104,9 +104,8 @@ IMeshSceneNode::IMeshSceneNode(device_t &dev, const aiScene *model,
       vertex_uv_map[basevertex + vtx] = mesh->mTextureCoords[0][vtx];
     }
     for (unsigned int idx = 0; idx < mesh->mNumFaces; ++idx) {
-      indexmap[baseindex + 3 * idx] = mesh->mFaces[idx].mIndices[0];
-      indexmap[baseindex + 3 * idx + 1] = mesh->mFaces[idx].mIndices[1];
-      indexmap[baseindex + 3 * idx + 2] = mesh->mFaces[idx].mIndices[2];
+      std::copy(mesh->mFaces[idx].mIndices, mesh->mFaces[idx].mIndices + 3,
+                indexmap + (3 * idx + baseindex));
     }
     meshOffset.push_back(
         std::make_tuple(mesh->mNumFaces * 3, basevertex, baseindex));
