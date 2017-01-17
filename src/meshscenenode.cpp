@@ -96,24 +96,34 @@ IMeshSceneNode::IMeshSceneNode(device_t &dev, const aiScene *model,
   uint32_t basevertex = 0;
   uint32_t baseindex = 0;
 
+  auto meshes_model = ranges::make_range(model->mMeshes, model->mMeshes + model->mNumMeshes);
+  auto index_input = meshes_model |
+      ranges::view::transform([](const auto mesh) { return ranges::make_range(mesh->mFaces, mesh->mFaces + mesh->mNumFaces); }) |
+      ranges::view::join |
+      ranges::view::transform([](const auto& face) { return ranges::make_range(face.mIndices, face.mIndices + 3); }) |
+      ranges::view::join;
+  ranges::copy(index_input, indexmap);
+  ranges::copy(meshes_model |
+      ranges::view::transform([](const auto mesh) { return ranges::make_range(mesh->mVertices, mesh->mVertices + mesh->mNumVertices); }) |
+      ranges::view::join,
+      vertex_pos_map);
+  ranges::copy(meshes_model |
+      ranges::view::transform([](const auto mesh) { return ranges::make_range(mesh->mNormals, mesh->mNormals + mesh->mNumVertices); }) |
+      ranges::view::join,
+      vertex_normal_map);
+  ranges::copy(meshes_model |
+      ranges::view::transform([](const auto mesh) { return ranges::make_range(mesh->mTextureCoords[0], mesh->mTextureCoords[0] + mesh->mNumVertices); }) |
+      ranges::view::join,
+      vertex_uv_map);
+
   for (unsigned int i = 0; i < model->mNumMeshes; ++i) {
     const aiMesh *mesh = model->mMeshes[i];
-    for (unsigned int vtx = 0; vtx < mesh->mNumVertices; ++vtx) {
-      vertex_pos_map[basevertex + vtx] = mesh->mVertices[vtx];
-      vertex_normal_map[basevertex + vtx] = mesh->mNormals[vtx];
-      vertex_uv_map[basevertex + vtx] = mesh->mTextureCoords[0][vtx];
-    }
-    for (unsigned int idx = 0; idx < mesh->mNumFaces; ++idx) {
-      std::copy(mesh->mFaces[idx].mIndices, mesh->mFaces[idx].mIndices + 3,
-                indexmap + (3 * idx + baseindex));
-    }
     meshOffset.push_back(
         std::make_tuple(mesh->mNumFaces * 3, basevertex, baseindex));
     basevertex += mesh->mNumVertices;
     baseindex += mesh->mNumFaces * 3;
     texture_mapping.push_back(mesh->mMaterialIndex);
   }
-
   index_buffer->unmap_buffer();
   vertex_pos->unmap_buffer();
   vertex_normal->unmap_buffer();
