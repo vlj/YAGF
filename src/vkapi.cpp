@@ -1320,7 +1320,7 @@ std::unique_ptr<pipeline_state_t> vk_device_t::create_graphic_pso(
           .setRenderPass(
               dynamic_cast<const vk_render_pass_t &>(render_pass).object)
           .setLayout(dynamic_cast<const vk_pipeline_layout_t &>(layout).object)
-          .setPTessellationState(&tesselation_info)
+          //.setPTessellationState(&tesselation_info)
           .setPDynamicState(&dynamic_state_info)
           .setSubpass(subpass)
           .setStageCount(static_cast<uint32_t>(shader_stages.size()))
